@@ -20,7 +20,7 @@ World$fetchData("all")
 
 
 #We can define a new variable as a function (read from an R-file, if library is not loaded)
-#if not already executed eg. by fakeLib.R do source("../sboo/R/v_AreaSea.R")
+#if not already executed eg. by fakeLib.R do source("../SBoo/R/v_AreaSea.R")
 #the function (AND the variable by definition also) looks like:
 AreaSea        #
 

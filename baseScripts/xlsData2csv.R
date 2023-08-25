@@ -4,7 +4,7 @@
 # to see changes the best, it's very convenient if all are sorted consistently
 
 #just to import function 
-#source("../sboo/R/fGeneral.R")
+#source("../SBoo/R/fGeneral.R")
 
 # the sheets to import
 Defs = c(

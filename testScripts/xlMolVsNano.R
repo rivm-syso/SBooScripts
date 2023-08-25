@@ -2,7 +2,7 @@
 #This script demonstrates how to find the logic in excel, and 
 #compares the molecular version with nano 
 
-#script to faking the future library(sboo)
+#script to faking the future library(SBoo)
 source("baseScripts/fakeLib.R")
 
 #We need a landscape, to create a "World"
