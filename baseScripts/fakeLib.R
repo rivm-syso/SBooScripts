@@ -2,8 +2,8 @@ library(tidyverse)
 library(ggdag) #for plotting DAG graphs
 library(R6)
 library(rlang)
-#path to the sboo package
-Path2PackageSource <- "../sboo"
+#path to the SBoo package
+Path2PackageSource <- "../SBoo"
 
 #source all R files and load data from the package
 Dfiles <- list.files(paste(Path2PackageSource, "data", sep = "/"), pattern = "\\.rda$")

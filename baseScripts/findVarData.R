@@ -1,4 +1,4 @@
-# grab variable data from sboo csvs.
+# grab variable data from SBoo csvs.
 # 
 # we need 
 library(tidyverse)

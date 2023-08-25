@@ -1,7 +1,7 @@
 #This script runs SB for multiple substances
 #This helps testing and comparing versions of SB
 
-#script to faking the future library(sboo)
+#script to faking the future library(SBoo)
 source("baseScripts/fakeLib.R")
 
 # The list with substances; The must all be present in the data - see data/Substances.csv
@@ -18,7 +18,7 @@ for (substance in Substances2Run) {
 
   NewstateModule <- ClassicNanoWorld$new("data", substance)
   World <- SBcore$new(NewstateModule)
-  #load all variables and processes in sboo
+  #load all variables and processes in SBoo
   baseScripts/DefaultVarDefinitions.R
   
 }

@@ -1,6 +1,6 @@
 #This script initialises a standard test (global) environment
 
-#script to faking the future library(sboo)
+#script to faking the future library(SBoo)
 source("baseScripts/fakeLib.R")
 
 #to run the script with another selection of substance / excel reference,

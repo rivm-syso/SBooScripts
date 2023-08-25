@@ -1,6 +1,6 @@
 library(tidyverse)
 
-#script to initialize test environment faking library(sboo)
+#script to initialize test environment faking library(SBoo)
 source("baseScripts/fakeLib.R")
 
 NewstateModule <- ClassicNanoWorld$new("data", "Ag(I)")

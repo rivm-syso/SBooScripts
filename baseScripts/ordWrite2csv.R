@@ -1,4 +1,4 @@
-# write sboo data tidied and ordered to csv's
+# write SBoo data tidied and ordered to csv's
 # sourced from different scripts...
 # Defs should be vector of names and consistent with that 
 # MlikeWorkBook a list of dataframes
