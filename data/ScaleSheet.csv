@@ -1,0 +1,6 @@
+"Scale","Default","AbbrS","ScaleName","TotalArea","FRACsea","Temp","C.OHrad","AEROSOLdeprate","FRACaers","FRACaerw","FRACcldw","NumConcNuc","NumConcAcc","NumConcCP","ScaleIsGlobal","RAINrate","dischargeFRAC","TAUsea","k_AdvectionWaters","FRACtwet","SettlVelocitywater","FRACinf","twet","tdry","COLLECTeff"
+"Arctic",1,"A","Arctic",4.25e+13,0.6,263,5e+05,0.001,2e-11,2e-11,3e-07,3.2e+09,2.9e+09,3e+05,TRUE,250,NA,4752000,FALSE,1,2.89e-05,0.25,0.210638298,3.3,200000
+"Continental",1,"C","Continental",7.43e+12,0.5,285,5e+05,0.001,2e-11,2e-11,3e-07,3.2e+09,2.9e+09,3e+05,FALSE,700,0,31536000,TRUE,1,2.89e-05,0.25,0.210638298,3.3,200000
+"Moderate",1,"M","Moderate",8.5e+13,0.5,285,5e+05,0.001,2e-11,2e-11,3e-07,3.2e+09,2.9e+09,3e+05,TRUE,700,NA,4752000,FALSE,1,2.89e-05,0.25,0.210638298,3.3,200000
+"Regional",1,"R","Regional",2.3e+11,0.00435597,285,5e+05,0.001,2e-11,2e-11,3e-07,3.2e+09,2.9e+09,3e+05,FALSE,700,0,NA,TRUE,1,2.89e-05,0.25,0.210638298,3.3,200000
+"Tropic",1,"T","Tropic",1.28e+14,0.7,298,5e+05,0.001,2e-11,2e-11,3e-07,3.2e+09,2.9e+09,3e+05,TRUE,1300,NA,4752000,FALSE,1,2.89e-05,0.25,0.210638298,3.3,200000

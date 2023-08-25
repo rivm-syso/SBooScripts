@@ -1,0 +1,212 @@
+---
+title: "Physical inter media transport processes"
+author: "JS"
+date: "3/31/2022"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+*Notice* the convention of filenames and the function names. The convention of filenames is given in the AAAreadme.R file in the sboo project. (I think it will be on the top of your list when your sort the filenames alphabetically) All filenames and function names are identical, with two exceptions: 1. fGeneral.R contains some very general functions. 2. defining functions of SBOO variables do not contain the preposition v\_ which makes them easier to read and still distinguish from flows or regular functions.
+
+## Other intermedia transfer processes
+
+Intermedia processes discussed here are:
+
+-   Erosion
+
+-   Run-off
+
+-   Sedimentation
+
+-   Resuspension
+
+The diffusion based processes (DiffusionProcesses.Rmd) and deposition are descibed elsewhere (Deposition.Rmd).
+
+### Erosion
+
+These processes are combined in the excel versions, like k = (RAINrate \* FRACrun/Ks1w + EROSION) \* CORRrunoff / DEPTH
+
+In the R version, if multiple processes are defined for the same transfer, the k's are automatically added. This makes it easier to define and possibly re-define each process. In this case the factor CORRrunoff / DEPTH will be executed twice. We believe the loss in calculation speed is negligible. And this approach is in favor of clearly defined process functions.
+
+The factor CORRrunoff (Correction factor depth dependent soil concentration) however is calculated as EXP((-1/0.1) \* 0) \* (1/0.1) \* DEPTH / (1-EXP((-1/0.1) \* DEPTH)) for the assumed pentration depth of 0.1 m [REF]. To make sure this remains the same for both Runoff and erosion, we define a variable to calculate it. The only parameter, so far, is DEPTH, which has been renamed to vertDistance in the R version (combined with height). We will define the two processes separate, first the erosion process, with a variable and a process defining function.
+
+```{r prepare}
+#Regular init for testing
+source("baseScripts/initTestWorld.R")
+print("") #newline for anoying tidyverse Joining message
+
+# source("newAlgorithmScripts/k_Runoff.R")
+
+
+
+# data needed for k_Erosion:
+World$fetchData("relevant_depth_s")
+World$fetchData("penetration_depth_s")
+World$fetchData("EROSIONsoil")
+World$fetchData("VertDistance")
+World$fetchData("ScaleName")
+
+
+```
+
+There is an anomaly in the routes that Erosion takes place. The current implementation in SBoo and in SBexcel is that there is only 1 receiving water compartment (water at CR and sea at global scales). Where in fact there is at CR scales also lake water and sea water, which might not need to be neglected. \*this is an issue to potentially fix still in SB4 scope. Same holds for Runoff.
+
+#### We add both objects and calculate the variable:
+
+```{r testingtesting}
+
+# test1 <- World$NewProcess("k_Runoff")
+# test1$UpdateKaas("k_Runoff")
+# World$fetchData("Kscompw")
+
+World$FromDataAndTo("k_Erosion")
+
+World$fetchData("SubCompartName")
+World$fetchData("ScaleName")
+
+test1 <- World$NewProcess("k_Erosion")
+test1$execute()
+
+
+#testVar$execute(debugAt = list()) #an empty list always triggers
+# test1$execute(debugAt = list(ScaleName = "Regional"))
+#The actual execution of th eproces:
+test1$execute()
+
+#AirFlow was calculated, but not stored; this can also be arranged by
+# World$UpdateKaas() #which (tries to ) calculate all kaas
+
+#which can be debugged, similar to variables:
+# testClass$execute(debugAt = list(fromScale = "Continental"))
+
+#and we can plot the DAG:
+NodeAsText <- paste(World$nodelist$Params, "->" ,World$nodelist$Calc)
+AllNodesAsText <- do.call(paste, c(as.list(NodeAsText), list(sep = ";")))
+dag <- dagitty::dagitty(paste("dag{", AllNodesAsText, "}"))
+plot(dagitty::graphLayout(dag))
+
+#Replace the (saved) kaas of World
+World$UpdateKaas(mergeExisting = F)
+
+# World$fetchData("Kscompw")
+
+```
+
+#### process calculation and where does it take place?
+
+Where a process takes place is usually stored in one of the three process table, which of the three depending on the dimension that is crossed by the process. In this case it's in SubCompartProcesses. Note
+
+```{r}
+SubCompartProcesses <- World$fetchData("SubCompartProcesses")
+SubCompartProcesses[SubCompartProcesses$process == "k_Erosion",]
+```
+
+How can erosion go to river AND to sea? This is because there is no subcompartment river in the global scales. To solve this, we have to adjust the function to correct this. This is where the parameters ScaleName and to.SubCompartName will be used for. We return NA for cases that do not exists. (BTW there is always an automated check on states [boxes] that do not exist.)
+
+```{r}
+k_Erosion <- function(relevant_depth_s,penetration_depth_s, EROSIONsoil, VertDistance, ScaleName, to.SubCompartName){
+  if (ScaleName %in% c("Regional", "Continental") & to.SubCompartName == "sea") {
+    return(NA)
+  } 
+  if ((ScaleName %in% c("Tropic", "Moderate", "Arctic")) & to.SubCompartName != "sea") {
+    return(NA)
+  } 
+  
+  EROSIONsoil * f_CORRsoil(VertDistance, relevant_depth_s, penetration_depth_s) / VertDistance #[s-1]
+}
+World$NewProcess("k_Erosion")
+World$UpdateKaas("k_Erosion")
+World$kaas
+```
+
+### Runoff
+
+While we're at it, we can do Runoff in a similar way. Here the formula is: RAINrate \* FRACrun / Ksw \* CORRrunoff / VertDistance So we need Ksw, which can be in the data, or you can apply a formulas depending on the type of substance. See the vignette partitioning.Rmd.
+
+```{r}
+
+source("newAlgorithmScripts/k_Runoff.R")
+
+World$NewCalcVariable("Kscompw")
+World$CalcVar("Kscompw" )
+
+World$FromDataAndTo("k_Runoff")
+
+test1 <- World$NewProcess("k_Runoff")
+test1$execute()
+
+#testVar$execute(debugAt = list()) #an empty list always triggers
+# test1$execute(debugAt = list(ScaleName = "Regional"))
+#The actual execution of th eproces:
+# test1$execute()
+
+
+SubCompartProcesses <- World$fetchData("SubCompartProcesses")
+SubCompartProcesses[SubCompartProcesses$process == "k_Runoff",]
+
+
+
+```
+
+## Sedimentation
+
+The water subcompartments are comonly refered to as river, but this might be better suited to be called freshwater? In any way the sediment compartment is currently konwn by freshwatersediment.
+
+```{r}
+
+source("newAlgorithmScripts/k_Sedimentation.R")
+source("newAlgorithmScripts/v_SettVellNat.R")
+World$NewCalcVariable("SettVellNat")
+World$CalcVar("SettVellNat" )
+
+World$NewCalcVariable("rad_species")
+World$CalcVar("rad_species" )
+World$NewCalcVariable("rho_species")
+World$CalcVar("rho_species" )
+# why are no values returned?
+
+World$fetchData("RhoS")
+World$fetchData("RadS")
+World$fetchData("NaturalRho")
+World$fetchData("NaturalRad")
+World$fetchData("RhoNuc")
+World$fetchData("RadNuc")
+World$fetchData("RhoAcc")
+World$fetchData("RadAcc")
+World$fetchData("NumConcNuc")
+World$fetchData("NumConcAcc")
+World$fetchData("Df")
+
+
+World$FromDataAndTo("k_Sedimentation")
+
+test1 <- World$NewProcess("k_Sedimentation")
+test1$execute()
+
+```
+
+## Resuspension
+
+```{r}
+
+
+source("newAlgorithmScripts/k_Resuspension.R")
+
+World$FromDataAndTo("k_Resuspension")
+
+
+World$fetchData("SUSP")
+World$fetchData("NETsedrate")
+test1 <- World$NewProcess("k_Resuspension")
+test1$execute()
+
+# lake sediment missing!
+```

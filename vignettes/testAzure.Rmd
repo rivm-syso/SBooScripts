@@ -1,0 +1,41 @@
+---
+title: "testing connection to Teams and Sharepoint"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+This is a simple test of the AzureR package to work with in R, e.g. [Microsoft365R](https://github.com/Azure/Microsoft365R).
+
+```{r}
+library("Microsoft365R")
+
+od <- get_sharepoint_site(site_url = "https://rivmnl.sharepoint.com/sites/SimpleBox-Developmentnanoandmicroparticles/",
+                    tenant="rivm.nl",
+                    auth_type="device_code",
+                    app="04b07795-8ddb-461a-bbee-02f9e1bf7b46")
+
+od$list_drives()
+od$list_subsites()
+
+test1 <- get_sharepoint_site(site_url = "https://rivmnl.sharepoint.com/sites/SimpleBox-Developmentnanoandmicroparticles/",
+                    tenant="rivm.nl",
+                    auth_type="device_code",
+                    app="04b07795-8ddb-461a-bbee-02f9e1bf7b46")
+
+  test2 <- get_team(team_name = "SimpleBox",auth_type="device_code",app="04b07795-8ddb-461a-bbee-02f9e1bf7b46")
+  
+  test2$list_channels()
+
+  SB4Ndevchan <- test$get_channel("Development - 4nano and micro particles")
+  SB4Ndevchan$list_files(path = "Documents/Development nano and microparticles/SimpleBox_4nano")
+  SB4Ndevchan$list_files(path = "Documents/Development nano and microparticles/SimpleBox_4nano")    
+  
+  
+  
+  SB4Ndevchan$list_files()    
+  SB4Ndevchan$download_file("20210331 SimpleBox4nano_rev007.xlsx")
+  
+```
+
+The results are that until now I'm unable to access any files, but a connection is made and e.g. channel names are read etc.

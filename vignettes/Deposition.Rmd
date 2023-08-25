@@ -1,0 +1,154 @@
+---
+title: "Deposition Processes"
+author: "JQ"
+date: "2023-08-22"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(include = FALSE)
+knitr::knit_meta()
+# knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+## INTERMEDIA TRANSFER
+
+The intermedia transfer processes are related to transport from air to soil/water and from water to sediment, and vice versa. Also transport from soil to water.
+
+Another vignette describes the flows related to diffusion processes (DiffusionProcesses.Rmd) and other intermedia transfer coefficients (OtherInterMedia.Rmd)
+
+### Preparation
+
+We initialise a "World" and calculate the needed parameters.
+
+```{r initiate, echo=TRUE, message=FALSE, warning=TRUE}
+#we initialize the test environment with the default substance, therefor we remove possible earlier value
+rm(substance)
+#script to initialize test environment, including faking a future 'library(sboo)'
+try(source("baseScripts/initTestWorld.R"))
+#calculation of the needed SB variables, first compiling their defining functions
+
+# non variable input data which is calculated (see partioning.Rmd) needs to be available before you can proceed
+
+# This needs to be calculated first:
+World$NewCalcVariable("FRorig")
+World$CalcVar("FRorig")
+World$NewCalcVariable("FRorig_spw")
+World$CalcVar("FRorig_spw")
+World$NewCalcVariable("FRACa")
+World$CalcVar("FRACa")
+World$NewCalcVariable("FRACw")
+World$CalcVar("FRACw")
+World$NewCalcVariable("FRACs")
+World$CalcVar("FRACs")
+# World$fetchData()
+
+# debugonce(fKsw)
+
+KswModelled <- fKsw(Kow = World$fetchData("Kow"), 
+                    pKa = 7, 
+                    CorgStandard = World$fetchData("CorgStandard"), 
+                    a = with(World$fetchData("QSARtable"), 
+                             a[QSAR.ChemClass == World$fetchData("ChemClass")]), 
+                    b = with(World$fetchData("QSARtable"), 
+                             b[QSAR.ChemClass == World$fetchData("ChemClass")]), 
+                    ChemClass = World$fetchData("ChemClass"),
+                    RHOsolid = with(World$fetchData("rhoMatrix"),
+                                    rhoMatrix[SubCompart == "othersoil"]),
+                    alt_form = F)
+
+Ksw.alt <- fKsw(Kow = World$fetchData("Kow"), 
+                    pKa = 7, 
+                    CorgStandard = World$fetchData("CorgStandard"), 
+                    a = with(World$fetchData("QSARtable"), 
+                             a[QSAR.ChemClass == World$fetchData("ChemClass")]), 
+                    b = with(World$fetchData("QSARtable"), 
+                             b[QSAR.ChemClass == World$fetchData("ChemClass")]), 
+                    ChemClass = World$fetchData("ChemClass"),
+                    RHOsolid = with(World$fetchData("rhoMatrix"),
+                                    rhoMatrix[SubCompart == "othersoil"]),
+                    alt_form = T, KswModelled)
+
+FromData <- World$fetchData("Globals")
+FromData$Ksw <- KswModelled
+FromData$Ksw.alt <- Ksw.alt
+FromData$RHOsolid <- with(World$fetchData("rhoMatrix"),
+                                    rhoMatrix[SubCompart == "othersoil"])
+World$UpdateData(FromData, keys = T, TableName = "Globals")
+
+source("/rivm/s/quikj/SimpleBox_dev/sbooScripts/newAlgorithmScripts/f_kdegcalc.R")
+kdeg.sediment <- kdegcalc(Q.10 = World$fetchData("Q.10"), 
+                          Ksw = World$fetchData("Ksw"), 
+                          Biodeg = "r", 
+                          C.OHrad.n = World$fetchData("C.OHrad.n"), 
+                          Ea.OHrad = World$fetchData("Ea.OHrad"), 
+                          k0.OHrad = World$fetchData("k0.OHrad"),
+                          CorgStandard = World$fetchData("CorgStandard"), 
+                          RHOsolid = World$fetchData("RHOsolid"),
+                          Matrix = "sediment")
+FromData <- World$fetchData("Globals")
+FromData$kdeg.sediment <- kdeg.sediment
+World$UpdateData(FromData, keys = T, TableName = "Globals")
+
+World$NewCalcVariable("Kp")
+World$CalcVar("Kp")
+
+World$NewCalcVariable("D")
+World$CalcVar("D")
+World$NewCalcVariable("KpCOL")
+World$CalcVar("KpCOL")
+
+World$NewCalcVariable("Kacompw")
+World$CalcVar("Kacompw")
+
+World$NewCalcVariable("FRinw")
+World$CalcVar("FRinw")
+
+World$NewCalcVariable("Kaerw")
+World$CalcVar("Kaerw")
+World$NewCalcVariable("Kaers")
+World$CalcVar("Kaers")
+
+World$NewCalcVariable("FRingas")
+World$CalcVar("FRingas")
+
+# So, degradation is needed here? Are we sure?
+
+# source("newAlgorithmScripts/k_Degradation.R")
+
+# Read in function to derive the temperature correction factor
+source("newAlgorithmScripts/f_Tempfactor.wsds.R")
+
+# World$NewCalcVariable("k_Degradation")
+# World$CalcVar("k_Degradation")
+
+```
+
+## Deposition
+
+One part of the function to get the transfer from air to the land surface is calculating the deposition rate constant. This is done using a large function k_MeanDep.R
+
+```{r MEAN deposition}
+
+World$fetchData("twet")
+World$fetchData("tdry")
+
+source("newAlgorithmScripts/f_FRinaers.R")
+source("newAlgorithmScripts/f_FRinaerw.R")
+
+
+
+source("newAlgorithmScripts/k_Deposition.R")
+
+World$NewCalcVariable("k_Deposition")
+World$CalcVar("k_Deposition")
+
+World$fetchData("Kwsd")
+
+
+
+```

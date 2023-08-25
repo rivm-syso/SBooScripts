@@ -1,0 +1,65 @@
+---
+title: "Rho, Radia and settling velocity"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+# knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+## Rho, Radii and settling velocity
+
+For several processes of particles and between particles the density (rho) and radius of the particle are important, as are the density of the matrix (medium) in which the particles are. The table in which the data to be used depend on the key of the property. The key for the density of the matrix is subcompartment. But it is "inherited" from the datafile "matrix.csv". This inheritance is performed in the initialisation; if you look for rhoMatrix as a parameter for defining function use World$fetchdata()
+
+```{r initiate, echo=TRUE, message=FALSE, warning=TRUE}
+#we initialize the test environment with a nano substance, and the nano excel version
+substance <- "nAg_10nm"
+excelReference <- "data/20210331 SimpleBox4nano_rev006.xlsx"
+#script to initialize test environment, including faking a future 'library(sboo)'
+source("baseScripts/initTestWorld.R")
+World$fetchData("rhoMatrix")
+```
+
+## The density and radius of the nanomaterial
+depend on the species. The density and radius of the nano material itself is given by the substance properties RhoS and RadS. For the aggregated and the properties of the "natural part" of the species; CoarseParticulate for the Attached species and NaturalColloid for the aggregated species. Those properties are RhoCP and RhoNC for density and RadCP and RadNC for their radius. An overview of excel origines:
+``` {r}
+read_csv("data/SpeciesCompartments.csv")
+``` 
+From these, we can derive the values for rho_species
+```{r}
+rp <- World$NewCalcVariable("rho_species")
+rho_species
+World$CalcVar("rho_species")
+```
+And the radii
+```{r}
+rad_species
+rs <- World$NewCalcVariable("rad_species")
+World$CalcVar("rad_species")
+
+```
+
+## settling velocity
+The settling velocity is best calculated according Stokes [ref?], like the regular R function. This is not a SB defining function, because it is used not only for species, but also their natural parts, and aerosols. But we use this function to as part of the defining function for natural particles, as used for sedimentation rate of molecular species
+```{r}
+f_SettlingVelocity
+source("newAlgorithmScripts/v_SettVellNat.R")
+World$NewCalcVariable("SettVellNat")
+World$CalcVar("SettVellNat")
+```
+
+## Sedimentation
+The settlingvelocity is essential for the calculation of k_sedimentation. World$UpdateKaas updates the kaas; If the parameter is a process, only the variables and the kaas for the process is updated. The new kaas are returned silently, to print them in markdown we have to receive, and then print them.
+```{r}
+source("newAlgorithmScripts/k_Sedimentation.R")
+World$NewProcess("k_Sedimentation")
+World$whichUnresolved()
+NewKaas <- World$UpdateKaas("k_Sedimentation") 
+NewKaas
+```
+

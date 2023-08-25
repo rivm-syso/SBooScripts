@@ -1,0 +1,59 @@
+---
+title: "Defaults"
+author: "JS"
+date: "`r Sys.Date()`"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+# knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+## Introduction
+We implemented a modest mechanism of setting "defaults" for your data. Through this mechanism you need to enter less (possibly redundant) row of data. This vignette demonstrates how to set defaults, and how to verify their application.
+
+## Input data related to the 3 dimension
+A crucial mechanism of SBoo is the consistent use of the the dimensions (scale, subcompartment, species) as key fields in the data. The input data is normally in one of tables with a key of the combinations of these three. (Because of the intensive use of the dimensions, a variable The3D is defined by the package)
+```{r}
+source("baseScripts/initTestWorld.R")
+The3D
+for (m in 1:length(The3D)) {
+  combies <- combn(The3D, m)
+  print(apply(t(combies), 1, function(x){
+    do.call(paste, as.list(c(x, "sheet", sep = "")))
+  }))
+}
+```
+
+## Defaults at initialisation
+There are three input (csv-)files that automatically "translate" their data to the normal data tables mentioned above: Matrixsheet, Compartments and SpeciesCompartments which put their data into Subcompartsheet, or SpeciesSubCompartments. In the following code the original data is taken from the csv files, and the fetched data is from the initialised "World" object.
+```{r}
+Nrad <- read.csv("data/SpeciesCompartments.csv")
+Nrad[Nrad$VarName == "NaturalRad",]
+World$fetchData("NaturalRad")
+```
+The way this translation works is by the relation with SubCompartment, which has the properties Matrix and Compartment:
+```{r}
+merge(World$fetchData("Matrix"), World$fetchData("Compartment"))
+```
+## Inherit defaults
+The other mechanism in SBoo to avoid redundacy in data is the doInherit method. For this you need two variables in your data, the fromData and the toData parameters. 
+```{r}
+World$doInherit
+```
+The fromData can be in 1) CONSTANTS 2) Matrix or 3) a dimension which is part of the dimensions of the toData. We demonstrate this with two examples.
+```{r}
+World$fetchData("DefaultpH")
+World$fetchData("pH")
+World$doInherit("DefaultpH","pH")
+```
+
+```{r}
+World$fetchData("DefaultNETsedrate")
+World$fetchData("NETsedrate")
+World$doInherit(fromData = "DefaultNETsedrate", toData = "NETsedrate")
+```
+

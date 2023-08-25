@@ -1,0 +1,5 @@
+"Compartment","DynVisc","mConcCol"
+"air",1.81e-05,NA
+"sediment",NA,0.001
+"soil",NA,0.1
+"water",0.001002,0.001

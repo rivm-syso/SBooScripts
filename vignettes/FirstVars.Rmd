@@ -1,0 +1,93 @@
+---
+title: "Introduction to variables"
+author: "JS"
+date: "11/23/2022"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+## Variables in SimpleBox
+are read initially, but you can add variables just by defining the function how to calculate the variable. This vignette will demonstrate how the variable "volume" is defined, how it can be retrieved, and how to verify it against the values in the excel-version.
+First step is to initiate testing objects by running a standard script baseScripts/initTestWorld.R. We will use two objects that are created: "World" and "ClassicExcel". Note the class properties and the inheritance of ClassicExcel.
+
+```{r initTestWorld}
+source("baseScripts/initTestWorld.R")
+class(World)
+class(ClassicExcel)
+```
+SimpleBox Variables are defined by a function, and many of the defining functions are present in the package. One of the variable defining functions is "Volume". The method NewCalcVariable adds the simpleBox variable; it needs the name (as character) of the function
+```{r volfunction}
+Volume
+World$NewCalcVariable("Volume")
+```
+R "knows" the parameters of a function, see the function formals(). These names are also variables, partly already read from data in the initialisation. You can lookup which variables are known, and their values by method fetchData of the class SBcore. World is of this class. An empty varname (the parameter for this method) returns all known parameters. Note that variable are usually tables, with keyfields indicating the domain of the variable. 
+## Variables are tables, parameters are atomic
+Note that variables are usually tables, including the key fields defining their domain (except constants) but the parameters in the functions are atomic; meaning its not the table, not even a vector! The variable defining functions are called by SBOO for each relevant combination of the variables. Results, when not NA, are stored in the in-memory database of SBOO.
+```{r volparameters}
+formals(Volume)
+World$fetchData()
+World$fetchData("VertDistance")
+World$fetchData("FRACcldw")
+```
+The variable Area is missing. Missing variables can be found by the method whichUnresolved. Area is also a function, which needs other variables. To complete the calculation of Volume we have four steps, three in preparation. Area can (and will) be used by other functions. No need to recalculate it.
+
+```{r neededparameters}
+World$whichUnresolved()
+
+lapply(c("AreaSea", "AreaLand", "Area"), function(FuName){
+  World$NewCalcVariable(FuName)
+  World$CalcVar(FuName)
+})
+
+World$CalcVar("Volume")
+```
+
+The calculation differs slightly from the excel version. This is because
+- the automation of the calculation demands a much more formal approach and
+- a stricter differentiation between data and calculations. 
+- simplifications like renaming both depth and hight into VertDistance
+
+The variables as functions/tables and the automated dependencies can be confusing initially, but the concept is powerfull and helps documenting the model as a whole. For instance by generating the graph for calculating.
+
+```{r theDAG}
+library(ggdag)
+NodeAsText <- paste(World$nodelist$Params, "->" ,World$nodelist$Calc)
+AllNodesAsText <- do.call(paste, c(as.list(NodeAsText), list(sep = ";")))
+dag <- dagitty::dagitty(paste("dag{", AllNodesAsText, "}"))
+plot(dagitty::graphLayout(dag))
+```
+
+Still the results should be identical to the original excel version of SimpleBox. To test this the ClassicExcel object can help; Even before testing it can help in scanning and reporting of the excel file, including the dependencies in excel. We start with looking for cells that have "area" in their name:
+
+```{r Excel}
+ClassicExcel$Excelgrep("area")
+```
+Hopefully you're not distracted by the "Small" entries for Species. Both Arctic(Scale) and Aggragated(Species) have "A" in the naming convention of the excel version of SimpleBox. In this case you should ignore the Species column. Note that SYSTEMAREA is data for some scales but a formula for others. This was one of the reasons for changing the the area calculation in the SBOO version.
+
+The dependencies in excel are for each cell separate, leading to crowded calculation graphs. The is the graph to calculate AREAFRAC.w2C
+
+```{r ExcelGraph}
+ThisTree <- ClassicExcel$Exceldependencies("AREAFRAC.w2C")
+plot(ThisTree, vertex.size=12, vertex.label.cex=0.8)
+
+```
+
+Testing if the Volume calculation in the excel versions gives identical results is easy.
+```{r CheckVolume}
+excelVolume <- ClassicExcel$Excelgrep(grepstr = "Volume")
+excelVolume$Species <- NULL
+testVol <- merge(World$fetchData("Volume"), excelVolume)
+testVol$difvol <- testVol$Volume / testVol$Numeric
+sd(testVol$difvol)
+
+```
+Small differences are caused by reading from a csv-file with rounded values, and by calculation(results) in excel that are very inaccurate by modern standards (16bits versus 64bits in R)
+
+Note that Volume is now known for all relevant Scale/SubCompart combinations. All variables that are not needed for other calculations can be discarded. This gives cleaner calculation graphs, but could limit possibilities for sensitivity analyses for the variables removed..
+

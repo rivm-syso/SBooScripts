@@ -1,0 +1,24 @@
+"QSAR.ChemClass","a","b"
+"acetanilides",13.18,0.4
+"acid",NA,NA
+"alcohols",3.16,0.39
+"amides",17.78,0.33
+"anilines",7.08,0.62
+"base",NA,NA
+"benzonitriles",12.02,0.57
+"carbamates",13.8,0.37
+"dinitroanilines",83.18,0.38
+"esters",11.22,0.49
+"hydrophobics",1.26,0.81
+"metal",NA,NA
+"neutral",1.26,0.81
+"nitrobenzenes",3.55,0.77
+"non hydrophobics",10.47,0.52
+"organic acids",3.16,0.47
+"organic acids",2.09,0.6
+"phenols",12.02,0.57
+"phenylureas",11.22,0.49
+"phosphates",14.79,0.49
+"triazines",31.62,0.3
+"triazoles",25.7,0.47
+"uracils",13.8,0.37

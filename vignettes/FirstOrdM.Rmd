@@ -1,0 +1,69 @@
+---
+title: "classic solve"
+author: "JS"
+date: "12 Apr 2022"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+## A matrix of first order differential equations
+This vignettes demonstrates the mechanism behind SB.
+#  We need to initialize, by default a molecular substance is selected.
+#  initTestWorld.R loads the kaas from the classic excel spreatsheet, but we start with a single k and a single emission.
+
+```{r}
+#We need to initialize, by default a molecular substance is selected
+source("baseScripts/initTestWorld.R")
+#library(magrittr)
+library(htmlTable)
+World$kaas <- World$kaas[World$kaas$fromAbbr == "aRU" & World$kaas$toAbbr == "aRU",]
+```
+Mind the warning... The format of kaas should conform the expected layout.
+This particular k has the same from- as to state; It is a sink, like degredation.
+We add an emission to the same state, and see what happens in time.
+
+```{r}
+emissions <- ClassicExcel$ExcelEmissions("current.settings")[1,]
+World$NewSolver("SBsolve") #
+steadSolve <- World$Solve(emissions = emissions)
+#plot(steadSolve$EqMass)
+```
+
+
+## The constants package
+Some global constants are imported from this package. For convenience two functions are availeable, demonstrated below.
+```{r}
+Concentrations <- function(EqMass, Volume) {
+  EqMass / Volume
+}
+World$NewCalcVariable("Concentrations")
+ConcPM <- World$CalcVar("Concentrations")
+pivot_wider(ConcPM[, c("SubCompart", "Scale", "Concentrations")],
+            values_from = "Concentrations",
+            values_fill = NULL,
+            names_from = "Scale")
+# tidyHtmlTable(
+#   x = ConcPM[, c("SubCompart", "Scale", "Concentrations")],
+#   value = "Concentrations",
+#   header = "Scale",
+#   rnames = "SubCompart",
+#   #col.header = "#FEFEFE",
+#   col.rgroup = c("#FEFEFE", "#F7F7F7")
+# )
+```
+## Mass fluxes
+```{r}
+MsFlux <- left_join(World$kaas, World$fetchData("EqMass"), 
+                    join_by(fromScale == Scale, fromSubCompart == SubCompart, fromSpecies == Species))
+MsFlux$mFlux <- MsFlux$k * MsFlux$EqMass
+aggregate(mFlux~toAbbr, data = MsFlux, FUN = sum)
+``` 
+accuracy? Roundings?? tol doesn't make a difference?!
+
+Happy calculations!

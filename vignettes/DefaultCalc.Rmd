@@ -1,0 +1,74 @@
+---
+title: "SB default"
+author: "JS"
+date: "8/8/2023"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+## Standards are everything
+
+This vignette demonstrates a standard calculation with SBoo. Standard is good! Standards are excellent to deviate from!
+A logical order for the calculation is 1) initialisation and obtaining the input data 2) calculate the SB variables, ordered by interdependance 
+3) calculate the first-order speed constants 3b) The deposition hackup 4) the steady-state or dynamic calculation of flows between and concentrations within boxes and 5) aggregating these results into tables and graphs.
+
+## Standard blocks 
+The steps in the calculation order are in separated scripts, the first one being very similar to the initTestWorld.R script we used so far, except that we passed the testing, so it's called initWorld.R. You may want to set "substance" to the substance of interest. SBvariables is a script that defines all default variables; SBkaas defines all default processes, except deposition. The UpdateKaas method builds a calculation "tree" (a directed a-cyclic graph) and runs the associated functions. The calculation of the deposition depends on other speed-constants, therefor we need it defined and calculated AFTER all other functions from the graph.
+
+```{r}
+substance = "default substance"
+source("baseScripts/initWorld.R")
+
+```
+
+## SB variables 
+
+
+
+```{r}
+SBvars <- c("AreaLand",
+            "AreaSea",
+            "Area",
+            "Volume"
+            )
+
+for (x in SBvars) {
+  World$NewCalcVariable(x)
+  World$CalcVar(x)
+}
+```
+
+We calculate AirFlow in two steps. The first is the application of a simple model of air circulation depending on windspeed; The mean residence time in the region is according the fTAU function. The AirFlow function calculates the amount that would enter/leave the region namely the volume divided by the residence time. Notice that fTAU is a normal function, but AirFlow will be used as a variable defining function. After the call to World\$CalcVar("AirFlow") this property is stored in the data within World.
+
+```{r}
+fTAU
+AirFlow
+World$NewCalcVariable("AirFlow")
+World$CalcVar("AirFlow")
+```
+
+## But
+
+this would not guarantee that the amount from one scale to the next would equal the amount flowing the opposite way! To honour the mass balance we give priority to the amount calculated for the smallest volume to calculate the actual flows. For nested scales we need to know how the nesting is. This brings a new challange; we need to know properties of the scale the flow is going to, or possibly the scale ehere it is going to. Because of the nesting, we need to know even properties of scale not directly related to the to- or the from scale! In this example we see use of the "to.", the "from." and the "all." preposition. The to- and from scaleName are atomic (a single string) but the "all." prepositions provides a full table of the variable and its dimensions (in this case only scale). If you want to see what is really going on in the function calls you can use the debug parameter. This debugging is not availeable for (the whole) World; use the (silent) return value of World\$New[Variable\|Flow\|Process] ! After the r section below you can enter at the console prompt of R-studio: AdvAir\$execute(debugAt = list(toScale = "Continental"))
+
+```{r}
+x_Advection_Air
+AdvAir <- World$NewFlow("x_Advection_Air")
+#AdvAir$execute(debugAt = list(toScale = "Continental"))
+World$CalcVar("x_Advection_Air")
+```
+
+Does it add up?
+
+```{r}
+AirFlows <- World$fetchData("x_Advection_Air")
+ToFlow <- aggregate(flow~toScale, data = AirFlows, FUN = sum)
+FromFlow <- aggregate(flow~fromScale, data = AirFlows, FUN = sum)
+merge(FromFlow, ToFlow, by.x = "fromScale", by.y = "toScale")
+```

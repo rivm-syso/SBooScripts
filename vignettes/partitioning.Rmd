@@ -1,0 +1,204 @@
+---
+title: "Intermedia Partitioning"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+# knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+# Intermedia partitioning
+
+There are multiple transfers for substances from one matrix to the other (matrix in the sense of medium, like air or water). The speed of some of these transfers are calculated as processes; you will find them in SubCompartProcesses.csv. Other transfers are so quick and small that a continuous equilibrium is assumed. In this vignette will will focus on this intermedia partitioning. *[... more detailed description to follow ...] test*
+
+```{r initiate, echo=TRUE, message=FALSE, warning=TRUE}
+#we initialize the test environment with the default substance, therefor we remove possible earlier value
+rm(substance) #for "default substance", example of neutral substance
+#substance <- "organic acid" #example of acid
+#substance <- "organic base" #example of base
+#substance <- "Ag(I)" #example of metal
+
+
+#script to initialize test environment, including faking a future 'library(sboo)'
+source("baseScripts/initTestWorld.R")
+World$fetchData("Ksw")
+```
+
+## Partitioning coefficients of substances
+
+If "World" has found data for the substance you initiated with, this is perfect. But these properties are not always known. You can assess them by "models"; for Ksw a model is given by the fKsw function. Mind you; this is not not a variable defining function, and you will have to fetch the parameters yourself, and put the result in the core-data. We demonstrate how.
+
+The function is given below, the parameters are: Kow, pKa, Corg, a, b, ChemClass and RHOsolid; The code is not nicely formatted by Rmd.
+
+```{r}
+f_Ksw
+```
+
+Does the database contain Kow, pKa, Corg...?
+
+```{r}
+Kow <- World$fetchData("Kow") #No Kow for metals in input data, should be provided by user
+#World$fetchData("Corg")
+```
+
+Oeps, CORG is a table in R of Corg for all subcompartments, we need StandardCorgSoil
+
+```{r}
+CorgStandard <- World$fetchData("CorgStandard")
+pKa <- World$fetchData("pKa")
+```
+
+pKa could be missing (e.g. in the case of "default substance"). If the substance is neutral, you can apply a value of 7. Variables a and b come from the QSARtable. RHOsolid can be taken from the Rho from the matrix of non-specific, standard soil, i.e. "othersoil" This variable is used in multiple formulas; we'll put it as constant in the "Globals" table; see further down.
+
+```{r ksw}
+#pKa <- 7
+Substance_ChemClass <- World$fetchData("ChemClass")
+QSARtable <- World$fetchData("QSARtable")
+QSARrecord <- QSARtable[QSARtable$QSAR.ChemClass == Substance_ChemClass,]
+RhoTable <- World$fetchData("rhoMatrix")
+RHOsolid <- RhoTable$rhoMatrix[RhoTable$SubCompart == "othersoil"]
+KswModelled <- f_Ksw(Kow, pKa, CorgStandard, 
+                    a = QSARrecord$a, b = QSARrecord$b, Substance_ChemClass,
+                    RHOsolid,
+                    alt_form = F)
+```
+
+Not in the data is Ksw for the alternative form. We can use the same function, with the parameter alt_form = T and Ksw_orig = KswModelled.
+
+```{r ksw.alt}
+Ksw.alt <- f_Ksw(Kow, pKa, CorgStandard, 
+                    a = QSARrecord$a, b = QSARrecord$b, Substance_ChemClass,
+                    RHOsolid,
+                    alt_form = T)
+```
+
+We now have all the parameters, we can call the function, but how to store the result for Kws, to make it available from the core? This kind of action is unusual, but can be done by replacing the whole table, in this case Globals
+
+```{r}
+FromData <- World$fetchData("Globals")
+FromData$Ksw <- KswModelled
+FromData$Ksw.alt <- Ksw.alt
+#or if ksw was already provided as input data (like for metals), the Ksw.alt was not calculated with previous functions, but should still be provided
+#FromData$Ksw.alt <- World$fetchData("Ksw")
+FromData$RHOsolid <- RHOsolid
+World$UpdateData(FromData, keys = T, TableName = "Globals")
+```
+
+And now we know that the system will use our modelled Ksw
+
+```{r}
+World$fetchData("Ksw")
+World$fetchData("Ksw.alt")
+World$fetchData("RHOsolid")
+```
+
+## Fraction molecular species in original form (based on pKa)
+
+This is the fraction of a substance that is int he original form (non-disosciated) specific fraction that also relates to the pH of the compartment.
+
+The FRorig for Matrix "air" is the FRorig of aerosols in air. The pH of "air" is set to 3 in the SubCompartSheet.csv, corresponding to "pH.aerw" in the excel version.
+
+```{r FRorig}
+World$NewCalcVariable("FRorig")
+World$CalcVar("FRorig")
+World$fetchData("FRorig")
+
+World$NewCalcVariable("FRorig_spw")
+World$CalcVar("FRorig_spw")
+```
+
+## Partitioning coeficients Kp
+
+FRorig is the FRaction original species, depending on pKa and pH for some substances. The partitioning of a subcompartment / water is Kp, which is also a OO state variable:
+
+```{r Kp}
+
+World$NewCalcVariable("Kp")
+World$CalcVar("Kp")
+
+#Kow.alt needed.
+
+World$NewCalcVariable("D")
+World$CalcVar("D")
+World$NewCalcVariable("KpCOL")
+World$CalcVar("KpCOL")
+```
+
+## Dimensionless partition coefficients per compartment/scale
+
+The substance specific air/water partition coefficient at 25 degrees Celsius (Kaw25) is required for the calculation of scale-specific partition coefficients of air/water, aerosol water/air, and aerosol solids/air. When not provided as input, it is calculated within the functions for the scale specific partition coefficients (and not first as a separate variable with CalcVar).
+
+```{r Kaw}
+World$fetchData("Kaw25")
+
+#Dimensionless air/water partition coefficient
+World$NewCalcVariable("Kacompw")
+World$CalcVar("Kacompw")
+
+#Dimensionless aerosol water/air partition coefficient
+World$NewCalcVariable("Kaerw") 
+World$CalcVar("Kaerw")
+
+#Dimensionless aerosol solids/air partition coefficient
+World$NewCalcVariable("Kaers")
+World$CalcVar("Kaers")
+
+```
+
+Calculating the partitioning between soil- or sediment and water requires the fractions of water and air in soil, in addition to some of the previously calculated variables such as Kp, Kacompw, and FRorig_spw. The fractions of water and air in soil are provided as input ("FRACw" and "FRACa") in "ScaleSubCompartData.csv" and can differ between both (combinations of) scale and compartment. The fraction of solids in soil and sediment is calculated based on FRACw and FRACa, except for the fraction of solids in air, where it is also provided as input
+
+```{r}
+#fractions
+World$fetchData("FRACw")
+World$fetchData("FRACa")
+
+World$NewCalcVariable("FRACs")
+World$CalcVar("FRACs")
+#the SubCompart associated with Arctic, Moderate, Tropic scales is "naturalsoil" in the input of FRACw, FRACa amd FRACs. This is required to make sure the same FRorig is used as in the excel version (that of natural soil). This is currently in contrast to other parts of the model where the SubCompart of global scales are "othersoil". See issue #18
+
+#partition coefficients
+World$NewCalcVariable("Ksdcompw") #sediment/water
+World$CalcVar("Ksdcompw")
+World$NewCalcVariable("Kscompw") #soil/water
+World$CalcVar("Kscompw")
+
+
+```
+
+## Fraction chemical in gas, water or solid phase
+
+The fractions of the chemical in the gas, water and solid phase of a compartment are calculated as variables with the following functions:
+
+```{r FRchem}
+World$NewCalcVariable("FRingas")
+World$CalcVar("FRingas")
+
+World$NewCalcVariable("FRinaers")
+World$CalcVar("FRinaers")
+
+World$NewCalcVariable("FRinaerw")
+World$CalcVar("FRinaerw")
+
+World$NewCalcVariable("FRinw")
+World$CalcVar("FRinw")
+
+World$NewCalcVariable("FRins")
+World$CalcVar("FRins")
+
+```
+
+These variables described the partitioning constants. The speed in which the equilibria are reached is modelled by diffusion processes, like volatilisation and absorption. This is described in a separate vignette, namely DiffusionProcesses.
+
+A source script is available for testing purposes to prepare all variables related to partitioning in one go. The script requires that you first have defined a substance (if you want to run the model with a substance other than the default) and that you have initialized the "World".
+
+```{r}
+substance <- "organic acid"
+substance <- "Ag(I)"
+source("baseScripts/initTestWorld.R")
+source("testScripts/initPartitioningVariables.R")
+```
