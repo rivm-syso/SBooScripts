@@ -3,6 +3,8 @@ title: "Fractions of matrices in subcompartments"
 author: "JS"
 date: "`r Sys.Date()`"
 output: github_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -30,16 +32,15 @@ Fs <- World$NewCalcVariable("FRACs")
 World$CalcVar("FRACs")
 source("newAlgorithmScripts/v_FRACa.R")
 World$NewCalcVariable("FRACa")
-capture.output(World$CalcVar("FRACa"))
-capture.output(World$NewCalcVariable("FRACw"))
-capture.output(World$CalcVar("FRACw"))
+World$fetchData("FRACa")
+World$fetchData("FRACw")
 
 ```
 An overview for the scale Regional
 ```{r}
-allFrac <- Reduce(merge, list(World$fetchData("FRACa"), World$fetchData("FRACw"), World$fetchData("FRACs"))) %>%
-  dplyr::filter(Scale == "Regional") %>%
-  pivot_longer(c(FRACa, FRACw, FRACs))
+allFrac <- full_join(as.tibble(World$fetchData("FRACa")),
+                     as.tibble(World$fetchData("FRACw")), by = c("SubCompart","Scale")) |> 
+  full_join(as.tibble(World$fetchData("FRACs"))) |> filter(Scale=="Regional") |> print()
 
 ```
 ## colloidal and suspended matter in waters
