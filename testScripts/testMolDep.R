@@ -1,20 +1,15 @@
 #init default core (World) with classic states, and classic kaas
 source("baseScripts/initTestWorld.R")
 
+#we need the partitioning
+source("testScripts/initPartitioningVariables.R")
+
 #make variables which are tested
 SBvars <- c("AreaLand",
             "AreaSea",
             "Area",
-            "Volume",
-            "FRorig",
-            "FRorig_spw",
-            "Kp",
-            "Kacompw",
-            "Kaers",
-            "Kaerw",
-            "FRinw",
-            "FRingas",
-            "kdeg.sediment"
+            "Volume"
+            
             )
 
 for (x in SBvars) {
@@ -30,58 +25,31 @@ World$fetchData("COLLECTeff")
 World$fetchData("AEROSOLdeprate")
 World$fetchData("Kacompw")
 World$fetchData("FRorig")
-World$fetchData("WINDspeed")
 #OtherkAir
 World$fetchData("SpeciesName")
 World$fetchData("landFRAC")
 World$fetchData("Kaers")
 World$fetchData("Kaerw")
-World$fetchData("FRACaerWorld")
 
-# #THIS IS ALL MESSY, ANOTHER SOLUTION IS NEEDED
-# KswModelled <- fKsw(Kow = World$fetchData("Kow"), 
-#                     pKa = 7, 
-#                     CorgStandard = World$fetchData("CorgStandard"), 
-#                     a = with(World$fetchData("QSARtable"), 
-#                              a[QSAR.ChemClass == World$fetchData("ChemClass")]), 
-#                     b = with(World$fetchData("QSARtable"), 
-#                              b[QSAR.ChemClass == World$fetchData("ChemClass")]), 
-#                     ChemClass = World$fetchData("ChemClass"),
-#                     RHOsolid = with(World$fetchData("rhoMatrix"),
-#                                     rhoMatrix[SubCompart == "othersoil"]),
-#                     alt_form = F)
-# 
-# Ksw.alt <- fKsw(Kow = World$fetchData("Kow"), 
-#                 pKa = 7, 
-#                 CorgStandard = World$fetchData("CorgStandard"), 
-#                 a = with(World$fetchData("QSARtable"), 
-#                          a[QSAR.ChemClass == World$fetchData("ChemClass")]), 
-#                 b = with(World$fetchData("QSARtable"), 
-#                          b[QSAR.ChemClass == World$fetchData("ChemClass")]), 
-#                 ChemClass = World$fetchData("ChemClass"),
-#                 RHOsolid = with(World$fetchData("rhoMatrix"),
-#                                 rhoMatrix[SubCompart == "othersoil"]),
-#                 alt_form = T, KswModelled)
-# 
-# FromData <- World$fetchData("Globals")
-# FromData$Ksw <- KswModelled
-# FromData$Ksw.alt <- Ksw.alt
-# FromData$RHOsolid <- with(World$fetchData("rhoMatrix"),
-#                           rhoMatrix[SubCompart == "othersoil"])
-# World$UpdateData(FromData, keys = T, TableName = "Globals")
-# 
-# 
-# #calculation of kaas is by executing a process
-# testClass <- World$NewProcess("k_Deposition")
-# testClass$execute()
-# 
-# #fill another relevant k for OtherkAir
-# # NOT_deposition <- ((GASABS.a.w*(AREAFRAC.w0R+AREAFRAC.w1R+AREAFRAC.w2R)+
-# #                       GASABS.a.s*(AREAFRAC.s1R+AREAFRAC.s2R+AREAFRAC.s3R))/HEIGHT.aR + 
-# #                      KDEG.aR +
-# #                      k.aR.aC) # problematic correction for other removal processes from air affection actual deposition.
-# testDegradation <-  World$NewProcess("k_Degradation")
-# testDegradation$execute()
+World$fetchData("kdeg.sed")
+World$fetchData("kdeg.air")
+World$fetchData("kdeg.water")
+World$fetchData("kdeg.soil")
+
+#fill another relevant k for OtherkAir
+testDegradation <-  World$NewProcess("k_Degradation")
+World$UpdateKaas(mergeExisting = F)
+
+#only now we can calculate OtherkAir, because:
+World$fetchData("kaas") #this is not the regular use!! see method kaas of World !!
+source("newAlgorithmScripts/v_OtherkAir.R")
+testtm <- World$NewCalcVariable("OtherkAir")
+#testtm$execute()
+World$CalcVar("OtherkAir")
+
+testClass <- World$NewProcess("k_Deposition")
+testClass$execute(debugAt = list())
+
   
 testClass$execute(debugAt = list()) #an empty list always triggers
 testVar$execute(debugAt = list(Scale = "Regional", SubCompart = "air"))

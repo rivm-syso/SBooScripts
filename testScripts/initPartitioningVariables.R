@@ -47,8 +47,8 @@ if(is.na(World$fetchData("Ksw"))){
 source("newAlgorithmScripts/v_Ksw.alt.R")
 testIt <- World$NewCalcVariable("Ksw.alt")
 #testIt$execute()
-
 World$CalcVar("Ksw.alt")
+World$fetchData("Ksw.alt")
 
 World$NewCalcVariable("FRorig")
 World$CalcVar("FRorig")
@@ -76,13 +76,14 @@ World$CalcVar("Kaers")
 
 World$fetchData("FRACw")
 World$fetchData("FRACa")
-World$fetchData("FRACs") 
-#"?
-#World$NewCalcVariable("FRACs")
-#World$CalcVar("FRACs")
+#"? If it is not clear where a variable comes from the software is cloudy and unpleasant to work with
+#a variable is data XOR a defining function
+#World$fetchData("FRACs") 
+World$NewCalcVariable("FRACs")
+World$CalcVar("FRACs")
 
 testt <- World$NewCalcVariable("Ksdcompw")
-testt$execute(debugAt = list())
+#testt$execute(debugAt = list())
 World$CalcVar("Ksdcompw")
 
 World$NewCalcVariable("Kscompw") 
