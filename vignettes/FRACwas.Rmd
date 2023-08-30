@@ -17,30 +17,30 @@ knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct s
 ## Matrix parts of a sub-compartment
 A Subcompartment has a main matrix(medium); for soils and sediment this is "solids". But both also contain water, and soil also contains a fraction of air, as wel as water. These matrices play a part in the exchange of substances. The fraction of the non-main matrices are in the data, named subFRACw, subFRACa, and subFRACs. The main fraction of the subcompartment is calculated as the remainder. All fractions are are determined by three variable defining functions. For example for soils and sediments:
 
-```{r}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 source("baseScripts/initTestWorld.R")
-source("newAlgorithmScripts/v_FRACa.R")
-source("newAlgorithmScripts/v_FRACw.R")
-source("newAlgorithmScripts/v_FRACs.R")
-FRACs
+
 ```
 
 ## Use FRAC's for 
 This generalisation is extended to the solids and water fractions in air, formerly known as FRears and FRearw. Note that the fraction of air in air may appear as rounded to, but not equal to 1.0.
 ```{r}
-Fs <- World$NewCalcVariable("FRACs")
-World$CalcVar("FRACs")
-source("newAlgorithmScripts/v_FRACa.R")
-World$NewCalcVariable("FRACa")
 World$fetchData("FRACa")
 World$fetchData("FRACw")
+World$fetchData("FRACs")
+FRACs
+
+Fs <- World$NewCalcVariable("FRACs")
+World$CalcVar("FRACs")
+
+
 
 ```
 An overview for the scale Regional
 ```{r}
-allFrac <- full_join(as.tibble(World$fetchData("FRACa")),
-                     as.tibble(World$fetchData("FRACw")), by = c("SubCompart","Scale")) |> 
-  full_join(as.tibble(World$fetchData("FRACs"))) |> filter(Scale=="Regional") |> print()
+allFrac <- full_join(as_tibble(World$fetchData("FRACa")),
+                     as_tibble(World$fetchData("FRACw")), by = c("SubCompart","Scale")) |> 
+  full_join(as_tibble(World$fetchData("FRACs"))) |> filter(Scale=="Regional") |> print()
 
 ```
 ## colloidal and suspended matter in waters
