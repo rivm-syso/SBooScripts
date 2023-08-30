@@ -6,23 +6,21 @@
           #2. the "World" has been initialised
 
 #Prepare df to add new input data to the "World"  
-FromData <- World$fetchData("Globals")
+#FromData <- World$fetchData("Globals")
 
+Kow <- World$fetchData("Kow")
 if(is.na(World$fetchData("Kow"))) {
   Kow <- 2750
-  FromData$Kow <- Kow #This also needs to be added to the world so CalcVar("D") works properly
+  FromData$Kow <- Kow #This also needs to be added to the world for further use, for example CalcVar("D"), 
+                      #also note the World$UpdateData() down the lines
   warning("Kow is missing in input data. This is not always provided by default, e.g. for metals. 
 Kow is set to 2750, corresponding to the default in the SB4nano excel version. This value is based on the median of all provided Kow of all substances in the excel version")
-} else {
-  Kow <- World$fetchData("Kow")
 }
 
-if(is.na(World$fetchData("pKa"))) {
-  pKa <- 7
-  FromData$pKa <- pKa
+pKa <- World$fetchData("pKa")
+if(is.na(pKa)) {
+  World$SetConst(pKa = 7) 
   warning("pKa not given in input data. Substance assumed to be neutral (pKa = 7).")
-} else {
-  pKa <- World$fetchData("pKa")
 }
 
 CorgStandard <- World$fetchData("CorgStandard")
@@ -31,33 +29,27 @@ QSARtable <- World$fetchData("QSARtable")
 QSARrecord <- QSARtable[QSARtable$QSAR.ChemClass == ChemClass,]
 RhoTable <- World$fetchData("rhoMatrix")
 RHOsolid <- RhoTable$rhoMatrix[RhoTable$SubCompart == "othersoil"]
-  
-
 
 
 #Calculate Ksw if it is missing in input data
 if(is.na(World$fetchData("Ksw"))){
-  KswModelled <- f_Ksw(Kow, pKa, CorgStandard, 
+  KswModelled <- f_Ksw(Kow, FromData$pKa, CorgStandard, 
                      a = QSARrecord$a, b = QSARrecord$b, ChemClass,
                      RHOsolid,
                      alt_form = F)
-  Ksw.alt <- f_Ksw(Kow, pKa, CorgStandard, 
-                     a = QSARrecord$a, b = QSARrecord$b, ChemClass,
-                     RHOsolid,
-                     alt_form = T)
-    
-  FromData$Ksw <- KswModelled
-  FromData$Ksw.alt <- Ksw.alt
-  
-  } else {
-    FromData$Ksw.alt <- World$fetchData("Ksw") #Ksw.alt still needs to be defined when Ksw is already in the data
+  World$SetConst(Ksw = KswModelled)
+
+#  } else { ?
+#    FromData$Ksw.alt <- World$fetchData("Ksw") #Ksw.alt still needs to be defined when Ksw is already in the data
   }
-  
-FromData$RHOsolid <- RHOsolid
-#Update "World" with new data
-World$UpdateData(FromData, keys = T, TableName = "Globals")
 
 #Calculations of variables
+source("newAlgorithmScripts/v_Ksw.alt.R")
+testIt <- World$NewCalcVariable("Ksw.alt")
+#testIt$execute()
+
+World$CalcVar("Ksw.alt")
+
 World$NewCalcVariable("FRorig")
 World$CalcVar("FRorig")
 
@@ -84,11 +76,13 @@ World$CalcVar("Kaers")
 
 World$fetchData("FRACw")
 World$fetchData("FRACa")
+World$fetchData("FRACs") 
+#"?
+#World$NewCalcVariable("FRACs")
+#World$CalcVar("FRACs")
 
-World$NewCalcVariable("FRACs")
-World$CalcVar("FRACs")
-
-World$NewCalcVariable("Ksdcompw")
+testt <- World$NewCalcVariable("Ksdcompw")
+testt$execute(debugAt = list())
 World$CalcVar("Ksdcompw")
 
 World$NewCalcVariable("Kscompw") 
