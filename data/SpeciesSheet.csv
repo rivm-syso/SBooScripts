@@ -1,7 +1,7 @@
-"Species","AbbrP","Default","SpeciesName","NaturalPart","k_Leaching","k_CWscavenging","k_Adsorption","k_Volatilisation","k_Runoff"
-"Dissolved","D",0,NA,"",TRUE,TRUE,TRUE,TRUE,TRUE
-"Gas","G",0,NA,"",TRUE,TRUE,TRUE,TRUE,TRUE
-"Large","P",1,"Attached","Coarse Particle",FALSE,TRUE,FALSE,FALSE,FALSE
-"Small","A",1,"Aggregated","Natural colloid",TRUE,TRUE,FALSE,FALSE,TRUE
-"Solid","S",1,"Nanoparticle","",TRUE,TRUE,FALSE,FALSE,TRUE
-"Unbound","U",1,"Molecular","",TRUE,FALSE,TRUE,TRUE,TRUE
+"Species","AbbrP","Default","SpeciesName","NaturalPart","k_Leaching","k_CWscavenging","k_Adsorption","k_Volatilisation","k_Runoff","k_Deposition"
+"Dissolved","D",0,NA,"",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"Gas","G",0,NA,"",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"Large","P",1,"Attached","Coarse Particle",FALSE,TRUE,FALSE,FALSE,FALSE,FALSE
+"Small","A",1,"Aggregated","Natural colloid",TRUE,TRUE,FALSE,FALSE,TRUE,FALSE
+"Solid","S",1,"Nanoparticle","",TRUE,TRUE,FALSE,FALSE,TRUE,FALSE
+"Unbound","U",1,"Molecular","",TRUE,FALSE,TRUE,TRUE,TRUE,TRUE

@@ -29,11 +29,21 @@ We initialise a "World" and calculate the needed parameters.
 #we initialize the test environment with the default substance, therefor we remove possible earlier value
 rm(substance)
 #script to initialize test environment, including faking a future 'library(sboo)'
-try(source("baseScripts/initTestWorld.R"))
+#init default core (World) with classic states, and classic kaas
+try (source("baseScripts/initTestWorld.R"))
+
+#we need the partitioning
+source("testScripts/initPartitioningVariables.R")
 #calculation of the needed SB variables, first compiling their defining functions
 
 # non variable input data which is calculated (see partioning.Rmd) needs to be available before you can proceed
 
+
+
+```
+
+
+```{r eval=FALSE, include=FALSE}
 # This needs to be calculated first:
 World$NewCalcVariable("FRorig")
 World$CalcVar("FRorig")
@@ -90,6 +100,8 @@ kdeg.sediment <- kdegcalc(Q.10 = World$fetchData("Q.10"),
                           CorgStandard = World$fetchData("CorgStandard"), 
                           RHOsolid = World$fetchData("RHOsolid"),
                           Matrix = "sediment")
+
+
 FromData <- World$fetchData("Globals")
 FromData$kdeg.sediment <- kdeg.sediment
 World$UpdateData(FromData, keys = T, TableName = "Globals")
@@ -125,30 +137,76 @@ source("newAlgorithmScripts/f_Tempfactor.wsds.R")
 
 # World$NewCalcVariable("k_Degradation")
 # World$CalcVar("k_Degradation")
-
 ```
+
 
 ## Deposition
 
 One part of the function to get the transfer from air to the land surface is calculating the deposition rate constant. This is done using a large function k_MeanDep.R
 
-```{r MEAN deposition}
+First we try to see of all variables are available for calculating the deposition rate constant:
 
+```{r MEAN deposition, echo=TRUE}
+
+World$fetchData("FRingas")
+World$fetchData("WINDspeed")
+World$fetchData("VertDistance")
 World$fetchData("twet")
 World$fetchData("tdry")
+World$fetchData("COLLECTeff")
+World$fetchData("AEROSOLdeprate")
+World$fetchData("Kacompw")
+World$fetchData("FRorig")
+World$fetchData("SpeciesName")
 
-source("newAlgorithmScripts/f_FRinaers.R")
-source("newAlgorithmScripts/f_FRinaerw.R")
+World$fetchData("RAINrate")
 
+try(World$fetchData("OtherkAir")) # this one is probably missing
 
+World$fetchData("Area")
 
-source("newAlgorithmScripts/k_Deposition.R")
+World$fetchData("Kaers")
+World$fetchData("Kaerw")
+World$fetchData("FRACa")
+World$fetchData("FRACw")
+World$fetchData("FRACs")
 
-World$NewCalcVariable("k_Deposition")
-World$CalcVar("k_Deposition")
-
-World$fetchData("Kwsd")
+World$fetchData("FRinaerw")
+World$fetchData("FRinaers")
 
 
 
 ```
+
+```{r}
+#fill another relevant k for OtherkAir
+testDegradation <-  World$NewProcess("k_Degradation")
+World$UpdateKaas(mergeExisting = F)
+
+#only now we can calculate OtherkAir, because:
+World$fetchData("kaas") #this is not the regular use!! see method kaas of World !!
+source("newAlgorithmScripts/v_OtherkAir.R")
+testtm <- World$NewCalcVariable("OtherkAir")
+#testtm$execute()
+World$CalcVar("OtherkAir")
+
+```
+
+Then the deposition rate constant can be calculated
+
+```{r}
+# source("newAlgorithmScripts/k_Deposition.R")
+
+testClass <- World$NewProcess("k_Deposition")
+testClass$execute()
+
+testClass$execute(debugAt = list())
+
+World$FromDataAndTo(processName = "k_Deposition")
+
+testClass$execute(debugAt = list()) #an empty list always triggers
+testClass$execute(debugAt = list(Scale = "Regional", Substance = "Molecular"))
+#The actual execution of the proces:
+testClass$execute()
+```
+
