@@ -10,6 +10,6 @@
 #' @param Ksw
 #' @export
 Ksw.alt <- function (Kow, pKa, CorgStandard, ChemClass, a, b, all.rhoMatrix, Ksw){
-  RHOsolid <- all.rhoMatrix$rhoMatrix[all.rhoMatrix$SubCompart == "othersoil"]
+  RHOsolid <- all.rhoMatrix$rhoMatrix[all.rhoMatrix$SubCompart == "naturalsoil"]
   f_Ksw (Kow, pKa, CorgStandard , a, b, ChemClass, RHOsolid, TRUE, Ksw)
 }

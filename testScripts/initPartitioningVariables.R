@@ -28,7 +28,7 @@ ChemClass <- World$fetchData("ChemClass")
 QSARtable <- World$fetchData("QSARtable")
 QSARrecord <- QSARtable[QSARtable$QSAR.ChemClass == ChemClass,]
 RhoTable <- World$fetchData("rhoMatrix")
-RHOsolid <- RhoTable$rhoMatrix[RhoTable$SubCompart == "othersoil"]
+RHOsolid <- RhoTable$rhoMatrix[RhoTable$SubCompart == "naturalsoil"]
 
 
 #Calculate Ksw if it is missing in input data
