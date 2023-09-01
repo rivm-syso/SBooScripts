@@ -3,6 +3,8 @@ title: "Nested areas"
 author: "JS"
 date: "5/3/2022"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -32,7 +34,7 @@ Continental contains Regional; the TotalArea of Continental is reduced by Region
 ```{r}
 v_AreaSea <- World$NewCalcVariable("AreaSea")
 tAreaSea <- World$CalcVar("AreaSea")
-v_AreaSea <- World$NewCalcVariable("AreaLand")
+v_AreaLand <- World$NewCalcVariable("AreaLand")
 tAreaLand <- World$CalcVar("AreaLand")
 merge(tAreaLand, tAreaSea)
 ```

@@ -55,7 +55,7 @@
 "NETsedrate","Tropic","deepocean",6.3e-14,"NETsedrate.wT","m.s-1																														 "
 "Shear","Arctic","deepocean",10,"Shear.w3A",NA
 "Shear","Arctic","marinesediment",0,NA,NA
-"Shear","Arctic","othersoil",0,NA,NA
+"Shear","Arctic","naturalsoil",0,NA,NA
 "Shear","Arctic","sea",10,"Shear.w2A",NA
 "Shear","Continental","agriculturalsoil",0,NA,NA
 "Shear","Continental","freshwatersediment",0,NA,NA
@@ -68,7 +68,7 @@
 "Shear","Continental","sea",10,"Shear.w2C",NA
 "Shear","Moderate","deepocean",10,"Shear.w3M",NA
 "Shear","Moderate","marinesediment",0,NA,NA
-"Shear","Moderate","othersoil",0,NA,NA
+"Shear","Moderate","naturalsoil",0,NA,NA
 "Shear","Moderate","sea",10,"Shear.w2M",NA
 "Shear","Regional","agriculturalsoil",0,NA,NA
 "Shear","Regional","freshwatersediment",0,NA,NA
@@ -81,13 +81,13 @@
 "Shear","Regional","sea",10,"Shear.w2R",NA
 "Shear","Tropic","deepocean",10,"Shear.w3T",NA
 "Shear","Tropic","marinesediment",0,NA,NA
-"Shear","Tropic","othersoil",0,NA,NA
+"Shear","Tropic","naturalsoil",0,NA,NA
 "Shear","Tropic","sea",10,"Shear.w2T",NA
 "VertDistance","Arctic","air",1000,"HEIGHT.aA","m"
 "VertDistance","Arctic","cloudwater",1000,"HEIGHT.aA","m"
 "VertDistance","Arctic","deepocean",3000,"DEPTH.w3A","m"
 "VertDistance","Arctic","marinesediment",0.03,"DEPTH.sdA","m"
-"VertDistance","Arctic","othersoil",0.05,"DEPTH.sA","m"
+"VertDistance","Arctic","naturalsoil",0.05,"DEPTH.sA","m"
 "VertDistance","Arctic","sea",100,"DEPTH.w2A","m"
 "VertDistance","Continental","agriculturalsoil",0.2,"DEPTH.s2C","m"
 "VertDistance","Continental","air",1000,"HEIGHT.aC","m"
@@ -104,7 +104,7 @@
 "VertDistance","Moderate","cloudwater",1000,"HEIGHT.aM","m"
 "VertDistance","Moderate","deepocean",3000,"DEPTH.w3M","m"
 "VertDistance","Moderate","marinesediment",0.03,"DEPTH.sdM","m"
-"VertDistance","Moderate","othersoil",0.05,"DEPTH.sM","m"
+"VertDistance","Moderate","naturalsoil",0.05,"DEPTH.sM","m"
 "VertDistance","Moderate","sea",100,"DEPTH.w2M","m"
 "VertDistance","Regional","agriculturalsoil",0.2,"DEPTH.s2R","m"
 "VertDistance","Regional","air",1000,"HEIGHT.aR","m"
@@ -121,5 +121,5 @@
 "VertDistance","Tropic","cloudwater",1000,"HEIGHT.aT","m"
 "VertDistance","Tropic","deepocean",3000,"DEPTH.w3T","m"
 "VertDistance","Tropic","marinesediment",0.03,"DEPTH.sdT","m"
-"VertDistance","Tropic","othersoil",0.05,"DEPTH.sT","m"
+"VertDistance","Tropic","naturalsoil",0.05,"DEPTH.sT","m"
 "VertDistance","Tropic","sea",100,"DEPTH.w2T","m"
