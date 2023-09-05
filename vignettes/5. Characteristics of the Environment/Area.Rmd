@@ -1,24 +1,16 @@
 ---
 title: "Nested areas"
-author: "JS"
-date: "5/3/2022"
-output: html_document
+date: "`r Sys.Date()`"
+output: github_document
 editor_options: 
   chunk_output_type: console
 ---
-
-```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
 
 ## Calculation of area of SubCompartment within Scales
 
 The calculation of area slightly differs from the excel version, also in preparation of a local scale, and the wish to be able to situate the Continental/Regional/Local system within Tropic, rather than fixed within Moderate. Therefor the TotalArea contains the area including possibly nested areas. This is different from SYSTEMAREA in the excel version. We initiate World and start from the data TotalArea and FRACsea
 
-```{r start.data}
+```{r start.data, message=FALSE, warning=FALSE}
 source("baseScripts/initTestWorld.R")
 World$fetchData("TotalArea")
 World$fetchData("FRACsea")

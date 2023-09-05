@@ -1,16 +1,8 @@
 ---
-title: "Fractions of phases in subcompartments"
-author: "JS & JQ"
+title: "Volume FRACtions of phases in subcompartments"
 date: "`r Sys.Date()`"
 output: github_document
 ---
-
-```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
 
 ## Matrix parts of a sub-compartment
 A Subcompartment has a main matrix(medium); for soils and sediment this is "solids". But both also contain water, and soil also contains a fraction of air, as wel as water. These matrices play a part in the exchange of substances. The fraction of the non-main matrices are in the data, named subFRACw, subFRACa, and subFRACs. The main fraction of the subcompartment is calculated as the remainder. All fractions are are determined by three variable defining functions. For example for soils and sediments:
