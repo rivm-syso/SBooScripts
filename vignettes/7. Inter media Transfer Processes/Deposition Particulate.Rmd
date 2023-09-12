@@ -6,6 +6,16 @@ editor_options:
   chunk_output_type: console
 ---
 
+```{r setup}
+# knitr::opts_chunk$set(echo = TRUE)
+# projectRoot <- paste(getwd(), "..", sep = "/")
+# knitr::opts_knit$set(root.dir = NULL) #assuming vignette is in a direct subfolder of the project
+
+
+# knitr::opts_knit$get()
+```
+
+
 ```{r message=FALSE, warning=FALSE, paged.print=FALSE}
 
 # knitr::opts_chunk$set(echo = TRUE)
