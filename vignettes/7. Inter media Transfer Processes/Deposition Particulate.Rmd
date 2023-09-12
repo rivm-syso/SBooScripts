@@ -1,0 +1,80 @@
+---
+title: "Particulate Deposition air to soil/water"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+
+# knitr::opts_chunk$set(echo = TRUE)
+# projectRoot <- paste(getwd(), "..", sep = "/")
+# knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+
+# see which relevant substances are in the database:
+library(tidyverse)
+SubstanceDatabase <- read.csv("data/Substances.csv")
+# unique(as.tibble(SubstanceDatabase$ChemClass))
+SubstanceDatabase |> filter(ChemClass == "particle")
+
+rm(substance) #for "default substance", example of neutral substance
+substance <- "nAg_10nm"
+#substance <- "organic acid" #example of acid
+#substance <- "organic base" #example of base
+#substance <- "Ag(I)" #example of metal
+
+source("baseScripts/initTestWorld.R")
+
+```
+
+## Introduction
+
+See if the following variable are available. They are required for the DryDeposition function
+
+to.Area, from.Volume, AEROresist, Diffusivity,
+                          DynVisc,rhoMatrix,ColRad,rad_species,rho_species,
+                          Temp,to.alpha.surf, Cunningham, SetVel
+
+```{r paged.print=TRUE}
+
+World$fetchData("Area")
+World$fetchData("Volume")
+World$fetchData("AEROresist")
+World$fetchData("Matrix")
+#Diffusivity is calculated based on f_Diffusivity
+
+World$fetchData("DynVisc")
+World$fetchData("rhoMatrix")
+World$fetchData("ColRad")
+
+World$NewCalcVariable("rad_species")
+World$CalcVar("rad_species")
+World$NewCalcVariable("rho_species")
+World$CalcVar("rho_species")
+
+World$fetchData("Temp")
+World$fetchData("alpha.surf")
+# Cunningham calculated using f_Cunningham
+
+World$NewCalcVariable("SettlingVelocity")
+World$CalcVar("SettlingVelocity")
+
+World$fetchData("gamma.surf")
+World$fetchData("FricVel")
+World$fetchData("SubCompartName")
+
+
+```
+
+
+## Calculation of Dry Deposition rate constant for particulates
+
+```{r k_DryDeposition, warning=FALSE, paged.print=TRUE}
+
+World$FromDataAndTo("k_DryDeposition")
+testProc <- World$NewProcess("k_DryDeposition")
+testProc$execute()
+
+```
+
