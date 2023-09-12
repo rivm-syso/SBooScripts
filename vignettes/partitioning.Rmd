@@ -71,10 +71,10 @@ KswModelled <- f_Ksw(Kow, pKa, CorgStandard,
 Not in the data is Ksw for the alternative form. We can use the same function, with the parameter alt_form = T and Ksw_orig = KswModelled.
 
 ```{r ksw.alt}
-Ksw.alt <- f_Ksw(Kow, pKa, CorgStandard, 
-                    a = QSARrecord$a, b = QSARrecord$b, Substance_ChemClass,
-                    RHOsolid,
-                    alt_form = T)
+# Ksw.alt <- f_Ksw(Kow, pKa, CorgStandard, 
+#                     a = QSARrecord$a, b = QSARrecord$b, Substance_ChemClass,
+#                     RHOsolid,
+#                     alt_form = T)
 ```
 
 We now have all the parameters, we can call the function, but how to store the result for Kws, to make it available from the core? This kind of action is unusual, but can be done by replacing the whole table, in this case Globals
@@ -82,7 +82,7 @@ We now have all the parameters, we can call the function, but how to store the r
 ```{r}
 FromData <- World$fetchData("Globals")
 FromData$Ksw <- KswModelled
-FromData$Ksw.alt <- Ksw.alt
+# FromData$Ksw.alt <- Ksw.alt
 #or if ksw was already provided as input data (like for metals), the Ksw.alt was not calculated with previous functions, but should still be provided
 #FromData$Ksw.alt <- World$fetchData("Ksw")
 FromData$RHOsolid <- RHOsolid
@@ -93,6 +93,8 @@ And now we know that the system will use our modelled Ksw
 
 ```{r}
 World$fetchData("Ksw")
+World$NewCalcVariable("Ksw.alt")
+World$CalcVar("Ksw.alt")
 World$fetchData("Ksw.alt")
 World$fetchData("RHOsolid")
 ```

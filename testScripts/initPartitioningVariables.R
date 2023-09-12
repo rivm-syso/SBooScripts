@@ -44,9 +44,10 @@ if(is.na(World$fetchData("Ksw"))){
   }
 
 #Calculations of variables
-source("newAlgorithmScripts/v_Ksw.alt.R")
-testIt <- World$NewCalcVariable("Ksw.alt")
+# source("newAlgorithmScripts/v_Ksw.alt.R")
+# testIt <- World$NewCalcVariable("Ksw.alt")
 #testIt$execute()
+World$NewCalcVariable("Ksw.alt")
 World$CalcVar("Ksw.alt")
 World$fetchData("Ksw.alt")
 
