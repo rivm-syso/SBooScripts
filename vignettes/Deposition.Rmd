@@ -45,10 +45,6 @@ source("testScripts/initPartitioningVariables.R")
 
 ```{r eval=FALSE, include=FALSE}
 # This needs to be calculated first:
-World$NewCalcVariable("FRorig")
-World$CalcVar("FRorig")
-World$NewCalcVariable("FRorig_spw")
-World$CalcVar("FRorig_spw")
 World$NewCalcVariable("FRACa")
 World$CalcVar("FRACa")
 World$NewCalcVariable("FRACw")
@@ -57,54 +53,23 @@ World$NewCalcVariable("FRACs")
 World$CalcVar("FRACs")
 # World$fetchData()
 
-# debugonce(fKsw)
-
-KswModelled <- fKsw(Kow = World$fetchData("Kow"), 
-                    pKa = 7, 
-                    CorgStandard = World$fetchData("CorgStandard"), 
-                    a = with(World$fetchData("QSARtable"), 
-                             a[QSAR.ChemClass == World$fetchData("ChemClass")]), 
-                    b = with(World$fetchData("QSARtable"), 
-                             b[QSAR.ChemClass == World$fetchData("ChemClass")]), 
-                    ChemClass = World$fetchData("ChemClass"),
-                    RHOsolid = with(World$fetchData("rhoMatrix"),
-                                    rhoMatrix[SubCompart == "othersoil"]),
-                    alt_form = F)
-
-Ksw.alt <- fKsw(Kow = World$fetchData("Kow"), 
-                    pKa = 7, 
-                    CorgStandard = World$fetchData("CorgStandard"), 
-                    a = with(World$fetchData("QSARtable"), 
-                             a[QSAR.ChemClass == World$fetchData("ChemClass")]), 
-                    b = with(World$fetchData("QSARtable"), 
-                             b[QSAR.ChemClass == World$fetchData("ChemClass")]), 
-                    ChemClass = World$fetchData("ChemClass"),
-                    RHOsolid = with(World$fetchData("rhoMatrix"),
-                                    rhoMatrix[SubCompart == "othersoil"]),
-                    alt_form = T, KswModelled)
-
-FromData <- World$fetchData("Globals")
-FromData$Ksw <- KswModelled
-FromData$Ksw.alt <- Ksw.alt
-FromData$RHOsolid <- with(World$fetchData("rhoMatrix"),
+RHOsolid <- with(World$fetchData("rhoMatrix"),
                                     rhoMatrix[SubCompart == "othersoil"])
-World$UpdateData(FromData, keys = T, TableName = "Globals")
 
-source("/rivm/s/quikj/SimpleBox_dev/sbooScripts/newAlgorithmScripts/f_kdegcalc.R")
-kdeg.sediment <- kdegcalc(Q.10 = World$fetchData("Q.10"), 
+source("newAlgorithmScripts/f_kdegcalc.R")
+kdeg.sediment <- f_kdegcalc(Q.10 = World$fetchData("Q.10"), 
                           Ksw = World$fetchData("Ksw"), 
                           Biodeg = "r", 
                           C.OHrad.n = World$fetchData("C.OHrad.n"), 
                           Ea.OHrad = World$fetchData("Ea.OHrad"), 
                           k0.OHrad = World$fetchData("k0.OHrad"),
                           CorgStandard = World$fetchData("CorgStandard"), 
-                          RHOsolid = World$fetchData("RHOsolid"),
+                          RHOsolid = RHOsolid,
                           Matrix = "sediment")
 
-
-FromData <- World$fetchData("Globals")
-FromData$kdeg.sediment <- kdeg.sediment
-World$UpdateData(FromData, keys = T, TableName = "Globals")
+#FromData <- World$fetchData("Globals")
+#FromData$kdeg.sediment <- kdeg.sediment
+#World$UpdateData(FromData, keys = T, TableName = "Globals")
 
 World$NewCalcVariable("Kp")
 World$CalcVar("Kp")
@@ -132,8 +97,8 @@ World$CalcVar("FRingas")
 
 # source("newAlgorithmScripts/k_Degradation.R")
 
-# Read in function to derive the temperature correction factor
-source("newAlgorithmScripts/f_Tempfactor.wsds.R")
+# Read in function to derive the temperature correction factor, now a SB variable
+Tempfactor
 
 # World$NewCalcVariable("k_Degradation")
 # World$CalcVar("k_Degradation")

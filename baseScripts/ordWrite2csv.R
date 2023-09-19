@@ -8,7 +8,7 @@ sortNames <- c("VarName", "Scale", "Compartment", "SubCompart", "Species",
 
 OutputFolder <- "data/"
 #easier to use/debug with for loop, simple is good
-for (sheetI in 1 : length(Defs)){ #sheetI = 20
+for (sheetI in 1 : length(Defs)){ #sheetI = 11
   tableName <- Defs[sheetI]
   tabledata.frame <- MlikeWorkBook[[tableName]]
   #sort by scale compart/subcompart species substance process from to
@@ -23,9 +23,9 @@ for (sheetI in 1 : length(Defs)){ #sheetI = 20
   #this script should be tidyversed... but it can in base (data.frame IS a list)
   SaveOrder <- do.call(order, tabledata.frame[,orderNames, drop=FALSE])
   #write it, with quotes for non-numeric columns
-  WithQuotes <- which(!sapply(tabledata.frame, is.numeric))
+  WithQuotes <- which(!sapply(tabledata.frame[,c(orderNames, UnorderedNames)], is.numeric))
   Outputfile <- paste(OutputFolder, tableName, ".csv", sep = "")
   # n.o. digits governed by the option "scipen"?? (see options), but with the internal equivalent of digits = 15
-  write.csv(tabledata.frame[SaveOrder, c(orderNames, UnorderedNames)],
-            file = Outputfile, quote = WithQuotes, row.names = F, dec = ".")
+  write.table(tabledata.frame[SaveOrder, c(orderNames, UnorderedNames)],
+            file = Outputfile, quote = WithQuotes, row.names = F, dec = ".", sep = ",")
 }
