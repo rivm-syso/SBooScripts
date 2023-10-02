@@ -5,14 +5,9 @@
           #1. substance has been defined 
           #2. the "World" has been initialised
 
-#Prepare df to add new input data to the "World"  
-#FromData <- World$fetchData("Globals")
-
 Kow <- World$fetchData("Kow")
 if(is.na(World$fetchData("Kow"))) {
-  Kow <- 2750
-  FromData$Kow <- Kow #This also needs to be added to the world for further use, for example CalcVar("D"), 
-                      #also note the World$UpdateData() down the lines
+  World$SetConst(Kow = 2750)
   warning("Kow is missing in input data. This is not always provided by default, e.g. for metals. 
 Kow is set to 2750, corresponding to the default in the SB4nano excel version. This value is based on the median of all provided Kow of all substances in the excel version")
 }
@@ -47,7 +42,7 @@ if(is.na(World$fetchData("Ksw"))){
 # source("newAlgorithmScripts/v_Ksw.alt.R")
 # testIt <- World$NewCalcVariable("Ksw.alt")
 #testIt$execute()
-World$NewCalcVariable("Ksw.alt")
+test = World$NewCalcVariable("Ksw.alt")
 World$CalcVar("Ksw.alt")
 World$fetchData("Ksw.alt")
 
@@ -75,13 +70,13 @@ World$CalcVar("Kaerw")
 World$NewCalcVariable("Kaers")
 World$CalcVar("Kaers")
 
-World$fetchData("FRACw")
-World$fetchData("FRACa")
-#"? If it is not clear where a variable comes from the software is cloudy and unpleasant to work with
-#a variable is data XOR a defining function
-#World$fetchData("FRACs") 
+#N.B. changed 2 Oct 2023 variables are all calculated from subFRACx
 World$NewCalcVariable("FRACs")
 World$CalcVar("FRACs")
+World$NewCalcVariable("FRACw")
+World$CalcVar("FRACw")
+World$NewCalcVariable("FRACa")
+World$CalcVar("FRACa")
 
 testt <- World$NewCalcVariable("Ksdcompw")
 #testt$execute(debugAt = list())

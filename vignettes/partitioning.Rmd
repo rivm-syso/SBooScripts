@@ -39,24 +39,34 @@ The function is given below, the parameters are: Kow, pKa, Corg, a, b, ChemClass
 f_Ksw
 ```
 
-Does the database contain Kow, pKa, Corg...?
+Does the database contain Kow, pKa, Corg...? If not we can store the result in the internal data of World by the function from the World object (method) World$SetConst()
 
 ```{r}
-Kow <- World$fetchData("Kow") #No Kow for metals in input data, should be provided by user
-#World$fetchData("Corg")
+Kow <- World$fetchData("Kow")
+if(is.na(World$fetchData("Kow"))) {
+  World$SetConst(Kow = 2750)
+  warning("Kow is missing in input data. This is not always provided by default, e.g. for metals. 
+Kow is set to 2750, corresponding to the default in the SB4nano excel version. This value is based on the median of all provided Kow of all substances in the excel version")
+}
+
+World$fetchData("Corg")
 ```
 
-Oeps, CORG is a table in R of Corg for all subcompartments, we need StandardCorgSoil
+Oeps, the CORG variable in the excel version is now a table in R of Corg for all subcompartments, we need StandardCorgSoil
 
 ```{r}
 CorgStandard <- World$fetchData("CorgStandard")
-pKa <- World$fetchData("pKa")
 ```
 
-pKa could be missing (e.g. in the case of "default substance"). If the substance is neutral, you can apply a value of 7. Variables a and b come from the QSARtable. RHOsolid can be taken from the Rho from the matrix of non-specific, standard soil, i.e. "othersoil" This variable is used in multiple formulas; we'll put it as constant in the "Globals" table; see further down.
+pKa could be missing (e.g. in the case of "default substance"). If the substance is neutral, you can apply a value of 7. Variables a and b come from the QSARtable. RHOsolid can be taken from the Rho from the matrix of non-specific, standard soil, i.e. "othersoil" This "variable" is used in multiple formulas in the excel version, but because it's only a copy it is more transparent to set it locally.
 
 ```{r ksw}
-#pKa <- 7
+pKa <- World$fetchData("pKa")
+if(is.na(pKa)) {
+  World$SetConst(pKa = 7) 
+  warning("pKa not given in input data. Substance assumed to be neutral (pKa = 7).")
+}
+
 Substance_ChemClass <- World$fetchData("ChemClass")
 QSARtable <- World$fetchData("QSARtable")
 QSARrecord <- QSARtable[QSARtable$QSAR.ChemClass == Substance_ChemClass,]
@@ -68,36 +78,23 @@ KswModelled <- f_Ksw(Kow, pKa, CorgStandard,
                     alt_form = F)
 ```
 
-Not in the data is Ksw for the alternative form. We can use the same function, with the parameter alt_form = T and Ksw_orig = KswModelled.
+We now have all the parameters and can set the value for Ksw and know that the system will use our modelled Ksw
+
+```{r}
+World$SetConst(Ksw = KswModelled)
+World$fetchData("Ksw")
+
+```
+
+Not in the data is Ksw for the alternative form. The same function f_Ksw is applied by the defining function Ksw.alt, creating the SB variable:
 
 ```{r ksw.alt}
-# Ksw.alt <- f_Ksw(Kow, pKa, CorgStandard, 
-#                     a = QSARrecord$a, b = QSARrecord$b, Substance_ChemClass,
-#                     RHOsolid,
-#                     alt_form = T)
-```
-
-We now have all the parameters, we can call the function, but how to store the result for Kws, to make it available from the core? This kind of action is unusual, but can be done by replacing the whole table, in this case Globals
-
-```{r}
-FromData <- World$fetchData("Globals")
-FromData$Ksw <- KswModelled
-# FromData$Ksw.alt <- Ksw.alt
-#or if ksw was already provided as input data (like for metals), the Ksw.alt was not calculated with previous functions, but should still be provided
-#FromData$Ksw.alt <- World$fetchData("Ksw")
-FromData$RHOsolid <- RHOsolid
-World$UpdateData(FromData, keys = T, TableName = "Globals")
-```
-
-And now we know that the system will use our modelled Ksw
-
-```{r}
-World$fetchData("Ksw")
+Ksw.alt
 World$NewCalcVariable("Ksw.alt")
 World$CalcVar("Ksw.alt")
 World$fetchData("Ksw.alt")
-World$fetchData("RHOsolid")
 ```
+
 
 ## Fraction molecular species in original form (based on pKa)
 
