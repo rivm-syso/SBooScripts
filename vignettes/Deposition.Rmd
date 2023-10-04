@@ -44,19 +44,10 @@ source("testScripts/initPartitioningVariables.R")
 
 
 ```{r eval=FALSE, include=FALSE}
-# This needs to be calculated first:
-World$NewCalcVariable("FRACa")
-World$CalcVar("FRACa")
-World$NewCalcVariable("FRACw")
-World$CalcVar("FRACw")
-World$NewCalcVariable("FRACs")
-World$CalcVar("FRACs")
-# World$fetchData()
-
 RHOsolid <- with(World$fetchData("rhoMatrix"),
                                     rhoMatrix[SubCompart == "othersoil"])
 
-source("newAlgorithmScripts/f_kdegcalc.R")
+
 kdeg.sediment <- f_kdegcalc(Q.10 = World$fetchData("Q.10"), 
                           Ksw = World$fetchData("Ksw"), 
                           Biodeg = "r", 
@@ -139,8 +130,6 @@ World$fetchData("FRACs")
 World$fetchData("FRinaerw")
 World$fetchData("FRinaers")
 
-
-
 ```
 
 ```{r}
@@ -150,14 +139,13 @@ World$UpdateKaas(mergeExisting = F)
 
 #only now we can calculate OtherkAir, because:
 World$fetchData("kaas") #this is not the regular use!! see method kaas of World !!
-source("newAlgorithmScripts/v_OtherkAir.R")
 testtm <- World$NewCalcVariable("OtherkAir")
 #testtm$execute()
 World$CalcVar("OtherkAir")
 
 ```
 
-Then the deposition rate constant can be calculated
+Now the deposition rate constants can be calculated
 
 ```{r}
 # source("newAlgorithmScripts/k_Deposition.R")

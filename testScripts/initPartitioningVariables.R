@@ -28,15 +28,14 @@ RHOsolid <- RhoTable$rhoMatrix[RhoTable$SubCompart == "naturalsoil"]
 
 #Calculate Ksw if it is missing in input data
 if(is.na(World$fetchData("Ksw"))){
-  KswModelled <- f_Ksw(Kow, FromData$pKa, CorgStandard, 
+  KswModelled <- f_Ksw(Kow, pKa, CorgStandard, 
                      a = QSARrecord$a, b = QSARrecord$b, ChemClass,
                      RHOsolid,
                      alt_form = F)
   World$SetConst(Ksw = KswModelled)
+  warning("Ksw calculated by f_Ksw")
 
-#  } else { ?
-#    FromData$Ksw.alt <- World$fetchData("Ksw") #Ksw.alt still needs to be defined when Ksw is already in the data
-  }
+}
 
 #Calculations of variables
 # source("newAlgorithmScripts/v_Ksw.alt.R")
