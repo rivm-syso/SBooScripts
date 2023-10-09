@@ -1,6 +1,6 @@
 Nested areas
 ================
-2023-09-05
+2023-09-12
 
 ## Calculation of area of SubCompartment within Scales
 
@@ -101,7 +101,7 @@ AreaSea
     ##         return(AreaSea4Scale(ScaleName))
     ##     }
     ## }
-    ## <bytecode: 0x000001c017770298>
+    ## <bytecode: 0x0000012fe81b0060>
 
 ## The areas to be used in further calculations
 
@@ -145,7 +145,7 @@ Area
     ##     }
     ##     return(NA)
     ## }
-    ## <bytecode: 0x000001c0184df398>
+    ## <bytecode: 0x0000012fe8f4feb8>
 
 ``` r
 v_Area <- World$NewCalcVariable("Area")
