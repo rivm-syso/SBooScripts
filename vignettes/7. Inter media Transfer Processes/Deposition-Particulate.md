@@ -1,6 +1,15 @@
 Particulate Deposition air to soil/water
 ================
-2023-09-12
+2023-10-09
+
+``` r
+# knitr::opts_chunk$set(echo = TRUE)
+# projectRoot <- paste(getwd(), "..", sep = "/")
+# knitr::opts_knit$set(root.dir = NULL) #assuming vignette is in a direct subfolder of the project
+
+
+# knitr::opts_knit$get()
+```
 
 ``` r
 # knitr::opts_chunk$set(echo = TRUE)
@@ -560,6 +569,7 @@ World$fetchData("alpha.surf")
 ``` r
 # Cunningham calculated using f_Cunningham
 
+# World$fetchData("SettlingVelocity")
 World$NewCalcVariable("SettlingVelocity")
 World$CalcVar("SettlingVelocity")
 ```
@@ -688,6 +698,10 @@ World$fetchData("SubCompartName")
     ## 12                sea                sea
 
 ## Calculation of Dry Deposition rate constant for particulates
+
+The implementation follows the LOTOS-EUROS v2.0 2016 guidance for dry
+deposition of particles. This does mean there might be small deviations
+from the current implementation in SimpleBox4nano xlsx.
 
 ``` r
 World$FromDataAndTo("k_DryDeposition")
@@ -1231,3 +1245,672 @@ testProc$execute()
     ## 167       Solid     Solid 3.340790e-12
     ## 173       Solid     Solid 2.190534e-10
     ## 179       Solid     Solid 5.375111e-10
+
+## Calculation of Wet Deposition rate constant for particulates
+
+For wet deposition there are two steps where the particulates are first
+scavenged into an intermediate cloud water compartment after which they
+deposit to soil or surface water.
+
+``` r
+# #init default core (World) with classic states, and classic kaas
+# substance <- "nAg_10nm"  #use a nano material, otherwise it only encounters Molecular
+# excelReference <- "data/20210331 SimpleBox4nano_rev006.xlsx"
+# source("baseScripts/initTestWorld.R")
+# 
+# lapply(c("rho_species", "rad_species"), function(FuName){
+#   World$NewCalcVariable(FuName)
+#   World$CalcVar(FuName)
+# })
+# World$fetchData("Temp")
+
+World$fetchData("NaturalRho")
+```
+
+    ##            SubCompart Species NaturalRho
+    ## 1                 air   Large       2000
+    ## 2          cloudwater   Large       2000
+    ## 4  freshwatersediment   Small       2000
+    ## 6        lakesediment   Small       2000
+    ## 8      marinesediment   Small       2000
+    ## 9    agriculturalsoil   Large       2500
+    ## 10   agriculturalsoil   Small       2000
+    ## 11        naturalsoil   Large       2500
+    ## 12        naturalsoil   Small       2000
+    ## 13          othersoil   Large       2500
+    ## 14          othersoil   Small       2000
+    ## 16          deepocean   Large       2500
+    ## 17          deepocean   Small       2000
+    ## 19               lake   Large       2500
+    ## 20               lake   Small       2000
+    ## 22              river   Large       2500
+    ## 23              river   Small       2000
+    ## 25                sea   Large       2500
+    ## 26                sea   Small       2000
+
+``` r
+World$fetchData("SettlingVelocity") 
+```
+
+    ##           Scale SubCompart Species SettlingVelocity
+    ## 4        Arctic        air   Large     2.112548e-04
+    ## 5        Arctic        air   Small     1.526439e-06
+    ## 6        Arctic        air   Solid     7.237741e-07
+    ## 7        Arctic cloudwater   Large     9.771989e-05
+    ## 8        Arctic cloudwater   Solid     2.860122e-08
+    ## 9        Arctic  deepocean   Large     2.940038e-05
+    ## 10       Arctic  deepocean   Small     4.904986e-08
+    ## 11       Arctic  deepocean   Solid     5.166489e-10
+    ## 15       Arctic       lake   Large     2.940038e-05
+    ## 16       Arctic       lake   Small     4.904986e-08
+    ## 17       Arctic       lake   Solid     5.166489e-10
+    ## 30       Arctic      river   Large     2.940038e-05
+    ## 31       Arctic      river   Small     4.904986e-08
+    ## 32       Arctic      river   Solid     5.166489e-10
+    ## 33       Arctic        sea   Large     2.940038e-05
+    ## 34       Arctic        sea   Small     4.904986e-08
+    ## 35       Arctic        sea   Solid     5.166489e-10
+    ## 39  Continental        air   Large     2.112548e-04
+    ## 40  Continental        air   Small     1.526439e-06
+    ## 41  Continental        air   Solid     7.237741e-07
+    ## 42  Continental cloudwater   Large     9.771989e-05
+    ## 43  Continental cloudwater   Solid     2.860122e-08
+    ## 44  Continental  deepocean   Large     2.940038e-05
+    ## 45  Continental  deepocean   Small     4.904986e-08
+    ## 46  Continental  deepocean   Solid     5.166489e-10
+    ## 50  Continental       lake   Large     2.940038e-05
+    ## 51  Continental       lake   Small     4.904986e-08
+    ## 52  Continental       lake   Solid     5.166489e-10
+    ## 65  Continental      river   Large     2.940038e-05
+    ## 66  Continental      river   Small     4.904986e-08
+    ## 67  Continental      river   Solid     5.166489e-10
+    ## 68  Continental        sea   Large     2.940038e-05
+    ## 69  Continental        sea   Small     4.904986e-08
+    ## 70  Continental        sea   Solid     5.166489e-10
+    ## 74     Moderate        air   Large     2.112548e-04
+    ## 75     Moderate        air   Small     1.526439e-06
+    ## 76     Moderate        air   Solid     7.237741e-07
+    ## 77     Moderate cloudwater   Large     9.771989e-05
+    ## 78     Moderate cloudwater   Solid     2.860122e-08
+    ## 79     Moderate  deepocean   Large     2.940038e-05
+    ## 80     Moderate  deepocean   Small     4.904986e-08
+    ## 81     Moderate  deepocean   Solid     5.166489e-10
+    ## 85     Moderate       lake   Large     2.940038e-05
+    ## 86     Moderate       lake   Small     4.904986e-08
+    ## 87     Moderate       lake   Solid     5.166489e-10
+    ## 100    Moderate      river   Large     2.940038e-05
+    ## 101    Moderate      river   Small     4.904986e-08
+    ## 102    Moderate      river   Solid     5.166489e-10
+    ## 103    Moderate        sea   Large     2.940038e-05
+    ## 104    Moderate        sea   Small     4.904986e-08
+    ## 105    Moderate        sea   Solid     5.166489e-10
+    ## 109    Regional        air   Large     2.112548e-04
+    ## 110    Regional        air   Small     1.526439e-06
+    ## 111    Regional        air   Solid     7.237741e-07
+    ## 112    Regional cloudwater   Large     9.771989e-05
+    ## 113    Regional cloudwater   Solid     2.860122e-08
+    ## 114    Regional  deepocean   Large     2.940038e-05
+    ## 115    Regional  deepocean   Small     4.904986e-08
+    ## 116    Regional  deepocean   Solid     5.166489e-10
+    ## 120    Regional       lake   Large     2.940038e-05
+    ## 121    Regional       lake   Small     4.904986e-08
+    ## 122    Regional       lake   Solid     5.166489e-10
+    ## 135    Regional      river   Large     2.940038e-05
+    ## 136    Regional      river   Small     4.904986e-08
+    ## 137    Regional      river   Solid     5.166489e-10
+    ## 138    Regional        sea   Large     2.940038e-05
+    ## 139    Regional        sea   Small     4.904986e-08
+    ## 140    Regional        sea   Solid     5.166489e-10
+    ## 144      Tropic        air   Large     2.112548e-04
+    ## 145      Tropic        air   Small     1.526439e-06
+    ## 146      Tropic        air   Solid     7.237741e-07
+    ## 147      Tropic cloudwater   Large     9.771989e-05
+    ## 148      Tropic cloudwater   Solid     2.860122e-08
+    ## 149      Tropic  deepocean   Large     2.940038e-05
+    ## 150      Tropic  deepocean   Small     4.904986e-08
+    ## 151      Tropic  deepocean   Solid     5.166489e-10
+    ## 155      Tropic       lake   Large     2.940038e-05
+    ## 156      Tropic       lake   Small     4.904986e-08
+    ## 157      Tropic       lake   Solid     5.166489e-10
+    ## 170      Tropic      river   Large     2.940038e-05
+    ## 171      Tropic      river   Small     4.904986e-08
+    ## 172      Tropic      river   Solid     5.166489e-10
+    ## 173      Tropic        sea   Large     2.940038e-05
+    ## 174      Tropic        sea   Small     4.904986e-08
+    ## 175      Tropic        sea   Solid     5.166489e-10
+
+``` r
+World$fetchData("rhoMatrix")
+```
+
+    ##            SubCompart rhoMatrix
+    ## 1                 air     1.225
+    ## 2          cloudwater   998.000
+    ## 3  freshwatersediment  2500.000
+    ## 4        lakesediment  2500.000
+    ## 5      marinesediment  2500.000
+    ## 6    agriculturalsoil  2500.000
+    ## 7         naturalsoil  2500.000
+    ## 8           othersoil  2500.000
+    ## 9           deepocean   998.000
+    ## 10               lake   998.000
+    ## 11              river   998.000
+    ## 12                sea   998.000
+
+``` r
+World$fetchData("RAINrate")
+```
+
+    ##         Scale     RAINrate
+    ## 1      Arctic 7.927448e-09
+    ## 2 Continental 2.219685e-08
+    ## 3    Moderate 2.219685e-08
+    ## 4    Regional 2.219685e-08
+    ## 5      Tropic 4.122273e-08
+
+``` r
+World$fetchData("FRACtwet")
+```
+
+    ##         Scale FRACtwet
+    ## 1      Arctic        1
+    ## 2 Continental        1
+    ## 3    Moderate        1
+    ## 4    Regional        1
+    ## 5      Tropic        1
+
+``` r
+World$fetchData("tdry")
+```
+
+    ##         Scale   tdry
+    ## 1      Arctic 285120
+    ## 2 Continental 285120
+    ## 3    Moderate 285120
+    ## 4    Regional 285120
+    ## 5      Tropic 285120
+
+``` r
+World$fetchData("twet")
+```
+
+    ##         Scale     twet
+    ## 1      Arctic 18199.15
+    ## 2 Continental 18199.15
+    ## 3    Moderate 18199.15
+    ## 4    Regional 18199.15
+    ## 5      Tropic 18199.15
+
+``` r
+World$fetchData("COLLECTeff")
+```
+
+    ##         Scale COLLECTeff
+    ## 1      Arctic      2e+05
+    ## 2 Continental      2e+05
+    ## 3    Moderate      2e+05
+    ## 4    Regional      2e+05
+    ## 5      Tropic      2e+05
+
+``` r
+World$FromDataAndTo("k_CWscavenging")
+```
+
+    ##    fromSubCompart        process toSubCompart   fromScale     toScale
+    ## 21            air k_CWscavenging   cloudwater      Arctic      Arctic
+    ## 22     cloudwater k_CWscavenging   cloudwater      Arctic      Arctic
+    ## 23            air k_CWscavenging   cloudwater Continental Continental
+    ## 24     cloudwater k_CWscavenging   cloudwater Continental Continental
+    ## 25            air k_CWscavenging   cloudwater    Moderate    Moderate
+    ## 26     cloudwater k_CWscavenging   cloudwater    Moderate    Moderate
+    ## 27            air k_CWscavenging   cloudwater    Regional    Regional
+    ## 28     cloudwater k_CWscavenging   cloudwater    Regional    Regional
+    ## 29            air k_CWscavenging   cloudwater      Tropic      Tropic
+    ## 30     cloudwater k_CWscavenging   cloudwater      Tropic      Tropic
+    ## 31            air k_CWscavenging   cloudwater      Arctic      Arctic
+    ## 32     cloudwater k_CWscavenging   cloudwater      Arctic      Arctic
+    ## 33            air k_CWscavenging   cloudwater Continental Continental
+    ## 34     cloudwater k_CWscavenging   cloudwater Continental Continental
+    ## 35            air k_CWscavenging   cloudwater    Moderate    Moderate
+    ## 36     cloudwater k_CWscavenging   cloudwater    Moderate    Moderate
+    ## 37            air k_CWscavenging   cloudwater    Regional    Regional
+    ## 38     cloudwater k_CWscavenging   cloudwater    Regional    Regional
+    ## 39            air k_CWscavenging   cloudwater      Tropic      Tropic
+    ## 40     cloudwater k_CWscavenging   cloudwater      Tropic      Tropic
+    ## 41            air k_CWscavenging   cloudwater      Arctic      Arctic
+    ## 42     cloudwater k_CWscavenging   cloudwater      Arctic      Arctic
+    ## 43            air k_CWscavenging   cloudwater Continental Continental
+    ## 44     cloudwater k_CWscavenging   cloudwater Continental Continental
+    ## 45            air k_CWscavenging   cloudwater    Moderate    Moderate
+    ## 46     cloudwater k_CWscavenging   cloudwater    Moderate    Moderate
+    ## 47            air k_CWscavenging   cloudwater    Regional    Regional
+    ## 48     cloudwater k_CWscavenging   cloudwater    Regional    Regional
+    ## 49            air k_CWscavenging   cloudwater      Tropic      Tropic
+    ## 50     cloudwater k_CWscavenging   cloudwater      Tropic      Tropic
+    ##    fromSpecies toSpecies
+    ## 21       Large     Large
+    ## 22       Large     Large
+    ## 23       Large     Large
+    ## 24       Large     Large
+    ## 25       Large     Large
+    ## 26       Large     Large
+    ## 27       Large     Large
+    ## 28       Large     Large
+    ## 29       Large     Large
+    ## 30       Large     Large
+    ## 31       Small     Small
+    ## 32       Small     Small
+    ## 33       Small     Small
+    ## 34       Small     Small
+    ## 35       Small     Small
+    ## 36       Small     Small
+    ## 37       Small     Small
+    ## 38       Small     Small
+    ## 39       Small     Small
+    ## 40       Small     Small
+    ## 41       Solid     Solid
+    ## 42       Solid     Solid
+    ## 43       Solid     Solid
+    ## 44       Solid     Solid
+    ## 45       Solid     Solid
+    ## 46       Solid     Solid
+    ## 47       Solid     Solid
+    ## 48       Solid     Solid
+    ## 49       Solid     Solid
+    ## 50       Solid     Solid
+
+``` r
+testProc <- World$NewProcess("k_CWscavenging")
+# debugonce(k_CWscavenging)
+# testProc$execute(debugAt = list(fromScale = "Regional"))
+testProc$execute()
+```
+
+    ## Warning in private$Execute(debugAt): input data ignored; not all rad_species in
+    ## FromDataAndTo
+
+    ## Warning in private$Execute(debugAt): input data ignored; not all rho_species in
+    ## FromDataAndTo
+
+    ## Warning in private$Execute(debugAt): input data ignored; not all to.rhoMatrix
+    ## in FromDataAndTo
+
+    ## Warning in private$Execute(debugAt): input data ignored; not all from.rhoMatrix
+    ## in FromDataAndTo
+
+    ## Warning in private$Execute(debugAt): input data ignored; not all from.DynVisc
+    ## in FromDataAndTo
+
+    ## Warning in private$Execute(debugAt): input data ignored; not all to.DynVisc in
+    ## FromDataAndTo
+
+    ## Warning in private$Execute(debugAt): input data ignored; not all
+    ## from.SettlingVelocity in FromDataAndTo
+
+    ## Warning in private$Execute(debugAt): input data ignored; not all Matrix in
+    ## FromDataAndTo
+
+    ## Warning in private$Execute(debugAt): input data ignored; not all SpeciesName in
+    ## FromDataAndTo
+
+    ## Warning in private$Execute(debugAt): input data ignored; not all VertDistance
+    ## in FromDataAndTo
+
+    ## Warning in private$Execute(debugAt): input data ignored; not all SubCompartName
+    ## in FromDataAndTo
+
+    ##    fromSubCompart        process toSubCompart   fromScale     toScale
+    ## 1             air k_CWscavenging   cloudwater      Arctic      Arctic
+    ## 3             air k_CWscavenging   cloudwater Continental Continental
+    ## 5             air k_CWscavenging   cloudwater    Moderate    Moderate
+    ## 7             air k_CWscavenging   cloudwater    Regional    Regional
+    ## 9             air k_CWscavenging   cloudwater      Tropic      Tropic
+    ## 11            air k_CWscavenging   cloudwater      Arctic      Arctic
+    ## 13            air k_CWscavenging   cloudwater Continental Continental
+    ## 15            air k_CWscavenging   cloudwater    Moderate    Moderate
+    ## 17            air k_CWscavenging   cloudwater    Regional    Regional
+    ## 19            air k_CWscavenging   cloudwater      Tropic      Tropic
+    ## 21            air k_CWscavenging   cloudwater      Arctic      Arctic
+    ## 23            air k_CWscavenging   cloudwater Continental Continental
+    ## 25            air k_CWscavenging   cloudwater    Moderate    Moderate
+    ## 27            air k_CWscavenging   cloudwater    Regional    Regional
+    ## 29            air k_CWscavenging   cloudwater      Tropic      Tropic
+    ##    fromSpecies toSpecies            k
+    ## 1        Large     Large 2.642483e-05
+    ## 3        Large     Large 7.398951e-05
+    ## 5        Large     Large 7.398951e-05
+    ## 7        Large     Large 7.398951e-05
+    ## 9        Large     Large 1.374091e-04
+    ## 11       Small     Small 1.044477e-07
+    ## 13       Small     Small 1.748115e-07
+    ## 15       Small     Small 1.748115e-07
+    ## 17       Small     Small 1.748115e-07
+    ## 19       Small     Small 2.382617e-07
+    ## 21       Solid     Solid 1.149450e-08
+    ## 23       Solid     Solid 1.923438e-08
+    ## 25       Solid     Solid 1.923438e-08
+    ## 27       Solid     Solid 1.923438e-08
+    ## 29       Solid     Solid 2.621240e-08
+
+``` r
+# debug(testProc$execute())
+
+#calculation of kaas is by executing a process
+# testClass <- World$NewProcess("k_CWscavenging")
+# testClass$execute(list())
+
+
+
+# debug(testClass$execute)
+# testClass$execute(debugAt = list()) #an empty list always triggers
+#testVar$execute(debugAt = list(Scale = "Regional", SubCompart = "air"))
+```
+
+``` r
+World$FromDataAndTo("k_WetDeposition")
+```
+
+    ##             process fromSubCompart     toSubCompart   fromScale     toScale
+    ## 61  k_WetDeposition     cloudwater agriculturalsoil      Arctic      Arctic
+    ## 62  k_WetDeposition     cloudwater             lake      Arctic      Arctic
+    ## 63  k_WetDeposition     cloudwater      naturalsoil      Arctic      Arctic
+    ## 64  k_WetDeposition     cloudwater        othersoil      Arctic      Arctic
+    ## 65  k_WetDeposition     cloudwater            river      Arctic      Arctic
+    ## 66  k_WetDeposition     cloudwater              sea      Arctic      Arctic
+    ## 67  k_WetDeposition     cloudwater agriculturalsoil Continental Continental
+    ## 68  k_WetDeposition     cloudwater             lake Continental Continental
+    ## 69  k_WetDeposition     cloudwater      naturalsoil Continental Continental
+    ## 70  k_WetDeposition     cloudwater        othersoil Continental Continental
+    ## 71  k_WetDeposition     cloudwater            river Continental Continental
+    ## 72  k_WetDeposition     cloudwater              sea Continental Continental
+    ## 73  k_WetDeposition     cloudwater agriculturalsoil    Moderate    Moderate
+    ## 74  k_WetDeposition     cloudwater             lake    Moderate    Moderate
+    ## 75  k_WetDeposition     cloudwater      naturalsoil    Moderate    Moderate
+    ## 76  k_WetDeposition     cloudwater        othersoil    Moderate    Moderate
+    ## 77  k_WetDeposition     cloudwater            river    Moderate    Moderate
+    ## 78  k_WetDeposition     cloudwater              sea    Moderate    Moderate
+    ## 79  k_WetDeposition     cloudwater agriculturalsoil    Regional    Regional
+    ## 80  k_WetDeposition     cloudwater             lake    Regional    Regional
+    ## 81  k_WetDeposition     cloudwater      naturalsoil    Regional    Regional
+    ## 82  k_WetDeposition     cloudwater        othersoil    Regional    Regional
+    ## 83  k_WetDeposition     cloudwater            river    Regional    Regional
+    ## 84  k_WetDeposition     cloudwater              sea    Regional    Regional
+    ## 85  k_WetDeposition     cloudwater agriculturalsoil      Tropic      Tropic
+    ## 86  k_WetDeposition     cloudwater             lake      Tropic      Tropic
+    ## 87  k_WetDeposition     cloudwater      naturalsoil      Tropic      Tropic
+    ## 88  k_WetDeposition     cloudwater        othersoil      Tropic      Tropic
+    ## 89  k_WetDeposition     cloudwater            river      Tropic      Tropic
+    ## 90  k_WetDeposition     cloudwater              sea      Tropic      Tropic
+    ## 91  k_WetDeposition     cloudwater agriculturalsoil      Arctic      Arctic
+    ## 92  k_WetDeposition     cloudwater             lake      Arctic      Arctic
+    ## 93  k_WetDeposition     cloudwater      naturalsoil      Arctic      Arctic
+    ## 94  k_WetDeposition     cloudwater        othersoil      Arctic      Arctic
+    ## 95  k_WetDeposition     cloudwater            river      Arctic      Arctic
+    ## 96  k_WetDeposition     cloudwater              sea      Arctic      Arctic
+    ## 97  k_WetDeposition     cloudwater agriculturalsoil Continental Continental
+    ## 98  k_WetDeposition     cloudwater             lake Continental Continental
+    ## 99  k_WetDeposition     cloudwater      naturalsoil Continental Continental
+    ## 100 k_WetDeposition     cloudwater        othersoil Continental Continental
+    ## 101 k_WetDeposition     cloudwater            river Continental Continental
+    ## 102 k_WetDeposition     cloudwater              sea Continental Continental
+    ## 103 k_WetDeposition     cloudwater agriculturalsoil    Moderate    Moderate
+    ## 104 k_WetDeposition     cloudwater             lake    Moderate    Moderate
+    ## 105 k_WetDeposition     cloudwater      naturalsoil    Moderate    Moderate
+    ## 106 k_WetDeposition     cloudwater        othersoil    Moderate    Moderate
+    ## 107 k_WetDeposition     cloudwater            river    Moderate    Moderate
+    ## 108 k_WetDeposition     cloudwater              sea    Moderate    Moderate
+    ## 109 k_WetDeposition     cloudwater agriculturalsoil    Regional    Regional
+    ## 110 k_WetDeposition     cloudwater             lake    Regional    Regional
+    ## 111 k_WetDeposition     cloudwater      naturalsoil    Regional    Regional
+    ## 112 k_WetDeposition     cloudwater        othersoil    Regional    Regional
+    ## 113 k_WetDeposition     cloudwater            river    Regional    Regional
+    ## 114 k_WetDeposition     cloudwater              sea    Regional    Regional
+    ## 115 k_WetDeposition     cloudwater agriculturalsoil      Tropic      Tropic
+    ## 116 k_WetDeposition     cloudwater             lake      Tropic      Tropic
+    ## 117 k_WetDeposition     cloudwater      naturalsoil      Tropic      Tropic
+    ## 118 k_WetDeposition     cloudwater        othersoil      Tropic      Tropic
+    ## 119 k_WetDeposition     cloudwater            river      Tropic      Tropic
+    ## 120 k_WetDeposition     cloudwater              sea      Tropic      Tropic
+    ## 121 k_WetDeposition     cloudwater agriculturalsoil      Arctic      Arctic
+    ## 122 k_WetDeposition     cloudwater             lake      Arctic      Arctic
+    ## 123 k_WetDeposition     cloudwater      naturalsoil      Arctic      Arctic
+    ## 124 k_WetDeposition     cloudwater        othersoil      Arctic      Arctic
+    ## 125 k_WetDeposition     cloudwater            river      Arctic      Arctic
+    ## 126 k_WetDeposition     cloudwater              sea      Arctic      Arctic
+    ## 127 k_WetDeposition     cloudwater agriculturalsoil Continental Continental
+    ## 128 k_WetDeposition     cloudwater             lake Continental Continental
+    ## 129 k_WetDeposition     cloudwater      naturalsoil Continental Continental
+    ## 130 k_WetDeposition     cloudwater        othersoil Continental Continental
+    ## 131 k_WetDeposition     cloudwater            river Continental Continental
+    ## 132 k_WetDeposition     cloudwater              sea Continental Continental
+    ## 133 k_WetDeposition     cloudwater agriculturalsoil    Moderate    Moderate
+    ## 134 k_WetDeposition     cloudwater             lake    Moderate    Moderate
+    ## 135 k_WetDeposition     cloudwater      naturalsoil    Moderate    Moderate
+    ## 136 k_WetDeposition     cloudwater        othersoil    Moderate    Moderate
+    ## 137 k_WetDeposition     cloudwater            river    Moderate    Moderate
+    ## 138 k_WetDeposition     cloudwater              sea    Moderate    Moderate
+    ## 139 k_WetDeposition     cloudwater agriculturalsoil    Regional    Regional
+    ## 140 k_WetDeposition     cloudwater             lake    Regional    Regional
+    ## 141 k_WetDeposition     cloudwater      naturalsoil    Regional    Regional
+    ## 142 k_WetDeposition     cloudwater        othersoil    Regional    Regional
+    ## 143 k_WetDeposition     cloudwater            river    Regional    Regional
+    ## 144 k_WetDeposition     cloudwater              sea    Regional    Regional
+    ## 145 k_WetDeposition     cloudwater agriculturalsoil      Tropic      Tropic
+    ## 146 k_WetDeposition     cloudwater             lake      Tropic      Tropic
+    ## 147 k_WetDeposition     cloudwater      naturalsoil      Tropic      Tropic
+    ## 148 k_WetDeposition     cloudwater        othersoil      Tropic      Tropic
+    ## 149 k_WetDeposition     cloudwater            river      Tropic      Tropic
+    ## 150 k_WetDeposition     cloudwater              sea      Tropic      Tropic
+    ##     fromSpecies toSpecies
+    ## 61        Large     Large
+    ## 62        Large     Large
+    ## 63        Large     Large
+    ## 64        Large     Large
+    ## 65        Large     Large
+    ## 66        Large     Large
+    ## 67        Large     Large
+    ## 68        Large     Large
+    ## 69        Large     Large
+    ## 70        Large     Large
+    ## 71        Large     Large
+    ## 72        Large     Large
+    ## 73        Large     Large
+    ## 74        Large     Large
+    ## 75        Large     Large
+    ## 76        Large     Large
+    ## 77        Large     Large
+    ## 78        Large     Large
+    ## 79        Large     Large
+    ## 80        Large     Large
+    ## 81        Large     Large
+    ## 82        Large     Large
+    ## 83        Large     Large
+    ## 84        Large     Large
+    ## 85        Large     Large
+    ## 86        Large     Large
+    ## 87        Large     Large
+    ## 88        Large     Large
+    ## 89        Large     Large
+    ## 90        Large     Large
+    ## 91        Small     Small
+    ## 92        Small     Small
+    ## 93        Small     Small
+    ## 94        Small     Small
+    ## 95        Small     Small
+    ## 96        Small     Small
+    ## 97        Small     Small
+    ## 98        Small     Small
+    ## 99        Small     Small
+    ## 100       Small     Small
+    ## 101       Small     Small
+    ## 102       Small     Small
+    ## 103       Small     Small
+    ## 104       Small     Small
+    ## 105       Small     Small
+    ## 106       Small     Small
+    ## 107       Small     Small
+    ## 108       Small     Small
+    ## 109       Small     Small
+    ## 110       Small     Small
+    ## 111       Small     Small
+    ## 112       Small     Small
+    ## 113       Small     Small
+    ## 114       Small     Small
+    ## 115       Small     Small
+    ## 116       Small     Small
+    ## 117       Small     Small
+    ## 118       Small     Small
+    ## 119       Small     Small
+    ## 120       Small     Small
+    ## 121       Solid     Solid
+    ## 122       Solid     Solid
+    ## 123       Solid     Solid
+    ## 124       Solid     Solid
+    ## 125       Solid     Solid
+    ## 126       Solid     Solid
+    ## 127       Solid     Solid
+    ## 128       Solid     Solid
+    ## 129       Solid     Solid
+    ## 130       Solid     Solid
+    ## 131       Solid     Solid
+    ## 132       Solid     Solid
+    ## 133       Solid     Solid
+    ## 134       Solid     Solid
+    ## 135       Solid     Solid
+    ## 136       Solid     Solid
+    ## 137       Solid     Solid
+    ## 138       Solid     Solid
+    ## 139       Solid     Solid
+    ## 140       Solid     Solid
+    ## 141       Solid     Solid
+    ## 142       Solid     Solid
+    ## 143       Solid     Solid
+    ## 144       Solid     Solid
+    ## 145       Solid     Solid
+    ## 146       Solid     Solid
+    ## 147       Solid     Solid
+    ## 148       Solid     Solid
+    ## 149       Solid     Solid
+    ## 150       Solid     Solid
+
+``` r
+testProc <- World$NewProcess("k_WetDeposition")
+testProc$execute()
+```
+
+    ## Warning in private$Execute(debugAt): input data ignored; not all to.Area in
+    ## FromDataAndTo
+
+    ## Warning in private$Execute(debugAt): input data ignored; not all from.Volume in
+    ## FromDataAndTo
+
+    ##            process fromSubCompart     toSubCompart   fromScale     toScale
+    ## 3  k_WetDeposition     cloudwater      naturalsoil      Arctic      Arctic
+    ## 6  k_WetDeposition     cloudwater              sea      Arctic      Arctic
+    ## 7  k_WetDeposition     cloudwater agriculturalsoil Continental Continental
+    ## 8  k_WetDeposition     cloudwater             lake Continental Continental
+    ## 9  k_WetDeposition     cloudwater      naturalsoil Continental Continental
+    ## 10 k_WetDeposition     cloudwater        othersoil Continental Continental
+    ## 11 k_WetDeposition     cloudwater            river Continental Continental
+    ## 12 k_WetDeposition     cloudwater              sea Continental Continental
+    ## 15 k_WetDeposition     cloudwater      naturalsoil    Moderate    Moderate
+    ## 18 k_WetDeposition     cloudwater              sea    Moderate    Moderate
+    ## 19 k_WetDeposition     cloudwater agriculturalsoil    Regional    Regional
+    ## 20 k_WetDeposition     cloudwater             lake    Regional    Regional
+    ## 21 k_WetDeposition     cloudwater      naturalsoil    Regional    Regional
+    ## 22 k_WetDeposition     cloudwater        othersoil    Regional    Regional
+    ## 23 k_WetDeposition     cloudwater            river    Regional    Regional
+    ## 24 k_WetDeposition     cloudwater              sea    Regional    Regional
+    ## 27 k_WetDeposition     cloudwater      naturalsoil      Tropic      Tropic
+    ## 30 k_WetDeposition     cloudwater              sea      Tropic      Tropic
+    ## 33 k_WetDeposition     cloudwater      naturalsoil      Arctic      Arctic
+    ## 36 k_WetDeposition     cloudwater              sea      Arctic      Arctic
+    ## 37 k_WetDeposition     cloudwater agriculturalsoil Continental Continental
+    ## 38 k_WetDeposition     cloudwater             lake Continental Continental
+    ## 39 k_WetDeposition     cloudwater      naturalsoil Continental Continental
+    ## 40 k_WetDeposition     cloudwater        othersoil Continental Continental
+    ## 41 k_WetDeposition     cloudwater            river Continental Continental
+    ## 42 k_WetDeposition     cloudwater              sea Continental Continental
+    ## 45 k_WetDeposition     cloudwater      naturalsoil    Moderate    Moderate
+    ## 48 k_WetDeposition     cloudwater              sea    Moderate    Moderate
+    ## 49 k_WetDeposition     cloudwater agriculturalsoil    Regional    Regional
+    ## 50 k_WetDeposition     cloudwater             lake    Regional    Regional
+    ## 51 k_WetDeposition     cloudwater      naturalsoil    Regional    Regional
+    ## 52 k_WetDeposition     cloudwater        othersoil    Regional    Regional
+    ## 53 k_WetDeposition     cloudwater            river    Regional    Regional
+    ## 54 k_WetDeposition     cloudwater              sea    Regional    Regional
+    ## 57 k_WetDeposition     cloudwater      naturalsoil      Tropic      Tropic
+    ## 60 k_WetDeposition     cloudwater              sea      Tropic      Tropic
+    ## 63 k_WetDeposition     cloudwater      naturalsoil      Arctic      Arctic
+    ## 66 k_WetDeposition     cloudwater              sea      Arctic      Arctic
+    ## 67 k_WetDeposition     cloudwater agriculturalsoil Continental Continental
+    ## 68 k_WetDeposition     cloudwater             lake Continental Continental
+    ## 69 k_WetDeposition     cloudwater      naturalsoil Continental Continental
+    ## 70 k_WetDeposition     cloudwater        othersoil Continental Continental
+    ## 71 k_WetDeposition     cloudwater            river Continental Continental
+    ## 72 k_WetDeposition     cloudwater              sea Continental Continental
+    ## 75 k_WetDeposition     cloudwater      naturalsoil    Moderate    Moderate
+    ## 78 k_WetDeposition     cloudwater              sea    Moderate    Moderate
+    ## 79 k_WetDeposition     cloudwater agriculturalsoil    Regional    Regional
+    ## 80 k_WetDeposition     cloudwater             lake    Regional    Regional
+    ## 81 k_WetDeposition     cloudwater      naturalsoil    Regional    Regional
+    ## 82 k_WetDeposition     cloudwater        othersoil    Regional    Regional
+    ## 83 k_WetDeposition     cloudwater            river    Regional    Regional
+    ## 84 k_WetDeposition     cloudwater              sea    Regional    Regional
+    ## 87 k_WetDeposition     cloudwater      naturalsoil      Tropic      Tropic
+    ## 90 k_WetDeposition     cloudwater              sea      Tropic      Tropic
+    ##    fromSpecies toSpecies            k
+    ## 3        Large     Large 1.056993e-05
+    ## 6        Large     Large 1.585490e-05
+    ## 7        Large     Large 2.149397e-05
+    ## 8        Large     Large 8.955819e-08
+    ## 9        Large     Large 9.672284e-06
+    ## 10       Large     Large 3.582328e-06
+    ## 11       Large     Large 9.851401e-07
+    ## 12       Large     Large 3.816624e-05
+    ## 15       Large     Large 3.699476e-05
+    ## 18       Large     Large 3.699476e-05
+    ## 19       Large     Large 4.420033e-05
+    ## 20       Large     Large 1.841680e-07
+    ## 21       Large     Large 1.989015e-05
+    ## 22       Large     Large 7.366722e-06
+    ## 23       Large     Large 2.025849e-06
+    ## 24       Large     Large 3.222961e-07
+    ## 27       Large     Large 4.122273e-05
+    ## 30       Large     Large 9.618637e-05
+    ## 33       Small     Small 1.056993e-05
+    ## 36       Small     Small 1.585490e-05
+    ## 37       Small     Small 2.149397e-05
+    ## 38       Small     Small 8.955819e-08
+    ## 39       Small     Small 9.672284e-06
+    ## 40       Small     Small 3.582328e-06
+    ## 41       Small     Small 9.851401e-07
+    ## 42       Small     Small 3.816624e-05
+    ## 45       Small     Small 3.699476e-05
+    ## 48       Small     Small 3.699476e-05
+    ## 49       Small     Small 4.420033e-05
+    ## 50       Small     Small 1.841680e-07
+    ## 51       Small     Small 1.989015e-05
+    ## 52       Small     Small 7.366722e-06
+    ## 53       Small     Small 2.025849e-06
+    ## 54       Small     Small 3.222961e-07
+    ## 57       Small     Small 4.122273e-05
+    ## 60       Small     Small 9.618637e-05
+    ## 63       Solid     Solid 1.056993e-05
+    ## 66       Solid     Solid 1.585490e-05
+    ## 67       Solid     Solid 2.149397e-05
+    ## 68       Solid     Solid 8.955819e-08
+    ## 69       Solid     Solid 9.672284e-06
+    ## 70       Solid     Solid 3.582328e-06
+    ## 71       Solid     Solid 9.851401e-07
+    ## 72       Solid     Solid 3.816624e-05
+    ## 75       Solid     Solid 3.699476e-05
+    ## 78       Solid     Solid 3.699476e-05
+    ## 79       Solid     Solid 4.420033e-05
+    ## 80       Solid     Solid 1.841680e-07
+    ## 81       Solid     Solid 1.989015e-05
+    ## 82       Solid     Solid 7.366722e-06
+    ## 83       Solid     Solid 2.025849e-06
+    ## 84       Solid     Solid 3.222961e-07
+    ## 87       Solid     Solid 4.122273e-05
+    ## 90       Solid     Solid 9.618637e-05

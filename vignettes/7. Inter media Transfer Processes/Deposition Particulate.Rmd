@@ -67,6 +67,7 @@ World$fetchData("Temp")
 World$fetchData("alpha.surf")
 # Cunningham calculated using f_Cunningham
 
+# World$fetchData("SettlingVelocity")
 World$NewCalcVariable("SettlingVelocity")
 World$CalcVar("SettlingVelocity")
 
@@ -91,6 +92,7 @@ testProc$execute()
 ```
 
 ## Calculation of Wet Deposition rate constant for particulates
+For wet deposition there are two steps where the particulates are first scavenged into an intermediate cloud water compartment after which they deposit to soil or surface water. 
 
 ```{r k_CWscavenging}
 
@@ -116,20 +118,29 @@ World$fetchData("COLLECTeff")
 
 World$FromDataAndTo("k_CWscavenging")
 testProc <- World$NewProcess("k_CWscavenging")
-debugonce(k_CWscavenging)
-testProc$execute(debugAt = list(Scale = "Regional"))
+# debugonce(k_CWscavenging)
+# testProc$execute(debugAt = list(fromScale = "Regional"))
 testProc$execute()
-debug(testProc$execute())
+# debug(testProc$execute())
 
 #calculation of kaas is by executing a process
-testClass <- World$NewProcess("k_CWscavenging")
-testClass$execute(list())
+# testClass <- World$NewProcess("k_CWscavenging")
+# testClass$execute(list())
 
 
 
 # debug(testClass$execute)
 # testClass$execute(debugAt = list()) #an empty list always triggers
 #testVar$execute(debugAt = list(Scale = "Regional", SubCompart = "air"))
+
+```
+
+
+```{r k_WetDeposition}
+
+World$FromDataAndTo("k_WetDeposition")
+testProc <- World$NewProcess("k_WetDeposition")
+testProc$execute()
 
 ```
 

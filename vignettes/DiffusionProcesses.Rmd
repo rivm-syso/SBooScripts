@@ -231,8 +231,8 @@ World$CalcVar("Ksdcompw")
 
 source("newAlgorithmScripts/k_Desorption.R")
 
-World$NewCalcVariable("k_Desorption")
-World$CalcVar("k_Desorption")
+# World$NewCalcVariable("k_Desorption")
+# World$CalcVar("k_Desorption")
 
 ```
 
