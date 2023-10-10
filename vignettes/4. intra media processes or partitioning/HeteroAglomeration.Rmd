@@ -1,0 +1,80 @@
+---
+title: "Intermedia Partitioning"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r}
+substance <- "nAg_10nm"
+source("baseScripts/initTestWorld.R")
+
+```
+
+## Heteroaglomeration
+
+This is a particulate process which only applies to Solid species and the transformation to the Aggregated or Attached Particulate Species.
+
+There are three different aproaches applied here depending on the matrix where this process takes place and the species affected.
+
+The three approaches are based on:
+- Smoluchowski's colloid theory (water, soil/sediment pore water)
+- Filtration theory for porous matrices (soil and sediment)
+- Aerosol agglomeration approaches (air)
+
+### Heteroagglomeration in water
+This plays are role for the transformation from the primary particulate species and their agglomeration with natural colloids < 450 nm in water, soil and sediment pore water. Also agglomeration with larger SPM (>450 nm) in water.
+
+The data required for calculating for instance the collision frequency is related to the particle number concentration of natural colloids present in the compartment. For this we use the per subcompartment defined characteristics of the natural particles: 'RadCOL', 'RadCP', 'RhoCOL' and 'RhoCP'. For aerosols the Accumulation mode corresponds to COL and Coarse Mode corresponds to CP characteristics. [TO DO* rework input of Aerosol concentrations into mass concentrations instead of number concentrations as they are now for COL and SUSP, add Nucc concentrations in CONSTANTS just like their Rad and Rho properties]
+
+
+```{r w.Heteroglomeration}
+
+
+k_HeteroAgglomeration.wsd <- function(to.alpha,
+                                      COL,
+                                      SUP,
+                                      Shear,
+                                      from.radius,
+                                      radius_Otherparticle ,
+                                      Temp,viscosity,
+                                      from.rho,
+                                      rho_Otherparticle,
+                                      rho.fluid,
+                                      to.species){
+  #for soil and sediment fIntercept assumed 0. Use g in formula, set to 0 in these comaprtments!
+  ColInter <- fInter(Shear,from.radius,radius_Otherparticle )
+  ColBrown <- fBrown(Temp,viscosity,from.radius,radius_Otherparticle )
+  ColGrav <- fGrav(viscosity,from.radius,from.rho,radius_Otherparticle ,rho_Otherparticle,g,rho.fluid)
+  
+  # if (Matrix == "water"){
+    switch (to.species,
+            "Large" = COL_SUP <- SUP,
+            "Small" = COL_SUP <- COL,
+            COL
+    )
+  # }
+  NumConcOther <- fNumConc(rad_particle=radius_Otherparticle ,rho_particle=rho_Otherparticle, MasConc_Otherparticle=COL_SUP)
+  
+  to.alpha*NumConcOther*(ColBrown+ColGrav+ColInter)
+}
+
+World$fetchData("alpha")
+World$fetchData("MasConc_Otherparticle")
+World$fetchData("Shear")
+World$fetchData("radius")
+World$fetchData("radius_Otherparticle")
+World$fetchData("rho")
+World$fetchData("rho_Otherparticle")
+World$fetchData("rho.fluid")
+
+World$FromDataAndTo("k_HeteroAgglomeration.wsd")
+testProc <- World$NewProcess("k_HeteroAgglomeration.wsd")
+# debugonce(k_HeteroAgglomeration.wsd)
+# testProc$execute(debugAt = list(fromScale = "Regional"))
+testProc$execute()
+# debug(testProc$execute())
+
+```
+
