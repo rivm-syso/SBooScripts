@@ -30,45 +30,28 @@ The data required for calculating for instance the collision frequency is relate
 
 
 ```{r w.Heteroglomeration}
+# for after editting data
+source("baseScripts/ReorderCSV.R")
 
-
-k_HeteroAgglomeration.wsd <- function(to.alpha,
-                                      COL,
-                                      SUP,
-                                      Shear,
-                                      from.radius,
-                                      radius_Otherparticle ,
-                                      Temp,viscosity,
-                                      from.rho,
-                                      rho_Otherparticle,
-                                      rho.fluid,
-                                      to.species){
-  #for soil and sediment fIntercept assumed 0. Use g in formula, set to 0 in these comaprtments!
-  ColInter <- fInter(Shear,from.radius,radius_Otherparticle )
-  ColBrown <- fBrown(Temp,viscosity,from.radius,radius_Otherparticle )
-  ColGrav <- fGrav(viscosity,from.radius,from.rho,radius_Otherparticle ,rho_Otherparticle,g,rho.fluid)
-  
-  # if (Matrix == "water"){
-    switch (to.species,
-            "Large" = COL_SUP <- SUP,
-            "Small" = COL_SUP <- COL,
-            COL
-    )
-  # }
-  NumConcOther <- fNumConc(rad_particle=radius_Otherparticle ,rho_particle=rho_Otherparticle, MasConc_Otherparticle=COL_SUP)
-  
-  to.alpha*NumConcOther*(ColBrown+ColGrav+ColInter)
-}
+RhoCOL,
+RhoCP,
+rhoMatrix,
+Matrix,
+to.Species
 
 World$fetchData("alpha")
-World$fetchData("MasConc_Otherparticle")
+World$fetchData("COL")
+World$fetchData("SUSP")
 World$fetchData("Shear")
-World$fetchData("radius")
-World$fetchData("radius_Otherparticle")
-World$fetchData("rho")
-World$fetchData("rho_Otherparticle")
-World$fetchData("rho.fluid")
-
+World$fetchData("RadS")
+World$fetchData("RhoS")
+World$fetchData("Temp")
+World$fetchData("DynVisc")
+World$fetchData("RhoCOL")
+World$fetchData("RhoCP")
+World$fetchData("rhoMatrix")
+World$fetchData("Matrix")
+World$fetchData("Species") # supposed to be in multiple tables?
 World$FromDataAndTo("k_HeteroAgglomeration.wsd")
 testProc <- World$NewProcess("k_HeteroAgglomeration.wsd")
 # debugonce(k_HeteroAgglomeration.wsd)

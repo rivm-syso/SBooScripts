@@ -33,8 +33,7 @@
 "Q.10",2,"Q.10","-","RATE INCREASE factor per 10 oC"
 "RadNuc",1e-08,"RadNuc","m",NA
 "relevant_depth_s",0,"missing","cm","was hard coded in function for Correction factor depth-dependency soil concentrations"
-"RhoCP",2500,"RhoSPM","[kg.m-3]","Density natural course (e.g. suspended) particulate matter (> 450 nm)"
-"RhoNuc",1300,"RhoNuc","[kg.m-3]",NA
+"RhoNuc",1300,"RhoNuc","[kg.m-3]","Density of Nucleation mode aerosol particles"
 "t_half_Escape",60,"missing","yr","Half life time in air for escape to stratosphere"
 "T25",298,"missing","K","Temperature for normalised circumstances"
 "Tm_default",274,"","K",""
