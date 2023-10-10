@@ -2,33 +2,43 @@
 title: "Volume FRACtions of phases in subcompartments"
 date: "`r Sys.Date()`"
 output: github_document
+editor_options: 
+  chunk_output_type: console
 ---
 
-## Matrix parts of a sub-compartment
-A Subcompartment has a main matrix(medium); for soils and sediment this is "solids". But both also contain water, and soil also contains a fraction of air, as wel as water. These matrices play a part in the exchange of substances. The fraction of the non-main matrices are in the data, named subFRACw, subFRACa, and subFRACs. The main fraction of the subcompartment is calculated as the remainder. All fractions are are determined by three variable defining functions. For example for soils and sediments:
 
-```{r message=FALSE, warning=FALSE, include=FALSE}
+```{r initiate message=FALSE, warning=FALSE, include=FALSE}
 try(source("baseScripts/initTestWorld.R"))
 ```
 
-## Use FRAC's for 
-This generalisation is extended to the solids and water fractions in air, formerly known as FRACears and FRACearw.
-FRACaers -> FRACs for air, FRACaerw -> FRACw for air.
+## Volume fraction of water or air phase in a matrix
+A Subcompartment has a main matrix (medium); for soils and sediment this is "solids". But both also contain water, and soil also contains a fraction of air, in addition to water. These matrices play a part in the exchange of substances. The fraction of the non-main matrices are in the data, named subFRACw, subFRACa, and subFRACs. The main fraction of the subcompartment is calculated as the remainder. All fractions are determined by three variable defining functions. For example for soils and sediments FRACs is calculated:
+
 
 ```{r}
 
-World$fetchData("FRACa")
-World$fetchData("FRACs")
-World$fetchData("FRACw")
+World$fetchData("subFRACa")
+World$fetchData("subFRACs")
+World$fetchData("subFRACw")
 
 Fs <- World$NewCalcVariable("FRACs")
 World$CalcVar("FRACs")
 
-
 ```
+
+## Implementation for air
+This generalisation is extended to the solids and water fractions in air, formerly known as FRACears and FRACearw.
+FRACaers -> FRACs for air, FRACaerw -> FRACw for air.
+
 An overview for the scale Regional. The NA are not calculated, but also not needed in further calculations of the partitioning between these phases.
 
 ```{r}
+
+Fs <- World$NewCalcVariable("FRACa")
+World$CalcVar("FRACa")
+Fs <- World$NewCalcVariable("FRACw")
+World$CalcVar("FRACw")
+
 allFrac <- Reduce(merge, list(World$fetchData("FRACa"), World$fetchData("FRACw"), World$fetchData("FRACs"))) %>%
   dplyr::filter(Scale == "Regional") %>%
   pivot_longer(c(FRACa, FRACw, FRACs))
