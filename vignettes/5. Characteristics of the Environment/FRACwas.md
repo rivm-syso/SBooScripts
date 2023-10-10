@@ -1,108 +1,163 @@
 Volume FRACtions of phases in subcompartments
 ================
-2023-09-05
+2023-10-10
 
-## Matrix parts of a sub-compartment
+## Volume fraction of water or air phase in a matrix
 
-A Subcompartment has a main matrix(medium); for soils and sediment this
+A Subcompartment has a main matrix (medium); for soils and sediment this
 is “solids”. But both also contain water, and soil also contains a
-fraction of air, as wel as water. These matrices play a part in the
+fraction of air, in addition to water. These matrices play a part in the
 exchange of substances. The fraction of the non-main matrices are in the
 data, named subFRACw, subFRACa, and subFRACs. The main fraction of the
-subcompartment is calculated as the remainder. All fractions are are
+subcompartment is calculated as the remainder. All fractions are
 determined by three variable defining functions. For example for soils
-and sediments:
-
-## Use FRAC’s for
-
-This generalisation is extended to the solids and water fractions in
-air, formerly known as FRACears and FRACearw. FRACaers -\> FRACs for
-air, FRACaerw -\> FRACw for air.
+and sediments FRACs is calculated:
 
 ``` r
-World$fetchData("FRACa")
+World$fetchData("subFRACa")
 ```
 
-    ##          Scale       SubCompart FRACa
-    ## 5       Arctic      naturalsoil   0.2
-    ## 7  Continental agriculturalsoil   0.2
-    ## 14 Continental      naturalsoil   0.2
-    ## 15 Continental        othersoil   0.2
-    ## 22    Moderate      naturalsoil   0.2
-    ## 24    Regional agriculturalsoil   0.2
-    ## 31    Regional      naturalsoil   0.2
-    ## 32    Regional        othersoil   0.2
-    ## 39      Tropic      naturalsoil   0.2
+    ##          Scale       SubCompart subFRACa
+    ## 5       Arctic      naturalsoil      0.2
+    ## 7  Continental agriculturalsoil      0.2
+    ## 14 Continental      naturalsoil      0.2
+    ## 15 Continental        othersoil      0.2
+    ## 22    Moderate      naturalsoil      0.2
+    ## 24    Regional agriculturalsoil      0.2
+    ## 31    Regional      naturalsoil      0.2
+    ## 32    Regional        othersoil      0.2
+    ## 39      Tropic      naturalsoil      0.2
 
 ``` r
-World$fetchData("FRACs")
+World$fetchData("subFRACs")
 ```
 
-    ##          Scale SubCompart FRACs
-    ## 1       Arctic        air 2e-11
-    ## 8  Continental        air 2e-11
-    ## 18    Moderate        air 2e-11
-    ## 25    Regional        air 2e-11
-    ## 35      Tropic        air 2e-11
+    ##          Scale SubCompart subFRACs
+    ## 1       Arctic        air    2e-11
+    ## 8  Continental        air    2e-11
+    ## 18    Moderate        air    2e-11
+    ## 25    Regional        air    2e-11
+    ## 35      Tropic        air    2e-11
 
 ``` r
-World$fetchData("FRACw")
+World$fetchData("subFRACw")
 ```
 
-    ##          Scale         SubCompart FRACw
-    ## 1       Arctic                air 2e-11
-    ## 4       Arctic     marinesediment 8e-01
-    ## 5       Arctic        naturalsoil 2e-01
-    ## 7  Continental   agriculturalsoil 2e-01
-    ## 8  Continental                air 2e-11
-    ## 10 Continental freshwatersediment 8e-01
-    ## 13 Continental     marinesediment 8e-01
-    ## 14 Continental        naturalsoil 2e-01
-    ## 15 Continental          othersoil 2e-01
-    ## 18    Moderate                air 2e-11
-    ## 21    Moderate     marinesediment 8e-01
-    ## 22    Moderate        naturalsoil 2e-01
-    ## 24    Regional   agriculturalsoil 2e-01
-    ## 25    Regional                air 2e-11
-    ## 27    Regional freshwatersediment 8e-01
-    ## 30    Regional     marinesediment 8e-01
-    ## 31    Regional        naturalsoil 2e-01
-    ## 32    Regional          othersoil 2e-01
-    ## 35      Tropic                air 2e-11
-    ## 38      Tropic     marinesediment 8e-01
-    ## 39      Tropic        naturalsoil 2e-01
+    ##          Scale         SubCompart subFRACw
+    ## 1       Arctic                air    2e-11
+    ## 4       Arctic     marinesediment    8e-01
+    ## 5       Arctic        naturalsoil    2e-01
+    ## 7  Continental   agriculturalsoil    2e-01
+    ## 8  Continental                air    2e-11
+    ## 10 Continental freshwatersediment    8e-01
+    ## 12 Continental       lakesediment    8e-01
+    ## 13 Continental     marinesediment    8e-01
+    ## 14 Continental        naturalsoil    2e-01
+    ## 15 Continental          othersoil    2e-01
+    ## 18    Moderate                air    2e-11
+    ## 21    Moderate     marinesediment    8e-01
+    ## 22    Moderate        naturalsoil    2e-01
+    ## 24    Regional   agriculturalsoil    2e-01
+    ## 25    Regional                air    2e-11
+    ## 27    Regional freshwatersediment    8e-01
+    ## 29    Regional       lakesediment    8e-01
+    ## 30    Regional     marinesediment    8e-01
+    ## 31    Regional        naturalsoil    2e-01
+    ## 32    Regional          othersoil    2e-01
+    ## 35      Tropic                air    2e-11
+    ## 38      Tropic     marinesediment    8e-01
+    ## 39      Tropic        naturalsoil    2e-01
 
 ``` r
 Fs <- World$NewCalcVariable("FRACs")
 World$CalcVar("FRACs")
 ```
 
-    ##          Scale         SubCompart old_FRACs FRACs
-    ## 1       Arctic                air     2e-11 2e-11
-    ## 2       Arctic     marinesediment        NA 2e-01
-    ## 3       Arctic        naturalsoil        NA 6e-01
-    ## 4  Continental   agriculturalsoil        NA 6e-01
-    ## 5  Continental                air     2e-11 2e-11
-    ## 6  Continental freshwatersediment        NA 2e-01
-    ## 7  Continental     marinesediment        NA 2e-01
-    ## 8  Continental        naturalsoil        NA 6e-01
-    ## 9  Continental          othersoil        NA 6e-01
-    ## 10    Moderate                air     2e-11 2e-11
-    ## 11    Moderate     marinesediment        NA 2e-01
-    ## 12    Moderate        naturalsoil        NA 6e-01
-    ## 13    Regional   agriculturalsoil        NA 6e-01
-    ## 14    Regional                air     2e-11 2e-11
-    ## 15    Regional freshwatersediment        NA 2e-01
-    ## 16    Regional     marinesediment        NA 2e-01
-    ## 17    Regional        naturalsoil        NA 6e-01
-    ## 18    Regional          othersoil        NA 6e-01
-    ## 19      Tropic                air     2e-11 2e-11
-    ## 20      Tropic     marinesediment        NA 2e-01
-    ## 21      Tropic        naturalsoil        NA 6e-01
+    ##            SubCompart       Scale FRACs
+    ## 3    agriculturalsoil    Regional 6e-01
+    ## 5    agriculturalsoil Continental 6e-01
+    ## 6                 air      Arctic 2e-11
+    ## 7                 air      Tropic 2e-11
+    ## 8                 air    Regional 2e-11
+    ## 9                 air Continental 2e-11
+    ## 10                air    Moderate 2e-11
+    ## 22 freshwatersediment Continental 2e-01
+    ## 24 freshwatersediment    Regional 2e-01
+    ## 32       lakesediment Continental 2e-01
+    ## 34       lakesediment    Regional 2e-01
+    ## 36     marinesediment      Arctic 2e-01
+    ## 37     marinesediment Continental 2e-01
+    ## 38     marinesediment    Moderate 2e-01
+    ## 39     marinesediment    Regional 2e-01
+    ## 40     marinesediment      Tropic 2e-01
+    ## 41        naturalsoil      Arctic 6e-01
+    ## 42        naturalsoil Continental 6e-01
+    ## 43        naturalsoil    Moderate 6e-01
+    ## 44        naturalsoil    Regional 6e-01
+    ## 45        naturalsoil      Tropic 6e-01
+    ## 46          othersoil Continental 6e-01
+    ## 49          othersoil    Regional 6e-01
+
+## Implementation for air
+
+This generalisation is extended to the solids and water fractions in
+air, formerly known as FRACears and FRACearw. FRACaers -\> FRACs for
+air, FRACaerw -\> FRACw for air.
 
 An overview for the scale Regional. The NA are not calculated, but also
 not needed in further calculations of the partitioning between these
 phases.
+
+``` r
+Fs <- World$NewCalcVariable("FRACa")
+World$CalcVar("FRACa")
+```
+
+    ##          SubCompart       Scale FRACa
+    ## 3  agriculturalsoil    Regional   0.2
+    ## 5  agriculturalsoil Continental   0.2
+    ## 6               air      Arctic   1.0
+    ## 7               air      Tropic   1.0
+    ## 8               air    Regional   1.0
+    ## 9               air Continental   1.0
+    ## 10              air    Moderate   1.0
+    ## 41      naturalsoil      Arctic   0.2
+    ## 42      naturalsoil Continental   0.2
+    ## 43      naturalsoil    Moderate   0.2
+    ## 44      naturalsoil    Regional   0.2
+    ## 45      naturalsoil      Tropic   0.2
+    ## 46        othersoil Continental   0.2
+    ## 49        othersoil    Regional   0.2
+
+``` r
+Fs <- World$NewCalcVariable("FRACw")
+World$CalcVar("FRACw")
+```
+
+    ##            SubCompart       Scale FRACw
+    ## 3    agriculturalsoil    Regional 2e-01
+    ## 5    agriculturalsoil Continental 2e-01
+    ## 6                 air      Arctic 2e-11
+    ## 7                 air      Tropic 2e-11
+    ## 8                 air    Regional 2e-11
+    ## 9                 air Continental 2e-11
+    ## 10                air    Moderate 2e-11
+    ## 22 freshwatersediment Continental 8e-01
+    ## 24 freshwatersediment    Regional 8e-01
+    ## 32       lakesediment Continental 8e-01
+    ## 34       lakesediment    Regional 8e-01
+    ## 36     marinesediment      Arctic 8e-01
+    ## 37     marinesediment Continental 8e-01
+    ## 38     marinesediment    Moderate 8e-01
+    ## 39     marinesediment    Regional 8e-01
+    ## 40     marinesediment      Tropic 8e-01
+    ## 41        naturalsoil      Arctic 2e-01
+    ## 42        naturalsoil Continental 2e-01
+    ## 43        naturalsoil    Moderate 2e-01
+    ## 44        naturalsoil    Regional 2e-01
+    ## 45        naturalsoil      Tropic 2e-01
+    ## 46          othersoil Continental 2e-01
+    ## 49          othersoil    Regional 2e-01
 
 ``` r
 allFrac <- Reduce(merge, list(World$fetchData("FRACa"), World$fetchData("FRACw"), World$fetchData("FRACs"))) %>%
@@ -116,15 +171,16 @@ allFrac <- full_join(as_tibble(World$fetchData("FRACa")),
 
     ## Joining with `by = join_by(Scale, SubCompart)`
 
-    ## # A tibble: 6 × 5
+    ## # A tibble: 7 × 5
     ##   Scale    SubCompart         FRACa         FRACw         FRACs
     ##   <chr>    <chr>              <dbl>         <dbl>         <dbl>
-    ## 1 Regional agriculturalsoil     0.2 0.2           0.6          
-    ## 2 Regional naturalsoil          0.2 0.2           0.6          
-    ## 3 Regional othersoil            0.2 0.2           0.6          
-    ## 4 Regional air                 NA   0.00000000002 0.00000000002
-    ## 5 Regional freshwatersediment  NA   0.8           0.2          
-    ## 6 Regional marinesediment      NA   0.8           0.2
+    ## 1 Regional agriculturalsoil    0.2  0.2           0.6          
+    ## 2 Regional air                 1.00 0.00000000002 0.00000000002
+    ## 3 Regional naturalsoil         0.2  0.2           0.6          
+    ## 4 Regional othersoil           0.2  0.2           0.6          
+    ## 5 Regional freshwatersediment NA    0.8           0.2          
+    ## 6 Regional lakesediment       NA    0.8           0.2          
+    ## 7 Regional marinesediment     NA    0.8           0.2
 
 ## colloidal and suspended matter in waters
 

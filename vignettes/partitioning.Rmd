@@ -6,17 +6,18 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::knit_meta()
-# knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+knitr::opts_chunk$set(eval = FALSE, include = FALSE)
+# knitr::knit_meta()
+# # knitr::opts_chunk$set(echo = TRUE)
+# projectRoot <- paste(getwd(), "..", sep = "/")
+# knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
 # Intermedia partitioning
 
 There are multiple transfers for substances from one matrix to the other (matrix in the sense of medium, like air or water). The speed of some of these transfers are calculated as processes; you will find them in SubCompartProcesses.csv. Other transfers are so quick and small that a continuous equilibrium is assumed. In this vignette will will focus on this intermedia partitioning. *[... more detailed description to follow ...] test*
 
-```{r initiate, echo=TRUE, message=FALSE, warning=TRUE}
+```{r initiate, message=FALSE, warning=FALSE, include=FALSE}
 #we initialize the test environment with the default substance, therefor we remove possible earlier value
 rm(substance) #for "default substance", example of neutral substance
 #substance <- "organic acid" #example of acid
@@ -39,7 +40,7 @@ The function is given below, the parameters are: Kow, pKa, Corg, a, b, ChemClass
 f_Ksw
 ```
 
-Does the database contain Kow, pKa, Corg...? If not we can store the result in the internal data of World by the function from the World object (method) World$SetConst()
+Does the database contain Kow, pKa, Corg...? If not we can store the result in the internal data of World by the function from the World object (method) World\$SetConst()
 
 ```{r}
 Kow <- World$fetchData("Kow")
@@ -72,10 +73,11 @@ QSARtable <- World$fetchData("QSARtable")
 QSARrecord <- QSARtable[QSARtable$QSAR.ChemClass == Substance_ChemClass,]
 RhoTable <- World$fetchData("rhoMatrix")
 RHOsolid <- RhoTable$rhoMatrix[RhoTable$SubCompart == "othersoil"]
-KswModelled <- f_Ksw(Kow, pKa, CorgStandard, 
-                    a = QSARrecord$a, b = QSARrecord$b, Substance_ChemClass,
-                    RHOsolid,
-                    alt_form = F)
+KswModelled <- f_Ksw(Kow=Kow, pKa=pKa, CorgStandard=CorgStandard, 
+                     a = QSARrecord$a, b = QSARrecord$b, 
+                     ChemClass=Substance_ChemClass,
+                     RHOsolid=RHOsolid,
+                     alt_form = F)
 ```
 
 We now have all the parameters and can set the value for Ksw and know that the system will use our modelled Ksw
@@ -94,7 +96,6 @@ World$NewCalcVariable("Ksw.alt")
 World$CalcVar("Ksw.alt")
 World$fetchData("Ksw.alt")
 ```
-
 
 ## Fraction molecular species in original form (based on pKa)
 
@@ -149,20 +150,31 @@ World$CalcVar("Kaers")
 
 ```
 
-Calculating the partitioning between soil- or sediment and water requires the fractions of water and air in soil, in addition to some of the previously calculated variables such as Kp, Kacompw, and FRorig_spw. The fractions of water and air in soil are provided as input ("FRACw" and "FRACa") in "ScaleSubCompartData.csv" and can differ between both (combinations of) scale and compartment. The fraction of solids in soil and sediment is calculated based on FRACw and FRACa, except for the fraction of solids in air, where it is also provided as input
+Calculating the partitioning between soil- or sediment and water requires the fractions of water and air in soil, in addition to some of the previously calculated variables such as Kp, Kacompw, and FRorig_spw. The fractions of water and air in soil are provided as input ("FRACw" and "FRACa") in "ScaleSubCompartData.csv" and can differ between both (combinations of) scale and compartment. The fraction of solids in soil and sediment is calculated based on FRACw and FRACa, except for the fraction of solids in air, where it is also provided as input. Input data is provided as subFRAC, FRACx is calculated. See [FRACwas.md](vignettes/5. Characteristics of the Environment/FRACwas.md "FRACwas.md").
 
 ```{r}
 #fractions
-World$fetchData("FRACw")
-World$fetchData("FRACa")
-
+World$fetchData("subFRACw")
+World$fetchData("subFRACa")
+World$NewCalcVariable("FRACa")
+World$CalcVar("FRACa")
+World$NewCalcVariable("FRACw")
+World$CalcVar("FRACw")
 World$NewCalcVariable("FRACs")
 World$CalcVar("FRACs")
+
 #the SubCompart associated with Arctic, Moderate, Tropic scales is "naturalsoil" in the input of FRACw, FRACa amd FRACs. This is required to make sure the same FRorig is used as in the excel version (that of natural soil). This is currently in contrast to other parts of the model where the SubCompart of global scales are "othersoil". See issue #18
+
+# World$fetchData("FRACw")
+# World$fetchData("FRACs")
+# World$fetchData("Kp")
+# World$fetchData("rhoMatrix")
+# World$fetchData("Matrix")
 
 #partition coefficients
 World$NewCalcVariable("Ksdcompw") #sediment/water
 World$CalcVar("Ksdcompw")
+
 World$NewCalcVariable("Kscompw") #soil/water
 World$CalcVar("Kscompw")
 
