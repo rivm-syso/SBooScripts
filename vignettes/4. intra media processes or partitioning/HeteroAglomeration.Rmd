@@ -28,16 +28,11 @@ This plays are role for the transformation from the primary particulate species 
 
 The data required for calculating for instance the collision frequency is related to the particle number concentration of natural colloids present in the compartment. For this we use the per subcompartment defined characteristics of the natural particles: 'RadCOL', 'RadCP', 'RhoCOL' and 'RhoCP'. For aerosols the Accumulation mode corresponds to COL and Coarse Mode corresponds to CP characteristics. [TO DO* rework input of Aerosol concentrations into mass concentrations instead of number concentrations as they are now for COL and SUSP, add Nucc concentrations in CONSTANTS just like their Rad and Rho properties]
 
+Potentially we can integrate air also in one algorithm, alhough it will be a big one... 
 
 ```{r w.Heteroglomeration}
 # for after editting data
 source("baseScripts/ReorderCSV.R")
-
-RhoCOL,
-RhoCP,
-rhoMatrix,
-Matrix,
-to.Species
 
 World$fetchData("alpha")
 World$fetchData("COL")
