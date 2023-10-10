@@ -38,8 +38,6 @@ source("testScripts/initPartitioningVariables.R")
 
 # non variable input data which is calculated (see partioning.Rmd) needs to be available before you can proceed
 
-
-
 ```
 
 
@@ -98,6 +96,8 @@ Tempfactor
 
 ## Deposition
 
+Calculation of deposition for molecular substances differs from calculating deposition of substances that are (part of) particles. This description focusses on the molecular process which is more elaborate.
+
 One part of the function to get the transfer from air to the land surface is calculating the deposition rate constant. This is done using a large function k_MeanDep.R
 
 First we try to see of all variables are available for calculating the deposition rate constant:
@@ -132,10 +132,19 @@ World$fetchData("FRinaers")
 
 ```
 
+The procedure to calculate deposition for Particles like Nano materials is split into wet and dry deposition. The SBoo systems adds the 2 k's before solving automatically.
+
+```{r}
+World$NewProcess("k_WetDeposition")
+World$NewProcess("k_DryDeposition")
+
+``` 
+
+To calculate molecular deposition, the other processes describing fluxes that leave the air box are part of the calculation. This demands a different procedure.
 ```{r}
 #fill another relevant k for OtherkAir
 testDegradation <-  World$NewProcess("k_Degradation")
-World$UpdateKaas(mergeExisting = F)
+World$UpdateKaas() #was mergeExisting = F, I think it should be merged? TODO
 
 #only now we can calculate OtherkAir, because:
 World$fetchData("kaas") #this is not the regular use!! see method kaas of World !!
@@ -145,7 +154,7 @@ World$CalcVar("OtherkAir")
 
 ```
 
-Now the deposition rate constants can be calculated
+Now the deposition rate constants for molecular substances can also be calculated
 
 ```{r}
 # source("newAlgorithmScripts/k_Deposition.R")
