@@ -7,8 +7,10 @@ editor_options:
 ---
 
 
-```{r initiate message=FALSE, warning=FALSE, include=FALSE}
+```{r message=FALSE, warning=FALSE, include=FALSE}
+
 try(source("baseScripts/initTestWorld.R"))
+
 ```
 
 ## Volume fraction of water or air phase in a matrix
