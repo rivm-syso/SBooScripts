@@ -1,0 +1,58 @@
+---
+title: "Intermedia Partitioning"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r}
+substance <- "nAg_10nm"
+source("baseScripts/initTestWorld.R")
+
+```
+
+## Heteroaglomeration
+
+This is a particulate process which only applies to Solid species and the transformation to the Aggregated or Attached Particulate Species.
+
+There are three different aproaches applied here depending on the matrix where this process takes place and the species affected.
+
+The three approaches are based on:
+- Smoluchowski's colloid theory (water, soil/sediment pore water)
+- Filtration theory for porous matrices (soil and sediment)
+- Aerosol agglomeration approaches (air)
+
+### Heteroagglomeration in water
+This plays are role for the transformation from the primary particulate species and their agglomeration with natural colloids < 450 nm in water, soil and sediment pore water. Also agglomeration with larger SPM (>450 nm) in water.
+
+The data required for calculating for instance the collision frequency is related to the particle number concentration of natural colloids present in the compartment. For this we use the per subcompartment defined characteristics of the natural particles: 'RadCOL', 'RadCP', 'RhoCOL' and 'RhoCP'. For aerosols the Accumulation mode corresponds to COL and Coarse Mode corresponds to CP characteristics. [TO DO* rework input of Aerosol concentrations into mass concentrations instead of number concentrations as they are now for COL and SUSP, add Nucc concentrations in CONSTANTS just like their Rad and Rho properties]
+
+Potentially we can integrate air also in one algorithm, alhough it will be a big one... 
+
+```{r w.Heteroglomeration}
+# for after editting data
+source("baseScripts/ReorderCSV.R")
+
+World$fetchData("alpha")
+World$fetchData("COL")
+World$fetchData("SUSP")
+World$fetchData("Shear")
+World$fetchData("RadS")
+World$fetchData("RhoS")
+World$fetchData("Temp")
+World$fetchData("DynVisc")
+World$fetchData("RhoCOL")
+World$fetchData("RhoCP")
+World$fetchData("rhoMatrix")
+World$fetchData("Matrix")
+World$fetchData("SpeciesName") # supposed to be in multiple tables?
+World$FromDataAndTo("k_HeteroAgglomeration.wsd")
+testProc <- World$NewProcess("k_HeteroAgglomeration.wsd")
+debugonce(k_HeteroAgglomeration.wsd)
+testProc$execute(debugAt = list(toSpecies = "Small"))
+testProc$execute()
+debug(testProc$execute())
+
+```
+

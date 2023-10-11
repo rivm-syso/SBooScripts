@@ -3,7 +3,6 @@
 "BACTtest",40000,"BACT.test","CFU.mL-1","CONCENTRATION BACTERIA in test water"
 "beta.a ",2,NA,NA,"# constant (in drydeposition() ) "
 "C.OHrad.n",5e+05,"C.OHrad","cm-3"," #  not different in scales... "
-"COL",1,"identical for each water","[mg.L-1]",""
 "ContinentalInModerate",1,NA,"boolean","TRUE"
 "CORG.susp",0.1,"","-",""
 "CorgStandard",0.02,"CORG","[-]","Standard mass FRACTION organic carbon in soil/sediment"
@@ -32,13 +31,9 @@
 "penetration_depth_s",10,"missing","cm","was hard coded in function for Correction factor depth-dependency soil concentrations"
 "Pvap25_default",4,"","Pa",""
 "Q.10",2,"Q.10","-","RATE INCREASE factor per 10 oC"
-"RadAcc",5.8e-08,"RadAcc","m",NA
 "RadNuc",1e-08,"RadNuc","m",NA
-"RadSPM",3e-06,"RadSPM","m",""
 "relevant_depth_s",0,"missing","cm","was hard coded in function for Correction factor depth-dependency soil concentrations"
-"RhoAcc",2000,"RhoAcc","[kg.m-3]",NA
-"RhoNuc",1300,"RhoNuc","[kg.m-3]",NA
-"RhoSPM",2500,"RhoSPM","[kg.m-3]","Density natural suspended particulate matter (SPM > 450 nm)"
+"RhoNuc",1300,"RhoNuc","[kg.m-3]","Density of Nucleation mode aerosol particles"
 "t_half_Escape",60,"missing","yr","Half life time in air for escape to stratosphere"
 "T25",298,"missing","K","Temperature for normalised circumstances"
 "Tm_default",274,"","K",""
