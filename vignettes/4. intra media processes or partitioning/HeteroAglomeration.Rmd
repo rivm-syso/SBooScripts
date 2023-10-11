@@ -46,13 +46,13 @@ World$fetchData("RhoCOL")
 World$fetchData("RhoCP")
 World$fetchData("rhoMatrix")
 World$fetchData("Matrix")
-World$fetchData("Species") # supposed to be in multiple tables?
+World$fetchData("SpeciesName") # supposed to be in multiple tables?
 World$FromDataAndTo("k_HeteroAgglomeration.wsd")
 testProc <- World$NewProcess("k_HeteroAgglomeration.wsd")
-# debugonce(k_HeteroAgglomeration.wsd)
-# testProc$execute(debugAt = list(fromScale = "Regional"))
+debugonce(k_HeteroAgglomeration.wsd)
+testProc$execute(debugAt = list(toSpecies = "Small"))
 testProc$execute()
-# debug(testProc$execute())
+debug(testProc$execute())
 
 ```
 
