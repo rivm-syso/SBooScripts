@@ -2,7 +2,7 @@
 "AEROresist","74",NA,NA,NA
 "BACTtest","40000","BACT.test","CFU.mL-1","CONCENTRATION BACTERIA in test water"
 "beta.a ","2",NA,NA,"# constant (in drydeposition() ) "
-"biodeg","i","biodeg",NA,"Biodegradability test result [r / r- / i / p]"
+"Biodeg","i","biodeg",NA,"Biodegradability test result [r / r- / i / p]"
 "C.OHrad.n","5.00E+05","C.OHrad","cm-3"," #  not different in scales... "
 "ContinentalInModerate","1",NA,"boolean","TRUE"
 "CORG.susp","0.1","","-",""

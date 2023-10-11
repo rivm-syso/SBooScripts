@@ -7,14 +7,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(include = FALSE)
-knitr::knit_meta()
-# knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
-
 ## Removal processes
 Here we describe the fate processess that are implemented for removal for a compartment:
 - Degradation
@@ -24,13 +16,16 @@ Here we describe the fate processess that are implemented for removal for a comp
 
 ### Preparation
 
-```{r initiate, echo=TRUE, message=FALSE, warning=TRUE}
+```{r initiate, message=FALSE, warning=FALSE, include=FALSE}
 #we initialize the test environment with the default substance, therefor we remove possible earlier value
 rm(substance)
 #script to initialize test environment, including faking a future 'library(sboo)'
 try(source("baseScripts/initTestWorld.R"))
-#calculation of the needed SB variables, first compiling their defining functions
 
+```
+
+
+```{r preparation, message=FALSE, warning=FALSE, include=FALSE}
 # non variable input data which is calculated (see partioning.Rmd) needs to be available before you can proceed
 
 
@@ -45,20 +40,19 @@ World$fetchData("BACTtest")
 
 World$fetchData("kdeg.air")
 World$fetchData("kdeg.soil")
-# World$fetchData("kdeg.sediment")
+World$fetchData("kdeg.sediment")
 
 World$fetchData("kdeg.water")
-
 
 # This needs to be calculated first:
 World$NewCalcVariable("FRorig")
 World$CalcVar("FRorig")
 World$NewCalcVariable("FRorig_spw")
 World$CalcVar("FRorig_spw")
-# World$NewCalcVariable("FRACa")
-# World$CalcVar("FRACa")
-# World$NewCalcVariable("FRACw")
-# World$CalcVar("FRACw")
+World$NewCalcVariable("FRACa")
+World$CalcVar("FRACa")
+World$NewCalcVariable("FRACw")
+World$CalcVar("FRACw")
 World$NewCalcVariable("FRACs")
 World$CalcVar("FRACs")
 # World$fetchData()
@@ -96,18 +90,19 @@ FromData$RHOsolid <- with(World$fetchData("rhoMatrix"),
                                     rhoMatrix[SubCompart == "othersoil"])
 World$UpdateData(FromData, keys = T, TableName = "Globals")
 
-kdeg.sediment <- kdegcalc(Q.10 = World$fetchData("Q.10"), 
-                          Ksw = World$fetchData("Ksw"), 
-                          Biodeg = "r", 
-                          C.OHrad.n = World$fetchData("C.OHrad.n"), 
-                          Ea.OHrad = World$fetchData("Ea.OHrad"), 
-                          k0.OHrad = World$fetchData("k0.OHrad"),
-                          CorgStandard = World$fetchData("CorgStandard"), 
-                          RHOsolid = World$fetchData("RHOsolid"),
-                          Matrix = "sediment")
-FromData <- World$fetchData("Globals")
-FromData$kdeg.sediment <- kdeg.sediment
-World$UpdateData(FromData, keys = T, TableName = "Globals")
+# kdeg.sediment <- f_kdegcalc(Q.10 = World$fetchData("Q.10"),
+#                           Ksw = World$fetchData("Ksw"), 
+#                           Biodeg = "r", 
+#                           C.OHrad.n = World$fetchData("C.OHrad.n"), 
+#                           Ea.OHrad = World$fetchData("Ea.OHrad"), 
+#                           k0.OHrad = World$fetchData("k0.OHrad"),
+#                           CorgStandard = World$fetchData("CorgStandard"), 
+#                           RHOsolid = World$fetchData("RHOsolid"),
+#                           Matrix = "sediment")
+# 
+# FromData <- World$fetchData("Globals")
+# FromData$kdeg.sediment <- kdeg.sediment
+# World$UpdateData(FromData, keys = T, TableName = "Globals")
 
 World$NewCalcVariable("Kp")
 World$CalcVar("Kp")
@@ -148,6 +143,9 @@ For molecular species these are (or can be) corrected for temperature and bacter
 - for particulate this means a change in how data is processed. Now degradation rate constants are given per subcompartment and scale etc. Now this is reduced. to the same input as for molecular!
 
 ```{r DEGradation new}
+World$fetchData("Biodeg")
+# Biodeg 
+
 World$FromDataAndTo("k_Degradation")
 
 testClass <- World$NewProcess("k_Degradation")
