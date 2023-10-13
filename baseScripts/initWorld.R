@@ -15,16 +15,66 @@ ClassicStateModule <- ClassicNanoWorld$new("data", substance)
 #with this data we create an instance of the central "core" object,
 World <- SBcore$new(ClassicStateModule)
 
-#We can calculate variables and fluxes availeable (fakeLib provided the functions:)
-Vfiles <- Rfiles[startsWith(Rfiles, prefix = "v_")]
-#all steps to calculate Area's etc:
-lapply(c("AreaSea", "AreaLand", "Area", "Volume"), function(FuName){
+# To proceed with testing we set
+World$SetConst(pKa = 2500)
+if (is.na(World$fetchData("pKa"))) {
+  stop("pKa is needed but missing")
+}
+if (is.na(World$fetchData("Ksw"))) {
+  warning("Ksw is needed but missing; set by f_Ksw()")
+  AllRho <- World$fetchData("rhoMatrix")
+  RHOsolid = AllRho$rhoMatrix[AllRho$SubCompart == "othersoil"]
+  Ksw = f_Ksw(Kow = World$fetchData("Kow"),
+              pKa = World$fetchData("pKa"),
+              CorgStandard = World$fetchData("CorgStandard"),
+              a = World$fetchData("a"),
+              b = World$fetchData("b"),
+              ChemClass = World$fetchData("ChemClass"),
+              RHOsolid = RHOsolid,
+              alt_form = F,
+              Ksw_orig = NA
+  )
+}
+World$SetConst(Ksw = Ksw)
+
+#We can calculate variables and fluxes available (fakeLib provided the functions:)
+VarDefFunctions <- c("AreaSea", "AreaLand", "Area", "Volume",
+                "D", "FRACa", "FRACs", "FRACw", "FRinaers",
+                "FRinaerw","FRingas","FRins","FRinw",
+                "FRorig", "FRorig_spw", "Kacompw", "Kaers", "Kaerw",
+                "Kp", "KpCOL", "Kscompw", "Ksdcompw", "Ksw.alt", "MasConc_Otherparticle",
+                "MTC_2a", "MTC_2s", "MTC_2sd", "MTC_2w", "OtherkAir",
+                "rad_species", "RainOnFreshwater", "rho_species", "SettlingVelocity",
+                "SettVellNat", "Tempfactor")
+
+lapply(VarDefFunctions, function(FuName){
   World$NewCalcVariable(FuName)
-  World$CalcVar(FuName)
+  #World$CalcVar(FuName) #only needed if you want to debug or force an order; UpdateKaas finds the DAG
+})
+FluxDefFunctions <- c("x_Advection_Air", "x_ContRiver2Reg", "x_ContSea2Moder", "x_ContSea2Reg",
+"x_LakeOutflow", "x_RegSea2Cont", "x_RiverDischarge", "x_RiverSeaScales"
+)
+
+lapply(FluxDefFunctions, function(FuName){
+  World$NewFlow(FuName)
+  #World$CalcVar(FuName) #only needed if you want to debug or force an order; UpdateKaas finds the DAG
 })
 
+#and the processes, that calculate kaas
+ProcessDefFunctions <- c("k_Adsorption", "k_Advection", "k_AdvectionRiverSeaScales",
+                         "k_AdvectionSeaOcean", "k_AdvectionWaters", "k_Burial",
+                         "k_CWscavenging", "k_Degradation", "k_Deposition", "k_Desorption",
+                         "k_DryDeposition", "k_Erosion", "k_Escape", 
+                         "k_HeteroAgglomeration.a", "k_HeteroAgglomeration.sd", "k_HeteroAgglomeration.wsd",
+                         "k_Leaching", "k_Resuspension", "k_Runoff", "k_Sedimentation", 
+                         "k_Volatilisation", "k_WetDeposition")
 
-#To compare results / search for algorithms/data
-ClassicExcel <- ClassicNanoProcess$new(TheCore = World, filename = excelReference)
-#apply and replace current kaas by setting mergeExisting to False (Default is True):
-World$UpdateKaas(ClassicExcel)
+lapply(ProcessDefFunctions, function(FuName){
+  World$NewProcess(FuName)
+  #World$CalcVar(FuName) #only needed if you want to force an order; UpdateKaas finds the DAG
+})
+
+verbose = T
+#kex = World$NewCalcVariable("Ksw.alt")
+#kex$execute(debugAt = list())
+World$UpdateKaas()
