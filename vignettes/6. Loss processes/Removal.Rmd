@@ -8,11 +8,8 @@ editor_options:
 ---
 
 ## Removal processes
-Here we describe the fate processess that are implemented for removal for a compartment:
-- Degradation
-- Leaching
-- Burial
-- Escape from air to stratosphere (k_Escape)
+
+Here we describe the fate processess that are implemented for removal for a compartment: - Degradation - Leaching - Burial - Escape from air to stratosphere (k_Escape)
 
 ### Preparation
 
@@ -23,7 +20,6 @@ rm(substance)
 try(source("baseScripts/initTestWorld.R"))
 
 ```
-
 
 ```{r preparation, message=FALSE, warning=FALSE, include=FALSE}
 # non variable input data which is calculated (see partioning.Rmd) needs to be available before you can proceed
@@ -56,9 +52,9 @@ For calculating the soil side soil to air MTC the degradation rate of the substa
 
 -   The concentration bacteria in the test (BACTtest) and the water compartment (BACTcomp) needs to be given. BACTcomp is added to SpeciesCompartments.csv
 
-- k_Degradation is dependant on input rate constants derived under standard conditions for air, soil, water and sediment. 
-For molecular species these are (or can be) corrected for temperature and bacteria concentrations. For particulate species such corrections are not yet available/implemented.
-- for particulate this means a change in how data is processed. Now degradation rate constants are given per subcompartment and scale etc. Now this is reduced. to the same input as for molecular!
+-   k_Degradation is dependant on input rate constants derived under standard conditions for air, soil, water and sediment. For molecular species these are (or can be) corrected for temperature and bacteria concentrations. For particulate species such corrections are not yet available/implemented.
+
+-   for particulate this means a change in how data is processed. Now degradation rate constants are given per subcompartment and scale etc. Now this is reduced. to the same input as for molecular!
 
 ```{r DEGradation new}
 World$fetchData("Biodeg")
@@ -72,12 +68,12 @@ testClass$execute()
 
 ```
 
-
 The algorithms seem to work, but they are calculated also for particulate species. This is not correct, an exception is needed.
 
 THe following code is taken from processes.Rmd. But this does not seem to work.
 
 ### Burial
+
 Burial is the process by which chemicals are buried in sediment, e.g. they are not part of the top layer of sediment considered in SimpleBox.
 
 Burial is implemented based on the NETsedrate which is an input parameter in data (ScaleSubComprtData.csv)
@@ -93,12 +89,9 @@ TestProcess$execute() # does not compute, likely due to all.NETsedrate (similar 
 
 ```
 
-
-
 ### Leaching
 
 Leaching
-
 
 ```{r Leaching new}
 
@@ -124,7 +117,6 @@ source("baseScripts/ReorderCSV.R")
 
 t_half_Escape is added as constant. A 60 year half life is used in SB4 to calculate the rate constant for escape of chemicals from air to the stratosphere.
 
-
 ```{r k_Escape}
 
 testClass <- World$NewProcess("k_Escape")
@@ -135,9 +127,8 @@ testClass$execute()
 
 ```
 
-
-
 Explain how the exclusions and inclusions for where the functions are needed are added:
+
 ```{r}
 ProcessXlsx <- "data/DEGradation.xlsx" 
 processName <- unname(unlist(openxlsx::read.xlsx(ProcessXlsx, colNames=FALSE,
@@ -219,4 +210,3 @@ source("baseScripts/ReorderCSV.R")
 source("baseScripts/initTestWorld.R")
 World$FromDataAndTo("k_DEGradation")
 ```
-
