@@ -7,9 +7,17 @@ editor_options:
   chunk_output_type: console
 ---
 
-## Removal processes
+## 6. Removal processes
 
-Here we describe the fate processess that are implemented for removal for a compartment: - Degradation - Leaching - Burial - Escape from air to stratosphere (k_Escape)
+Here we describe the fate processess that are implemented for removal for a compartment:
+
+1.  \- Degradation
+
+2.  \- Leaching
+
+3.  \- Burial
+
+4.  \- Escape from air to stratosphere (k_Escape)
 
 ### Preparation
 
@@ -24,64 +32,69 @@ try(source("baseScripts/initTestWorld.R"))
 ```{r preparation, message=FALSE, warning=FALSE, include=FALSE}
 # non variable input data which is calculated (see partioning.Rmd) needs to be available before you can proceed
 
+# This needs to be calculated first:
+source("testScripts/initPartitioningVariables.R")
+```
+
+### 6.1 Degradation
+
+-   v_Tempfactor is used to correct the generic degradation rate constants either from data (measured) or calculated for the temperature and other factors differentiating the different compartments or scales. For this
+
+    -   Q.10 is required for calculating the temperature related conversion of the measured or calculated kdeg per compartment. Q.10 is added as CONSTANT.
+
+    -   The concentration bacteria in the test (BACTtest) and the water compartment (BACTcomp) needs to be given. BACTcomp is added to SpeciesCompartments.csv
+
+        
+```{r v_Tempfactor}
+        World$fetchData("Temp")
+        World$fetchData("Q.10")
+        World$fetchData("Q.10")
+        World$fetchData("Ea.OHrad")
+
+        World$NewCalcVariable("Tempfactor")
+        World$CalcVar("Tempfactor")
+```
+
+-   v_Deg is either measured or estimated.
+
+    -   Measurement dependant on rate constants measured under standard conditions for air, soil, water and sediment.
+
+    -   Estimated based on (European Commission, 2003a). Following section 3.3.12 of report 2015-0161.
+
+```{r v_KdegDorC}
 
 World$fetchData("C.OHrad.n")
 World$fetchData("C.OHrad")
 World$fetchData("k0.OHrad")
 
-World$fetchData("Temp")
-World$fetchData("Q.10")
+
 World$fetchData("BACTcomp")
 World$fetchData("BACTtest")
+World$fetchData("rhoMatrix")
+World$fetchData("kdeg")
 
-World$fetchData("kdeg.air")
-World$fetchData("kdeg.soil")
-World$fetchData("kdeg.sediment")
+World$fetchData("Biodeg")
 
-World$fetchData("kdeg.water")
+        World$NewCalcVariable("KdegDorC")
+        World$CalcVar("KdegDorC")
 
-# This needs to be calculated first:
-source("testScripts/initPartitioningVariables.R")
 ```
 
-### Degradation
+-   Then the final k_Degradation is calculated based on v_DegDorC and v_Tempfactor. The correction factor is currently only implemented for the molecular species these. These v_Deg's are (or can be) corrected for temperature and bacteria concentrations. For particulate species such corrections are not yet available/implemented.
 
-For calculating the soil side soil to air MTC the degradation rate of the substance in soil is needed.
+-   In comparison with the xlsx version of SimpleBox, the measured degradation rate constants are not input in the substance database, but in the subcompartment and substance database (SubCompartSpeciesData).
 
--   Q.10 is required for calculating the temperature related conversion of the measured or calrculated kdeg per compartment. Q.10 is added as CONSTANT.
+```{r k_Degradation}
 
--   The concentration bacteria in the test (BACTtest) and the water compartment (BACTcomp) needs to be given. BACTcomp is added to SpeciesCompartments.csv
+World$FromDataAndTo("k_Degradation")
 
--   k_Degradation is dependant on input rate constants derived under standard conditions for air, soil, water and sediment. For molecular species these are (or can be) corrected for temperature and bacteria concentrations. For particulate species such corrections are not yet available/implemented.
-
--   for particulate this means a change in how data is processed. Now degradation rate constants are given per subcompartment and scale etc. Now this is reduced. to the same input as for molecular!
-
-Questions Jaap:
-
--   One v_Tempfactor (inclusief air?) *OK I will have a try/look*
-
--   One kdeg in SubstanceCompart, verwijderen uit kdeg.xxx uit Substance *What do you mean? one kdeg? It will always depend on the substance, is it not easier to have kdeg in the substance database, like it is/was in SimpleBox xlsx and in the database as we have it? Makes more sense to me, we also do not put ksw or thers in SubstanceCompart no? Is this something new?*
-
--   One v_degradation waarbij data wordt gebruikt als aanwezig anders de European Commission, 2003a benadering. *Why? So we will not use A k for degradation? The EU comission approach is what is implemented in f_kdegcalc. I can have a try to make this work*
-
--   How does v_degradation work for particles? *This is also through 'particle' or substance measured data*
+testClass <- World$NewProcess("k_Degradation")
+testClass$execute()
 
 
-    ```{r DEGradation new}
-    World$fetchData("Biodeg")
-    # Biodeg 
+```
 
-    World$FromDataAndTo("k_Degradation")
-
-    testClass <- World$NewProcess("k_Degradation")
-    testClass$execute()
-
-
-    ```
-
-The algorithms seem to work, but they are calculated also for particulate species. This is not correct, an exception is needed.
-
-THe following code is taken from processes.Rmd. But this does not seem to work.
+k_Degradation is now calculated correctly,  but further testing is neededn. E.g. when kdeg needs to be calculated.
 
 ### Burial
 
