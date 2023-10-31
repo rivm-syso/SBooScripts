@@ -44,15 +44,54 @@ World$fetchData("Temp")
 World$fetchData("DynVisc")
 World$fetchData("RhoCOL")
 World$fetchData("RhoCP")
+World$fetchData("RadCOL")
+World$fetchData("RadCP")
+World$fetchData("RadNuc")
+World$fetchData("NumConcNuc")
+World$fetchData("NumConcAcc")
+World$fetchData("NumConcCP")
+World$fetchData("DynViscWaterStandard")
+World$fetchData("DynViscAirStandard")
+World$fetchData("Df")
+World$fetchData("SubCompartName")
+
+CalcVariable <- World$NewCalcVariable("rad_species")
+# CalcVariable$execute()
+World$CalcVar("rad_species")
+# debugonce(rad_species)
+# other debug met is using browser()
+# CalcVariable$execute(debugAt = list(SubCompartName == "lake")) # Not working currently
+
+World$NewCalcVariable("rho_species")
+(World$CalcVar("rho_species"))
+
+World$NewCalcVariable("SettlingVelocity")
+World$CalcVar("SettlingVelocity")
+
+
+World$fetchData("SettlingVelocity")
+
+f_SetVelWater
 World$fetchData("rhoMatrix")
 World$fetchData("Matrix")
 World$fetchData("SpeciesName") # supposed to be in multiple tables?
+
+
+
+```
+
+
+```{r}
 World$FromDataAndTo("k_HeteroAgglomeration.wsd")
 testProc <- World$NewProcess("k_HeteroAgglomeration.wsd")
-debugonce(k_HeteroAgglomeration.wsd)
-testProc$execute(debugAt = list(toSpecies = "Small"))
 testProc$execute()
-debug(testProc$execute())
 
+
+testProc$execute(debugAt = list(to.SpeciesName = "aggregated", Matrix = "water"))
+
+debugonce(k_HeteroAgglomeration.wsd)
+
+
+debug(testProc$execute())
 ```
 
