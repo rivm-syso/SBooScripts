@@ -57,6 +57,7 @@ World$fetchData("SubCompartName")
 
 CalcVariable <- World$NewCalcVariable("rad_species")
 # CalcVariable$execute()
+
 World$CalcVar("rad_species")
 # debugonce(rad_species)
 # other debug met is using browser()
@@ -86,8 +87,7 @@ World$FromDataAndTo("k_HeteroAgglomeration.wsd")
 testProc <- World$NewProcess("k_HeteroAgglomeration.wsd")
 testProc$execute()
 
-
-testProc$execute(debugAt = list(to.SpeciesName = "aggregated", Matrix = "water"))
+testProc$execute(debugAt = list(to.SpeciesName = "Aggregated", Matrix = "water"))
 
 debugonce(k_HeteroAgglomeration.wsd)
 
