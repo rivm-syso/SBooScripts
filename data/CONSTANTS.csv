@@ -10,6 +10,8 @@
 "DefaultFRACarea","1",NA,NA,NA
 "DefaultpH","7",NA,NA,NA
 "Df","0.333333333",NA,"[-]",NA
+"DynViscAirStandard","1.81e-05","DYNVISC.a","[kg.m-1.s-1]","Dynamic Viscosity of air"
+"DynViscWaterStandard","0.001002","DYNVISC.w","[kg.m-1.s-1]","Dynamic Viscosity of water"
 "Ea.OHrad","6000","Ea.OHrad","[J.mol-1]",NA
 "epsilon","3",NA,NA," (in drydeposition() ) is empirical constant set to 3"
 "Erosion","0.03","EROSION.R","[mm/yr]",""
