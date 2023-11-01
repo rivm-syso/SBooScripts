@@ -5,7 +5,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-
 ```{r}
 substance <- "nAg_10nm"
 source("baseScripts/initTestWorld.R")
@@ -18,17 +17,31 @@ This is a particulate process which only applies to Solid species and the transf
 
 There are three different aproaches applied here depending on the matrix where this process takes place and the species affected.
 
-The three approaches are based on:
-- Smoluchowski's colloid theory (water, soil/sediment pore water)
-- Filtration theory for porous matrices (soil and sediment)
-- Aerosol agglomeration approaches (air)
+The three approaches are based on: - Smoluchowski's colloid theory (water, soil/sediment pore water) - Filtration theory for porous matrices (soil and sediment) - Aerosol agglomeration approaches (air)
 
 ### Heteroagglomeration in water
-This plays are role for the transformation from the primary particulate species and their agglomeration with natural colloids < 450 nm in water, soil and sediment pore water. Also agglomeration with larger SPM (>450 nm) in water.
 
-The data required for calculating for instance the collision frequency is related to the particle number concentration of natural colloids present in the compartment. For this we use the per subcompartment defined characteristics of the natural particles: 'RadCOL', 'RadCP', 'RhoCOL' and 'RhoCP'. For aerosols the Accumulation mode corresponds to COL and Coarse Mode corresponds to CP characteristics. [TO DO* rework input of Aerosol concentrations into mass concentrations instead of number concentrations as they are now for COL and SUSP, add Nucc concentrations in CONSTANTS just like their Rad and Rho properties]
+This plays are role for the transformation from the primary particulate species and their agglomeration with natural colloids \< 450 nm in water, soil and sediment pore water. Also agglomeration with larger SPM (\>450 nm) in water.
 
-Potentially we can integrate air also in one algorithm, alhough it will be a big one... 
+The data required for calculating for instance the collision frequency is related to the particle number concentration of natural colloids present in the compartment. For this we use the per subcompartment defined characteristics of the natural particles: 'RadCOL', 'RadCP', 'RhoCOL' and 'RhoCP'. For aerosols the Accumulation mode corresponds to COL and Coarse Mode corresponds to CP characteristics.
+
+The heteroaggregation rate constant is calculated using (k_HeteroAgglomeration.wsd.R). This depends on the following variables:
+
+1.  rad_species: this calculates the radius of the heteroagglomerate consisting of the solid particle and the Small or Large natural particle.
+
+2.  rho_species: this calculates the density of the he heteroagglomerate consisting of the solid particle and the Small or Large natural particle.
+
+Furthermore there are several helper functions used to avoid repeating code and too complex variables:
+
+-   f_Inter
+
+-   f_Brown
+
+-   f_Grav
+
+-   f_NumConc
+
+-   f_SetVelWater
 
 ```{r w.Heteroglomeration}
 # for after editting data
@@ -44,15 +57,56 @@ World$fetchData("Temp")
 World$fetchData("DynVisc")
 World$fetchData("RhoCOL")
 World$fetchData("RhoCP")
+World$fetchData("RadCOL")
+World$fetchData("RadCP")
+World$fetchData("RadNuc")
+World$fetchData("NumConcNuc")
+World$fetchData("NumConcAcc")
+World$fetchData("NumConcCP")
+World$fetchData("DynViscWaterStandard")
+World$fetchData("DynViscAirStandard")
+World$fetchData("Df")
+World$fetchData("SubCompartName")
+
+CalcVariable <- World$NewCalcVariable("rad_species")
+# CalcVariable$execute()
+
+World$CalcVar("rad_species")
+# debugonce(rad_species)
+# other debug met is using browser()
+# CalcVariable$execute(debugAt = list(SubCompartName == "lake")) # Not working currently
+
+World$NewCalcVariable("rho_species")
+(World$CalcVar("rho_species"))
+
+# World$NewCalcVariable("SettlingVelocity")
+# World$CalcVar("SettlingVelocity")
+
+
+World$fetchData("SettlingVelocity")
+
+f_SetVelWater
 World$fetchData("rhoMatrix")
 World$fetchData("Matrix")
 World$fetchData("SpeciesName") # supposed to be in multiple tables?
-World$FromDataAndTo("k_HeteroAgglomeration.wsd")
-testProc <- World$NewProcess("k_HeteroAgglomeration.wsd")
-debugonce(k_HeteroAgglomeration.wsd)
-testProc$execute(debugAt = list(toSpecies = "Small"))
-testProc$execute()
-debug(testProc$execute())
+
+
 
 ```
 
+```{r}
+World$FromDataAndTo("k_HeteroAgglomeration.wsd")
+testProc <- World$NewProcess("k_HeteroAgglomeration.wsd")
+testProc$execute()
+
+testProc$execute(debugAt = list(to.SpeciesName = "Aggregated", Matrix = "water"))
+
+debugonce(k_HeteroAgglomeration.wsd)
+
+
+debug(testProc$execute())
+```
+
+[TO DO\* rework input of Aerosol concentrations into mass concentrations instead of number concentrations as they are now for COL and SUSP, and consider Nucc concentrations in CONSTANTS just like their Rad and Rho properties]
+
+Potentially we can integrate air also in one algorithm, alhough it will be a big one...

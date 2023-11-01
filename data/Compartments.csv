@@ -1,5 +1,5 @@
-"Compartment","DynVisc"
-"air",1.81e-05
+"Compartment","X"
+"air",NA
 "sediment",NA
 "soil",NA
-"water",0.001002
+"water",NA
