@@ -1,5 +1,5 @@
 ---
-title: "Introduction to variables"
+title: "Introduction to SB-variables"
 author: "JS"
 date: "11/23/2022"
 output: github_document
@@ -21,14 +21,14 @@ source("baseScripts/initTestWorld.R")
 class(World)
 class(ClassicExcel)
 ```
-SimpleBox Variables are defined by a function, and many of the defining functions are present in the package. One of the variable defining functions is "Volume". The method NewCalcVariable adds the simpleBox variable; it needs the name (as character) of the function
+SimpleBox Variables (SBVs) are defined by a function, and many of the defining functions are present in the package. One of the variable defining functions is "Volume". The method NewCalcVariable adds the simpleBox variable; it needs the name (as character) of the function
 ```{r volfunction}
 Volume
 World$NewCalcVariable("Volume")
 ```
-R "knows" the parameters of a function, see the function formals(). These names are also variables, partly already read from data in the initialisation. You can lookup which variables are known, and their values by method fetchData of the class SBcore. World is of this class. An empty varname (the parameter for this method) returns all known parameters. Note that variable are usually tables, with keyfields indicating the domain of the variable. 
+R "knows" the parameters of a function, see the function formals(). The names of these parameters are also SBVs, partly already read from data in the initialisation. You can lookup which variables are known, and their values by method fetchData(varname) of the class SBcore. World, as initiated in the baseScript initWorld.R is of this class. An empty varname (the parameter for this method) returns all known parameters. Note that variable are usually data.frams (tables), with keyfields indicating the domain of the variable. 
 ## Variables are tables, parameters are atomic
-Note that variables are usually tables, including the key fields defining their domain (except constants) but the parameters in the functions are atomic; meaning its not the table, not even a vector! The variable defining functions are called by SBOO for each relevant combination of the variables. Results, when not NA, are stored in the in-memory database of SBOO.
+Note that variables are usually tables, including the key fields defining their domain (except constants) but the parameters in the functions are atomic! This means you can treat it as a simple number or character; its not the table, not even a vector! This makes writing a SBV defining function a lot easier, think of the "normal" if() situations that need the ifelse() functions. The variable defining functions are called by SBOO for each relevant combination of the variables. Results, when not NA, are stored in the in-memory database of SBOO.
 ```{r volparameters}
 formals(Volume)
 World$fetchData()

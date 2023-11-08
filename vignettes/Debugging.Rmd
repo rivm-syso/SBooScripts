@@ -1,5 +1,5 @@
 ---
-title: "Debugging"
+title: "CalcGraph and Debugging"
 author: "JS"
 date: "2023-03-13"
 output: github_document
@@ -12,10 +12,17 @@ projectRoot <- paste(getwd(), "..", sep = "/")
 knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
-This vignettes describes a way to debug the functions that define variables, processes or flows.
+This vignettes describes a way to debug the functions that define variables, flows or processes.
 
 ## Defining functions
-You can create and modify existing calculations in simplebox, see the vignette FirstVars. If you do, you will write an R function, and you may need to debug this funcion.
+
+You can create and modify existing calculations in simplebox, see the vignette FirstVars. If you do, you will write an R function.. 
+ 
+## The "CalcGraph"
+You can imagine that the calculations of SB variables (SBVs), flows and processes need a specific order (processes can only be calculated after all their inputs are calculated). This order is automated. 
+
+## debugging
+, and you may need to debug this funcion.
 SBoo is created using R6 objects. These objects let the user define special landscape variables and processes that define rates of the first-order transfers. The R6 objects also calls the defining functions with the right parameters. Normal debugging would mean you have to step through SBoo methods and possibly even code from the R6 package. Therefor an easier way to debug your defining function has been implemented.
 This way of debugging in tailored for use in R-studio and cannot (easily) be shown in a vignette, because of the interactive way debugging is needed. The code that would trigger the debug mode is therefore commented out to avoid executing in the vignette itself.
 We initialize in the normal way, and use an availeable function as an example.

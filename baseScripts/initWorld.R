@@ -4,7 +4,7 @@
 source("baseScripts/fakeLib.R")
 
 #to run the script with another selection of substance / excel reference,
-#set the variables substance and excelReference before sourcing this script
+#set the variables substance and excelReference before sourcing this script, like substance = "nAg_10nm"
 if (!exists("substance")) {
   substance <- "default substance"
 }
@@ -20,6 +20,10 @@ World$SetConst(pKa = 2500)
 if (is.na(World$fetchData("pKa"))) {
   stop("pKa is needed but missing")
 }
+
+#TODO put Ksw in th substance data
+
+World$SetConst(Ksw = 47500)
 if (is.na(World$fetchData("Ksw"))) {
   warning("Ksw is needed but missing; set by f_Ksw()")
   AllRho <- World$fetchData("rhoMatrix")
@@ -34,8 +38,9 @@ if (is.na(World$fetchData("Ksw"))) {
               alt_form = F,
               Ksw_orig = NA
   )
+  World$SetConst(Ksw = Ksw)
+  
 }
-World$SetConst(Ksw = Ksw)
 
 #We can calculate variables and fluxes available (fakeLib provided the functions:)
 VarDefFunctions <- c("AreaSea", "AreaLand", "Area", "Volume",
@@ -63,9 +68,9 @@ lapply(FluxDefFunctions, function(FuName){
 #and the processes, that calculate kaas
 ProcessDefFunctions <- c("k_Adsorption", "k_Advection", "k_AdvectionRiverSeaScales",
                          "k_AdvectionSeaOcean", "k_AdvectionWaters", "k_Burial",
+                         "k_HeteroAgglomeration.a", "k_HeteroAgglomeration.sd", "k_HeteroAgglomeration.wsd",
                          "k_CWscavenging", "k_Degradation", "k_Deposition", "k_Desorption",
                          "k_DryDeposition", "k_Erosion", "k_Escape", 
-                         "k_HeteroAgglomeration.a", "k_HeteroAgglomeration.sd", "k_HeteroAgglomeration.wsd",
                          "k_Leaching", "k_Resuspension", "k_Runoff", "k_Sedimentation", 
                          "k_Volatilisation", "k_WetDeposition")
 
@@ -75,6 +80,6 @@ lapply(ProcessDefFunctions, function(FuName){
 })
 
 verbose = T
-#kex = World$NewCalcVariable("Ksw.alt")
-#kex$execute(debugAt = list())
+kex = World$NewCalcVariable("rad_species")
+kex$execute(debugAt = list(SubCompartName = "air"))
 World$UpdateKaas()
