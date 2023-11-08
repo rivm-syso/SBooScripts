@@ -47,7 +47,7 @@ VarDefFunctions <- c("AreaSea", "AreaLand", "Area", "Volume",
                 "D", "FRACa", "FRACs", "FRACw", "FRinaers",
                 "FRinaerw","FRingas","FRins","FRinw",
                 "FRorig", "FRorig_spw", "Kacompw", "Kaers", "Kaerw",
-                "Kp", "KpCOL", "Kscompw", "Ksdcompw", "Ksw.alt", "MasConc_Otherparticle",
+                "Kp", "KpCOL", "Kscompw", "Ksdcompw", "Ksw.alt", #"MasConc_Otherparticle",
                 "MTC_2a", "MTC_2s", "MTC_2sd", "MTC_2w", "OtherkAir",
                 "rad_species", "RainOnFreshwater", "rho_species", "SettlingVelocity",
                 "SettVellNat", "Tempfactor")
@@ -83,3 +83,6 @@ verbose = T
 kex = World$NewCalcVariable("rad_species")
 kex$execute(debugAt = list(SubCompartName = "air"))
 World$UpdateKaas()
+
+des <- World$NewProcess("k_Desorption")
+des$execute(debugAt = list(assembly = ""))
