@@ -47,7 +47,7 @@ Furthermore there are several helper functions used to avoid repeating code and 
 # for after editting data
 source("baseScripts/ReorderCSV.R")
 
-World$fetchData("alpha")
+World$fetchData("alpha") # here to.alpha needs to be used
 World$fetchData("COL")
 World$fetchData("SUSP")
 World$fetchData("Shear")
