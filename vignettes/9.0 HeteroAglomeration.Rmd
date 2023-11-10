@@ -54,7 +54,6 @@ World$fetchData("Shear")
 World$fetchData("RadS")
 World$fetchData("RhoS")
 World$fetchData("Temp")
-World$fetchData("DynVisc")
 World$fetchData("RhoCOL")
 World$fetchData("RhoCP")
 World$fetchData("RadCOL")
@@ -69,12 +68,12 @@ World$fetchData("Df")
 World$fetchData("SubCompartName")
 
 CalcVariable <- World$NewCalcVariable("rad_species")
-# CalcVariable$execute()
+#CalcVariable$execute(debugAt = list(assembly = T))
 
 World$CalcVar("rad_species")
 # debugonce(rad_species)
 # other debug met is using browser()
-# CalcVariable$execute(debugAt = list(SubCompartName == "lake")) # Not working currently
+# CalcVariable$execute(debugAt = list(ScaleName = "Art")) # Not working currently
 
 World$NewCalcVariable("rho_species")
 (World$CalcVar("rho_species"))
@@ -97,9 +96,12 @@ World$fetchData("SpeciesName") # supposed to be in multiple tables?
 ```{r}
 World$FromDataAndTo("k_HeteroAgglomeration.wsd")
 testProc <- World$NewProcess("k_HeteroAgglomeration.wsd")
+
+debugonce(testProc$execute)
 testProc$execute()
 
 testProc$execute(debugAt = list(to.SpeciesName = "Aggregated", Matrix = "water"))
+testProc$execute(debugAt = list(assembly = ""))
 
 debugonce(k_HeteroAgglomeration.wsd)
 
