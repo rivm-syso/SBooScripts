@@ -114,6 +114,8 @@ testProc$execute()
 ### air
 Heteroagglomeration for attached species in soil and sediment is also included in k_HeteroAgglomeration.wsd. However, heteroagglomeration in air is calculated seperately using k_HeteroAgglomeration.a.
 
+
+
 Testing is done below:
 ```{r}
 
@@ -121,9 +123,16 @@ World$fetchData("NumConcNuc")
 World$fetchData("NumConcAcc")
 World$fetchData("NumConcCP") 
 
-(rad_species, RadOther, rho_species, RhoOther, Temp,
-                                    Diffusivity, 
-                                    NumConcNuc, NumConcAcc, NumConcCP)
+World$fetchData("RadNuc") 
+World$fetchData("RadCOL") 
+World$fetchData("RadCP") 
+
+
+World$FromDataAndTo("k_HeteroAgglomeration.a")
+testProc <- World$NewProcess("k_HeteroAgglomeration.a")
+
+# debugonce(testProc$execute)
+testProc$execute()
 
 ```
 
