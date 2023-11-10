@@ -89,7 +89,9 @@ World$fetchData("rhoMatrix")
 World$fetchData("Matrix")
 World$fetchData("SpeciesName") # supposed to be in multiple tables?
 
-
+# for sediment and soil and het to attached species:
+CalcVariable <- World$NewCalcVariable("FRACs")
+World$CalcVar("FRACs")
 
 ```
 
@@ -97,17 +99,44 @@ World$fetchData("SpeciesName") # supposed to be in multiple tables?
 World$FromDataAndTo("k_HeteroAgglomeration.wsd")
 testProc <- World$NewProcess("k_HeteroAgglomeration.wsd")
 
-debugonce(testProc$execute)
+# debugonce(testProc$execute)
 testProc$execute()
 
-testProc$execute(debugAt = list(to.SpeciesName = "Aggregated", Matrix = "water"))
-testProc$execute(debugAt = list(assembly = ""))
+# testProc$execute(debugAt = list(to.SpeciesName = "Aggregated", Matrix = "water"))
+# testProc$execute(debugAt = list(assembly = ""))
 
-debugonce(k_HeteroAgglomeration.wsd)
+# debugonce(k_HeteroAgglomeration.wsd)
 
 
-debug(testProc$execute())
+# debug(testProc$execute())
 ```
+
+### air
+Heteroagglomeration for attached species in soil and sediment is also included in k_HeteroAgglomeration.wsd. However, heteroagglomeration in air is calculated seperately using k_HeteroAgglomeration.a.
+
+
+
+Testing is done below:
+```{r}
+
+World$fetchData("NumConcNuc")
+World$fetchData("NumConcAcc")
+World$fetchData("NumConcCP") 
+
+World$fetchData("RadNuc") 
+World$fetchData("RadCOL") 
+World$fetchData("RadCP") 
+
+
+World$FromDataAndTo("k_HeteroAgglomeration.a")
+testProc <- World$NewProcess("k_HeteroAgglomeration.a")
+
+# debugonce(testProc$execute)
+testProc$execute()
+
+```
+
+
 
 [TO DO\* rework input of Aerosol concentrations into mass concentrations instead of number concentrations as they are now for COL and SUSP, and consider Nucc concentrations in CONSTANTS just like their Rad and Rho properties]
 
