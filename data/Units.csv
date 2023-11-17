@@ -103,4 +103,4 @@
 "VertDistance",95,"m","","ScaleSubCompartData","depth or height of the subcompartment"
 "WATERflow.w0R.w2R",96,"missing","","CONSTANTS","???"
 "WATERflow.w1R.w0R",97,"missing","","CONSTANTS","???"
-"WINDspeed",98,"m.s-1","","CONSTANTS",""
+"WINDspeed",98,"m.s-1","","ScalesSheet","Average windspeed per scale"
