@@ -131,11 +131,74 @@ advection:
 
 8.  x_RiverSeaScales
 
+### ContRiver2Reg
+
 ```{r}
-x_Advection_Air
-AdvAir <- World$NewFlow("x_Advection_Air")
+x_ContRiver2Reg
+
+World$NewCalcVariable("RainOnFreshwater")
+World$CalcVar("RainOnFreshwater")
+
+
+
+World$fetchData("ScaleName")
+World$fetchData("SubCompartName")
+
+World$fetchData("dischargeFRAC")
+World$fetchData("LakeFracRiver")
+World$fetchData("Runoff")
+World$fetchData("Area")
+
+```
+
+### RiverDischarge
+
+```{r RiverDischarge}
+World$fetchData("Runoff")
+
+World$fetchData("RainOnFreshwater")
+
+World$fetchData("dischargeFRAC")
+World$fetchData("x_ContRiver2Reg")
+World$fetchData("ScaleName")
+
+
+
+
+```
+
+### ContSea2Reg
+
+```{r ContSea2Reg}
+# these cannot be found:
+World$fetchData("LakeFracRiver")
+World$fetchData("x_RiverDischarge")
+
+AdvAir <- World$NewFlow("x_RiverSeaScales")
 #AdvAir$execute(debugAt = list(toScale = "Continental"))
-World$CalcVar("x_Advection_Air")
+World$CalcVar("x_RiverSeaScales")
+```
+
+### RiverSeaScales
+
+```{r RiverSeaScales}
+x_RiverSeaScales
+x_ContSea2Reg <- function (all.x_RiverDischarge, LakeFracRiver)
+# varaiables:
+World$fetchData("SubCompartName")
+World$fetchData("ScaleName")
+World$fetchData("OceanCurrent")
+World$fetchData("TAUsea")
+World$fetchData("ContinentalInModerate")
+
+# these cannot be found:
+World$fetchData("ContSea2Reg")
+World$fetchData("ContRiver2Reg")
+World$fetchData("RegSea2Cont")
+
+AdvAir <- World$NewFlow("x_RiverSeaScales")
+#AdvAir$execute(debugAt = list(toScale = "Continental"))
+World$CalcVar("x_RiverSeaScales")
 
 ```
 
