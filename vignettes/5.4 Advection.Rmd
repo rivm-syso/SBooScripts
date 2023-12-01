@@ -113,25 +113,19 @@ For water the flows are relevant for different dimensions:
 subcompartments and scale. This relates to water flowing from lake,
 through the river compartment to the sea. And the sea flows between
 scales. This is defined in the following x_flow algorithms for water
-advection:
+advection in the following sections. The order of calculation matters!
 
 1.  x_RiverSeaScales
 
-2.  x_RiverDischarge
+2.  x_ContSea2Moder
 
-3.  x_LakeOutflow
+3.  x_RiverSeaScales
 
-4.  x_ContSea2Reg
+### 1. xContRiver2Reg
 
-5.  x_ContSea2Moder
-
-6.  x_ContRiver2Reg
-
-7.  x_RegSea2Cont
-
-8.  x_RiverSeaScales
-
-### ContRiver2Reg
+x_ContRiver2Reg: based on Runoff calculates the flow from contintental
+river to regional river subcompartment (not usually relevant, thus ofter
+0).
 
 ```{r}
 x_ContRiver2Reg
@@ -142,8 +136,6 @@ World$CalcVar("Runoff")
 World$NewCalcVariable("RainOnFreshwater")
 World$CalcVar("RainOnFreshwater")
 
-
-
 World$fetchData("ScaleName")
 World$fetchData("SubCompartName")
 
@@ -153,17 +145,17 @@ World$fetchData("Runoff")
 World$fetchData("Area")
 
 World$fetchData("LakeFracRiver")
-World$fetchData("x_ContRiver2Reg")
 
 flow1 <- World$NewFlow("x_ContRiver2Reg")
-flow1$execute(debugAt = list())
-World$CalcVar("x_ContRiver2Reg")
 
+flow1$FromAndTo
+flow1$execute()
+World$CalcVar("x_ContRiver2Reg")
 ```
 
-### RiverDischarge
+### 2. x_RiverDischarge
 
-```{r RiverDischarge}
+```{r}
 
 World$fetchData("Runoff")
 
@@ -173,28 +165,63 @@ World$fetchData("dischargeFRAC")
 World$fetchData("x_ContRiver2Reg")
 World$fetchData("ScaleName")
 
+flow2 <- World$NewFlow("x_RiverDischarge")
 
+flow2$FromAndTo
+flow2$execute()
+World$CalcVar("x_RiverDischarge")
+```
 
+### 3. x_LakeOutflow
+
+```{r}
+World$fetchData("x_RiverDischarge")
+World$fetchData("x_ContRiver2Reg")
+World$fetchData("LakeFracRiver")
+World$fetchData("ScaleName")
+
+flow3 <- World$NewFlow("x_LakeOutflow")
+
+flow3$FromAndTo
+flow3$execute()
+World$CalcVar("x_LakeOutflow")
 
 ```
 
-### ContSea2Reg
+### 4. x_ContSea2Reg
 
-```{r ContSea2Reg}
+```{r}
 # these cannot be found:
 World$fetchData("LakeFracRiver")
 World$fetchData("x_RiverDischarge")
 
-AdvAir <- World$NewFlow("x_RiverSeaScales")
-#AdvAir$execute(debugAt = list(toScale = "Continental"))
-World$CalcVar("x_RiverSeaScales")
+flow4 <- World$NewFlow("x_ContSea2Reg")
+
+flow4$FromAndTo
+flow4$execute()
+World$CalcVar("x_ContSea2Reg")
 ```
 
-### RiverSeaScales
+### 5. x_RegSea2Cont
+
+```{r}
+
+World$fetchData("LakeFracRiver")
+World$fetchData("x_RiverDischarge")
+
+flow5 <- World$NewFlow("x_RegSea2Cont")
+
+flow4$FromAndTo
+flow4$execute()
+World$CalcVar("x_RegSea2Cont")
+
+```
+
+### x_RiverSeaScales
 
 ```{r RiverSeaScales}
 x_RiverSeaScales
-x_ContSea2Reg <- function (all.x_RiverDischarge, LakeFracRiver)
+
 # varaiables:
 World$fetchData("SubCompartName")
 World$fetchData("ScaleName")
@@ -203,7 +230,7 @@ World$fetchData("TAUsea")
 World$fetchData("ContinentalInModerate")
 
 # these cannot be found:
-World$fetchData("ContSea2Reg")
+World$fetchData("x_ContSea2Reg")
 World$fetchData("ContRiver2Reg")
 World$fetchData("RegSea2Cont")
 
