@@ -1,0 +1,226 @@
+---
+title: "Advection"
+author: "Jaap Slootweg, Joris Quik"
+date: "17-11-2023"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+# Advection
+
+This vignette demonstrates the implementation of the advective flows of
+air and water in SimpleBox (SB). An advective flow in the context of SB
+is the massflow of a matrix (air, water, ) from one box to another,
+where either the subcompartment or scale is different.
+
+```{r initialize}
+source("baseScripts/initTestWorld.R")
+World
+```
+
+## Data and variables
+
+For calculating the rate constants for advection there is data needed
+on: - Windspeed Together with the variables: -
+
+```{r}
+SBvars <- c("AreaLand",
+            "AreaSea",
+            "Area",
+            "Volume"
+            )
+
+for (x in SBvars) {
+  World$NewCalcVariable(x)
+  World$CalcVar(x)
+}
+```
+
+## Air flow
+
+We calculate AirFlow in two steps. The first is the application of a
+simple model of air circulation depending on windspeed; The mean
+residence time in the region is according the f_TAU function. `r f_TAU`
+The AirFlow function calculates the amount that would enter/leave the
+region namely the volume divided by the residence time. Notice that
+f_TAU is a normal function, but AirFlow will be used as a variable
+defining function. After the call to World\$CalcVar("AirFlow") this
+property is stored in the data within World. `r AirFlow`. This provides
+the overal airflow within a compartment which affects the flow from this
+compartment or scale to the next. Currently air only flows between
+scales.
+
+```{r}
+World$fetchData("Volume")
+World$fetchData("Area")
+World$fetchData("WINDspeed")
+World$fetchData("SubCompartName")
+# f_TAU
+# AirFlow
+World$NewCalcVariable("AirFlow")
+World$CalcVar("AirFlow")
+```
+
+### flow mass balance
+
+To keep the mass balance in the model the amount from one scale to the
+next would need to be equal to the amount flowing the opposite way! To
+honor the mass balance we give priority to the amount calculated for the
+smallest volume to calculate the actual flows. This means that for
+nested scales we need to know how the nesting is. This brings a new
+challange; we need to know properties of the scale the flow is going to,
+or possibly the scale where it is coming from. Because of the nesting,
+we need to know even properties of scale not directly related to the to-
+or from- the scale! To accomodate this use of the "to.", the "from." and
+the "all." preposition is made available. The to- and from scaleName are
+atomic (a single string) but the "all." prepositions provides a full
+table of the variable and its dimensions (in this case only accross
+Scales). If you want to see what is really going on in the function
+calls you can use the debug parameter. See the Debugging vignette for
+further information.
+
+```{r}
+x_Advection_Air
+AdvAir <- World$NewFlow("x_Advection_Air")
+#AdvAir$execute(debugAt = list(toScale = "Continental"))
+World$CalcVar("x_Advection_Air")
+
+```
+
+This provides the air flows. To test if they add up and give the same
+amount flowing to and from each scale we do the following calculation:
+
+```{r}
+AirFlows <- World$fetchData("x_Advection_Air")
+ToFlow <- aggregate(flow~toScale, data = AirFlows, FUN = sum)
+FromFlow <- aggregate(flow~fromScale, data = AirFlows, FUN = sum)
+merge(FromFlow, ToFlow, by.x = "fromScale", by.y = "toScale", suffixes = c("_from", "_to"))
+```
+
+## Water flow
+
+For water the flows are relevant for different dimensions:
+subcompartments and scale. This relates to water flowing from lake,
+through the river compartment to the sea. And the sea flows between
+scales. This is defined in the following x_flow algorithms for water
+advection:
+
+1.  x_RiverSeaScales
+
+2.  x_RiverDischarge
+
+3.  x_LakeOutflow
+
+4.  x_ContSea2Reg
+
+5.  x_ContSea2Moder
+
+6.  x_ContRiver2Reg
+
+7.  x_RegSea2Cont
+
+8.  x_RiverSeaScales
+
+### ContRiver2Reg
+
+```{r}
+x_ContRiver2Reg
+
+World$NewCalcVariable("Runoff")
+World$CalcVar("Runoff")
+
+World$NewCalcVariable("RainOnFreshwater")
+World$CalcVar("RainOnFreshwater")
+
+
+
+World$fetchData("ScaleName")
+World$fetchData("SubCompartName")
+
+World$fetchData("dischargeFRAC")
+World$fetchData("LakeFracRiver")
+World$fetchData("Runoff")
+World$fetchData("Area")
+
+World$fetchData("LakeFracRiver")
+World$fetchData("x_ContRiver2Reg")
+
+flow1 <- World$NewFlow("x_ContRiver2Reg")
+flow1$execute(debugAt = list())
+World$CalcVar("x_ContRiver2Reg")
+
+```
+
+### RiverDischarge
+
+```{r RiverDischarge}
+
+World$fetchData("Runoff")
+
+World$fetchData("RainOnFreshwater")
+
+World$fetchData("dischargeFRAC")
+World$fetchData("x_ContRiver2Reg")
+World$fetchData("ScaleName")
+
+
+
+
+```
+
+### ContSea2Reg
+
+```{r ContSea2Reg}
+# these cannot be found:
+World$fetchData("LakeFracRiver")
+World$fetchData("x_RiverDischarge")
+
+AdvAir <- World$NewFlow("x_RiverSeaScales")
+#AdvAir$execute(debugAt = list(toScale = "Continental"))
+World$CalcVar("x_RiverSeaScales")
+```
+
+### RiverSeaScales
+
+```{r RiverSeaScales}
+x_RiverSeaScales
+x_ContSea2Reg <- function (all.x_RiverDischarge, LakeFracRiver)
+# varaiables:
+World$fetchData("SubCompartName")
+World$fetchData("ScaleName")
+World$fetchData("OceanCurrent")
+World$fetchData("TAUsea")
+World$fetchData("ContinentalInModerate")
+
+# these cannot be found:
+World$fetchData("ContSea2Reg")
+World$fetchData("ContRiver2Reg")
+World$fetchData("RegSea2Cont")
+
+AdvAir <- World$NewFlow("x_RiverSeaScales")
+#AdvAir$execute(debugAt = list(toScale = "Continental"))
+World$CalcVar("x_RiverSeaScales")
+
+```
+
+This provides the air flows. To test if they add up and give the same
+amount flowing to and from each scale we do the following calculation:
+
+```{r}
+AirFlows <- World$fetchData("x_Advection_Air")
+ToFlow <- aggregate(flow~toScale, data = AirFlows, FUN = sum)
+FromFlow <- aggregate(flow~fromScale, data = AirFlows, FUN = sum)
+merge(FromFlow, ToFlow, by.x = "fromScale", by.y = "toScale", suffixes = c("_from", "_to"))
+```
+
+## Advection rate constant
