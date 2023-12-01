@@ -115,7 +115,7 @@ through the river compartment to the sea. And the sea flows between
 scales. This is defined in the following x_flow algorithms for water
 advection:
 
-1.   x_RiverSeaScales
+1.  x_RiverSeaScales
 
 2.  x_RiverDischarge
 
