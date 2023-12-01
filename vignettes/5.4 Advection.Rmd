@@ -113,15 +113,10 @@ For water the flows are relevant for different dimensions:
 subcompartments and scale. This relates to water flowing from lake,
 through the river compartment to the sea. And the sea flows between
 scales. This is defined in the following x_flow algorithms for water
-advection in the following sections. The order of calculation matters!
+advection in the following sections. The order of calculation matters
+(for regional and continental scale function x 1-5) !
 
-1.  x_RiverSeaScales
-
-2.  x_ContSea2Moder
-
-3.  x_RiverSeaScales
-
-### 1. xContRiver2Reg
+### 1. x_ContRiver2Reg
 
 x_ContRiver2Reg: based on Runoff calculates the flow from contintental
 river to regional river subcompartment (not usually relevant, thus ofter
