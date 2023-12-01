@@ -211,43 +211,142 @@ World$fetchData("x_RiverDischarge")
 
 flow5 <- World$NewFlow("x_RegSea2Cont")
 
-flow4$FromAndTo
-flow4$execute()
+flow5$FromAndTo
+flow5$execute()
 World$CalcVar("x_RegSea2Cont")
 
 ```
 
-### x_RiverSeaScales
+### 6. x_ToModerateWater
 
-```{r RiverSeaScales}
-x_RiverSeaScales
+Advection of continental sea, Tropic and Arctic sea compartments to sea
+and deepocean at Moderate scale
 
-# varaiables:
-World$fetchData("SubCompartName")
-World$fetchData("ScaleName")
-World$fetchData("OceanCurrent")
+```{r}
+
+World$fetchData("Volume")
 World$fetchData("TAUsea")
-World$fetchData("ContinentalInModerate")
+World$fetchData("x_RegSea2Cont")
 
-# these cannot be found:
-World$fetchData("x_ContSea2Reg")
-World$fetchData("ContRiver2Reg")
-World$fetchData("RegSea2Cont")
 
-AdvAir <- World$NewFlow("x_RiverSeaScales")
-#AdvAir$execute(debugAt = list(toScale = "Continental"))
-World$CalcVar("x_RiverSeaScales")
+flow6 <- World$NewFlow("x_ToModerateWater")
+
+flow6$FromAndTo
+flow6$execute()
+World$CalcVar("x_ToModerateWater")
 
 ```
 
-This provides the air flows. To test if they add up and give the same
-amount flowing to and from each scale we do the following calculation:
+### Water flow from Moderate Scale
+
+#### 7. x_FromModerate2TropWater
+
+Seperated in different flows based on the to Scale
 
 ```{r}
-AirFlows <- World$fetchData("x_Advection_Air")
-ToFlow <- aggregate(flow~toScale, data = AirFlows, FUN = sum)
-FromFlow <- aggregate(flow~fromScale, data = AirFlows, FUN = sum)
-merge(FromFlow, ToFlow, by.x = "fromScale", by.y = "toScale", suffixes = c("_from", "_to"))
+
+World$fetchData("Volume")
+World$fetchData("TAUsea")
+World$fetchData("OceanCurrent")
+World$fetchData("x_RegSea2Cont")
+World$fetchData("ScaleName")
+
+flow <- World$NewFlow("x_FromModerate2TropWater")
+# flow$execute(debugAt = list())
+flow$FromAndTo
+flow$execute()
+World$CalcVar("x_FromModerate2TropWater")
+```
+
+#### 8. x_FromModerate2ArctWater
+
+```{r}
+World$fetchData("OceanCurrent")
+World$fetchData("ScaleName")
+
+flow <- World$NewFlow("x_FromModerate2ArctWater")
+# flow$execute(debugAt = list())
+flow$FromAndTo
+flow$execute()
+World$CalcVar("x_FromModerate2ArctWater")
+```
+
+#### 9. x_FromModerate2ContWater
+
+```{r}
+
+x_FromModerateWater
+
+World$fetchData("Volume")
+World$fetchData("TAUsea")
+World$fetchData("OceanCurrent")
+World$fetchData("x_RegSea2Cont")
+World$fetchData("ScaleName")
+
+flow <- World$NewFlow("x_FromModerate2ContWater")
+# flow$execute(debugAt = list())
+flow$FromAndTo
+flow$execute()
+World$CalcVar("x_FromModerate2ContWater")
+```
+
+### 10. x_OceanMixing2Deep
+
+```{r}
+x_OceanMixing2Deep
+
+World$fetchData("Volume")
+World$fetchData("TAUsea")
+World$fetchData("OceanCurrent")
+World$fetchData("SubCompartName")
+
+flow <- World$NewFlow("x_OceanMixing2Deep")
+
+flow$FromAndTo
+flow$execute()
+World$CalcVar("x_OceanMixing2Deep")
+
+```
+
+### 11. x_OceanMixing2Sea
+
+```{r}
+x_OceanMixing2Sea
+
+World$fetchData("Volume")
+World$fetchData("TAUsea")
+World$fetchData("OceanCurrent")
+World$fetchData("SubCompartName")
+
+flow <- World$NewFlow("x_OceanMixing2Sea")
+
+flow$FromAndTo
+flow$execute()
+World$CalcVar("x_OceanMixing2Sea")
+```
+
+### Overview of water flows
+
+Overview of flows included above (excludes surface - deep ocean mixing
+and ocean currents at global scales)
+
+```{r}
+flows = World$moduleList[["k_Advection"]]$WithFlow
+
+flux2Test <- World$fetchData("Flows")
+flux2Test <- flux2Test[flux2Test$FlowName %in% flows & flux2Test$fromSubCompart %in% c("river","sea","lake","deepocean"),]
+flux2Test$fromScale <- factor(flux2Test$fromScale, levels = c("Regional", "Continental", "Moderate","Arctic","Tropic")) #force order
+flux2Test$toScale <- factor(flux2Test$toScale, levels = c("Regional", "Continental", "Moderate","Arctic","Tropic")) #force order
+flux2Test$fromSubCompart <- factor(flux2Test$fromSubCompart, levels = c("lake", "river", "sea","deepocean")) #force order
+flux2Test$toSubCompart <- factor(flux2Test$toSubCompart, levels = c("lake", "river", "sea","deepocean")) #force order
+f2Torder <- order(flux2Test$fromScale, flux2Test$fromSubCompart, flux2Test$toScale, flux2Test$toSubCompart)
+
+flux2Test$fcolumns <- do.call(paste, c(flux2Test[c("fromScale", "fromSubCompart")], sep="."))
+flux2Test$frows <- do.call(paste, c(flux2Test[c("toScale", "toSubCompart")], sep = "."))
+#flux2Test$flux = 10e9 * flux2Test$flux # tune unit 
+
+pivot_wider(flux2Test[f2Torder,c("frows","fcolumns","flow")],
+            id_cols = frows, names_from = fcolumns, values_from = flow)
 ```
 
 ## Advection rate constant
