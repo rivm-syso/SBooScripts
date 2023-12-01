@@ -136,6 +136,9 @@ advection:
 ```{r}
 x_ContRiver2Reg
 
+World$NewCalcVariable("Runoff")
+World$CalcVar("Runoff")
+
 World$NewCalcVariable("RainOnFreshwater")
 World$CalcVar("RainOnFreshwater")
 
@@ -149,11 +152,19 @@ World$fetchData("LakeFracRiver")
 World$fetchData("Runoff")
 World$fetchData("Area")
 
+World$fetchData("LakeFracRiver")
+World$fetchData("x_ContRiver2Reg")
+
+flow1 <- World$NewFlow("x_ContRiver2Reg")
+flow1$execute(debugAt = list())
+World$CalcVar("x_ContRiver2Reg")
+
 ```
 
 ### RiverDischarge
 
 ```{r RiverDischarge}
+
 World$fetchData("Runoff")
 
 World$fetchData("RainOnFreshwater")
