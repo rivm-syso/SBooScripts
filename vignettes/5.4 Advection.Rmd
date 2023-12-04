@@ -1,20 +1,13 @@
 ---
 title: "Advection"
 author: "Jaap Slootweg, Joris Quik"
-date: "17-11-2023"
+date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
   chunk_output_type: console
   markdown: 
     wrap: 72
 ---
-
-```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
 
 # Advection
 
@@ -113,15 +106,10 @@ For water the flows are relevant for different dimensions:
 subcompartments and scale. This relates to water flowing from lake,
 through the river compartment to the sea. And the sea flows between
 scales. This is defined in the following x_flow algorithms for water
-advection in the following sections. The order of calculation matters!
+advection in the following sections. The order of calculation matters
+(for regional and continental scale function x 1-5) !
 
-1.  x_RiverSeaScales
-
-2.  x_ContSea2Moder
-
-3.  x_RiverSeaScales
-
-### 1. xContRiver2Reg
+### 1. x_ContRiver2Reg
 
 x_ContRiver2Reg: based on Runoff calculates the flow from contintental
 river to regional river subcompartment (not usually relevant, thus ofter
@@ -274,9 +262,7 @@ World$CalcVar("x_FromModerate2ArctWater")
 #### 9. x_FromModerate2ContWater
 
 ```{r}
-
-x_FromModerateWater
-
+# required data:
 World$fetchData("Volume")
 World$fetchData("TAUsea")
 World$fetchData("OceanCurrent")
@@ -350,3 +336,12 @@ pivot_wider(flux2Test[f2Torder,c("frows","fcolumns","flow")],
 ```
 
 ## Advection rate constant
+
+```{r}
+
+
+World$FromDataAndTo("k_Advection")
+testProc <- World$NewProcess("k_Advection")
+testProc$execute()
+
+```

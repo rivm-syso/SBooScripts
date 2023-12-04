@@ -12,7 +12,7 @@ for (x in SBvars) {
 #calculation of kaas is by executing a process
 testClass <- World$NewProcess("Leaching")
 #this is calculate for transitions:
-World$allFromAndTo("k_Advection_Air")
+# World$allFromAndTo("k_Advection_Air") # redundant from 4-12-2023.
 
 #SBcore can find the variable missing for the calculation graph:
 World$whichUnresolved() # AirFlow 
@@ -50,7 +50,7 @@ World$UpdateKaas(mergeExisting = F)
 # testVar <- World$NewCalcVariable("Area")
 # testVar <- World$NewCalcVariable("Volume")
 # testVar <- World$NewCalcVariable("AirFlow")
-# testClass <- World$NewProcess("k_Advection_Air")
+# testClass <- World$NewProcess("k_Advection_Air") # redundant from 4-12-2023.
 # World$UpdateKaas()
 # World$kaas
 # 

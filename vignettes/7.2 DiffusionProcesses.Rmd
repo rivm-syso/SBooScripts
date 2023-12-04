@@ -8,11 +8,11 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(include = FALSE)
-knitr::knit_meta()
-# knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+# knitr::opts_chunk$set(include = FALSE)
+# knitr::knit_meta()
+# # knitr::opts_chunk$set(echo = TRUE)
+# projectRoot <- paste(getwd(), "..", sep = "/")
+# knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
 # INTERMEDIA TRANSFER
@@ -29,6 +29,7 @@ rm(substance)
 # substance <- "organic acid"
 #script to initialize test environment, including faking a future 'library(sboo)'
 try(source("baseScripts/initTestWorld.R"))
+source(paste(getwd(),"testScripts/initPartitioningVariables.R", sep="/"))
 #calculation of the needed SB variables, first compiling their defining functions
 
 # non variable input data which is calculated (see partioning.Rmd) needs to be available before you can proceed
@@ -51,51 +52,38 @@ World$CalcVar("FRACs")
 # World$fetchData()
 
 # debugonce(f_Ksw)
+# 
+# KswModelled <- f_Ksw(Kow = World$fetchData("Kow"), 
+#                     pKa = 7, 
+#                     CorgStandard = World$fetchData("CorgStandard"), 
+#                     a = with(World$fetchData("QSARtable"), 
+#                              a[QSAR.ChemClass == World$fetchData("ChemClass")]), 
+#                     b = with(World$fetchData("QSARtable"), 
+#                              b[QSAR.ChemClass == World$fetchData("ChemClass")]), 
+#                     ChemClass = World$fetchData("ChemClass"),
+#                     RHOsolid = with(World$fetchData("rhoMatrix"),
+#                                     rhoMatrix[SubCompart == "othersoil"]),
+#                     alt_form = F)
+# 
+# Ksw.alt <- f_Ksw(Kow = World$fetchData("Kow"), 
+#                     pKa = 7, 
+#                     CorgStandard = World$fetchData("CorgStandard"), 
+#                     a = with(World$fetchData("QSARtable"), 
+#                              a[QSAR.ChemClass == World$fetchData("ChemClass")]), 
+#                     b = with(World$fetchData("QSARtable"), 
+#                              b[QSAR.ChemClass == World$fetchData("ChemClass")]), 
+#                     ChemClass = World$fetchData("ChemClass"),
+#                     RHOsolid = with(World$fetchData("rhoMatrix"),
+#                                     rhoMatrix[SubCompart == "othersoil"]),
+#                     alt_form = T, KswModelled)
+# 
+# FromData <- World$fetchData("Globals")
+# FromData$Ksw <- KswModelled
+# FromData$Ksw.alt <- Ksw.alt
+# FromData$RHOsolid <- with(World$fetchData("rhoMatrix"),
+#                                     rhoMatrix[SubCompart == "othersoil"])
+# World$UpdateData(FromData, keys = T, TableName = "Globals")
 
-KswModelled <- f_Ksw(Kow = World$fetchData("Kow"), 
-                    pKa = 7, 
-                    CorgStandard = World$fetchData("CorgStandard"), 
-                    a = with(World$fetchData("QSARtable"), 
-                             a[QSAR.ChemClass == World$fetchData("ChemClass")]), 
-                    b = with(World$fetchData("QSARtable"), 
-                             b[QSAR.ChemClass == World$fetchData("ChemClass")]), 
-                    ChemClass = World$fetchData("ChemClass"),
-                    RHOsolid = with(World$fetchData("rhoMatrix"),
-                                    rhoMatrix[SubCompart == "othersoil"]),
-                    alt_form = F)
-
-Ksw.alt <- f_Ksw(Kow = World$fetchData("Kow"), 
-                    pKa = 7, 
-                    CorgStandard = World$fetchData("CorgStandard"), 
-                    a = with(World$fetchData("QSARtable"), 
-                             a[QSAR.ChemClass == World$fetchData("ChemClass")]), 
-                    b = with(World$fetchData("QSARtable"), 
-                             b[QSAR.ChemClass == World$fetchData("ChemClass")]), 
-                    ChemClass = World$fetchData("ChemClass"),
-                    RHOsolid = with(World$fetchData("rhoMatrix"),
-                                    rhoMatrix[SubCompart == "othersoil"]),
-                    alt_form = T, KswModelled)
-
-FromData <- World$fetchData("Globals")
-FromData$Ksw <- KswModelled
-FromData$Ksw.alt <- Ksw.alt
-FromData$RHOsolid <- with(World$fetchData("rhoMatrix"),
-                                    rhoMatrix[SubCompart == "othersoil"])
-World$UpdateData(FromData, keys = T, TableName = "Globals")
-
-# source("/rivm/s/quikj/SimpleBox_dev/sbooScripts/newAlgorithmScripts/f_kdegcalc.R")
-kdeg.sediment <- kdegcalc(Q.10 = World$fetchData("Q.10"), 
-                          Ksw = World$fetchData("Ksw"), 
-                          Biodeg = "r", 
-                          C.OHrad.n = World$fetchData("C.OHrad.n"), 
-                          Ea.OHrad = World$fetchData("Ea.OHrad"), 
-                          k0.OHrad = World$fetchData("k0.OHrad"),
-                          CorgStandard = World$fetchData("CorgStandard"), 
-                          RHOsolid = World$fetchData("RHOsolid"),
-                          Matrix = "sediment")
-FromData <- World$fetchData("Globals")
-FromData$kdeg.sediment <- kdeg.sediment
-World$UpdateData(FromData, keys = T, TableName = "Globals")
 
 World$NewCalcVariable("Kp")
 World$CalcVar("Kp")
@@ -118,6 +106,12 @@ World$CalcVar("Kaers")
 
 World$NewCalcVariable("FRingas")
 World$CalcVar("FRingas")
+
+World$NewCalcVariable("KdegDorC")
+World$CalcVar("KdegDorC")
+
+World$NewCalcVariable("Tempfactor")
+World$CalcVar("Tempfactor")
 
 ```
 
@@ -162,6 +156,27 @@ Adsoprtion is implemented to estimate the flux of chemical from air to soil and 
 documentation needed
 
 ```{r}
+World$fetchData("kwsd.water")
+World$fetchData("kwsd.sed")
+World$fetchData("FRingas")
+World$fetchData("FRinw")
+World$fetchData("MTC_2sd")
+World$fetchData("MTC_2w")
+World$fetchData("MTC_2a")
+World$fetchData("MTC_2s")
+World$fetchData("FRorig")
+
+World$fetchData("FRorig_spw")
+World$fetchData("Kacompw")
+World$fetchData("Kscompw")
+World$fetchData("Matrix")
+World$fetchData("VertDistance")
+World$fetchData("landFRAC")
+World$fetchData("Area")
+World$fetchData("AreaLand")
+World$fetchData("AreaSea")
+World$fetchData("SpeciesName")
+
 
 World$FromDataAndTo("k_Adsorption")
 testProc <- World$NewProcess("k_Adsorption")
@@ -169,36 +184,11 @@ testProc$execute()
 World$fetchData("FRorig_spw")
 
 
-# Kscompw 
+
 World$NewProcess("k_Adsorption")
 World$UpdateKaas("k_Adsorption")
 World$FromDataAndTo("k_Adsorption")
 
-# (FRingas, FRinw, MTC_2sd, MTC_2w, MTC_2a, MTC_2s, FRorig, Kacompw, Kscompw, to.Matrix, VertDistance, landFRAC)
-
-
-World$fetchData("kwsd.water")
-World$fetchData("kwsd.sed")
-World$fetchData("FRingas")
-World$fetchData("FRinw")
-World$fetchData("MTC_2sd")
-World$fetchData("MTC_2w")
-# all.MTC_2w <- World$fetchData("MTC_2w")
-# to.SubCompart = "freshwatersediment"
-# to.MTC_2w <- all.MTC_2w$MTC_2w[all.MTC_2w$SubCompart == to.SubCompart]
-
-World$fetchData("MTC_2a")
-World$fetchData("MTC_2s")
-World$fetchData("FRorig")
-
-World$fetchData("FRorig")
-World$fetchData("Kacompw")
-World$fetchData("Kscompw")
-World$fetchData("Matrix")
-World$fetchData("VertDistance")
-World$fetchData("landFRAC")
-World$fetchData("SpeciesName")
-                # , "FRinw", "MTC_2sd", "MTC_2w", "MTC_2a", "MTC_2s", "FRorig", "Kacompw", "Kscompw", "to.Matrix", "VertDistance", "landFRAC")
 
 # testClass <- World$NewProcess("k_Adsorption")
 # testClass$execute(DebugAt = list())
@@ -218,9 +208,17 @@ For Volatilisation and some other processes affecting the soil, a correction fac
 
 ```{r}
 
-source("newAlgorithmScripts/k_Volatilisation.R")
-source("newAlgorithmScripts/f_CORRsoil.R")
-World$fetchData("penetration_depth_s") 
+World$fetchData("MTC_2sd") 
+World$fetchData("FRorig_spw") 
+World$fetchData("MTC_2w") 
+World$fetchData("MTC_2a") 
+World$fetchData("MTC_2s") 
+World$fetchData("FRorig") 
+World$fetchData("Kacompw") 
+World$fetchData("Kscompw") 
+World$fetchData("Matrix") 
+World$fetchData("VertDistance") 
+World$fetchData("landFRAC") 
 
 World$FromDataAndTo("k_Volatilisation")
 testProc <- World$NewProcess("k_Volatilisation")
@@ -229,17 +227,21 @@ testProc$execute()
 World$NewCalcVariable("Ksdcompw")
 World$CalcVar("Ksdcompw")
 
-source("newAlgorithmScripts/k_Desorption.R")
+World$fetchData("Ksdcompw") 
+World$fetchData("MTC_2w") 
+World$fetchData("MTC_2sd") 
+World$fetchData("VertDistance") 
 
-# World$NewCalcVariable("k_Desorption")
-# World$CalcVar("k_Desorption")
+
+World$FromDataAndTo("k_Desorption")
+testProc <- World$NewProcess("k_Desorption")
+testProc$execute()
 
 ```
 
 ## Other relevant intermedia transfer processes
 In addition to the processes governed by diffusion, the following intermedia processes are implemented:
 - k_Resuspension
-- k_Deposition
 - k_Erosion
 - k_Runoff
 
@@ -247,7 +249,7 @@ In addition to the processes governed by diffusion, the following intermedia pro
 ```{r}
 # In the end we need to order csv's and upate unit.csv
 
-source("baseScripts/ReorderCSV.R")
+# source("baseScripts/ReorderCSV.R")
 
 
 

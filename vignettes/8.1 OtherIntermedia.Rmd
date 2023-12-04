@@ -1,18 +1,11 @@
 ---
-title: "Physical inter media transport processes"
-author: "JS"
-date: "3/31/2022"
+title: "8.1 Physical inter media transport processes"
+author: "Jaap Slootweg, Joris Quik"
+date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
   chunk_output_type: console
 ---
-
-```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
 
 *Notice* the convention of filenames and the function names. The convention of filenames is given in the AAAreadme.R file in the sboo project. (I think it will be on the top of your list when your sort the filenames alphabetically) All filenames and function names are identical, with two exceptions: 1. fGeneral.R contains some very general functions. 2. defining functions of SBOO variables do not contain the preposition v\_ which makes them easier to read and still distinguish from flows or regular functions.
 
@@ -194,14 +187,10 @@ test1$execute()
 ```
 
 ## Resuspension
+The net sedimentation of SPM particles [m/s] is the sedimentation ("SettVellNat") minus the resuspension. The net sedimentation is input to calculate the resuspension. The net sedimentation cannot exceed the sedimentation, this case is caught by the max(,0) function. The other species have equal rate constants.
 
 ```{r}
-
-
-source("newAlgorithmScripts/k_Resuspension.R")
-
 World$FromDataAndTo("k_Resuspension")
-
 
 World$fetchData("SUSP")
 World$fetchData("NETsedrate")

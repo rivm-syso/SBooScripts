@@ -93,7 +93,8 @@ pivot_wider(flux2Test[f2Torder,c("frows","fcolumns","flow")],
 stop
 World$fetchData("inpWATERflow")
 
-
+### OLD code: all k_Advection k's now based on x_flows, not seperately defined k's.
+### k_Advection covers all
 
 k_AdvectionH2O <- World$NewProcess("k_AdvectionWaters")
 World$allFromAndTo("k_AdvectionWaters")

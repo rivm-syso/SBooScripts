@@ -59,7 +59,7 @@ PullVar <- function(MlikeListDF, Look4Var){
 #debugonce(PullVar)
 PullVar(MlikeWorkBook, "AEROSOLdeprate")
 PullVar(MlikeWorkBook, "FRACa")
-PullVar(MlikeWorkBook, "k_Advection_Air")
+# PullVar(MlikeWorkBook, "k_Advection_Air")
 
 WithoutVar <- function(MlikeListDF, Look4Var){
   for (dsheet in Defs){ #dsheet = Defs[1]

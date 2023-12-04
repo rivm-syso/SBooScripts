@@ -1,13 +1,11 @@
 ---
-title: "Removal processes"
-author: "JQ"
-date: "2023-08-22"
+title: "6 Removal processes"
+author: "Jaap Slootweg, Joris Quik"
+date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
   chunk_output_type: console
 ---
-
-## 6. Removal processes
 
 Here we describe the fate processess that are implemented for removal for a compartment:
 
@@ -18,8 +16,6 @@ Here we describe the fate processess that are implemented for removal for a comp
 3.  \- Burial
 
 4.  \- Escape from air to stratosphere (k_Escape)
-
-### Preparation
 
 ```{r initiate, message=FALSE, warning=FALSE, include=FALSE}
 #we initialize the test environment with the default substance, therefor we remove possible earlier value
@@ -104,8 +100,6 @@ Burial is implemented based on the NETsedrate which is an input parameter in dat
 
 ```{r Burial}
 World$fetchData("NETsedrate")
-source("newAlgorithmScripts/k_Burial.R")
-
 
 TestProcess <- World$NewProcess("k_Burial")
 World$FromDataAndTo("k_Burial")
@@ -123,16 +117,13 @@ Leaching
 
 World$fetchData("Kscompw")
 
-source("newAlgorithmScripts/k_Leaching.R")
-
-source("newAlgorithmScripts/f_CORRsoil.R")
 #calculation of kaas is by executing a process
 testClass <- World$NewProcess("k_Leaching")
 World$fetchData("SpeciesName")
 World$FromDataAndTo("k_Leaching")
 testClass$execute()
 
-source("baseScripts/ReorderCSV.R")
+# source("baseScripts/ReorderCSV.R") # to be run after adding new data to the csv files.
 
 
 ```
@@ -151,9 +142,11 @@ testClass$execute()
 
 ```
 
-Explain how the exclusions and inclusions for where the functions are needed are added:
 
-```{r}
+
+```{r eval=FALSE, include=FALSE}
+
+# Code on exclusions and inclusions for where the functions are needed are added:
 ProcessXlsx <- "data/DEGradation.xlsx" 
 processName <- unname(unlist(openxlsx::read.xlsx(ProcessXlsx, colNames=FALSE,
                                                  namedRegion = "process")))

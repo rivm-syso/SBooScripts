@@ -23,11 +23,11 @@ source("baseScripts/initTestWorld.R")
 ```
 
     ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-    ## ✔ dplyr     1.1.2     ✔ readr     2.1.4
+    ## ✔ dplyr     1.1.3     ✔ readr     2.1.4
     ## ✔ forcats   1.0.0     ✔ stringr   1.5.0
-    ## ✔ ggplot2   3.4.2     ✔ tibble    3.2.1
-    ## ✔ lubridate 1.9.2     ✔ tidyr     1.3.0
-    ## ✔ purrr     1.0.1     
+    ## ✔ ggplot2   3.4.3     ✔ tibble    3.2.1
+    ## ✔ lubridate 1.9.3     ✔ tidyr     1.3.0
+    ## ✔ purrr     1.0.2     
     ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
     ## ✖ dplyr::filter() masks stats::filter()
     ## ✖ dplyr::lag()    masks stats::lag()
@@ -56,53 +56,8 @@ source("baseScripts/initTestWorld.R")
     ## Joining with `by = join_by(sheet, row)`
 
 ``` r
-World
+# World
 ```
-
-    ## <SBcore>
-    ##   Public:
-    ##     CalcVar: function (aVariable) 
-    ##     CleanupCalcGraphAbove: function (VarName) 
-    ##     clone: function (deep = FALSE) 
-    ##     doInherit: function (fromData, toData) 
-    ##     fetchData: function (varname = "all") 
-    ##     findState: function (abbr) 
-    ##     FromDataAndTo: function (processName = "all") 
-    ##     initialize: function (NewstateModule) 
-    ##     kaas: active binding
-    ##     metaData: function () 
-    ##     moduleList: active binding
-    ##     NewCalcVariable: function (VariableFunction, AggrBy = NA, AggrFun = NA) 
-    ##     NewFlow: function (FlowFunction, WithProcess = "k_Advection") 
-    ##     NewProcess: function (ProcessFunction) 
-    ##     NewSolver: function (SolverFunction, ...) 
-    ##     nodelist: active binding
-    ##     Solve: function (emissions, needdebug = F) 
-    ##     states: active binding
-    ##     UpdateData: function (UpdateDF, keys, TableName = NULL) 
-    ##     UpdateDirty: function (Variables) 
-    ##     UpdateKaas: function (aProcessModule = NULL, mergeExisting = T) 
-    ##     whichDataTable: function (KeyNames) 
-    ##     whichUnresolved: function () 
-    ##   Private:
-    ##     CalcTreeBack: function (aProcessModule) 
-    ##     CalcTreeForward: function (DirtyVariables) 
-    ##     CheckTree: function () 
-    ##     cleanupCGAbove: function (VarName) 
-    ##     DoInherit: function (fromDataName, toDataName) 
-    ##     FetchData: function (varname) 
-    ##     FindStatefrom3D: function (df3Ds) 
-    ##     ijAddState: function (ijTable) 
-    ##     ModuleList: list
-    ##     nodeList: data.frame
-    ##     SB4Ndata: list
-    ##     SBkaas: data.frame
-    ##     solver: NULL
-    ##     States: SBstates, R6
-    ##     storeNodes: function (aNewModule) 
-    ##     substance: default substance
-    ##     UpdateDL: function (VarFunName, DIMRestrict = NULL) 
-    ##     WhichDataTable: function (KeyNames)
 
 ## World
 
@@ -134,22 +89,14 @@ After the call to World\$CalcVar(“AirFlow”) this property is stored in
 the data within World.
 
 ``` r
-fTAU
-```
-
-    ## function (Area, WINDspeed) 
-    ## {
-    ##     1.5 * (0.5 * sqrt(Area * pi/4)/WINDspeed)
-    ## }
-
-``` r
+# fTAU
 AirFlow
 ```
 
     ## function (Volume, Area, WINDspeed, SubCompartName) 
     ## {
     ##     if (SubCompartName %in% c("air")) {
-    ##         TAU <- fTAU(Area, WINDspeed)
+    ##         TAU <- f_TAU(Area, WINDspeed)
     ##         Volume/TAU
     ##     }
     ##     else {
@@ -221,7 +168,7 @@ AdvAir <- World$NewFlow("x_Advection_Air")
 World$CalcVar("x_Advection_Air")
 ```
 
-    ##       toScale   fromScale fromSubCompart        flow        FlowName
+    ##     fromScale     toScale fromSubCompart        flow        FlowName
     ## 1      Arctic    Moderate            air 29424519893 x_Advection_Air
     ## 2 Continental    Moderate            air  9946426570 x_Advection_Air
     ## 3 Continental    Regional            air  2164605903 x_Advection_Air

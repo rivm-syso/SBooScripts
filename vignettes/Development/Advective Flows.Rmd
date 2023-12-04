@@ -3,14 +3,9 @@ title: "Air Flow"
 author: "JS"
 date: "3/31/2022"
 output: github_document
+editor_options: 
+  chunk_output_type: console
 ---
-
-```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
 
 ## A flow in SBOO
 
@@ -22,7 +17,7 @@ We use a special script to initialize SB, creating two objects, the first we wil
 
 ```{r}
 source("baseScripts/initTestWorld.R")
-World
+# World
 ```
 
 ## World
@@ -45,7 +40,7 @@ for (x in SBvars) {
 We calculate AirFlow in two steps. The first is the application of a simple model of air circulation depending on windspeed; The mean residence time in the region is according the fTAU function. The AirFlow function calculates the amount that would enter/leave the region namely the volume divided by the residence time. Notice that fTAU is a normal function, but AirFlow will be used as a variable defining function. After the call to World\$CalcVar("AirFlow") this property is stored in the data within World.
 
 ```{r}
-fTAU
+# fTAU
 AirFlow
 World$NewCalcVariable("AirFlow")
 World$CalcVar("AirFlow")
