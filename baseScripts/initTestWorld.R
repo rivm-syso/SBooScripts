@@ -31,6 +31,11 @@ lapply(c("AreaSea", "AreaLand", "Area", "Volume"), function(FuName){
 
 
 #To compare results / search for algorithms/data
-ClassicExcel <- ClassicNanoProcess$new(TheCore = World, filename = excelReference)
-#apply and replace current kaas by setting mergeExisting to False (Default is True):
-World$UpdateKaas(ClassicExcel)
+if (excelReference != "") {
+  if (!file.exists(excelReference)){
+    stop(paste("file does not exist:", excelReference))
+  }
+  ClassicExcel <- ClassicNanoProcess$new(TheCore = World, filename = excelReference)
+  #apply and replace current kaas by setting mergeExisting to False (Default is True):
+  World$UpdateKaas(ClassicExcel)
+}
