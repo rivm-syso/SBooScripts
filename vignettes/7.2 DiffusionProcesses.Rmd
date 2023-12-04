@@ -8,11 +8,11 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(include = FALSE)
-knitr::knit_meta()
-# knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+# knitr::opts_chunk$set(include = FALSE)
+# knitr::knit_meta()
+# # knitr::opts_chunk$set(echo = TRUE)
+# projectRoot <- paste(getwd(), "..", sep = "/")
+# knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
 # INTERMEDIA TRANSFER
@@ -172,6 +172,9 @@ World$fetchData("Kscompw")
 World$fetchData("Matrix")
 World$fetchData("VertDistance")
 World$fetchData("landFRAC")
+World$fetchData("Area")
+World$fetchData("AreaLand")
+World$fetchData("AreaSea")
 World$fetchData("SpeciesName")
 
 
