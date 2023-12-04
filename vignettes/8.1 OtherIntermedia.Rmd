@@ -1,18 +1,11 @@
 ---
 title: "Physical inter media transport processes"
-author: "JS"
+author: "Jaap Slootweg, Joris Quik"
 date: "3/31/2022"
 output: github_document
 editor_options: 
   chunk_output_type: console
 ---
-
-```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
 
 *Notice* the convention of filenames and the function names. The convention of filenames is given in the AAAreadme.R file in the sboo project. (I think it will be on the top of your list when your sort the filenames alphabetically) All filenames and function names are identical, with two exceptions: 1. fGeneral.R contains some very general functions. 2. defining functions of SBOO variables do not contain the preposition v\_ which makes them easier to read and still distinguish from flows or regular functions.
 
