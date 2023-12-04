@@ -66,8 +66,7 @@ lapply(FluxDefFunctions, function(FuName){
 })
 
 #and the processes, that calculate kaas
-ProcessDefFunctions <- c("k_Adsorption", "k_Advection", "k_AdvectionRiverSeaScales",
-                         "k_AdvectionSeaOcean", "k_AdvectionWaters", "k_Burial",
+ProcessDefFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
                          "k_HeteroAgglomeration.a", "k_HeteroAgglomeration.wsd",
                          "k_CWscavenging", "k_Degradation", "k_Deposition", "k_Desorption",
                          "k_DryDeposition", "k_Erosion", "k_Escape", 
