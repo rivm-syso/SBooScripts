@@ -269,9 +269,7 @@ World$CalcVar("x_FromModerate2ArctWater")
 #### 9. x_FromModerate2ContWater
 
 ```{r}
-
-x_FromModerateWater
-
+# required data:
 World$fetchData("Volume")
 World$fetchData("TAUsea")
 World$fetchData("OceanCurrent")
@@ -345,3 +343,12 @@ pivot_wider(flux2Test[f2Torder,c("frows","fcolumns","flow")],
 ```
 
 ## Advection rate constant
+
+```{r}
+
+
+World$FromDataAndTo("k_Advection")
+testProc <- World$NewProcess("k_Advection")
+testProc$execute()
+
+```
