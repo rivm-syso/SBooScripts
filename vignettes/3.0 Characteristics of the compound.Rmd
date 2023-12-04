@@ -1,0 +1,16 @@
+---
+title: "3 Characteristics of the Compound"
+author: "Jaap Slootweg, Joris Quik"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+Several characteristics are calculated based on substance of material properties.
+
+For molecular chemicals characteristics, see section [3.1 Molecular characteristics](vignettes/Molecular characteristics.md).
+
+For particles properties that are being calculated, see section [3.2 Particle characteristics](vignettes/3.2 Particle characteristics.md "Particle characteristics").
+
+Data on both is included in ... <!--# PM update and include tables of all properties-->

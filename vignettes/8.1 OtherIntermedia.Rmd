@@ -1,7 +1,7 @@
 ---
-title: "Physical inter media transport processes"
+title: "8.1 Physical inter media transport processes"
 author: "Jaap Slootweg, Joris Quik"
-date: "3/31/2022"
+date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
   chunk_output_type: console
@@ -187,14 +187,10 @@ test1$execute()
 ```
 
 ## Resuspension
+The net sedimentation of SPM particles [m/s] is the sedimentation ("SettVellNat") minus the resuspension. The net sedimentation is input to calculate the resuspension. The net sedimentation cannot exceed the sedimentation, this case is caught by the max(,0) function. The other species have equal rate constants.
 
 ```{r}
-
-
-source("newAlgorithmScripts/k_Resuspension.R")
-
 World$FromDataAndTo("k_Resuspension")
-
 
 World$fetchData("SUSP")
 World$fetchData("NETsedrate")

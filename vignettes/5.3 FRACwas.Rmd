@@ -1,5 +1,6 @@
 ---
-title: "Volume FRACtions of phases in subcompartments"
+title: "5.3 Volume FRACtions of phases in subcompartments"
+author: "Jaap Slootweg, Joris Quik"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 

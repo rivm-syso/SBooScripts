@@ -1,5 +1,6 @@
 ---
-title: "Nested areas"
+title: "5.1 Area"
+author: "Jaap Slootweg, Joris Quik"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 

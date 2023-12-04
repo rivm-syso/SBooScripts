@@ -1,32 +1,35 @@
 ---
-title: "Intermedia Partitioning"
+title: "4 Intermedia Partitioning"
+author: "Jaap Slootweg, Joris Quik"
+date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
   chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(eval = FALSE, include = FALSE)
-# knitr::knit_meta()
-# # knitr::opts_chunk$set(echo = TRUE)
-# projectRoot <- paste(getwd(), "..", sep = "/")
+# knitr::opts_chunk$set(eval = FALSE, include = FALSE)
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+# projectRoot <- paste(getwd(), "vignettes", sep = "/")
 # knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
-# Intermedia partitioning
+<!-- # Intermedia partitioning -->
 
 There are multiple transfers for substances from one matrix to the other (matrix in the sense of medium, like air or water). The speed of some of these transfers are calculated as processes; you will find them in SubCompartProcesses.csv. Other transfers are so quick and small that a continuous equilibrium is assumed. In this vignette will will focus on this intermedia partitioning. *[... more detailed description to follow ...] test*
 
 ```{r initiate, message=FALSE, warning=FALSE, include=FALSE}
 #we initialize the test environment with the default substance, therefor we remove possible earlier value
 rm(substance) #for "default substance", example of neutral substance
-#substance <- "organic acid" #example of acid
+substance <- "organic acid" #example of acid
 #substance <- "organic base" #example of base
 #substance <- "Ag(I)" #example of metal
 
 
 #script to initialize test environment, including faking a future 'library(sboo)'
-source("baseScripts/initTestWorld.R")
+paste(getwd(),"baseScripts/initTestWorld.R", sep="/")
+source(paste(getwd(),"baseScripts/initTestWorld.R", sep="/"))
 World$fetchData("Ksw")
 ```
 
@@ -209,7 +212,7 @@ A source script is available for testing purposes to prepare all variables relat
 
 ```{r}
 substance <- "organic acid"
-substance <- "Ag(I)"
-source("baseScripts/initTestWorld.R")
-source("testScripts/initPartitioningVariables.R")
+# substance <- "Ag(I)"
+source(paste(getwd(),"baseScripts/initTestWorld.R", sep="/"))
+source(paste(getwd(),"testScripts/initPartitioningVariables.R", sep="/"))
 ```

@@ -1,11 +1,13 @@
 ---
-title: "Intermedia Partitioning"
+title: "9 Heteroaglomeration"
+author: "Jaap Slootweg, Joris Quik"
+date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
   chunk_output_type: console
 ---
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 substance <- "nAg_10nm"
 source("baseScripts/initTestWorld.R")
 
@@ -45,7 +47,7 @@ Furthermore there are several helper functions used to avoid repeating code and 
 
 ```{r w.Heteroglomeration}
 # for after editting data
-source("baseScripts/ReorderCSV.R")
+# source("baseScripts/ReorderCSV.R")
 
 World$fetchData("alpha") # here to.alpha needs to be used
 World$fetchData("COL")

@@ -1,20 +1,13 @@
 ---
 title: "Advection"
 author: "Jaap Slootweg, Joris Quik"
-date: "17-11-2023"
+date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
   chunk_output_type: console
   markdown: 
     wrap: 72
 ---
-
-```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
 
 # Advection
 
