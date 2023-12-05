@@ -181,6 +181,8 @@ World$fetchData("SpeciesName")
 World$FromDataAndTo("k_Adsorption")
 testProc <- World$NewProcess("k_Adsorption")
 testProc$execute()
+testProc$execute(debugAt = list(to.SubCompartName = "sea",ScaleName = "Continental"))
+
 World$fetchData("FRorig_spw")
 
 
