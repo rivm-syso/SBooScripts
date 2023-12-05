@@ -40,5 +40,3 @@
 "t_half_Escape","60","missing","yr","Half life time in air for escape to stratosphere"
 "T25","298","missing","K","Temperature for normalised circumstances"
 "Tm_default","274","","K",""
-"WATERflow.w0R.w2R","0","missing","missing",""
-"WATERflow.w1R.w0R","0","missing","missing",""
