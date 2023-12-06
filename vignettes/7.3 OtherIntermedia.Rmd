@@ -1,5 +1,5 @@
 ---
-title: "8.1 Physical inter media transport processes"
+title: "7.3 Physical inter media transport processes"
 author: "Jaap Slootweg, Joris Quik"
 date: "`r Sys.Date()`"
 output: github_document
@@ -31,31 +31,21 @@ In the R version, if multiple processes are defined for the same transfer, the k
 
 The factor CORRrunoff (Correction factor depth dependent soil concentration) however is calculated as EXP((-1/0.1) \* 0) \* (1/0.1) \* DEPTH / (1-EXP((-1/0.1) \* DEPTH)) for the assumed pentration depth of 0.1 m [REF]. To make sure this remains the same for both Runoff and erosion, we define a variable to calculate it. The only parameter, so far, is DEPTH, which has been renamed to vertDistance in the R version (combined with height). We will define the two processes separate, first the erosion process, with a variable and a process defining function.
 
-```{r prepare}
+```{r message=FALSE, warning=FALSE}
 #Regular init for testing
 source("baseScripts/initTestWorld.R")
-print("") #newline for anoying tidyverse Joining message
+source(paste(getwd(),"testScripts/initPartitioningVariables.R", sep="/"))
+```
 
-# source("newAlgorithmScripts/k_Runoff.R")
+There is an anomaly in the routes that Erosion takes place. The current implementation in SBoo and in SBexcel is that there is only 1 receiving water compartment (water at Continental Regional and sea at global scales). Where in fact there is at Cont. and Regional scales also lake water and sea water, which might not need to be neglected. \*this is an issue to potentially fix still in SB4 scope. Same holds for Runoff.
 
-
-
+```{r}
 # data needed for k_Erosion:
 World$fetchData("relevant_depth_s")
 World$fetchData("penetration_depth_s")
 World$fetchData("EROSIONsoil")
 World$fetchData("VertDistance")
 World$fetchData("ScaleName")
-
-
-```
-
-There is an anomaly in the routes that Erosion takes place. The current implementation in SBoo and in SBexcel is that there is only 1 receiving water compartment (water at CR and sea at global scales). Where in fact there is at CR scales also lake water and sea water, which might not need to be neglected. \*this is an issue to potentially fix still in SB4 scope. Same holds for Runoff.
-
-#### We add both objects and calculate the variable:
-
-```{r testingtesting}
-
 # test1 <- World$NewProcess("k_Runoff")
 # test1$UpdateKaas("k_Runoff")
 # World$fetchData("Kscompw")
@@ -72,7 +62,7 @@ test1$execute()
 #testVar$execute(debugAt = list()) #an empty list always triggers
 # test1$execute(debugAt = list(ScaleName = "Regional"))
 #The actual execution of th eproces:
-test1$execute()
+# test1$execute()
 
 #AirFlow was calculated, but not stored; this can also be arranged by
 # World$UpdateKaas() #which (tries to ) calculate all kaas
@@ -105,19 +95,19 @@ SubCompartProcesses[SubCompartProcesses$process == "k_Erosion",]
 How can erosion go to river AND to sea? This is because there is no subcompartment river in the global scales. To solve this, we have to adjust the function to correct this. This is where the parameters ScaleName and to.SubCompartName will be used for. We return NA for cases that do not exists. (BTW there is always an automated check on states [boxes] that do not exist.)
 
 ```{r}
-k_Erosion <- function(relevant_depth_s,penetration_depth_s, EROSIONsoil, VertDistance, ScaleName, to.SubCompartName){
-  if (ScaleName %in% c("Regional", "Continental") & to.SubCompartName == "sea") {
-    return(NA)
-  } 
-  if ((ScaleName %in% c("Tropic", "Moderate", "Arctic")) & to.SubCompartName != "sea") {
-    return(NA)
-  } 
-  
-  EROSIONsoil * f_CORRsoil(VertDistance, relevant_depth_s, penetration_depth_s) / VertDistance #[s-1]
-}
-World$NewProcess("k_Erosion")
-World$UpdateKaas("k_Erosion")
-World$kaas
+# k_Erosion <- function(relevant_depth_s,penetration_depth_s, EROSIONsoil, VertDistance, ScaleName, to.SubCompartName){
+#   if (ScaleName %in% c("Regional", "Continental") & to.SubCompartName == "sea") {
+#     return(NA)
+#   } 
+#   if ((ScaleName %in% c("Tropic", "Moderate", "Arctic")) & to.SubCompartName != "sea") {
+#     return(NA)
+#   } 
+#   
+#   EROSIONsoil * f_CORRsoil(VertDistance, relevant_depth_s, penetration_depth_s) / VertDistance #[s-1]
+# }
+# World$NewProcess("k_Erosion")
+# World$UpdateKaas("k_Erosion")
+# World$kaas
 ```
 
 ### Runoff
@@ -125,15 +115,14 @@ World$kaas
 While we're at it, we can do Runoff in a similar way. Here the formula is: RAINrate \* FRACrun / Ksw \* CORRrunoff / VertDistance So we need Ksw, which can be in the data, or you can apply a formulas depending on the type of substance. See the vignette partitioning.Rmd.
 
 ```{r}
-
-source("newAlgorithmScripts/k_Runoff.R")
-
-World$NewCalcVariable("Kscompw")
-World$CalcVar("Kscompw" )
+World$fetchData("Kscompw")
+World$NewCalcVariable("Runoff")
+World$CalcVar("Runoff" )
 
 World$FromDataAndTo("k_Runoff")
 
 test1 <- World$NewProcess("k_Runoff")
+
 test1$execute()
 
 #testVar$execute(debugAt = list()) #an empty list always triggers
@@ -153,27 +142,45 @@ SubCompartProcesses[SubCompartProcesses$process == "k_Runoff",]
 
 The water subcompartments are comonly refered to as river, but this might be better suited to be called freshwater? In any way the sediment compartment is currently konwn by freshwatersediment.
 
+Sedimentation rate depends on the settling velocity of the particle, which is calculated according the functions given below; Note that for Molecular species - all classic substances! - the settling velocity in excel is set at 2.5 m/day. In SB OO this is calculated using Stokes for SPM particle.
+
+## v_functions and f_functions
+SB OO uses functions in different ways. Some functions define the calculation of a state-variable aka landscape-variable. These functions will be passed (by name) to the method NewCalcVariable of a SBcore object, like World. Once a state-variable is calculated is is stored within the SBcore object and can be fetched, and therefore automatically used for process calculation, or for other state-variables. This function for the settlingvelocity is more generic, and will be used more generic than just for the state variable of nano species. Therefor every function that uses f_SettlingVelocity() must provide it with the correct variables.
+A feature of defining functions is that parameters should be atomic. This enables easy use of if-then-else constructions. This construction is not possible if the if condition argument contains a vector. (You would have to use the ifelse function.)
+(See AAAreadme.R in the SB project for more on file naming conventions)
+
+## The process
+For the Molecular species we use the settling rate of the SPM particle. This settling rate ia also needed to assess the build-up of the sediment layer, resuspention and burial. Therefore it is convenient to define it as a variable.
+For Nano materials, the process rate is settling velocity divided by the depth of the layer. Because SettlingVelocity is a regular function ("f_SettlingVelocity") all the parameters for the settling are also needed. See the defining function (sources from newAlgorithmScripts at the moment):
 ```{r}
+k_Sedimentation
 
-source("newAlgorithmScripts/k_Sedimentation.R")
-source("newAlgorithmScripts/v_SettVellNat.R")
-World$NewCalcVariable("SettVellNat")
-World$CalcVar("SettVellNat" )
+World$fetchData("FRinw")
+World$fetchData("SettlingVelocity")
+World$fetchData("DynViscWaterStandard")
+World$fetchData("VertDistance")
+World$fetchData("RhoCP")
+World$fetchData("RadCP")
 
-World$NewCalcVariable("rad_species")
-World$CalcVar("rad_species" )
+```
+Sedimentation is directly to the sediment below.
+
+
+```{r}
 World$NewCalcVariable("rho_species")
 World$CalcVar("rho_species" )
+World$NewCalcVariable("rad_species")
+World$CalcVar("rad_species" )
+World$NewCalcVariable("SettlingVelocity")
+World$CalcVar("SettlingVelocity" )
+
 # why are no values returned?
 
 World$fetchData("RhoS")
 World$fetchData("RadS")
-World$fetchData("NaturalRho")
-World$fetchData("NaturalRad")
 World$fetchData("RhoNuc")
 World$fetchData("RadNuc")
-World$fetchData("RhoAcc")
-World$fetchData("RadAcc")
+
 World$fetchData("NumConcNuc")
 World$fetchData("NumConcAcc")
 World$fetchData("Df")
@@ -183,11 +190,12 @@ World$FromDataAndTo("k_Sedimentation")
 
 test1 <- World$NewProcess("k_Sedimentation")
 test1$execute()
+test1$execute(debugAt = list(SubCompartName = "sea", ScaleName = "Moderate"))
 
 ```
 
 ## Resuspension
-The net sedimentation of SPM particles [m/s] is the sedimentation ("SettVellNat") minus the resuspension. The net sedimentation is input to calculate the resuspension. The net sedimentation cannot exceed the sedimentation, this case is caught by the max(,0) function. The other species have equal rate constants.
+The net sedimentation of SPM particles [m/s] is the sedimentation minus the resuspension. The net sedimentation is input to calculate the resuspension. The net sedimentation cannot exceed the sedimentation, this case is caught by the max(,0) function. The other species have equal rate constants.
 
 ```{r}
 World$FromDataAndTo("k_Resuspension")

@@ -52,8 +52,8 @@ The settling velocity is best calculated according Stokes [ref?], like the regul
 
 ```{r}
 
-World$NewCalcVariable("SettVellNat")
-World$CalcVar("SettVellNat")
+World$NewCalcVariable("SettlingVelocity")
+World$CalcVar("SettlingVelocity")
 ```
 
 ## Sedimentation
