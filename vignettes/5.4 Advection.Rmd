@@ -338,8 +338,8 @@ pivot_wider(flux2Test[f2Torder,c("frows","fcolumns","flow")],
 ## Advection rate constant
 
 ```{r}
-flux2Test <- World$fetchData("Flows")
-flux2Test <- World$fetchData("flow")
+ World$fetchData("Flows")
+ World$fetchData("flow")
 
 World$FromDataAndTo("k_Advection")
 testProc <- World$NewProcess("k_Advection")
