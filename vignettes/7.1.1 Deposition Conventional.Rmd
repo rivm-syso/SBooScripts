@@ -7,14 +7,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(include = FALSE)
-knitr::knit_meta()
-# knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
-
 ## INTERMEDIA TRANSFER
 
 The intermedia transfer processes are related to transport from air to soil/water and from water to sediment, and vice versa. Also transport from soil to water.
@@ -30,7 +22,7 @@ We initialise a "World" and calculate the needed parameters.
 rm(substance)
 #script to initialize test environment, including faking a future 'library(sboo)'
 #init default core (World) with classic states, and classic kaas
-try (source("baseScripts/initTestWorld.R"))
+source("baseScripts/initTestWorld.R")
 
 #we need the partitioning
 source("testScripts/initPartitioningVariables.R")
@@ -117,7 +109,11 @@ World$fetchData("SpeciesName")
 
 World$fetchData("RAINrate")
 
-try(World$fetchData("OtherkAir")) # this one is probably missing
+World$fetchData("kaas")
+
+# World$NewCalcVariable("OtherkAir")
+# World$CalcVar("OtherkAir")
+# try(World$fetchData("OtherkAir")) # this one is probably missing
 
 World$fetchData("Area")
 
@@ -144,7 +140,7 @@ To calculate molecular deposition, the other processes describing fluxes that le
 ```{r}
 #fill another relevant k for OtherkAir
 testDegradation <-  World$NewProcess("k_Degradation")
-World$UpdateKaas() #was mergeExisting = F, I think it should be merged? TODO
+# World$UpdateKaas() #was mergeExisting = F, I think it should be merged? TODO
 
 #only now we can calculate OtherkAir, because:
 World$fetchData("kaas") #this is not the regular use!! see method kaas of World !!

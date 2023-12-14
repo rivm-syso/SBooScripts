@@ -181,20 +181,7 @@ World$fetchData("SpeciesName")
 World$FromDataAndTo("k_Adsorption")
 testProc <- World$NewProcess("k_Adsorption")
 testProc$execute()
-World$fetchData("FRorig_spw")
-
-
-
-World$NewProcess("k_Adsorption")
-World$UpdateKaas("k_Adsorption")
-World$FromDataAndTo("k_Adsorption")
-
-
-# testClass <- World$NewProcess("k_Adsorption")
-# testClass$execute(DebugAt = list())
-# 
-# debugonce(testClass$execute)
-# testClass$execute(DebugAt = list())
+# testProc$execute(debugAt = list(to.SubCompartName = "sea",ScaleName = "Continental"))
 
 
 ```
@@ -204,7 +191,7 @@ World$FromDataAndTo("k_Adsorption")
 Volatilisaation is implemented for the flux from soil or water to air for molecular chemicals in k_Volatilisation.
 Desorption is implemented for the flux from sediment to water for molecular chemicals in k_Desorption.
 
-For Volatilisation and some other processes affecting the soil, a correction factor is calculated. The correction factor for depth dependent soil concentration can be obtained from Hollander et al. (2004). Here this is implemented in a function: `r f_CORRsoil`.
+For Volatilisation and some other processes affecting the soil, a correction factor is calculated. The correction factor for depth dependent soil concentration can be obtained from Hollander et al. (2004). Here this is implemented in a function: r f_CORRsoil.
 
 ```{r}
 
@@ -236,6 +223,7 @@ World$fetchData("VertDistance")
 World$FromDataAndTo("k_Desorption")
 testProc <- World$NewProcess("k_Desorption")
 testProc$execute()
+ # testProc$execute(debugAt = list(to.SubCompartName = "sea",ScaleName = "Continental"))
 
 ```
 
@@ -245,7 +233,8 @@ In addition to the processes governed by diffusion, the following intermedia pro
 - k_Erosion
 - k_Runoff
 
-
+## testing
+Below some tests for overall documentation of var names in units.csv. Still needs some work:
 ```{r}
 # In the end we need to order csv's and upate unit.csv
 

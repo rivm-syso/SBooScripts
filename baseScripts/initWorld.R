@@ -50,7 +50,7 @@ VarDefFunctions <- c("AreaSea", "AreaLand", "Area", "Volume",
                 "Kp", "KpCOL", "Kscompw", "Ksdcompw", "Ksw.alt", "MasConc_Otherparticle",
                 "MTC_2a", "MTC_2s", "MTC_2sd", "MTC_2w", "OtherkAir",
                 "rad_species", "RainOnFreshwater", "rho_species", "SettlingVelocity",
-                "SettVellNat", "Tempfactor")
+                "Tempfactor")
 
 lapply(VarDefFunctions, function(FuName){
   World$NewCalcVariable(FuName)

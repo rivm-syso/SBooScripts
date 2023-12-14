@@ -26,7 +26,7 @@ World$fetchData("rhoMatrix")
 depend on the species. The density and radius of the nano material itself is given by the substance properties RhoS and RadS. For the aggregated and the properties of the "natural part" of the species; CoarseParticulate for the Attached species and NaturalColloid for the aggregated species. Those properties are RhoCP and RhoNC for density and RadCP and RadNC for their radius. An overview of excel origines:
 
 ```{r}
-read_csv("data/SpeciesCompartments.csv")
+read_csv("data/Substances.csv") |> filter(ChemClass == "Particle") # data cleanup needed - not all correct!
 ```
 
 From these, we can derive the values for rho_species
@@ -52,18 +52,7 @@ The settling velocity is best calculated according Stokes [ref?], like the regul
 
 ```{r}
 
-World$NewCalcVariable("SettVellNat")
-World$CalcVar("SettVellNat")
+World$NewCalcVariable("SettlingVelocity")
+World$CalcVar("SettlingVelocity")
 ```
 
-## Sedimentation
-
-The settlingvelocity is essential for the calculation of k_sedimentation. World\$UpdateKaas updates the kaas; If the parameter is a process, only the variables and the kaas for the process is updated. The new kaas are returned silently, to print them in markdown we have to receive, and then print them.
-
-```{r}
-
-World$NewProcess("k_Sedimentation")
-World$whichUnresolved()
-NewKaas <- World$UpdateKaas("k_Sedimentation") 
-NewKaas
-```
