@@ -335,14 +335,22 @@ pivot_wider(flux2Test[f2Torder,c("frows","fcolumns","flow")],
             id_cols = frows, names_from = fcolumns, values_from = flow)
 ```
 
+
 ## Advection rate constant
+This process is only one step beyond the calculation of the relevant flows, see the function f_Advection. All flows are by default associated with this process. "flow" is used as special keyword, there is no SB variable with the name flow. You can find the values by fetching "Flows"
 
 ```{r}
- World$fetchData("Flows")
- World$fetchData("flow")
-
-World$FromDataAndTo("k_Advection")
-testProc <- World$NewProcess("k_Advection")
+World$fetchData("Flows")
+ 
+# Don't create a new process like: World$FromDataAndTo("k_Advection")
+# find the existing one like this:
+testProc <- World$moduleList[["k_Advection"]]
+# FromDataAndTo is from and to from the data, ultimately the property is used
+# which can derived from the flows for Advection
+FAT <- testProc$FromAndTo
+# the data frmae to be calculated:
+left_join(rename(FAT, "Scale" = "fromScale", "SubCompart" = "fromSubCompart"), World$fetchData("Volume"))
+#for testing use:
 testProc$execute()
 
 ```
