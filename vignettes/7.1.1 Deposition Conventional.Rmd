@@ -11,7 +11,7 @@ editor_options:
 
 The intermedia transfer processes are related to transport from air to soil/water and from water to sediment, and vice versa. Also transport from soil to water.
 
-Another vignette describes the flows related to diffusion processes (DiffusionProcesses.Rmd) and other intermedia transfer coefficients (OtherInterMedia.Rmd)
+Another vignette describes the flows related to diffusion processes (DiffusionProcesses.Rmd) and other intermedia transfer coefficients (OtherInterMedia.Rmd). Here we describe the implementation of the Deposition process from air to soil and water for the molecular species.
 
 ### Preparation
 
@@ -109,12 +109,6 @@ World$fetchData("SpeciesName")
 
 World$fetchData("RAINrate")
 
-World$fetchData("kaas")
-
-# World$NewCalcVariable("OtherkAir")
-# World$CalcVar("OtherkAir")
-# try(World$fetchData("OtherkAir")) # this one is probably missing
-
 World$fetchData("Area")
 
 World$fetchData("Kaers")
@@ -128,22 +122,29 @@ World$fetchData("FRinaers")
 
 ```
 
-The procedure to calculate deposition for Particles like Nano materials is split into wet and dry deposition. The SBoo systems adds the 2 k's before solving automatically.
-
-```{r}
-World$NewProcess("k_WetDeposition")
-World$NewProcess("k_DryDeposition")
-
-``` 
-
-To calculate molecular deposition, the other processes describing fluxes that leave the air box are part of the calculation. This demands a different procedure.
+To calculate molecular deposition, the other processes describing fluxes that leave the air box are part of the calculation. This demands a different procedure to the other functions used to calculate k's. Here we create a variable named 'OtherkAir'.
 ```{r}
 #fill another relevant k for OtherkAir
-testDegradation <-  World$NewProcess("k_Degradation")
-# World$UpdateKaas() #was mergeExisting = F, I think it should be merged? TODO
 
+source("testScripts/initOtherKaasAir.R")
+ World$UpdateKaas() #was mergeExisting = F, I think it should be merged? TODO
+
+ 
 #only now we can calculate OtherkAir, because:
-World$fetchData("kaas") #this is not the regular use!! see method kaas of World !!
+kaas <- World$kaas 
+
+# To see the K's:
+
+
+OnlyMolecular <- kaas$fromSpecies == "Unbound"
+OnlyCalculated <- kaas$process != "LoadKaas" #LoadKaas results from a testing module (MPClassicNano) that reads in the rate constants (k's) from SBxlsx.
+
+kaas |> filter(fromSpecies == "Unbound" & fromSubCompart == "air")
+
+data.frame(Scale = kaas$fromScale[kaas$fromSubCompart == "air" & OnlyMolecular & OnlyCalculated],
+Species = kaas$fromSpecies[kaas$fromSubCompart == "air" & OnlyMolecular & OnlyCalculated],
+OtherkAir = kaas$k[kaas$fromSubCompart == "air" & OnlyMolecular & OnlyCalculated])
+
 testtm <- World$NewCalcVariable("OtherkAir")
 #testtm$execute()
 World$CalcVar("OtherkAir")
