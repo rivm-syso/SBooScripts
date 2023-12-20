@@ -43,21 +43,23 @@ if (is.na(World$fetchData("Ksw"))) {
 }
 
 #We can calculate variables and fluxes available (fakeLib provided the functions:)
-VarDefFunctions <- c("AreaSea", "AreaLand", "Area", "Volume",
+VarDefFunctions <- c("AirFlow", "AreaSea", "AreaLand", "Area", "Volume",
                 "D", "FRACa", "FRACs", "FRACw", "FRinaers",
                 "FRinaerw","FRingas","FRins","FRinw",
                 "FRorig", "FRorig_spw", "Kacompw", "Kaers", "Kaerw",
                 "Kp", "KpCOL", "Kscompw", "Ksdcompw", "Ksw.alt", "MasConc_Otherparticle",
                 "MTC_2a", "MTC_2s", "MTC_2sd", "MTC_2w", "OtherkAir",
-                "rad_species", "RainOnFreshwater", "rho_species", "SettlingVelocity",
+                "rad_species", "RainOnFreshwater", "Runoff", "rho_species", "SettlingVelocity",
                 "Tempfactor")
 
 lapply(VarDefFunctions, function(FuName){
   World$NewCalcVariable(FuName)
   #World$CalcVar(FuName) #only needed if you want to debug or force an order; UpdateKaas finds the DAG
 })
-FluxDefFunctions <- c("x_Advection_Air", "x_ContRiver2Reg", "x_ContSea2Moder", "x_ContSea2Reg",
-"x_LakeOutflow", "x_RegSea2Cont", "x_RiverDischarge", "x_RiverSeaScales"
+FluxDefFunctions <- c("x_Advection_Air", "x_ContRiver2Reg", "x_ContSea2Reg",
+                      "x_FromModerate2ArctWater", "x_FromModerate2ContWater", "x_FromModerate2TropWater",
+                      "x_LakeOutflow", "x_OceanMixing2Deep", "x_OceanMixing2Sea",
+                      "x_RegSea2Cont", "x_RiverDischarge", "x_ToModerateWater"
 )
 
 lapply(FluxDefFunctions, function(FuName){
@@ -79,6 +81,6 @@ lapply(ProcessDefFunctions, function(FuName){
 })
 
 verbose = T
-kex = World$NewCalcVariable("rad_species")
-kex$execute(debugAt = list(SubCompartName = "air"))
+#kex = World$NewCalcVariable("rad_species")
+#kex$execute(debugAt = list(SubCompartName = "air"))
 World$UpdateKaas()
