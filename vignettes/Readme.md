@@ -20,20 +20,20 @@ performed or is currently in progress.
 
 | Vignette                                   | Initial run | Verification | Date       | Related Issue \# |
 |--------------------------------------------|-------------|--------------|------------|------------------|
-| 3.0 Characteristics of the compound.Rmd    |             |              |            |                  |
-| 3.2 Particle Characteristics.Rmd           |             |              |            |                  |
+| 3.0 Characteristics of the compound.Rmd    | done        |              |            |                  |
+| 3.2 Particle Characteristics.Rmd           | done        |              |            |                  |
 | 4.0 partitioning.Rmd                       | done        | done         | 2023-08-25 |                  |
-| 5.0 Characteristics of the Environment.Rmd |             |              |            |                  |
-| 5.1 Area.Rmd                               |             |              |            |                  |
-| 5.3 FRACwas.Rmd                            |             |              |            |                  |
+| 5.0 Characteristics of the Environment.Rmd | done        |              |            |                  |
+| 5.1 Area.Rmd                               | done        |              |            |                  |
+| 5.3 FRACwas.Rmd                            | done        |              |            |                  |
 | 5.4 Advection.Rmd                          |             |              |            |                  |
-| 6.0 Removal.Rmd                            |             |              |            |                  |
+| 6.0 Removal.Rmd                            | done        |              |            |                  |
 | 7.1.1 Deposition Conventional.Rmd          |             |              |            |                  |
-| 7.1.2 Deposition Particulate.Rmd           |             |              |            |                  |
-| 7.1.3 sedimentation.Rmd                    |             |              |            |                  |
-| 7.2 DiffusionProcesses.Rmd                 |             |              |            |                  |
-| 7.3 OtherIntermedia.Rmd                    |             |              |            |                  |
-| 9.0 HeteroAglomeration.Rmd                 |             |              |            |                  |
+| 7.1.2 Deposition Particulate.Rmd           | done        |              |            |                  |
+| 7.1.3 sedimentation.Rmd                    | done        |              |            |                  |
+| 7.2 DiffusionProcesses.Rmd                 | done        |              |            |                  |
+| 7.3 OtherIntermedia.Rmd                    | done        |              |            |                  |
+| 9.0 HeteroAglomeration.Rmd                 | done        |              |            |                  |
 |                                            |             |              |            |                  |
 
 # Progress overview development vignettes
