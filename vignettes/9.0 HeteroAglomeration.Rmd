@@ -129,6 +129,7 @@ World$fetchData("RadNuc")
 World$fetchData("RadCOL") 
 World$fetchData("RadCP") 
 
+World$fetchData("Substance") 
 
 World$FromDataAndTo("k_HeteroAgglomeration.a")
 testProc <- World$NewProcess("k_HeteroAgglomeration.a")
