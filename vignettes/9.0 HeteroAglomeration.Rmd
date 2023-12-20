@@ -128,8 +128,10 @@ World$fetchData("NumConcCP")
 World$fetchData("RadNuc") 
 World$fetchData("RadCOL") 
 World$fetchData("RadCP") 
-
+substance <- "DIALLYLPHTHALATE"
 World$fetchData("Substance") 
+World$fetchData("rho_species") 
+World$fetchData("SettlingVelocity") 
 
 World$FromDataAndTo("k_HeteroAgglomeration.a")
 testProc <- World$NewProcess("k_HeteroAgglomeration.a")
