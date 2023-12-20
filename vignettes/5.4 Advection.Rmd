@@ -337,7 +337,7 @@ pivot_wider(flux2Test[f2Torder,c("frows","fcolumns","flow")],
 
 
 ## Advection rate constant
-This process is only one step beyond the calculation of the relevant flows, see the function f_Advection. All flows are by default associated with this process. "flow" is used as special keyword, there is no SB variable with the name flow. You can find the values by fetching "Flows"
+This process is only one step beyond the calculation of the relevant flows, see the function f_Advection. All flows are by default associated with this process. "flow" is used as special keyword, there is no SB variable with the name flow. You can find the values by fetching "Flows". This also means the script to get the k_Advection is a little different from other k's. See below:
 
 ```{r}
 World$fetchData("Flows")
