@@ -80,6 +80,8 @@ lapply(ProcessDefFunctions, function(FuName){
   #World$CalcVar(FuName) #only needed if you want to force an order; UpdateKaas finds the DAG
 })
 
+World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
+
 verbose = T
 #kex = World$NewCalcVariable("rad_species")
 #kex$execute(debugAt = list(SubCompartName = "air"))
