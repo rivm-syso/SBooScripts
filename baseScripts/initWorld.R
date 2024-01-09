@@ -46,7 +46,7 @@ if (is.na(World$fetchData("Ksw"))) {
 VarDefFunctions <- c("AirFlow", "AreaSea", "AreaLand", "Area", "Volume",
                 "D", "FRACa", "FRACs", "FRACw", "FRinaers",
                 "FRinaerw","FRingas","FRins","FRinw",
-                "FRorig", "FRorig_spw", "Kacompw", "Kaers", "Kaerw",
+                "FRorig", "FRorig_spw", "Kacompw", "Kaers", "Kaerw", "KdegDorC",
                 "Kp", "KpCOL", "Kscompw", "Ksdcompw", "Ksw.alt", "MasConc_Otherparticle",
                 "MTC_2a", "MTC_2s", "MTC_2sd", "MTC_2w", "OtherkAir",
                 "rad_species", "RainOnFreshwater", "Runoff", "rho_species", "SettlingVelocity",
@@ -79,6 +79,8 @@ lapply(ProcessDefFunctions, function(FuName){
   World$NewProcess(FuName)
   #World$CalcVar(FuName) #only needed if you want to force an order; UpdateKaas finds the DAG
 })
+
+World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
 
 verbose = T
 #kex = World$NewCalcVariable("rad_species")
