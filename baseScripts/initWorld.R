@@ -86,3 +86,6 @@ verbose = T
 #kex = World$NewCalcVariable("rad_species")
 #kex$execute(debugAt = list(SubCompartName = "air"))
 World$UpdateKaas()
+
+Solvr <- World$NewSolver("SB1Solve")
+kaasSquare <- Solvr$PrepKaasM()
