@@ -88,4 +88,8 @@ verbose = T
 World$UpdateKaas()
 
 Solvr <- World$NewSolver("SB1Solve")
-kaasSquare <- Solvr$PrepKaasM()
+#kaasSquare <- Solvr$PrepKaasM()
+World$Solve(emissions = data.frame(
+  Abbr = c("aRP", "aRU", "w1RU"),
+  Emis = 10e6
+))
