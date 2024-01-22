@@ -86,3 +86,13 @@ verbose = T
 #kex = World$NewCalcVariable("rad_species")
 #kex$execute(debugAt = list(SubCompartName = "air"))
 World$UpdateKaas()
+
+Solvr <- World$NewSolver("SBsolve")
+#kaasSquare <- Solvr$PrepKaasM()
+World$Solve(emissions = data.frame(
+  Abbr = c("aRP", "aRU", "w1RU"),
+  Emis = 10e6),
+  needdebug = T,
+  nTIMES = 200 #,
+  #EmisAsPulse = T
+  )
