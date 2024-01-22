@@ -9,7 +9,11 @@ editor_options:
 
 ## Calculation of area of SubCompartment within Scales
 
-The calculation of area slightly differs from the excel version, also in preparation of a local scale, and the wish to be able to situate the Continental/Regional/Local system within Tropic, rather than fixed within Moderate. Therefor the TotalArea contains the area including possibly nested areas. This is different from SYSTEMAREA in the excel version. We initiate World and start from the data TotalArea and FRACsea
+In the R version the calculation of the scales is based on data input of TotalArea and FRACsea, from which AreaLand and AreaSea are calculated. 
+Scales can be nested: e.g. by default the Regional and Continental scale are included in the Moderate scale. 
+
+The calculation of area slightly differs from the excel version. In the Excel version calculation of scales is the other way around for the regional and continental scale: AreaLand and AreaSea are data inputs from which the total system area is calculated. 
+The way of calculating scales in the R version is more consistent across scales, and also makes adding additional scales (e.g. a local scale within regional) or changing the nesting of scales (e.g continental in tropic instead of moderate) more straightforward. 
 
 ```{r start.data, message=FALSE, warning=FALSE}
 source("baseScripts/initTestWorld.R")
@@ -20,9 +24,13 @@ World$fetchData("FRACsea")
 
 ## Nesting and splitting land and sea
 
-Regional and Arctic have no nested scale, and are straightforward calculation of AreaSea and AreaLand as resp. TotalArea\*FRACsea and TotalArea\*(1-FRACsea)
+Scales can be nested in other scales. TotalArea of a scale represent the total area of that scale, INCLUDING the TotalArea of any scales nested within them.
+However, AreaLand and AreaSea represent the area of respectively land and sea of that scale EXCLUDING any nested scales. Therefore, the TotalArea of any nested scales is substracted before calculating AreaLand and AreaSea. For example, The TotalArea of Continental contains Regional. Therefore,the TotalArea of Continental is reduced
+by Regional, before the sea and land fraction are applied. Similarly, currently by default Continental is included in the Moderate scale, and its TotalArea is substracted from the TotalArea of the moderate scale before calculation of AreaLand and AreaSea. Note that the TotalArea of the Continental scale already includes the TotalArea of the Regional scale, so only TotalArea of the continental scale is substracted (and not also TotalArea of regional separately, as that would be double substracting the area of the regional scale). 
 
-Continental contains Regional; the TotalArea of Continental is reduced by Regional, then the sea and land fraction are applied. Same procedure for Moderate with its nested Continental
+Regional and Arctic currently have no nested scale, and are straightforward
+calculation of AreaSea and AreaLand as resp. TotalArea\*FRACsea and
+TotalArea\*(1-FRACsea)
 
 ```{r}
 v_AreaSea <- World$NewCalcVariable("AreaSea")
@@ -34,9 +42,17 @@ merge(tAreaLand, tAreaSea)
 
 ## Obvious and not so obvious variable references
 
-Variable are often tables, as can be seen above for the AreaLand variable. When a variable is applied in a "defining function" the SBoo system looks for the proper dimension, e.g. when it finds Arealand and it is calculating for Arctic it will use the AreaLand of Arctic. But when calculating for instance AreaSea for Continental we need TotalArea for both Continental AND Regional! How can we implement this in our defining function?
+Variables are often tables, as can be seen above for the AreaLand
+variable. When a variable is applied in a “defining function” the SBoo
+system looks for the proper dimension, e.g. when it finds Arealand and
+it is calculating for Arctic it will use the AreaLand of Arctic. But
+when calculating for instance AreaSea for Continental we need TotalArea
+for both Continental AND Regional! How can we implement this in our
+defining function?
 
-In such a case use the "all." preposition. The function will receive the whole table for the variable at hand. As an example look the defining function for AreaSea:
+In such a case we can use the “all.” preposition. The function will receive the
+whole table for the variable at hand. As an example look at the defining
+function for AreaSea:
 
 ```{r}
 AreaSea
@@ -44,7 +60,25 @@ AreaSea
 
 ## The areas to be used in further calculations
 
-All Scale/SubCompart combinations (present in in states) have an area, including the subcompart "cloudwater"! It receives the same area as air, namely the sum of AreaSea and AreaLand for the scale at hand. For sea and for oceans, if present, the area equal that of AreaSea . Otherwise (different Subcompartments that add up to "AreaLand") the calculation is straightforward (landFRAC \* AreaLand). Be aware that the definition of landFRAC differs from AREAFRAC; landFRAC is the fraction of the subcompartment of the AreaLand. With these different ways of calculation the formula to apply depends on the subcompartment, we need to apply another "trick"; we include SubCompartName as parameter in the defining function. We then use it to make the distinguish which formula applies. See the Area function below. In case you are not familiar with this: return() ends the function and "returns" its parameter. All different states are "peeled of" in order, and the last statements ensures that other cases (not existing states) are not included in calculations.
+AreaLand and AreaSea are used in the calculation of the areas of all Scale/SubCompart combinations.
+The calculation of the area differs per subcompartment. We therefore include SubCompartName as parameter in the defining
+function and use it to distinguish which formula applies (see the Area function below).
+
+Be aware that the definition of landFRAC differs from AREAFRAC; landFRAC is the fraction of the
+subcompartment of the AreaLand, whereas AREAFRAC .
+
+
+All Scale/SubCompart combinations (present in states) have an area,
+including the subcompart “cloudwater”! It receives the same area as air,
+namely the sum of AreaSea and AreaLand for the scale at hand. For sea
+and for oceans, if present, the area equal that of AreaSea. Otherwise
+(different Subcompartments that add up to “AreaLand”) the calculation is
+straightforward (landFRAC \* AreaLand).    
+
+In case you are not familiar with this:
+return() ends the function and “returns” its parameter. All different
+states are “peeled of” in order, and the last statements ensures that
+other cases (not existing states) are not included in calculations.
 
 ```{r}
 Area
