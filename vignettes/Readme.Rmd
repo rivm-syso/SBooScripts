@@ -20,7 +20,7 @@ Please add any new vignette to the overview table below. Indicate in the "Initia
 | 4.0 partitioning.Rmd                       | done        | done         | 2023-08-25 |                  |
 | 5.0 Characteristics of the Environment.Rmd | done        |              |            |                  |
 | 5.1 Area.Rmd                               | done        | done             | 2024-01-22           |                  |
-| 5.3 FRACwas.Rmd                            | done        |              |            |                  |
+| 5.3 FRACwas.Rmd                            | done        |  in progress            |            |  #17                |
 | 5.4 Advection.Rmd                          |             |              |            |                  |
 | 6.0 Removal.Rmd                            | done        |              |            |                  |
 | 7.1.1 Deposition Conventional.Rmd          |             |              |            |                  |
