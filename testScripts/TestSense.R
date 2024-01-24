@@ -86,3 +86,26 @@ World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposi
 #kex = World$NewCalcVariable("rad_species")
 #kex$execute(debugAt = list(SubCompartName = "air"))
 World$UpdateKaas()
+
+#obtain emissions
+excelReference <- "data/SimpleBox4.01_20211028.xlsm"
+if (excelReference != "") {
+  if (!file.exists(excelReference)){
+    stop(paste("file does not exist:", excelReference))
+  }
+  ClassicExcel <- ClassicNanoProcess$new(TheCore = World, filename = excelReference)
+}
+
+emissions <- ClassicExcel$ExcelEmissions("current.settings")
+#knames <- c("k_Burial", "k_Degradation", "k_Runoff", "k_Sedimentation") #from names(World$moduleList)[startsWith(names(World$moduleList), "k_")]
+#World$NewSolver("kSense")
+World$NewSolver("vUncertain")
+
+vnamesDSD <- data.frame(
+  vnames = c("AirFlow", "Kp", "KpCOL", "Kscompw", "Ksdcompw", "Runoff"),
+  distNames = "normal",  #see lhs package for possible distributions
+  secondPar = 0.3
+)
+
+#debugonce(World$Solve)
+SolRet <- World$Solve(needdebug = T, emissions, n = 10, vnamesDistSD = vnamesDSD)

@@ -8,33 +8,53 @@ output: github_document
 ```{r setup, include=FALSE}
 knitr::knit_meta()
 knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
+## impossible to generalise? projectRoot <- paste(getwd(), "..", sep = "/")
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
 knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
 ## A matrix of first order differential equations
 This vignettes demonstrates the mechanism behind SB.
 #  We need to initialize, by default a molecular substance is selected.
-#  initTestWorld.R loads the kaas from the classic excel spreatsheet, but we start with a single k and a single emission.
+#  initWorld.R does just that, and calculates SBvars, flows and k's. But we want to start with a single state (box): Unbound (Molecular) Regional air.
 
 ```{r}
 #We need to initialize, by default a molecular substance is selected
-source("baseScripts/initTestWorld.R")
-#library(magrittr)
+source("baseScripts/initWorld.R")
+
+Solvr <- World$NewSolver("SBsolve")
+Solution <- World$Solve(emissions = data.frame(
+  Abbr = c("aRP", "aRU", "w1RU"),
+  Emis = 10e6),
+  needdebug = F,
+  nTIMES = 200 #,
+  #EmisAsPulse = T
+  )
+
 library(htmlTable)
 World$kaas <- World$kaas[World$kaas$fromAbbr == "aRU" & World$kaas$toAbbr == "aRU",]
 ```
 Mind the warning... The format of kaas should conform the expected layout.
-This particular k has the same from- as to state; It is a sink, like degredation.
+This particular k has the same from- as to state; It is a sink, like degradation.
 We add an emission to the same state, and see what happens in time.
 
 ```{r}
+
+Solvr <- World$NewSolver("SBsolve")
+#kaasSquare <- Solvr$PrepKaasM()
+Solution <- World$Solve(emissions = data.frame(
+  Abbr = c("aRP", "aRU", "w1RU"),
+  Emis = 10e6),
+  needdebug = F,
+  nTIMES = 200 #,
+  #EmisAsPulse = T
+  )
+
 emissions <- ClassicExcel$ExcelEmissions("current.settings")[1,]
 World$NewSolver("SBsolve") #
 steadSolve <- World$Solve(emissions = emissions)
-#plot(steadSolve$EqMass)
+#World$SolutionAsRelational()
 ```
-
 
 ## The constants package
 Some global constants are imported from this package. For convenience two functions are availeable, demonstrated below.
