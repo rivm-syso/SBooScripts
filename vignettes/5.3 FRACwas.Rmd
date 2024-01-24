@@ -47,8 +47,8 @@ allFrac <- Reduce(merge, list(World$fetchData("FRACa"), World$fetchData("FRACw")
   pivot_longer(c(FRACa, FRACw, FRACs))
 
 allFrac <- full_join(as_tibble(World$fetchData("FRACa")),
-                     as_tibble(World$fetchData("FRACw")), by = c("SubCompart","Scale")) |> 
-  full_join(as_tibble(World$fetchData("FRACs"))) |> filter(Scale=="Regional") |> print()
+                     as_tibble(World$fetchData("FRACw")), by = c("SubCompart","Scale")) %>% 
+  full_join(as_tibble(World$fetchData("FRACs"))) |> filter(Scale=="Regional") %>% print()
 ```
 
 ## colloidal and suspended matter in waters
