@@ -97,15 +97,20 @@ if (excelReference != "") {
 }
 
 emissions <- ClassicExcel$ExcelEmissions("current.settings")
+emissions <- emissions[emissions$Abbr == "aR", ] #separate to see the effect
+
 #knames <- c("k_Burial", "k_Degradation", "k_Runoff", "k_Sedimentation") #from names(World$moduleList)[startsWith(names(World$moduleList), "k_")]
 #World$NewSolver("kSense")
 World$NewSolver("vUncertain")
 
 vnamesDSD <- data.frame(
   vnames = c("AirFlow", "Kp", "KpCOL", "Kscompw", "Ksdcompw", "Runoff"),
-  distNames = "normal",  #see lhs package for possible distributions
+  distNames = "normal",  #see lhs package for possible distributions; q[dist] function should also exist and be implemented in vUncertain
   secondPar = 0.3
 )
 
 #debugonce(World$Solve)
-SolRet <- World$Solve(needdebug = T, emissions, n = 10, vnamesDistSD = vnamesDSD)
+SolRet <- World$Solve(needdebug = F, emissions, n = 10, vnamesDistSD = vnamesDSD)
+#debugonce(World$SolutionAsRelational)
+World$SolutionAsRelational() #for now, keep empty, dont use terms = river~AirFlow, filter(ScaleName = "Regional")
+
