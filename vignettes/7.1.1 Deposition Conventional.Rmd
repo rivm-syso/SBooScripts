@@ -38,15 +38,15 @@ RHOsolid <- with(World$fetchData("rhoMatrix"),
                                     rhoMatrix[SubCompart == "othersoil"])
 
 
-kdeg.sediment <- f_kdegcalc(Q.10 = World$fetchData("Q.10"), 
-                          Ksw = World$fetchData("Ksw"), 
-                          Biodeg = "r", 
-                          C.OHrad.n = World$fetchData("C.OHrad.n"), 
-                          Ea.OHrad = World$fetchData("Ea.OHrad"), 
-                          k0.OHrad = World$fetchData("k0.OHrad"),
-                          CorgStandard = World$fetchData("CorgStandard"), 
-                          RHOsolid = RHOsolid,
-                          Matrix = "sediment")
+# kdeg.sediment <- f_kdegcalc(Q.10 = World$fetchData("Q.10"), 
+#                           Ksw = World$fetchData("Ksw"), 
+#                           Biodeg = "r", 
+#                           C.OHrad.n = World$fetchData("C.OHrad.n"), 
+#                           Ea.OHrad = World$fetchData("Ea.OHrad"), 
+#                           k0.OHrad = World$fetchData("k0.OHrad"),
+#                           CorgStandard = World$fetchData("CorgStandard"), 
+#                           RHOsolid = RHOsolid,
+#                           Matrix = "sediment")
 
 #FromData <- World$fetchData("Globals")
 #FromData$kdeg.sediment <- kdeg.sediment
@@ -148,6 +148,8 @@ OtherkAir = kaas$k[kaas$fromSubCompart == "air" & OnlyMolecular & OnlyCalculated
 testtm <- World$NewCalcVariable("OtherkAir")
 #testtm$execute()
 World$CalcVar("OtherkAir")
+
+
 
 ```
 

@@ -95,9 +95,12 @@ Not in the data is Ksw for the alternative form. The same function f_Ksw is appl
 
 ```{r ksw.alt}
 Ksw.alt
-World$NewCalcVariable("Ksw.alt")
+test <- World$NewCalcVariable("Ksw.alt")
 World$CalcVar("Ksw.alt")
 World$fetchData("Ksw.alt")
+
+test$execute(debugAt = list())
+
 ```
 
 ## Fraction molecular species in original form (based on pKa)
