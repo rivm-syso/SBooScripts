@@ -12,6 +12,7 @@ if (!exists("substance")) {
 #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
 ClassicStateModule <- ClassicNanoWorld$new("data", substance)
 
+# initialisation needed for every substance.
 #with this data we create an instance of the central "core" object,
 World <- SBcore$new(ClassicStateModule)
 
@@ -99,18 +100,25 @@ if (excelReference != "") {
 emissions <- ClassicExcel$ExcelEmissions("current.settings")
 emissions <- emissions[emissions$Abbr == "aR", ] #separate to see the effect
 
+World$states$asDataFrame
 #knames <- c("k_Burial", "k_Degradation", "k_Runoff", "k_Sedimentation") #from names(World$moduleList)[startsWith(names(World$moduleList), "k_")]
 #World$NewSolver("kSense")
 World$NewSolver("vUncertain")
+SB1S <- World$NewSolver("SB1Solve")
 
-vnamesDSD <- data.frame(
-  vnames = c("AirFlow", "Kp", "KpCOL", "Kscompw", "Ksdcompw", "Runoff"),
-  distNames = "normal",  #see lhs package for possible distributions; q[dist] function should also exist and be implemented in vUncertain
-  secondPar = 0.3
-)
+# 
+# vnamesDSD <- data.frame(
+#   vnames = c("AirFlow", "Kp", "KpCOL", "Kscompw", "Ksdcompw", "Runoff"),
+#   distNames = "normal",  #see lhs package for possible distributions; q[dist] function should also exist and be implemented in vUncertain
+#   secondPar = 0.3
+# )
 
 #debugonce(World$Solve)
-SolRet <- World$Solve(needdebug = F, emissions, n = 10, vnamesDistSD = vnamesDSD)
+SolRet <- World$Solve(needdebug = F, emissions)
 #debugonce(World$SolutionAsRelational)
 World$SolutionAsRelational() #for now, keep empty, dont use terms = river~AirFlow, filter(ScaleName = "Regional")
 
+World$fetchData("EqMass")
+
+SB1S$SB.k
+SB1S$states$asDataFrame
