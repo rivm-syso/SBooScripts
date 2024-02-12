@@ -54,7 +54,6 @@ VarDefFunctions <- c("AirFlow", "AreaSea", "AreaLand", "Area", "Volume",
 
 lapply(VarDefFunctions, function(FuName){
   World$NewCalcVariable(FuName)
-  #World$CalcVar(FuName) #only needed if you want to debug or force an order; UpdateKaas finds the DAG
 })
 FluxDefFunctions <- c("x_Advection_Air", "x_ContRiver2Reg", "x_ContSea2Reg",
                       "x_FromModerate2ArctWater", "x_FromModerate2ContWater", "x_FromModerate2TropWater",
@@ -85,4 +84,7 @@ World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposi
 #verbose = T
 #kex = World$NewCalcVariable("rad_species")
 #kex$execute(debugAt = list(SubCompartName = "air"))
+verbose = T
 World$UpdateKaas()
+World$moduleList[["Kp"]]$execute(debugAt = list(assembly = ""))
+
