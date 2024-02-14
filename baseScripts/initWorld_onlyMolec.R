@@ -63,6 +63,7 @@ World$VarsFromprocesses()
 World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
 
 #verbose = T
+
 #kex = World$NewCalcVariable("rad_species")
 #kex$execute(debugAt = list(SubCompartName = "air"))
 verbose = T
@@ -72,5 +73,6 @@ emissions <- data.frame(Abbr = "aRU", Emis = 1000)
 
 World$NewSolver("SB1Solve")
 World$Solve(emissions)
+#World$states$sortFactors(emissions)
 
-World$fetchData("EqMass")
+World$states$sortFactors(World$fetchData("EqMass"))
