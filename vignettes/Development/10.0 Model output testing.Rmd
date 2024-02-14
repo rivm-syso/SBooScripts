@@ -53,8 +53,9 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "Sb(III)", # metal
                           "nTiO2_10nm", # nanoparticle (class particle)
                           "microplastic") # microplastic (class particle)
-substance <- Potential_substances[6]
+substance <- Potential_substances[1]
 source("baseScripts/initWorld.R")
+#source("baseScripts/initworld_onlyMolec.R")
 
 length(unique(World$kaas$process))
 
@@ -94,6 +95,57 @@ World$kaas
 # World$moduleList[["SettlingVelocity"]]$execute()
 
 ```
+
+```{r}
+#Comparing K's from R model to K's from excel model
+#library(openxlsx)
+
+#read in K matrix from excel
+SBExcelName <- paste0("data/SimpleBox4.01_20230824_",substance,".xlsm") #molecular version for now
+SBexcel.K <- read.xlsx(SBExcelName,
+                  colNames = FALSE,
+                  namedRegion = "K")
+
+#long format version of Excel K matrix
+colnames(SBexcel.K) <- c("aR",	"w0R",	"w1R",	"w2R",	"sd1R", "sd2R",	"s1R",	"s2R",	"s3R",	"aC",	"w0C",	"w1C",	"w2C",	"sd1C",	"sd2C",	"s1C",	"s2C",	"s3C",	"aM",	"w2M",	"w3M",	"sdM",	"sM",	"aA",	"w2A",	"w3A",	"sdA",	"sA",	"aT",	"w2T",	"w3T",	"sdT",	"sT")
+SBexcel.K$to <- c("aR",	"w0R",	"w1R",	"w2R",	"sd1R", "sd2R",	"s1R",	"s2R",	"s3R",	"aC",	"w0C",	"w1C",	"w2C",	"sd1C",	"sd2C",	"s1C",	"s2C",	"s3C",	"aM",	"w2M",	"w3M",	"sdM",	"sM",	"aA",	"w2A",	"w3A",	"sdA",	"sA",	"aT",	"w2T",	"w3T",	"sdT",	"sT")
+SBexcel.K <- pivot_longer(SBexcel.K, cols = c("aR",	"w0R",	"w1R",	"w2R",	"sd1R", "sd2R",	"s1R",	"s2R",	"s3R",	"aC",	"w0C",	"w1C",	"w2C",	"sd1C",	"sd2C",	"s1C",	"s2C",	"s3C",	"aM",	"w2M",	"w3M",	"sdM",	"sM",	"aA",	"w2A",	"w3A",	"sdA",	"sA",	"aT",	"w2T",	"w3T",	"sdT",	"sT"), values_to = "k", names_to = "from")
+
+#adding "from" and "to" acronyms to the R K matrix
+kaas <- World$kaas
+unique(kaas$fromScale)
+unique(kaas$fromSubCompart)
+
+accronym_map <- c("marinesediment" = "sd2",
+                "freshwatersediment" = "sd1",
+                "lakesediment" = "sd3", #SB Excel does not have this compartment. To do: can we turn this off (exclude this compartment) for testing?
+                "agriculturalsoil" = "s2",
+                "naturalsoil" = "s1",
+                "othersoil" = "s3",
+                "air" = "a",
+                "deepocean" = "w3",
+                "sea" = "w2",
+                "lake" = "w1",
+                "river" = "w0")
+
+accronym_map2 <- c("Arctic" = "A",
+                   "Moderate" = "M",
+                   "Tropic" = "T",
+                   "Continental" = "C",
+                   "Regional" = "R")
+
+kaas$from <- paste0(accronym_map[kaas$fromSubCompart], accronym_map2[kaas$fromScale])
+kaas$to <- paste0(accronym_map[kaas$toSubCompart], accronym_map2[kaas$toScale])
+
+summedkaas <- aggregate(k ~ from + to, data = kaas, FUN = sum) #summing k's in the same "box". Need to check if this is the right thing to do
+
+diagonal_kaas <- summedkaas[summedkaas$from == summedkaas$to,] #diagonals need some more attention, formula is different in excel. probably need to substract all the "froms" from that box.  
+diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] #all the diagonals in excel are negative values
+
+
+
+```
+
 
 # Steady state
 
