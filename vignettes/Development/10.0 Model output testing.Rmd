@@ -77,8 +77,14 @@ ProcessMolFunctions[!ProcessMolFunctions %in% unique(World$kaas$process)]
 
 unique(World$kaas$process)
 World$kaas
-World$moduleList[["k_Desorption"]]
-World$moduleList[["k_Desorption"]]$execute(debugAt = list())
+World$moduleList[["k_Adsorption"]]$FromAndTo
+World$moduleList[["k_Adsorption"]]$execute(debugAt = list(ScaleName = "Regional"))
+
+World$fetchData("Kaers")
+World$fetchData("Kaerw")
+kex = World$NewCalcVariable("Kaers")
+kex$execute(debugAt = list())
+World$fetchData("Kp")
 
 unique(World$kaas$process)
 World$moduleList[["k_Leaching"]]
