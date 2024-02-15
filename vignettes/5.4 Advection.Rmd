@@ -43,12 +43,12 @@ for (x in SBvars) {
 
 We calculate AirFlow in two steps. The first is the application of a
 simple model of air circulation depending on windspeed; The mean
-residence time in the region is according the f_TAU function. `r f_TAU`
+residence time in the region is according the f_TAU function. r f_TAU
 The AirFlow function calculates the amount that would enter/leave the
 region namely the volume divided by the residence time. Notice that
 f_TAU is a normal function, but AirFlow will be used as a variable
 defining function. After the call to World\$CalcVar("AirFlow") this
-property is stored in the data within World. `r AirFlow`. This provides
+property is stored in the data within World. r AirFlow. This provides
 the overal airflow within a compartment which affects the flow from this
 compartment or scale to the next. Currently air only flows between
 scales.
@@ -331,8 +331,12 @@ flux2Test$fcolumns <- do.call(paste, c(flux2Test[c("fromScale", "fromSubCompart"
 flux2Test$frows <- do.call(paste, c(flux2Test[c("toScale", "toSubCompart")], sep = "."))
 #flux2Test$flux = 10e9 * flux2Test$flux # tune unit 
 
-pivot_wider(flux2Test[f2Torder,c("frows","fcolumns","flow")],
+table1 <- pivot_wider(flux2Test[f2Torder,c("frows","fcolumns","flow")],
             id_cols = frows, names_from = fcolumns, values_from = flow)
+
+print(table1, n=40)
+
+
 ```
 
 
