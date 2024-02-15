@@ -54,8 +54,8 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "nTiO2_10nm", # nanoparticle (class particle)
                           "microplastic") # microplastic (class particle)
 substance <- Potential_substances[1]
-source("baseScripts/initWorld.R")
-#source("baseScripts/initworld_onlyMolec.R")
+#source("baseScripts/initWorld.R")
+source("baseScripts/initworld_onlyMolec.R")
 
 length(unique(World$kaas$process))
 
@@ -137,12 +137,18 @@ accronym_map2 <- c("Arctic" = "A",
 kaas$from <- paste0(accronym_map[kaas$fromSubCompart], accronym_map2[kaas$fromScale])
 kaas$to <- paste0(accronym_map[kaas$toSubCompart], accronym_map2[kaas$toScale])
 
-summedkaas <- aggregate(k ~ from + to, data = kaas, FUN = sum) #summing k's in the same "box". Need to check if this is the right thing to do
+diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] #all the diagonals in excel are negative values -> sums of all the "froms" of that compartment
 
-diagonal_kaas <- summedkaas[summedkaas$from == summedkaas$to,] #diagonals need some more attention, formula is different in excel. probably need to substract all the "froms" from that box.  
-diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] #all the diagonals in excel are negative values
+diagonal <- aggregate(k ~ from, data = kaas, FUN = sum) #R model has k values per process, not per box. For the "diagonal" ("from = to") boxes, this is different than in the excel version. summing all the "froms" here to be able to compare them with excel matrix
+kaas <- merge(kaas, diagonal, by = "from", suffixes = c("", "_summed"))
 
+mergedkaas <- merge(kaas, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
 
+mergedkaas$diff <- ifelse(mergedkaas$from != mergedkaas$to, mergedkaas$k_R - mergedkaas$k_Excel,mergedkaas$k_summed + mergedkaas$k_Excel) #compare R k to Excel K, for to == from excel is compared to the summed k (see reasoning above). 
+
+plot(mergedkaas$diff)
+ggplot(mergedkaas, aes(x = process, y = diff)) +
+  geom_boxplot()
 
 ```
 
