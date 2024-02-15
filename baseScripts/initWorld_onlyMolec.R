@@ -69,10 +69,10 @@ World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposi
 verbose = T
 World$UpdateKaas()
 
-emissions <- data.frame(Abbr = "aRU", Emis = 1000)
-
-World$NewSolver("SB1Solve")
-World$Solve(emissions)
-#World$states$sortFactors(emissions)
-
-World$states$sortFactors(World$fetchData("EqMass"))
+# emissions <- data.frame(Abbr = "aRU", Emis = 1000)
+# 
+# World$NewSolver("SB1Solve")
+# World$Solve(emissions)
+# #World$states$sortFactors(emissions)
+# 
+# World$states$sortFactors(World$fetchData("EqMass"))
