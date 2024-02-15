@@ -50,11 +50,11 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "1-HYDROXYANTHRAQUINONE", # acid
                           "1-Hexadecanamine, N,N-dimethyl-", # base
                           "1-Chloro-2-nitro-propane", # neutral
-                          "Sb(III)", # metal
+                          "Hg(II)", # metal
                           "nTiO2_10nm", # nanoparticle (class particle)
                           "microplastic") # microplastic (class particle)
-substance <- Potential_substances[6]
-source("baseScripts/initWorld.R")
+substance <- Potential_substances[5]
+source("baseScripts/initWorld_onlyMolec.R")
 
 length(unique(World$kaas$process))
 
@@ -77,12 +77,48 @@ ProcessMolFunctions[!ProcessMolFunctions %in% unique(World$kaas$process)]
 
 unique(World$kaas$process)
 World$kaas
-# World$moduleList[["k_Desorption"]]
-# World$moduleList[["k_Desorption"]]$execute(debugAt = list())
-# 
-# unique(World$kaas$process)
-# World$moduleList[["k_DryDeposition"]]
-# World$moduleList[["k_DryDeposition"]]$execute(debugAt = list())
+World$moduleList[["k_Adsorption"]]$FromAndTo
+World$moduleList[["k_Adsorption"]]$execute(debugAt = list(ScaleName = "Regional"))
+
+World$fetchData("Kaers")
+World$fetchData("Kaerw")
+kex = World$NewCalcVariable("Kaers")
+kex$execute(debugAt = list())
+World$fetchData("Kp")
+
+unique(World$kaas$process)
+World$moduleList[["k_Leaching"]]
+World$moduleList[["k_Leaching"]]$execute(debugAt = list(SpeciesName = "Molecular"))
+World$moduleList[["k_Leaching"]]$FromAndTo
+
+#kscompw issues:
+World$fetchData("Kscompw")
+kex = World$NewCalcVariable("Kscompw")
+kex$execute(debugAt = list(Matrix = "soil"))
+World$fetchData("Kp")
+kex = World$NewCalcVariable("Kp")
+kex$execute(debugAt = list(Matrix = "soil"))
+
+World$fetchData("Pvap25")
+World$fetchData("Kacompw")
+kex = World$NewCalcVariable("Kacompw")
+kex$execute(debugAt = list(ChemClass = "metal"))
+
+World$fetchData("FRorig")
+World$fetchData("FRACa")
+kex = World$NewCalcVariable("FRACa")
+kex$execute(debugAt = list(Matrix = "soil"))
+
+World$fetchData("Kp")
+
+World$fetchData("QSARtable")
+World$fetchData("ChemClasClass")
+
+World$fetchData("Kscompw")
+kex = World$NewCalcVariable("Kscompw")
+kex$execute(debugAt = list(Matrix = "soil"))
+
+# World$moduleList[["k_Leaching"]]$execute(debugAt = list())
 # 
 # World$fetchData("rad_species")
 # World$fetchData("SettlingVelocity")
