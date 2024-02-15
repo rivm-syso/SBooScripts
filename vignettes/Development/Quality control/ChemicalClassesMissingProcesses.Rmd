@@ -1,0 +1,32 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+## impossible to generalise? projectRoot <- paste(getwd(), "..", sep = "/")
+projectRoot <- paste(getwd(), "..", "..",sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+```{r}
+Potential_substances <- c("1-aminoanthraquinone", # no class
+                          "1-HYDROXYANTHRAQUINONE") # acid
+               
+substance <- Potential_substances[1]
+
+source("/baseScripts/initWorld.R")
+
+#List of all processes apllicable to molecular substances
+ProcessMolFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
+                          "k_Degradation", "k_Deposition", "k_Desorption",
+                          "k_Erosion", "k_Escape", 
+                         "k_Leaching", "k_Resuspension", "k_Runoff", "k_Sedimentation", 
+                         "k_Volatilisation")
+
+
+```
+
+
