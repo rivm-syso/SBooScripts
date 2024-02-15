@@ -2,7 +2,7 @@ Process,Particulate,Molecular
 Adsorption,,X
 Advection,X,X
 Burial,X,X
-Cwscavenging,X,
+CWscavenging,X,
 Degradation,X,X
 Deposition,,X
 Desorption,,X
