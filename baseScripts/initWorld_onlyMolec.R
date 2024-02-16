@@ -19,31 +19,16 @@ World <- SBcore$new(ClassicStateModule)
 World$filterStates(SpeciesName = "Molecular")
 
 # To proceed with testing we set
-# World$SetConst(pKa = 2500)
+
 if (is.na(World$fetchData("pKa"))) {
-  stop("pKa is needed but missing")
+  warning("pKa is needed but missing, setting pKa=7")
+  World$SetConst(pKa = 7)
 }
 
-#TODO put Ksw in th substance data
-# 
-# World$SetConst(Ksw = 47500)
-# if (is.na(World$fetchData("Ksw"))) {
-#   warning("Ksw is needed but missing; set by f_Ksw()")
-#   AllRho <- World$fetchData("rhoMatrix")
-#   RHOsolid = AllRho$rhoMatrix[AllRho$SubCompart == "othersoil"]
-#   Ksw = f_Ksw(Kow = World$fetchData("Kow"),
-#               pKa = World$fetchData("pKa"),
-#               CorgStandard = World$fetchData("CorgStandard"),
-#               a = World$fetchData("a"),
-#               b = World$fetchData("b"),
-#               ChemClass = World$fetchData("ChemClass"),
-#               RHOsolid = RHOsolid,
-#               alt_form = F,
-#               Ksw_orig = NA
-#   )
-#   World$SetConst(Ksw = Ksw)
-#   
-# }
+if (World$fetchData("ChemClass")==("")) {
+  warning("ChemClass is needed but missing, setting to neutral")
+  World$SetConst(ChemClass = "neutral")
+}
 
 AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
