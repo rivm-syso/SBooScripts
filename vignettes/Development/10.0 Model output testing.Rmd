@@ -44,13 +44,21 @@ needs to be initialized. Before initialisation a substances needs to be
 selected, otherwise the "default stubstance" is used. initWorld.R does
 just that, and calculates SBvars, flows and k's.
 
+[UPDATE 16-2-2024:
+- At the moment testing in ongoing for producing a sound K matrix for the below selected 6 substances.
+- Certain chemical classes result in several process k's not being calculated:
+- onlyMolec script passes proces test for substance: 1, 2, 4, 5
+
+- Deposition not for substance 3,
+
+
 ```{r warning=FALSE}
 #We need to initialize, by default a molecular substance is selected
-Potential_substances <- c("1-aminoanthraquinone", # no class
+Potential_substances <- c("1-aminoanthraquinone", # no class #67
                           "1-HYDROXYANTHRAQUINONE", # acid
-                          "1-Hexadecanamine, N,N-dimethyl-", # base
+                          "1-Hexadecanamine, N,N-dimethyl-", # base #918
                           "1-Chloro-2-nitro-propane", # neutral
-                          "Hg(II)", # metal
+                          "Hg(II)", # metal #1021 SBexcel
                           "nTiO2_10nm", # nanoparticle (class particle)
                           "microplastic") # microplastic (class particle)
 substance <- Potential_substances[5]
@@ -71,25 +79,43 @@ ProcessMolFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
                          "k_Leaching", "k_Resuspension", "k_Runoff", "k_Sedimentation", 
                          "k_Volatilisation")
 
-
+# To test if all processes are calculated for a Particulate substance, the ones missing are shown:
 ProcessNanoFunctions[!ProcessNanoFunctions %in% unique(World$kaas$process)]
+
+# To test if all processes are calculated for a Molecular substance, the ones missing are shown:
 ProcessMolFunctions[!ProcessMolFunctions %in% unique(World$kaas$process)]
 
+# the processes being calculated:
 unique(World$kaas$process)
 World$kaas
+
+# The from and to compartments for a process can be seen like this:
 World$moduleList[["k_Adsorption"]]$FromAndTo
+# The calculation can be initiated and debugged like this:
 World$moduleList[["k_Adsorption"]]$execute(debugAt = list(ScaleName = "Regional"))
 
-World$fetchData("Kaers")
-World$fetchData("Kaerw")
+# if debugging of a missing or NA variable is needed, this can be done like so:
 kex = World$NewCalcVariable("Kaers")
 kex$execute(debugAt = list())
-World$fetchData("Kp")
+
+# for seeing what is known for a certain variable:
+World$fetchData("Kaers")
+
 
 unique(World$kaas$process)
-World$moduleList[["k_Leaching"]]
-World$moduleList[["k_Leaching"]]$execute(debugAt = list(SpeciesName = "Molecular"))
-World$moduleList[["k_Leaching"]]$FromAndTo
+World$moduleList[["k_Deposition"]]
+World$moduleList[["k_Deposition"]]$FromAndTo
+World$moduleList[["k_Desorption"]]$execute(debugAt = list())
+
+World$fetchData("Ksdcompw")
+kex = World$NewCalcVariable("KswDorC")
+kex$execute(debugAt = list())
+World$fetchData("pKa")
+World$fetchData("KswDorC")
+World$fetchData("KpCOL")
+
+kex = World$NewCalcVariable("KpCOL")
+kex$execute(debugAt = list(Matrix = "water"))
 
 #kscompw issues:
 World$fetchData("Kscompw")
