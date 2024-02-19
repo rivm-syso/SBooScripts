@@ -44,26 +44,18 @@ needs to be initialized. Before initialisation a substances needs to be
 selected, otherwise the "default stubstance" is used. initWorld.R does
 just that, and calculates SBvars, flows and k's.
 
-[UPDATE 16-2-2024:
-- At the moment testing in ongoing for producing a sound K matrix for the below selected 6 substances.
-- Certain chemical classes result in several process k's not being calculated:
-- onlyMolec script passes proces test for substance: 1, 2, 4, 5
-
-- Deposition not for substance 3,
-
-
 ```{r warning=FALSE}
 #We need to initialize, by default a molecular substance is selected
-Potential_substances <- c("1-aminoanthraquinone", # no class #67
+Potential_substances <- c("1-aminoanthraquinone", # no class
                           "1-HYDROXYANTHRAQUINONE", # acid
-                          "1-Hexadecanamine, N,N-dimethyl-", # base #918
+                          "1-Hexadecanamine, N,N-dimethyl-", # base
                           "1-Chloro-2-nitro-propane", # neutral
-                          "Hg(II)", # metal #1021 SBexcel
+                          "Sb(III)", # metal
                           "nTiO2_10nm", # nanoparticle (class particle)
                           "microplastic") # microplastic (class particle)
-
-substance <- Potential_substances[5]
-source("baseScripts/initWorld_onlyMolec.R")
+substance <- Potential_substances[2]
+source("baseScripts/initWorld.R")
+#source("baseScripts/initworld_onlyMolec.R")
 
 length(unique(World$kaas$process))
 
@@ -80,72 +72,18 @@ ProcessMolFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
                          "k_Leaching", "k_Resuspension", "k_Runoff", "k_Sedimentation", 
                          "k_Volatilisation")
 
-# To test if all processes are calculated for a Particulate substance, the ones missing are shown:
-ProcessNanoFunctions[!ProcessNanoFunctions %in% unique(World$kaas$process)]
 
-# To test if all processes are calculated for a Molecular substance, the ones missing are shown:
+ProcessNanoFunctions[!ProcessNanoFunctions %in% unique(World$kaas$process)]
 ProcessMolFunctions[!ProcessMolFunctions %in% unique(World$kaas$process)]
 
-# the processes being calculated:
 unique(World$kaas$process)
 World$kaas
-
-# The from and to compartments for a process can be seen like this:
-World$moduleList[["k_Adsorption"]]$FromAndTo
-# The calculation can be initiated and debugged like this:
-World$moduleList[["k_Adsorption"]]$execute(debugAt = list(ScaleName = "Regional"))
-
-# if debugging of a missing or NA variable is needed, this can be done like so:
-kex = World$NewCalcVariable("Kaers")
-kex$execute(debugAt = list())
-
-# for seeing what is known for a certain variable:
-World$fetchData("Kaers")
+# World$moduleList[["k_Deposition"]]
+# World$moduleList[["k_Deposition"]]$execute(debugAt = list())
 
 
-unique(World$kaas$process)
-World$moduleList[["k_Deposition"]]
-World$moduleList[["k_Deposition"]]$FromAndTo
-World$moduleList[["k_Desorption"]]$execute(debugAt = list())
 
-World$fetchData("Ksdcompw")
-kex = World$NewCalcVariable("KswDorC")
-kex$execute(debugAt = list())
-World$fetchData("pKa")
-World$fetchData("KswDorC")
-World$fetchData("KpCOL")
-
-kex = World$NewCalcVariable("KpCOL")
-kex$execute(debugAt = list(Matrix = "water"))
-
-#kscompw issues:
-World$fetchData("Kscompw")
-kex = World$NewCalcVariable("Kscompw")
-kex$execute(debugAt = list(Matrix = "soil"))
-World$fetchData("Kp")
-kex = World$NewCalcVariable("Kp")
-kex$execute(debugAt = list(Matrix = "soil"))
-
-World$fetchData("Pvap25")
-World$fetchData("Kacompw")
-kex = World$NewCalcVariable("Kacompw")
-kex$execute(debugAt = list(ChemClass = "metal"))
-
-World$fetchData("FRorig")
-World$fetchData("FRACa")
-kex = World$NewCalcVariable("FRACa")
-kex$execute(debugAt = list(Matrix = "soil"))
-
-World$fetchData("Kp")
-
-World$fetchData("QSARtable")
-World$fetchData("ChemClasClass")
-
-World$fetchData("Kscompw")
-kex = World$NewCalcVariable("Kscompw")
-kex$execute(debugAt = list(Matrix = "soil"))
-
-# World$moduleList[["k_Leaching"]]$execute(debugAt = list())
+# World$moduleList[["k_DryDeposition"]]$execute(debugAt = list())
 # 
 # World$fetchData("rad_species")
 # World$fetchData("SettlingVelocity")
@@ -163,9 +101,7 @@ kex$execute(debugAt = list(Matrix = "soil"))
 #library(openxlsx)
 
 #read in K matrix from excel
-#make sure to use version SimpleBox4.01_20230824 for molecular. 
-SBExcelName <- paste0("vignettes/Development/Quality Control/SBExcel/SimpleBox4.01_20230824_",substance,".xlsm") #molecular version for now
-
+SBExcelName <- paste0("data/SimpleBox4.01_20230824_",substance,".xlsm") #molecular version for now
 SBexcel.K <- read.xlsx(SBExcelName,
                   colNames = FALSE,
                   namedRegion = "K")
@@ -209,11 +145,10 @@ kaas <- merge(kaas, diagonal, by = "from", suffixes = c("", "_summed"))
 mergedkaas <- merge(kaas, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
 
 mergedkaas$diff <- ifelse(mergedkaas$from != mergedkaas$to, mergedkaas$k_R - mergedkaas$k_Excel,mergedkaas$k_summed + mergedkaas$k_Excel) #compare R k to Excel K, for rows where "to" == "from" excel is compared to the summed k (see reasoning above). 
-#Column "diff" in df "mergedkaas" shows the difference between the R k output and the k's in Excel. 
 
-#Visualize the diff per process in boxplots: which processes have the largest differences the excel model?
+plot(mergedkaas$diff)
 ggplot(mergedkaas, aes(x = process, y = diff)) +
-  geom_boxplot() #the "dots"/datapoints in the model represent the difference per k (for each fromto), per process. 
+  geom_boxplot()
 
 ```
 

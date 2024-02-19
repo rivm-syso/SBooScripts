@@ -86,5 +86,5 @@ World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposi
 #kex$execute(debugAt = list(SubCompartName = "air"))
 verbose = T
 World$UpdateKaas()
-World$moduleList[["Kp"]]$execute(debugAt = list(assembly = ""))
+
 

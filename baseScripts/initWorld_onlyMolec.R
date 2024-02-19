@@ -49,8 +49,8 @@ World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposi
 
 #verbose = T
 
-#kex = World$NewCalcVariable("rad_species")
-#kex$execute(debugAt = list(SubCompartName = "air"))
+# kex = World$NewCalcVariable("rad_species")
+# kex$execute(debugAt = list(SubCompartName = "air"))
 verbose = T
 World$UpdateKaas()
 
