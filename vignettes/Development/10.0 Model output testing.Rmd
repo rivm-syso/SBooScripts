@@ -163,7 +163,9 @@ kex$execute(debugAt = list(Matrix = "soil"))
 #library(openxlsx)
 
 #read in K matrix from excel
-SBExcelName <- paste0("data/SimpleBox4.01_20230824_",substance,".xlsm") #molecular version for now
+#make sure to use version SimpleBox4.01_20230824 for molecular. 
+SBExcelName <- paste0("vignettes/Development/Quality Control/SBExcel/SimpleBox4.01_20230824_",substance,".xlsm") #molecular version for now
+
 SBexcel.K <- read.xlsx(SBExcelName,
                   colNames = FALSE,
                   namedRegion = "K")
@@ -207,10 +209,11 @@ kaas <- merge(kaas, diagonal, by = "from", suffixes = c("", "_summed"))
 mergedkaas <- merge(kaas, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
 
 mergedkaas$diff <- ifelse(mergedkaas$from != mergedkaas$to, mergedkaas$k_R - mergedkaas$k_Excel,mergedkaas$k_summed + mergedkaas$k_Excel) #compare R k to Excel K, for rows where "to" == "from" excel is compared to the summed k (see reasoning above). 
+#Column "diff" in df "mergedkaas" shows the difference between the R k output and the k's in Excel. 
 
-plot(mergedkaas$diff)
+#Visualize the diff per process in boxplots: which processes have the largest differences the excel model?
 ggplot(mergedkaas, aes(x = process, y = diff)) +
-  geom_boxplot()
+  geom_boxplot() #the "dots"/datapoints in the model represent the difference per k (for each fromto), per process. 
 
 ```
 
