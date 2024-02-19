@@ -16,7 +16,7 @@ ClassicStateModule <- ClassicNanoWorld$new("data", substance)
 World <- SBcore$new(ClassicStateModule)
 
 # To proceed with testing we set
-World$SetConst(pKa = 2500)
+# World$SetConst(pKa = 7)
 if (is.na(World$fetchData("pKa"))) {
   stop("pKa is needed but missing")
 }
