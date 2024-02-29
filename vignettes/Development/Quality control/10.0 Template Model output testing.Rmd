@@ -118,8 +118,10 @@ SBexcel.K$to <-  as.character(SBexcel.Names)
 
 SBexcel.K <- pivot_longer(SBexcel.K, cols =  as.character(SBexcel.Names), values_to = "k", names_to = "from")
 
+length(SBexcel.K$k)
+
 #adding "from" and "to" acronyms to the R K matrix
-kaas <- World$kaas
+kaas <- tibble(World$kaas)
 unique(kaas$fromScale)
 unique(kaas$fromSubCompart)
 
@@ -142,15 +144,37 @@ accronym_map2 <- c("Arctic" = "A",
                    "Continental" = "C",
                    "Regional" = "R")
 
+# kaas |> filter(fromScale == "Tropic" & process == "k_Degradation") |> print(n=50)
+
 kaas$from <- paste0(accronym_map[kaas$fromSubCompart], accronym_map2[kaas$fromScale])
 kaas$to <- paste0(accronym_map[kaas$toSubCompart], accronym_map2[kaas$toScale])
 
+# Issue that compartments sediment and soil at global scale have sd and s as acronyms instead of sd2
+kaas <- kaas |> mutate(from = ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") & 
+  (fromSubCompart == "marinesediment" | fromSubCompart == "naturalsoil"), str_replace_all(from, c("sd2"="sd","s1"="s")), from))
+
+kaas <- kaas |> mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") & 
+  (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(from, c("sd2"="sd","s1"="s")), to))
+
+
+
 diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] #all the diagonals in excel are negative values -> sums of all the "froms" of that compartment
 
-diagonal <- aggregate(k ~ from, data = kaas, FUN = sum) #R model has k values per process, not per box. For the "diagonal" ("from = to") boxes, this is different than in the excel version. summing all the "froms" here to be able to compare them with excel matrix
+diagonal <- 
+  aggregate(k ~ from, data = kaas, FUN = sum) #R model has k values per process, not per box. For the "diagonal" ("from = to") boxes, this is different than in the excel version. summing all the "froms" here to be able to compare them with excel matrix. This should result in one value for each compartment (scale-subcomp-species combo)
+diagonal$process <- "diagonal" # could you add diagonal as a proces, so we see differences in the ggplot below?
+# also, could you plot the differences as in ggplot, but then only for diagonal and on x-axis the (to/from) compartments?
+
+ifelse(length(diagonal$k)==length(diagonal_excel$k),
+       print("ok"),warning("too many compartment combo's"))
+
 kaas <- merge(kaas, diagonal, by = "from", suffixes = c("", "_summed"))
+# SBexcel.K <- merge(SBexcel.K, diagonal_excel, by = "from", suffixes = c("", "_summed"))
 
 mergedkaas <- merge(kaas, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
+str(SBexcel.K)
+str(kaas)
+str(mergedkaas)
 
 mergedkaas$diff <- ifelse(mergedkaas$from != mergedkaas$to, mergedkaas$k_R - mergedkaas$k_Excel,mergedkaas$k_summed + mergedkaas$k_Excel) #compare R k to Excel K, for rows where "to" == "from" excel is compared to the summed k (see reasoning above). 
 
