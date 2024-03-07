@@ -62,7 +62,7 @@ Potential_substances <- c("1-aminoanthraquinone", # no class #67
                           "nTiO2_10nm", # nanoparticle (class particle)
                           "microplastic") # microplastic (class particle)
 
-substance <- Potential_substances[5]
+substance <- Potential_substances[1]
 source("baseScripts/initWorld_onlyMolec.R")
 
 length(unique(World$kaas$process))
@@ -160,7 +160,7 @@ kex$execute(debugAt = list(Matrix = "soil"))
 
 ```{r}
 #Comparing K's from R model to K's from excel model
-#library(openxlsx)
+library(openxlsx)
 
 #read in K matrix from excel
 #make sure to use version SimpleBox4.01_20230824 for molecular. 
@@ -171,9 +171,10 @@ SBexcel.K <- read.xlsx(SBExcelName,
                   namedRegion = "K")
 
 #long format version of Excel K matrix
-colnames(SBexcel.K) <- c("aR",	"w0R",	"w1R",	"w2R",	"sd1R", "sd2R",	"s1R",	"s2R",	"s3R",	"aC",	"w0C",	"w1C",	"w2C",	"sd1C",	"sd2C",	"s1C",	"s2C",	"s3C",	"aM",	"w2M",	"w3M",	"sdM",	"sM",	"aA",	"w2A",	"w3A",	"sdA",	"sA",	"aT",	"w2T",	"w3T",	"sdT",	"sT")
-SBexcel.K$to <- c("aR",	"w0R",	"w1R",	"w2R",	"sd1R", "sd2R",	"s1R",	"s2R",	"s3R",	"aC",	"w0C",	"w1C",	"w2C",	"sd1C",	"sd2C",	"s1C",	"s2C",	"s3C",	"aM",	"w2M",	"w3M",	"sdM",	"sM",	"aA",	"w2A",	"w3A",	"sdA",	"sA",	"aT",	"w2T",	"w3T",	"sdT",	"sT")
-SBexcel.K <- pivot_longer(SBexcel.K, cols = c("aR",	"w0R",	"w1R",	"w2R",	"sd1R", "sd2R",	"s1R",	"s2R",	"s3R",	"aC",	"w0C",	"w1C",	"w2C",	"sd1C",	"sd2C",	"s1C",	"s2C",	"s3C",	"aM",	"w2M",	"w3M",	"sdM",	"sM",	"aA",	"w2A",	"w3A",	"sdA",	"sA",	"aT",	"w2T",	"w3T",	"sdT",	"sT"), values_to = "k", names_to = "from")
+colnames(SBexcel.K) <- c("aR",	"w0R",	"w1R",	"w2R",	"sd1R", "sd2R",	"s1R",	"s2R",	"s3R",	"aC",	"w0C",	"w1C",	"w2C",	"sd1C",	"sd2C",	"s1C",	"s2C",	"s3C",	"aM",	"w2M",	"w3M",	"sd2M",	"s3M",	"aA",	"w2A",	"w3A",	"sd2A",	"s3A",	"aT",	"w2T",	"w3T",	"sd2T",	"s3T")
+SBexcel.K$to <- c("aR",	"w0R",	"w1R",	"w2R",	"sd1R", "sd2R",	"s1R",	"s2R",	"s3R",	"aC",	"w0C",	"w1C",	"w2C",	"sd1C",	"sd2C",	"s1C",	"s2C",	"s3C",	"aM",	"w2M",	"w3M",	"sd2M",	"s3M",	"aA",	"w2A",	"w3A",	"sd2A",	"s3A",	"aT",	"w2T",	"w3T",	"sd2T",	"s3T")
+SBexcel.K <- pivot_longer(SBexcel.K, cols = c("aR",	"w0R",	"w1R",	"w2R",	"sd1R", "sd2R",	"s1R",	"s2R",	"s3R",	"aC",	"w0C",	"w1C",	"w2C",	"sd1C",	"sd2C",	"s1C",	"s2C",	"s3C",	"aM",	"w2M",	"w3M",	"sd2M",	"s3M",	"aA",	"w2A",	"w3A",	"sd2A",	"s3A",	"aT",	"w2T",	"w3T",	"sd2T",	"s3T"), values_to = "k", names_to = "from")
+
 
 #adding "from" and "to" acronyms to the R K matrix
 kaas <- World$kaas
@@ -182,7 +183,7 @@ unique(kaas$fromSubCompart)
 
 accronym_map <- c("marinesediment" = "sd2",
                 "freshwatersediment" = "sd1",
-                "lakesediment" = "sd3", #SB Excel does not have this compartment. To do: can we turn this off (exclude this compartment) for testing?
+                "lakesediment" = "sd3", 
                 "agriculturalsoil" = "s2",
                 "naturalsoil" = "s1",
                 "othersoil" = "s3",
@@ -204,16 +205,50 @@ kaas$to <- paste0(accronym_map[kaas$toSubCompart], accronym_map2[kaas$toScale])
 diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] #all the diagonals in excel are negative values -> sums of all the "froms" of that compartment
 
 diagonal <- aggregate(k ~ from, data = kaas, FUN = sum) #R model has k values per process, not per box. For the "diagonal" ("from = to") boxes, this is different than in the excel version. summing all the "froms" here to be able to compare them with excel matrix
-kaas <- merge(kaas, diagonal, by = "from", suffixes = c("", "_summed"))
+diagonal$from[!diagonal$from %in% diagonal_excel$from] # R version has more compartments than excel version; 22 total!
+diagonal_excel$from[!diagonal_excel$from %in% diagonal$from] #all excel diagonals are in those of R
 
-mergedkaas <- merge(kaas, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
+merged_diagonal <- merge(diagonal, diagonal_excel, by = "from", suffixes = c("_R", "_Excel"))
+merged_diagonal$to <- NULL
+merged_diagonal$k_Excel <- -merged_diagonal$k_Excel #remember diagonals in Excel version were negative
+merged_diagonal$diff <- merged_diagonal$k_R - merged_diagonal$k_Excel 
 
-mergedkaas$diff <- ifelse(mergedkaas$from != mergedkaas$to, mergedkaas$k_R - mergedkaas$k_Excel,mergedkaas$k_summed + mergedkaas$k_Excel) #compare R k to Excel K, for rows where "to" == "from" excel is compared to the summed k (see reasoning above). 
+#Plot of differences of the diagonals per compartment
+ggplot(merged_diagonal, aes(x = from, y = diff)) +
+  geom_boxplot()
+  #scale_y_log10()
+
+kaas <- filter(kaas, from != to)
+kaas2 <- kaas %>% group_by(from, to) %>% summarize(k = sum(k))
+kaas2$fromto <- paste(sep = "_", kaas2$from, kaas2$to)
+
+SBexcel.K <- filter(SBexcel.K, k != 0 & SBexcel.K$from != SBexcel.K$to)
+SBexcel.K$fromto <- paste(sep = "_", SBexcel.K$from, SBexcel.K$to)
+
+SBexcel.K$fromto[!SBexcel.K$fromto %in% kaas2$fromto] #23 missing
+kaas2$fromto[!kaas2$fromto %in% SBexcel.K$fromto]
+
+mergedkaas <- merge(kaas2, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
+
+mergedkaas$diff <- mergedkaas$k_R - mergedkaas$k_Excel #compare R k to Excel K
+
 #Column "diff" in df "mergedkaas" shows the difference between the R k output and the k's in Excel. 
 
-#Visualize the diff per process in boxplots: which processes have the largest differences the excel model?
-ggplot(mergedkaas, aes(x = process, y = diff)) +
-  geom_boxplot() #the "dots"/datapoints in the model represent the difference per k (for each fromto), per process. 
+#Visualize the diff per process in boxplots: which compartments have the largest differences between R and the excel model?
+
+#Diff per "from" compartment
+ggplot(mergedkaas, aes (x = from, y = diff)) +
+  geom_boxplot()
+
+#Diff per "to" compartment
+ggplot(mergedkaas, aes (x = to, y = diff)) +
+  geom_boxplot()
+
+# "To" and "from" in one plot
+ggplot(mergedkaas, aes(x = to, y = from, color = abs(diff))) + 
+  geom_point() +
+  scale_color_gradient(low = "green", high = "red", trans = "log10") 
+
 
 ```
 
