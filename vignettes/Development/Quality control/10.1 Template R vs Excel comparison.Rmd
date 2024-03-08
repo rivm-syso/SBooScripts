@@ -53,7 +53,7 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "Sb(III)", # metal
                           "nTiO2_10nm", # nanoparticle (class particle)
                           "microplastic") # microplastic (class particle)
-substance <- Potential_substances[2]
+substance <- Potential_substances[1]
 source("baseScripts/initWorld_onlyMolec.R")
 #source("baseScripts/initworld_onlyMolec.R")
 
@@ -125,7 +125,8 @@ kaas <- tibble(World$kaas)
 unique(kaas$fromScale)
 unique(kaas$fromSubCompart)
 
-# dit werkt zo helaas niet... 
+#R version does not us the acronyms of the excel version, set-up to convert them
+#Note: this map creates the wrong acronym for soil and sediment at global scale, this is fixed afterwards
 accronym_map <- c("marinesediment" = "sd2",
                 "freshwatersediment" = "sd1",
                 "lakesediment" = "sd0", #SB Excel does not have this compartment. To do: can we turn this off (exclude this compartment) for testing?
@@ -149,7 +150,7 @@ accronym_map2 <- c("Arctic" = "A",
 kaas$from <- paste0(accronym_map[kaas$fromSubCompart], accronym_map2[kaas$fromScale])
 kaas$to <- paste0(accronym_map[kaas$toSubCompart], accronym_map2[kaas$toScale])
 
-# Issue that compartments sediment and soil at global scale have sd and s as acronyms instead of sd2
+# Issue that compartments sediment and soil at global scale in excel have sd and s as acronyms instead of sd2 and s1
 kaas <- kaas |> mutate(from = ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") & 
   (fromSubCompart == "marinesediment" | fromSubCompart == "naturalsoil"), str_replace_all(from, c("sd2"="sd","s1"="s")), from))
 
@@ -162,206 +163,58 @@ diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] #all the diagonals 
 
 diagonal <- 
   aggregate(k ~ from, data = kaas, FUN = sum) #R model has k values per process, not per box. For the "diagonal" ("from = to") boxes, this is different than in the excel version. summing all the "froms" here to be able to compare them with excel matrix. This should result in one value for each compartment (scale-subcomp-species combo)
-diagonal$process <- "diagonal" # could you add diagonal as a proces, so we see differences in the ggplot below?
-# also, could you plot the differences as in ggplot, but then only for diagonal and on x-axis the (to/from) compartments?
+
+
+#Check for any differences in what compartments there are between versions
+diagonal$from[!diagonal$from %in% diagonal_excel$from] # R version has more compartments than excel version; 22 total!
+diagonal_excel$from[!diagonal_excel$from %in% diagonal$from] #all excel diagonals are in those of R
 
 ifelse(length(diagonal$k)==length(diagonal_excel$k),
-       print("ok"),warning("too many compartment combo's"))
+       print("ok"),warning("too many compartment combo's")) 
 
-kaas <- merge(kaas, diagonal, by = "from", suffixes = c("", "_summed"))
-# SBexcel.K <- merge(SBexcel.K, diagonal_excel, by = "from", suffixes = c("", "_summed"))
+#Single dataframe with both the R and excel diagonals
+merged_diagonal <- merge(diagonal, diagonal_excel, by = "from", suffixes = c("_R", "_Excel")) 
+merged_diagonal$k_Excel <- -merged_diagonal$k_Excel #Turning the "negative" values from the Excel matrix into positive ones
+merged_diagonal$diff <- merged_diagonal$k_R - merged_diagonal$k_Excel 
 
-mergedkaas <- merge(kaas, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
-str(SBexcel.K)
-str(kaas)
-str(mergedkaas)
-
-mergedkaas$diff <- ifelse(mergedkaas$from != mergedkaas$to, mergedkaas$k_R - mergedkaas$k_Excel,mergedkaas$k_summed + mergedkaas$k_Excel) #compare R k to Excel K, for rows where "to" == "from" excel is compared to the summed k (see reasoning above). 
-
-plot(mergedkaas$diff)
-ggplot(mergedkaas, aes(x = process, y = diff)) +
+#Plot of differences of the diagonals per compartment
+ggplot(merged_diagonal, aes(x = from, y = diff)) +
   geom_boxplot()
 
+#Dataframe of all other boxes
+kaas <- filter(kaas, from != to) #filtering the diagonals out
+kaas2 <- kaas %>% group_by(from, to) %>% summarize(k = sum(k)) #R version sometimes has multiple k's per fromto box; excel only has the summed k's per box
+kaas2$fromto <- paste(sep = "_", kaas2$from, kaas2$to)
+
+SBexcel.K <- filter(SBexcel.K, k != 0 & SBexcel.K$from != SBexcel.K$to)
+SBexcel.K$fromto <- paste(sep = "_", SBexcel.K$from, SBexcel.K$to)
+
+SBexcel.K$fromto[!SBexcel.K$fromto %in% kaas2$fromto] #9 missing: "sM_w2M"  "w3M_sdM" "aM_sM"   "sA_w2A"  "w3A_sdA" "aA_sA"   "sT_w2T"  "w3T_sdT" "aT_sT"  
+kaas2$fromto[!kaas2$fromto %in% SBexcel.K$fromto]
+
+mergedkaas <- merge(kaas2, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
+
+mergedkaas$diff <- mergedkaas$k_R - mergedkaas$k_Excel #compare R k to Excel K
+
+#Column "diff" in df "mergedkaas" shows the difference between the R k output and the k's in Excel. 
+
+#Visualize the diff per process in boxplots: which compartments (fromto boxes) have the largest differences between R and the excel model?
+
+#Diff per "from" compartment
+ggplot(mergedkaas, aes (x = from, y = diff)) +
+  geom_boxplot()
+
+#Diff per "to" compartment
+ggplot(mergedkaas, aes (x = to, y = diff)) +
+  geom_boxplot()
+
+# "To" and "from" in one plot
+ggplot(mergedkaas, aes(x = to, y = from, color = abs(diff))) + 
+  geom_point() +
+  scale_color_gradient(low = "green", high = "red", trans = "log10") 
+
+#If you want to inspect per process instead of fromto box: look at the original kaas dataframe
+
 ```
 
 
-# Steady state
-
-Emissions need to be defined for the substance selected. This example is
-for a molecular compound:
-
-```{r}
-
-emission1 <- data.frame(
-  Abbr = c("s1RU", "aRU", "w1RU"),
-  Emis = 10e3) # what is the unit?
-
-emission1 <- data.frame(
-  Abbr = c("s1RS", "aRS", "w1RS"),
-  Emis = 1e3) # what is the unit?
-
-
-```
-
-```{r testing}
-Solvr <- World$NewSolver("SB1Solve")
-Solvr <- World$NewSolver("SBsteady")
-Solution <- World$Solve(emissions = emission1,
-  needdebug = F)
-
-SB.states <- Solvr$states$asDataFrame
-SB.states |> count()
-SB.k.matrix <- Solvr$SB.k
-kaas <- World$kaas
-
-#code from R6SolverModule
-
-         if (any(kaas$k == 0.0)){ #or a very small value?? for solver stability?
-          warning(paste(table(kaas$k == 0.0)["TRUE"]), " k values equal to 0; removed for solver")
-          kaas <- kaas[kaas$k > 0,]
-        }
-        # copy, clean states (remove those without any k)
-        stateInd <- unique(c(kaas$i, kaas$j))
-        #private$States <- SBstates$new(self$myCore$states$asDataFrame[self$myCore$states$matchi(stateInd),])
-        # newStates <- self$myCore$states$asDataFrame[self$myCore$states$matchi(stateInd),]
-        newStates <- Solvr$states$asDataFrame[Solvr$states$matchi(stateInd),]
-
-        # Why are there here
-        Solvr$states$matchi(stateInd)
-        nrow(newStates)
-       
-                if (nrow(newStates) !=  Solvr$states$nStates && exists("verbose") && verbose) {
-          warning(paste(Solvr$states$nStates - nrow(newStates),"states without kaas, not in solver"))
-        }
-        browser()
-```
-
-Why are there kaas, but no states for last 4?
-
-Be carefull with all types of cleanup behind the scenes, as this can mask errors and problems with the functions. At least now during development.
-
-
-```{r}
-
-  
-              #remove states without state in columns OR rows => matrix is singular 
-        #TODO  dynamic calculation is still possible! if emission is a source??
-        stateInd <- unique(kaas$i) 
-        stateIndBoth <- stateInd[stateInd %in% unique(kaas$j)]
-        if (length(stateInd) != length(stateIndBoth)) {
-          warning(paste(length(stateInd) - length(stateIndBoth), " states with no sources OR no sinks"))
-          newStates <- newStates[newStates$i %in% stateIndBoth,]
-        }
-        private$States <- SBstates$new(newStates)
-        
-        #Reinstate(s) emissions
-        if (!is.null(SavedEmissions)){
-          OldEmissions <- data.frame(
-            Abbr = names(SavedEmissions)[!is.na(names(SavedEmissions))],
-            Emis = SavedEmissions[!is.na(names(SavedEmissions))]
-          ) 
-          self$PrepemisV(OldEmissions)
-        }
-        
-        nrowStates <- private$States$nStates
-        k2times <- as.integer(nrowStates*nrowStates)
-        SB.K <- matrix(rep.int(0.0, k2times), nrow = nrowStates)
-        sumkaas <- aggregate(k ~ i + j, data = kaas, FUN = sum)
-
-        for(SBi in (1:nrow(sumkaas))){
-          SB.K[private$States$matchi(sumkaas$j[SBi]),
-               private$States$matchi(sumkaas$i[SBi])] <- sumkaas$k[SBi] 
-        }
-        #Add the from quantities(i) to the to-states by
-        #substracting the (negative) factors(i) to the diagonal
-        # store the diag (== degradation and other removal processes)
-        degrdiag <- diag(SB.K)
-        diag(SB.K) <- 0.0 #yes, irt colSums!
-        diag(SB.K) <- - degrdiag - colSums(SB.K)
-
-
-World$fetchData("k_Advection")
-
-World$fetchData("VertDistance")
-
-World$moduleList[["k_Advection"]]$execute()
-
-Solvr$states$nStates
-Solvr$states$asDataFrame
-
-Solvr$FromAndTo
-str(Solvr)
-Solvr$emissions
-
-
-
-Solution
-str(Solution)
-# library(htmlTable)
-# World$kaas[World$kaas$fromAbbr == "aRU" & World$kaas$toAbbr == "aRU",]
-```
-
-
-But we want to start with a single state (box): Unbound (Molecular)
-Regional air.
-
-Mind the warning... The format of kaas should conform the expected
-layout. This particular k has the same from- as to state; It is a sink,
-like degradation. We add an emission to the same state, and see what
-happens in time.
-
-```{r}
-
-Solvr <- World$NewSolver("SBsolve")
-#kaasSquare <- Solvr$PrepKaasM()
-Solution <- World$Solve(emissions = data.frame(
-  Abbr = c("aRP", "aRU", "w1RU"),
-  Emis = 10e6),
-  needdebug = F,
-  nTIMES = 200 #,
-  #EmisAsPulse = T
-)
-
-emissions <- ClassicExcel$ExcelEmissions("current.settings")[1,]
-World$NewSolver("SBsolve") #
-steadSolve <- World$Solve(emissions = emissions)
-#World$SolutionAsRelational()
-```
-
-## The constants package
-
-Some global constants are imported from this package. For convenience
-two functions are availeable, demonstrated below.
-
-```{r}
-Concentrations <- function(EqMass, Volume) {
-  EqMass / Volume
-}
-World$NewCalcVariable("Concentrations")
-ConcPM <- World$CalcVar("Concentrations")
-pivot_wider(ConcPM[, c("SubCompart", "Scale", "Concentrations")],
-            values_from = "Concentrations",
-            values_fill = NULL,
-            names_from = "Scale")
-# tidyHtmlTable(
-#   x = ConcPM[, c("SubCompart", "Scale", "Concentrations")],
-#   value = "Concentrations",
-#   header = "Scale",
-#   rnames = "SubCompart",
-#   #col.header = "#FEFEFE",
-#   col.rgroup = c("#FEFEFE", "#F7F7F7")
-# )
-```
-
-## Mass fluxes
-
-```{r}
-MsFlux <- left_join(World$kaas, World$fetchData("EqMass"), 
-                    join_by(fromScale == Scale, fromSubCompart == SubCompart, fromSpecies == Species))
-MsFlux$mFlux <- MsFlux$k * MsFlux$EqMass
-aggregate(mFlux~toAbbr, data = MsFlux, FUN = sum)
-```
-
-accuracy? Roundings?? tol doesn't make a difference?!
-
-Happy calculations!
