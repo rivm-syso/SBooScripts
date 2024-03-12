@@ -59,12 +59,12 @@ source("baseScripts/initWorld_onlyMolec.R")
 
 length(unique(World$kaas$process))
 
-ProcessNanoFunctions <- c("k_Advection", "k_Burial",
-                         "k_HeteroAgglomeration.a", "k_HeteroAgglomeration.wsd",
-                         "k_CWscavenging", "k_Degradation", 
-                         "k_DryDeposition", "k_Erosion", "k_Escape", 
-                         "k_Leaching", "k_Resuspension", "k_Runoff", "k_Sedimentation", 
-                        "k_WetDeposition")
+# ProcessNanoFunctions <- c("k_Advection", "k_Burial",
+#                          "k_HeteroAgglomeration.a", "k_HeteroAgglomeration.wsd",
+#                          "k_CWscavenging", "k_Degradation", 
+#                          "k_DryDeposition", "k_Erosion", "k_Escape", 
+#                          "k_Leaching", "k_Resuspension", "k_Runoff", "k_Sedimentation", 
+#                         "k_WetDeposition")
 
 ProcessMolFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
                           "k_Degradation", "k_Deposition", "k_Desorption",
@@ -73,11 +73,11 @@ ProcessMolFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
                          "k_Volatilisation")
 
 
-ProcessNanoFunctions[!ProcessNanoFunctions %in% unique(World$kaas$process)]
+# ProcessNanoFunctions[!ProcessNanoFunctions %in% unique(World$kaas$process)]
 ProcessMolFunctions[!ProcessMolFunctions %in% unique(World$kaas$process)]
 
 unique(World$kaas$process)
-World$kaas
+# World$kaas
 # World$moduleList[["k_Deposition"]]
 # World$moduleList[["k_Deposition"]]$execute(debugAt = list())
 
@@ -96,7 +96,7 @@ World$kaas
 
 ```
 
-```{r}
+```{r data xlsx and R}
 #Comparing K's from R model to K's from excel model
 library(openxlsx)
 library(tidyverse)
@@ -161,29 +161,46 @@ kaas <- kaas |> mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | 
 
 diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] #all the diagonals in excel are negative values -> sums of all the "froms" of that compartment
 
-diagonal <- 
+diagonal_R <- 
   aggregate(k ~ from, data = kaas, FUN = sum) #R model has k values per process, not per box. For the "diagonal" ("from = to") boxes, this is different than in the excel version. summing all the "froms" here to be able to compare them with excel matrix. This should result in one value for each compartment (scale-subcomp-species combo)
 
+```
 
+```{r diagonal}
 #Check for any differences in what compartments there are between versions
-diagonal$from[!diagonal$from %in% diagonal_excel$from] # R version has more compartments than excel version; 22 total!
-diagonal_excel$from[!diagonal_excel$from %in% diagonal$from] #all excel diagonals are in those of R
+diagonal_R$from[!diagonal_R$from %in% diagonal_excel$from] # "sd0C" "sd0R" were added in sboo v1
+diagonal_excel$from[!diagonal_excel$from %in% diagonal_R$from] #all excel diagonals are in those of R
 
-ifelse(length(diagonal$k)==length(diagonal_excel$k),
-       print("ok"),warning("too many compartment combo's")) 
+ifelse( (length(diagonal_R$k)-2)==length(diagonal_excel$k) ,
+       print("ok"), stop("too many compartment combo's")) 
 
 #Single dataframe with both the R and excel diagonals
-merged_diagonal <- merge(diagonal, diagonal_excel, by = "from", suffixes = c("_R", "_Excel")) 
+merged_diagonal <- merge(diagonal_R, diagonal_excel, by = "from", suffixes = c("_R", "_Excel")) 
 merged_diagonal$k_Excel <- -merged_diagonal$k_Excel #Turning the "negative" values from the Excel matrix into positive ones
 merged_diagonal$diff <- merged_diagonal$k_R - merged_diagonal$k_Excel 
 
 #Plot of differences of the diagonals per compartment
 ggplot(merged_diagonal, aes(x = from, y = diff)) +
   geom_boxplot()
+```
 
+
+
+Why are these compartments in SB-R instance: 
+> diagonal$from[!diagonal$from %in% diagonal_excel$from]
+ [1] "s2A"  "s2M"  "s2T"  "s3A"  "s3M"  "s3T"  "sd0A" "sd0C" "sd0M" "sd0R" "sd0T" "sd1A" "sd1M" "sd1T" "w0A"  "w0M"  "w0T"  "w1A"  "w1M"  "w1T" 
+[21] "w3C"  "w3R" 
+
+
+This is due to the degradation rate constant being calculated for all combinations of subcompartments. There is currently no data sheet where the exclusion based on combination of subcompartment and scale can be set. So these types of exclusions are needed in the process function itself.
+
+So now the compartments are the correct amount based on fixing exclusions in k_Degradation.
+
+```{r other}
 #Dataframe of all other boxes
-kaas <- filter(kaas, from != to) #filtering the diagonals out
-kaas2 <- kaas %>% group_by(from, to) %>% summarize(k = sum(k)) #R version sometimes has multiple k's per fromto box; excel only has the summed k's per box
+kaas2 <- kaas %>% 
+  filter(kaas, from != to) |> #filtering the diagonals ou
+  group_by(from, to) %>% summarize(k = sum(k)) #R version sometimes has multiple k's per fromto box; excel only has the summed k's per box
 kaas2$fromto <- paste(sep = "_", kaas2$from, kaas2$to)
 
 SBexcel.K <- filter(SBexcel.K, k != 0 & SBexcel.K$from != SBexcel.K$to)
@@ -216,5 +233,4 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(diff))) +
 #If you want to inspect per process instead of fromto box: look at the original kaas dataframe
 
 ```
-
 
