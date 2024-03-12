@@ -182,6 +182,7 @@ merged_diagonal$diff <- merged_diagonal$k_R - merged_diagonal$k_Excel
 #Plot of differences of the diagonals per compartment
 ggplot(merged_diagonal, aes(x = from, y = diff)) +
   geom_boxplot()
+
 ```
 
 
@@ -198,8 +199,12 @@ So now the compartments are the correct amount based on fixing exclusions in k_D
 
 ```{r other}
 #Dataframe of all other boxes
-kaas2 <- kaas %>% 
-  filter(kaas, from != to) |> #filtering the diagonals ou
+
+kaas |> filter(to != from)
+
+
+kaas2 <- kaas |>  
+  filter(from != to) |> #filtering the diagonals ou
   group_by(from, to) %>% summarize(k = sum(k)) #R version sometimes has multiple k's per fromto box; excel only has the summed k's per box
 kaas2$fromto <- paste(sep = "_", kaas2$from, kaas2$to)
 
@@ -231,6 +236,21 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(diff))) +
   scale_color_gradient(low = "green", high = "red", trans = "log10") 
 
 #If you want to inspect per process instead of fromto box: look at the original kaas dataframe
+
+```
+
+Some testing needed to see why K's from air are so different from those in Excel.
+
+```{r}
+
+kaas |> filter(from == "aA")
+World$moduleList[["k_Degradation"]]$execute(debugAt = list(ScaleName="Arctic",SubCompartName = "air"))
+
+World$fetchData("SubCompartName")
+
+test <- World$NewCalcVariable("FRingas")
+World$CalcVar("FRingas")
+
 
 ```
 
