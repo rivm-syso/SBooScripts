@@ -185,19 +185,21 @@ ggplot(merged_diagonal, aes(x = from, y = diff)) +
 
 ```
 
+Why are these compartments in SB-R instance: \>
+diagonal$from[!diagonal$from %in% diagonal_excel\$from] [1] "s2A" "s2M"
+"s2T" "s3A" "s3M" "s3T" "sd0A" "sd0C" "sd0M" "sd0R" "sd0T" "sd1A" "sd1M"
+"sd1T" "w0A" "w0M" "w0T" "w1A" "w1M" "w1T" [21] "w3C" "w3R"
 
+This is due to the degradation rate constant being calculated for all
+combinations of subcompartments. There is currently no data sheet where
+the exclusion based on combination of subcompartment and scale can be
+set. So these types of exclusions are needed in the process function
+itself.
 
-Why are these compartments in SB-R instance: 
-> diagonal$from[!diagonal$from %in% diagonal_excel$from]
- [1] "s2A"  "s2M"  "s2T"  "s3A"  "s3M"  "s3T"  "sd0A" "sd0C" "sd0M" "sd0R" "sd0T" "sd1A" "sd1M" "sd1T" "w0A"  "w0M"  "w0T"  "w1A"  "w1M"  "w1T" 
-[21] "w3C"  "w3R" 
+So now the compartments are the correct amount based on fixing
+exclusions in k_Degradation.
 
-
-This is due to the degradation rate constant being calculated for all combinations of subcompartments. There is currently no data sheet where the exclusion based on combination of subcompartment and scale can be set. So these types of exclusions are needed in the process function itself.
-
-So now the compartments are the correct amount based on fixing exclusions in k_Degradation.
-
-```{r other}
+```{r rate_constants}
 #Dataframe of all other boxes
 
 kaas |> filter(to != from)
@@ -239,9 +241,22 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(diff))) +
 
 ```
 
-Some testing needed to see why K's from air are so different from those in Excel.
+Some testing needed to see why K's from air are so different from those
+in Excel.
 
-```{r}
+1.  The Fringas in excel had an error, was using variables from Moderate
+    scale, fix in Excel.
+
+2.  k_Escape was being converted to seconds twice! Units conversion is
+    enough, no need to cope with such conversions in process algorithms.
+    All calculation data should be in SI units.
+
+3.  k_Adsorption was using Area which should have been to.Area
+
+Checked: k_Degradation, k_Escape, k_Advection, Deposition and
+adsorption.
+
+```{r testing_aA, eval=FALSE, include=FALSE}
 
 kaas |> filter(from == "aA")
 World$moduleList[["k_Degradation"]]$execute(debugAt = list(ScaleName="Arctic",SubCompartName = "air"))
@@ -249,8 +264,43 @@ World$moduleList[["k_Degradation"]]$execute(debugAt = list(ScaleName="Arctic",Su
 World$fetchData("SubCompartName")
 
 test <- World$NewCalcVariable("FRingas")
+test$execute(debugAt = list())
+
 World$CalcVar("FRingas")
 
+CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
+
+World$moduleList[["k_Adsorption"]]$execute(debugAt = list(ScaleName="Arctic"))
+World$moduleList[["k_Adsorption"]]$FromAndTo
+World$moduleList[["k_Adsorption"]]$execute()
+
+
+World$fetchData("Area")
+World$fetchData("FRACsea")
 
 ```
 
+Issue w0R was linked to Excel error using sea water instead of
+freshwater to sea water flow to calculate w0 to w1 water flow.
+
+```{r test_w1R}
+kaas |> filter(from == "sd1R")
+World$moduleList[["k_Degradation"]]$execute(debugAt = list(ScaleName="Arctic",SubCompartName = "air"))
+
+World$fetchData("SubCompartName")
+
+test <- World$NewCalcVariable("FRingas")
+test$execute(debugAt = list())
+
+World$CalcVar("FRingas")
+
+CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
+
+World$moduleList[["k_Resuspension"]]$execute(debugAt = list(ScaleName = "Regional"))
+World$moduleList[["k_Adsorption"]]$FromAndTo
+World$moduleList[["k_Adsorption"]]$execute()
+
+
+World$fetchData("Area")
+World$fetchData("FRACsea")
+```
