@@ -49,6 +49,8 @@ You called the execute method, which prepares the parameters and call the defini
 
 ```{r}
 # try this at home... CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
+# use debugAt
+CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
 ```
 
 Happy programming :)
