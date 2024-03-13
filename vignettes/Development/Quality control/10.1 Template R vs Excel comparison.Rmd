@@ -231,6 +231,8 @@ mergedkaas <- merge(kaas2, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "
 
 mergedkaas$diff <- mergedkaas$k_R - mergedkaas$k_Excel #compare R k to Excel K
 
+mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)
+
 #Column "diff" in df "mergedkaas" shows the difference between the R k output and the k's in Excel. 
 
 #Visualize the diff per process in boxplots: which compartments (fromto boxes) have the largest differences between R and the excel model?
@@ -248,6 +250,10 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(diff))) +
   geom_point() +
   scale_color_gradient(low = "green", high = "red", trans = "log10") 
 
+
+ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) + 
+  geom_point() +
+  scale_color_gradient(low = "green", high = "red") 
 #If you want to inspect per process instead of fromto box: look at the original kaas dataframe
 
 ```
@@ -271,7 +277,7 @@ adsorption.*
 
 ```{r testing_aA, eval=FALSE, include=FALSE}
 
-kaas |> filter(from == "aA")
+kaas |> filter(from == "aR")
 World$moduleList[["k_Degradation"]]$execute(debugAt = list(ScaleName="Arctic",SubCompartName = "air"))
 
 World$fetchData("SubCompartName")
@@ -299,7 +305,7 @@ World$fetchData("FRACsea")
 freshwater to sea water flow to calculate w0 to w1 water flow.*
 
 ```{r test_w1R, eval=FALSE, include=FALSE}
-kaas |> filter(from == "w3M")
+kaas |> filter(from == "w2T")
 
 as_tibble(World$kaas) |> filter(fromSubCompart == "deepocean")
 
@@ -313,15 +319,25 @@ test$execute(debugAt = list())
 
 World$CalcVar("FRingas")
 
-CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
+CalcVariable <- World$NewCalcVariable("Volume")
+  World$CalcVar("Volume")
+CalcVariable$execute()
+
+CalcVariable$execute(debugAt = list(SubCompartName = "sea"))
 
 World$moduleList[["k_Resuspension"]]$execute(debugAt = list(ScaleName = "Regional"))
 World$moduleList[["k_Adsorption"]]$FromAndTo
 World$moduleList[["k_Adsorption"]]$execute()
 
-
+World$fetchData("AreaLand")
+World$fetchData("Volume")
 World$fetchData("Area")
+World$fetchData("landFRAC")
+World$fetchData("AreaSea")
+World$fetchData("TotalArea")
 World$fetchData("FRACsea")
+
+
 ```
 
 ## Soil
