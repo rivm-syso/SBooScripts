@@ -218,12 +218,13 @@ exclusions in k_Degradation.*
 kaas2 <- kaas |>  
   filter(from != to) |> #filtering the diagonals ou
   group_by(from, to) %>% summarize(k = sum(k)) #R version sometimes has multiple k's per fromto box; excel only has the summed k's per box
+
 kaas2$fromto <- paste(sep = "_", kaas2$from, kaas2$to)
 
 SBexcel.K <- filter(SBexcel.K, k != 0 & SBexcel.K$from != SBexcel.K$to)
 SBexcel.K$fromto <- paste(sep = "_", SBexcel.K$from, SBexcel.K$to)
 
-SBexcel.K$fromto[!SBexcel.K$fromto %in% kaas2$fromto] #9 missing: "sM_w2M"  "w3M_sdM" "aM_sM"   "sA_w2A"  "w3A_sdA" "aA_sA"   "sT_w2T"  "w3T_sdT" "aT_sT"  
+SBexcel.K$fromto[!SBexcel.K$fromto %in% kaas2$fromto] #3 missing: "sM_w2M" "sA_w2A" "sT_w2T" 
 kaas2$fromto[!kaas2$fromto %in% SBexcel.K$fromto]
 
 mergedkaas <- merge(kaas2, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
@@ -297,7 +298,7 @@ World$fetchData("FRACsea")
 *Issue w0R was linked to Excel error using sea water instead of
 freshwater to sea water flow to calculate w0 to w1 water flow.*
 
-```{r test_w1R}
+```{r test_w1R, eval=FALSE, include=FALSE}
 kaas |> filter(from == "w3M")
 
 as_tibble(World$kaas) |> filter(fromSubCompart == "deepocean")
@@ -321,4 +322,14 @@ World$moduleList[["k_Adsorption"]]$execute()
 
 World$fetchData("Area")
 World$fetchData("FRACsea")
+```
+
+## Soil
+
+```{r test_sM}
+
+kaas |> filter(from == "sM")
+World$fetchData("Kscompw")
+World$fetchData("Runoff")
+
 ```
