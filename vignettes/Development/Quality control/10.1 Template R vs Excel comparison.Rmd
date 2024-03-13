@@ -224,8 +224,10 @@ kaas2$fromto <- paste(sep = "_", kaas2$from, kaas2$to)
 SBexcel.K <- filter(SBexcel.K, k != 0 & SBexcel.K$from != SBexcel.K$to)
 SBexcel.K$fromto <- paste(sep = "_", SBexcel.K$from, SBexcel.K$to)
 
-SBexcel.K$fromto[!SBexcel.K$fromto %in% kaas2$fromto] #3 missing: "sM_w2M" "sA_w2A" "sT_w2T" 
-kaas2$fromto[!kaas2$fromto %in% SBexcel.K$fromto]
+SBexcel.K$fromto[!SBexcel.K$fromto %in% kaas2$fromto] # No xlsx missing
+
+
+kaas2$fromto[!kaas2$fromto %in% SBexcel.K$fromto] # more k's in SBoo than in SBxl
 
 mergedkaas <- merge(kaas2, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
 
@@ -277,7 +279,7 @@ adsorption.*
 
 ```{r testing_aA, eval=FALSE, include=FALSE}
 
-kaas |> filter(from == "aR")
+kaas |> filter(from == "aT")
 World$moduleList[["k_Degradation"]]$execute(debugAt = list(ScaleName="Arctic",SubCompartName = "air"))
 
 World$fetchData("SubCompartName")
@@ -290,12 +292,23 @@ World$CalcVar("FRingas")
 CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
 
 World$moduleList[["k_Adsorption"]]$execute(debugAt = list(ScaleName="Arctic"))
+
 World$moduleList[["k_Adsorption"]]$FromAndTo
 World$moduleList[["k_Adsorption"]]$execute()
 
+World$moduleList[["k_Deposition"]]$execute(debugAt = list(ScaleName="Tropic"))
+World$moduleList[["k_Adsorption"]]$FromAndTo
+World$moduleList[["k_Adsorption"]]$execute()
 
 World$fetchData("Area")
 World$fetchData("FRACsea")
+
+#something with k_other:
+
+kaas |> filter(fromScale == "Tropic"&
+               fromSpecies == "Unbound"&
+                 fromSubCompart == "air")
+
 
 ```
 
@@ -304,15 +317,29 @@ World$fetchData("FRACsea")
 *Issue w0R was linked to Excel error using sea water instead of
 freshwater to sea water flow to calculate w0 to w1 water flow.*
 
+Several K's exist in R that are not read out as such from excel.
+reasons:
+
+1.  There is in the reference excel no lake sediment (sd0) at regional
+    and continental scale
+
+2.  There are 0's in the k's such as for certain advective flows in
+    excel.
+
+```{r}
+kaas2$fromto[!kaas2$fromto %in% SBexcel.K$fromto] # more k's in SBoo than in SBxl
+```
+
 ```{r test_w1R, eval=FALSE, include=FALSE}
-kaas |> filter(from == "w2T")
+kaas |> filter(from == "aT")
+kaas2$fromto[!kaas2$fromto %in% SBexcel.K$fromto] # more k's in SBoo than in SBxl
 
 as_tibble(World$kaas) |> filter(fromSubCompart == "deepocean")
 
 kaas |> filter(fromSubCompart == "deepocean")
 World$moduleList[["k_Degradation"]]$execute(debugAt = list(ScaleName="Arctic",SubCompartName = "air"))
 
-World$fetchData("SubCompartName")
+World$fetchData("NETsedrate")
 
 test <- World$NewCalcVariable("FRingas")
 test$execute(debugAt = list())
