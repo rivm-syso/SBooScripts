@@ -62,7 +62,7 @@ k_Resuspension,marinesediment,sea
 k_Runoff,agriculturalsoil,river
 k_Runoff,naturalsoil,river
 k_Runoff,othersoil,river
-k_Runoff,othersoil,sea
+k_Runoff,naturalsoil,sea
 k_Sedimentation,deepocean,marinesediment
 k_Sedimentation,lake,lakesediment
 k_Sedimentation,river,freshwatersediment
