@@ -16,10 +16,17 @@ ClassicStateModule <- ClassicNanoWorld$new("data", substance)
 World <- SBcore$new(ClassicStateModule)
 
 # To proceed with testing we set
-# World$SetConst(pKa = 7)
+
 if (is.na(World$fetchData("pKa"))) {
-  stop("pKa is needed but missing")
+  warning("pKa is needed but missing, setting pKa=7")
+  World$SetConst(pKa = 7)
 }
+
+if (World$fetchData("ChemClass")==("")) {
+  warning("ChemClass is needed but missing, setting to neutral")
+  World$SetConst(ChemClass = "neutral")
+}
+
 
 #TODO put Ksw in th substance data
 
