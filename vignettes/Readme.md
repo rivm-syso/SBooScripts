@@ -1,16 +1,16 @@
 Overview documentation
 ================
-JQ
+JQ, VdR
 2023-08-22
 
-This document is used to track the testing and verification of
-vignettes. There are two types of vignettes. Vignettes in the
+There are two types of vignettes. Vignettes in the
 “SBooScripts/vignettes” folder with chapter numbers describe processes
 in SimpleBox. Vignettes in “SBooscripts/vignettes/Development” are meant
 to support developers of SimpleBox and describe e.g. best practices for
 debugging.
 
-Please add any new vignette to the overview table below. Indicate in the
+This document is used to track the testing and verification of
+vignettes.Please add any new vignette to the overview table below. Indicate in the
 “Initial run” column whether an initial run of the script has been
 successfully performed, and whether it is thus ready for testing. The
 verification column can be used to indicate whether testing has been
