@@ -46,7 +46,7 @@ World$VarsFromprocesses()
 
 #World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
 
-# World$UpdateKaas()
+World$UpdateKaas()
 # World$UpdateKaas()(debugAt = list())
 
 #for solving, as an example 
