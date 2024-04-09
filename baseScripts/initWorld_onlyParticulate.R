@@ -1,12 +1,12 @@
-#This script initialises a standard test (global) environment
+#This script initialises a standard 'World' environment for nano-particles
 
 #script to faking the future library(SBoo)
 source("baseScripts/fakeLib.R")
 
-#to run the script with another selection of substance / excel reference,
+#to run the script with another selection of substance / excel reference, #
 #set the variables substance and excelReference before sourcing this script, like substance = "nAg_10nm"
 if (!exists("substance")) {
-  substance <- "default substance"
+  substance <- "nAg_10nm"
 }
 
 #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
@@ -15,8 +15,7 @@ ClassicStateModule <- ClassicNanoWorld$new("data", substance)
 #with this data we create an instance of the central "core" object,
 World <- SBcore$new(ClassicStateModule)
 
-# We are interested in the particulate species only
-World$filterStates(SpeciesName = "NanoParticle") #SpeciesSheet?
+# We are interested in the particulate species only, so no need to filter like in the Molecular initWorld
 
 # To proceed with testing we set
 
@@ -27,7 +26,7 @@ if (is.na(World$fetchData("pKa"))) {
 
 if (World$fetchData("ChemClass")==("")) {
   warning("ChemClass is needed but missing, setting to particle")
-  World$SetConst(ChemClass = "metal") #????
+  World$SetConst(ChemClass = "particle") #????
 }
 
 AllF <- ls() %>% sapply(FUN = get)
@@ -45,13 +44,13 @@ sapply(names(AllF)[FluxDefFunctions], World$NewFlow)
 #derive needed variables
 World$VarsFromprocesses()
 
-World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
+#World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
 
-World$UpdateKaas()
+# World$UpdateKaas()
+# World$UpdateKaas()(debugAt = list())
 
 #for solving, as an example 
-# emissions <- data.frame(Abbr = "aRU", Emis = 1000)
-# 
+#emissions <- data.frame(Abbr = "aRU", Emis = 1000)
 # World$NewSolver("SB1Solve")
 # World$Solve(emissions)
 # World$states$sortFactors(World$fetchData("EqMass"))
