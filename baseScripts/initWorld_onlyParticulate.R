@@ -44,6 +44,25 @@ sapply(names(AllF)[FluxDefFunctions], World$NewFlow)
 #derive needed variables
 World$VarsFromprocesses()
 
+World$SetConst(Ksw = 47500)
+if (is.na(World$fetchData("Ksw"))) {
+  warning("Ksw is needed but missing; set by f_Ksw()")
+  AllRho <- World$fetchData("rhoMatrix")
+  RHOsolid = AllRho$rhoMatrix[AllRho$SubCompart == "othersoil"]
+  Ksw = f_Ksw(Kow = World$fetchData("Kow"),
+              pKa = World$fetchData("pKa"),
+              CorgStandard = World$fetchData("CorgStandard"),
+              a = World$fetchData("a"),
+              b = World$fetchData("b"),
+              ChemClass = World$fetchData("ChemClass"),
+              RHOsolid = RHOsolid,
+              alt_form = F,
+              Ksw_orig = NA
+  )
+  World$SetConst(Ksw = Ksw)
+
+}
+
 #World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
 
 World$UpdateKaas()
