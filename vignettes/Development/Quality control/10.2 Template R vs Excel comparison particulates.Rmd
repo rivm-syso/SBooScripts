@@ -92,8 +92,6 @@ SBexcel.Names <- read.xlsx(SBExcelName,
 
 colnames(SBexcel.K) <- SBexcel.Names
 
-#long format version of Excel K matrix
-# colnames(SBexcel.K) <- c("aR",	"w0R",	"w1R",	"w2R",	"sd1R", "sd2R",	"s1R",	"s2R",	"s3R",	"aC",	"w0C",	"w1C",	"w2C",	"sd1C",	"sd2C",	"s1C",	"s2C",	"s3C",	"aM",	"w2M",	"w3M",	"sdM",	"sM",	"aA",	"w2A",	"w3A",	"sdA",	"sA",	"aT",	"w2T",	"w3T",	"sdT",	"sT")
 SBexcel.K$to <-  as.character(SBexcel.Names)
 
 SBexcel.K <- pivot_longer(SBexcel.K, cols =  as.character(SBexcel.Names), values_to = "k", names_to = "from")
@@ -160,6 +158,16 @@ kaas <-
   mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") &
                        (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(to, c("sd2"="sd","s1"="s")), to))
 
+
+kaas <-
+  kaas |>
+  mutate(from =
+                   ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") &
+                            (fromSubCompart == "lakesediment" | fromSubCompart == "freshwatersediment" | fromSubCompart ==  "agriculturalsoil" | fromSubCompart == "othersoil"),
+                          str_replace_all(from, c("sd2"="sd","s1"="s", "sd0"="sd", "sd1"="sd", "s2"="s", "s1"="s")),
+                          from)) |>
+  mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") &
+                       (toSubCompart == "lakesediment" | toSubCompart == "freshwatersediment" | toSubCompart ==  "agriculturalsoil" | toSubCompart == "othersoil"), str_replace_all(to, c("sd2"="sd","s1"="s", "sd0"="sd", "sd1"="sd", "s2"="s", "s1"="s")), to))
   
 
 diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] #all the diagonals in excel are negative values -> sums of all the "froms" of that compartment
@@ -172,14 +180,13 @@ filtered_excel <- filtered_excel[!endsWith(filtered_excel$from, "G"), ]
 #diagonal_excel <- filtered_excel
 
 #filter out molecular (unbound) state
+#R model has k values per process, not per box. For the "diagonal" ("from = to") boxes, this is different than in the excel version. summing all the "froms" here to be able to compare them with excel matrix. This should result in one value for each compartment (scale-subcomp-species combo)
 
 diagonal_R <-aggregate(k ~ from, data = kaas, FUN = sum) 
 print(diagonal_R$from)
 filtered_R <- diagonal_R[!endsWith(diagonal_R$from, "U"), ]
 #diagonal_R <- filtered_R
       
-                           #R model has k values per process, not per box. For the "diagonal" ("from = to") boxes, this is different than in the excel version. summing all the "froms" here to be able to compare them with excel matrix. This should result in one value for each compartment (scale-subcomp-species combo)
-
 ```
 
 ```{r diagonal}
@@ -188,7 +195,7 @@ filtered_R <- diagonal_R[!endsWith(diagonal_R$from, "U"), ]
 filtered_R$from[!filtered_R$from %in% filtered_excel$from]
 # diagonal_excel$from[!diagonal_excel$from %in% diagonal_R$from] #all excel diagonals are in those of R
 filtered_excel$from[!filtered_excel$from %in% filtered_R$from]
-ifelse( (length(diagonal_R$k)-2)==length(diagonal_excel$k) ,
+ifelse( (length(diagonal_R$k)-3)==length(diagonal_excel$k) ,
        print("ok"), stop("too many compartment combo's")) 
 
 #Single dataframe with both the R and excel diagonals
@@ -200,6 +207,8 @@ merged_diagonal$diff <- merged_diagonal$k_R - merged_diagonal$k_Excel
 ggplot(merged_diagonal, aes(x = from, y = diff)) +
   geom_boxplot()
 
+sorted_diff <- merged_diagonal[order(abs(merged_diagonal$diff), decreasing = TRUE), ]
+print(sorted_diff$from)
 ```
 
 *Why are these compartments in SB-R instance: \>
