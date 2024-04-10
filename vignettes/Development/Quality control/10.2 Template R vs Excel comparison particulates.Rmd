@@ -249,7 +249,24 @@ mergedkaas <- merge(kaas2, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "
 
 mergedkaas$diff <- mergedkaas$k_R - mergedkaas$k_Excel #compare R k to Excel K
 
+print(sorted_diff_merged$from)
 mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)
+
+sorted_diff_abs <- mergedkaas[order(abs(mergedkaas$diff), decreasing = TRUE), ]
+
+# Print compartments sorted by absolute difference
+print("Compartments sorted by absolute difference:")
+print(data.frame(sorted_diff_abs$from, sorted_diff_abs$diff))
+
+# Calculate relative differences
+mergedkaas <- mergedkaas %>% mutate(relDif = diff / k_R)
+
+# Sort compartments by relative difference from highest to lowest
+sorted_diff_rel <- mergedkaas[order(abs(mergedkaas$relDif), decreasing = TRUE), ]
+
+# Print compartments sorted by relative difference
+print("Compartments sorted by relative difference:")
+print(sorted_diff_rel$from)
 
 #Column "diff" in df "mergedkaas" shows the difference between the R k output and the k's in Excel. 
 
