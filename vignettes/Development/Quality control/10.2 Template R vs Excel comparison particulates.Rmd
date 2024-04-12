@@ -159,16 +159,16 @@ kaas <-
                        (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(to, c("sd2"="sd","s1"="s")), to))
 
 
-kaas <-
-  kaas |>
-  mutate(from =
-                   ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") &
-                            (fromSubCompart == "lakesediment" | fromSubCompart == "freshwatersediment" | fromSubCompart ==  "agriculturalsoil" | fromSubCompart == "othersoil"),
-                          str_replace_all(from, c("sd2"="sd","s1"="s", "sd0"="sd", "sd1"="sd", "s2"="s", "s1"="s")),
-                          from)) |>
-  mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") &
-                       (toSubCompart == "lakesediment" | toSubCompart == "freshwatersediment" | toSubCompart ==  "agriculturalsoil" | toSubCompart == "othersoil"), str_replace_all(to, c("sd2"="sd","s1"="s", "sd0"="sd", "sd1"="sd", "s2"="s", "s1"="s")), to))
-  
+# kaas <-
+#   kaas |>
+#   mutate(from =
+#                    ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") &
+#                             (fromSubCompart == "lakesediment" | fromSubCompart == "freshwatersediment" | fromSubCompart ==  "agriculturalsoil" | fromSubCompart == "othersoil"),
+#                           str_replace_all(from, c("sd2"="sd","s1"="s", "sd0"="sd", "sd1"="sd", "s2"="s", "s1"="s")),
+#                           from)) |>
+#   mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") &
+#                        (toSubCompart == "lakesediment" | toSubCompart == "freshwatersediment" | toSubCompart ==  "agriculturalsoil" | toSubCompart == "othersoil"), str_replace_all(to, c("sd2"="sd","s1"="s", "sd0"="sd", "sd1"="sd", "s2"="s", "s1"="s")), to))
+#   
 
 diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] #all the diagonals in excel are negative values -> sums of all the "froms" of that compartment
 
@@ -197,7 +197,7 @@ library(plotly)
 filtered_R$from[!filtered_R$from %in% filtered_excel$from]
 # diagonal_excel$from[!diagonal_excel$from %in% diagonal_R$from] #all excel diagonals are in those of R
 filtered_excel$from[!filtered_excel$from %in% filtered_R$from]
-ifelse( (length(diagonal_R$k)-3)==length(diagonal_excel$k) ,
+ifelse(length(diagonal_R$k)==length(diagonal_excel$k) ,
        print("ok"), stop("too many compartment combo's")) 
 
 #Single dataframe with both the R and excel diagonals
@@ -262,7 +262,6 @@ mergedkaas <- merge(kaas2, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "
 
 mergedkaas$diff <- mergedkaas$k_R - mergedkaas$k_Excel #compare R k to Excel K
 
-print(sorted_diff_merged$from)
 mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)
 
 sorted_diff_abs <- mergedkaas[order(abs(mergedkaas$diff), decreasing = TRUE), ]
@@ -311,36 +310,39 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
 
 ```{r testing_aA, eval=FALSE, include=FALSE}
 
-kaas |> filter(from == "aT")
-World$moduleList[["k_Degradation"]]$execute(debugAt = list(ScaleName="Arctic",SubCompartName = "air"))
 
-World$fetchData("SubCompartName")
 
-test <- World$NewCalcVariable("FRingas")
-test$execute(debugAt = list())
-
-World$CalcVar("FRingas")
-
-CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
-
-World$moduleList[["k_Adsorption"]]$execute(debugAt = list(ScaleName="Arctic"))
-
-World$moduleList[["k_Adsorption"]]$FromAndTo
-World$moduleList[["k_Adsorption"]]$execute()
-
-World$moduleList[["k_Deposition"]]$execute(debugAt = list(ScaleName="Tropic"))
-World$moduleList[["k_Adsorption"]]$FromAndTo
-World$moduleList[["k_Adsorption"]]$execute()
-
-World$fetchData("Area")
-World$fetchData("FRACsea")
-
-#something with k_other:
-
-kaas |> filter(fromScale == "Tropic"&
-               fromSpecies == "Unbound"&
-                 fromSubCompart == "air")
-
+# 
+kaas |> filter(from == "aAS")
+World$moduleList[["k_HeteroAgglomeration.a"]]$execute()
+# 
+# World$fetchData("SubCompartName")
+# 
+# test <- World$NewCalcVariable("FRingas")
+# test$execute(debugAt = list())
+# 
+# World$CalcVar("FRingas")
+# 
+# CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
+# 
+# World$moduleList[["k_Adsorption"]]$execute(debugAt = list(ScaleName="Arctic"))
+# 
+# World$moduleList[["k_Adsorption"]]$FromAndTo
+# World$moduleList[["k_Adsorption"]]$execute()
+# 
+# World$moduleList[["k_Deposition"]]$execute(debugAt = list(ScaleName="Tropic"))
+# World$moduleList[["k_Adsorption"]]$FromAndTo
+# World$moduleList[["k_Adsorption"]]$execute()
+# 
+# World$fetchData("Area")
+# World$fetchData("FRACsea")
+# 
+# #something with k_other:
+# 
+# kaas |> filter(fromScale == "Tropic"&
+#                fromSpecies == "Unbound"&
+#                  fromSubCompart == "air")
+# 
 
 ```
 
