@@ -315,34 +315,17 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
 # 
 kaas |> filter(from == "aAS")
 World$moduleList[["k_HeteroAgglomeration.a"]]$execute()
-# 
-# World$fetchData("SubCompartName")
-# 
-# test <- World$NewCalcVariable("FRingas")
-# test$execute(debugAt = list())
-# 
-# World$CalcVar("FRingas")
-# 
-# CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
-# 
-# World$moduleList[["k_Adsorption"]]$execute(debugAt = list(ScaleName="Arctic"))
-# 
-# World$moduleList[["k_Adsorption"]]$FromAndTo
-# World$moduleList[["k_Adsorption"]]$execute()
-# 
-# World$moduleList[["k_Deposition"]]$execute(debugAt = list(ScaleName="Tropic"))
-# World$moduleList[["k_Adsorption"]]$FromAndTo
-# World$moduleList[["k_Adsorption"]]$execute()
-# 
-# World$fetchData("Area")
-# World$fetchData("FRACsea")
-# 
-# #something with k_other:
-# 
-# kaas |> filter(fromScale == "Tropic"&
-#                fromSpecies == "Unbound"&
-#                  fromSubCompart == "air")
-# 
+World$fetchData("Matrix")
+World$fetchData("RadCP")
+World$fetchData("DiffCP.aA")
+World$fetchData("Temp")
+World$fetchData("DynViscAirStandard")
+testair <- f_Diffusivity("air", Temp = 263, DynVisc = 1.81e-5, rad_species = 1.5e-7, Cunningham = 1)
+testother <- f_Diffusivity ("soil", Temp = 263, DynVisc = 1.81e-5, rad_species = 1.5e-7)
+
+print(testair)
+print(testother)
+
 
 ```
 
