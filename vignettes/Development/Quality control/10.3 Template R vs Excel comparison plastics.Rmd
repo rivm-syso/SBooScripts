@@ -52,8 +52,9 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "1-Chloro-2-nitro-propane", # neutral
                           "Sb(III)", # metal
                           "nAg_10nm", # nanoparticle (class particle) #not in substancelist?
-                          "microplastic") # microplastic (class particle)
-substance <- Potential_substances[6]
+                          "microplastic", 
+                          "nTiO2_10nm") # microplastic (class particle)
+substance <- Potential_substances[8]
 #create the relevant world for the substance selected
 source("baseScripts/initWorld_onlyParticulate.R")
 #source("baseScripts/initworld_onlyMolec.R")
