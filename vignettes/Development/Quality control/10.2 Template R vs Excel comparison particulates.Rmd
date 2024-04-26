@@ -317,17 +317,7 @@ World$moduleList[["k_DryDeposition"]]
 World$moduleList[["k_DryDeposition"]]$FromAndTo
 World$moduleList[["k_Runoff"]]
 World$moduleList[["k_Runoff"]]$FromAndTo
-# World$moduleList[["k_CWscavenging"]]$execute()
-# World$fetchData("RAINrate")
-# World$fetchData("FRACtwet")
-# debugonce(k_CWscavenging)
-# World$fetchData("Matrix")
-# World$fetchData("RadCP")
-# World$fetchData("DiffCP.aA")
-# World$fetchData("Temp")
-# World$fetchData("DynViscAirStandard")
-# testair <- f_Diffusivity("air", Temp = 263, DynVisc = 1.81e-5, rad_species = 9.00e-7)
-# testother <- f_Diffusivity ("soil", Temp = 263, DynVisc = 1.81e-5, rad_species = 1.5e-7)
+
 
 ```
 
