@@ -1,0 +1,33 @@
+---
+title: "Bug Fixes SimpleBox4Nano"
+author: "V. de Rijk"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Bug Fixes SimpleBox4Nano & Excel
+
+## Excel
+
+-   [Fix] Settling velocity of SPM is now calculated according to Stokes for water
+-   [Fix] Colloid concentration of sediments and water columns now consistent over all scales.
+-   [Fix] The Peclet number in the Global Scales was calculated based on diffusivity of the Continental Scale instead of the corresponding scale
+-   [Fix] Error in computation of Brownian collection coefficient in sediments (all scales) (porosity instead of ASDF)
+-   [Fix] correction factor now also applied to erosion for P (attached) species which do not have runoff
+-   [Fix] FractT was not 1 in global scales whereas it is one in regional and continental scales
+-   [Fix] 'Diffusivity of Coarse Aerosol Particles did not include Cunningham Slip Factor Coefficient, added on all scales'
+
+
+## R
+
+- Documentation is updated for vignettes, needs further improvements 
+- Bug Fix in F_diffusivity, function was only returning first line. 
+- Heteroagglomeration input data was different than Excel version, this is changed. 
+- Net sedimentation rate for continetal scale was 0, this is changed. 
+- Correction factor variable (FracROWatComp) introduced to mimic the correction factor in the runoff term in Excel. 
+
+Note, the working branch in SBOO VDR_constantdeprate, has a constant deposition rate instead of the function that is implemented in SBOO to facilitate comparison. 

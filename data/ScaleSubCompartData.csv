@@ -12,7 +12,7 @@
 "NETsedrate","Arctic","deepocean",6.3e-14,"NETsedrate.wA","m.s-1"
 "NETsedrate","Continental","lake",8.6e-11,"missing","m.s-1"
 "NETsedrate","Continental","river",8.6e-11,"NETsedrate.w1C","m.s-1"
-"NETsedrate","Continental","sea",0,"NETsedrate.w2C","m.s-1																 													   "
+"NETsedrate","Continental","sea",2.74e-11,"NETsedrate.w2C","m.s-1																 													   "
 "NETsedrate","Moderate","deepocean",8.95e-14,"NETsedrate.wM","m.s-1"
 "NETsedrate","Regional","lake",8.7e-11,"missing","m.s-1"
 "NETsedrate","Regional","river",8.7e-11,"NETsedrate.w1R","m.s-1"

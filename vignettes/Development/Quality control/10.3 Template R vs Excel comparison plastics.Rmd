@@ -1,0 +1,432 @@
+---
+title: "Model output"
+author: "Joris Quik, Jaap Slootweg, Valerie de Rijk"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+## impossible to generalise? projectRoot <- paste(getwd(), "..", sep = "/")
+# projectRoot <- paste(getwd(), "..", "..", sep = "/")
+# knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+*SimpleBox 4.0 produces two sorts of output; a steady-state or "level
+III" output, and the quasi-dynamic or "level IV" output. The
+steady-state output is developed when the conditions (loadings and
+environmental conditions) remain constant in time for a sufficiently
+long period. The mass flows and concentrations are constant in time, as
+the sum of the mass balance equation terms is equal to zero for all
+boxes, and the n steady-state concentrations can be solved from the n
+linear mass balance equations. This steady-state solution is obtained by
+means of a matrix inversion routine. The mass flows and concentrations
+that characterise this steady state are given in output tables. The
+quasi-dynamic output is developed when, after a change in conditions
+(loadings or environmental conditions), the mass flows and
+concentrations develop toward a new steady state, according to the mass
+balance equations. This computation is made by numerical integration of
+the set of mass balance equations from time zero, with all
+concentrations at zero, to infinite time with all concentrations
+constant at steady state. The standard procedure is to compute the
+steady-state solution first and carry out the dynamic response
+computation afterwards, as an option.*
+
+# *Initialize*
+
+*This vignettes demonstrates the mechanism behind SBoo. The model first
+needs to be initialized. Before initialisation a substances needs to be
+selected, otherwise the "default stubstance" is used. initWorld.R does
+just that, and calculates SBvars, flows and k's.*
+
+```{r warning=FALSE}
+#We need to initialize, by default a molecular substance is selected
+Potential_substances <- c("1-aminoanthraquinone", # no class
+                          "1-HYDROXYANTHRAQUINONE", # acid
+                          "1-Hexadecanamine, N,N-dimethyl-", # base
+                          "1-Chloro-2-nitro-propane", # neutral
+                          "Sb(III)", # metal
+                          "nAg_10nm", # nanoparticle (class particle) #not in substancelist?
+                          "microplastic", 
+                          "nTiO2_10nm") # microplastic (class particle)
+substance <- Potential_substances[8]
+#create the relevant world for the substance selected
+source("baseScripts/initWorld_onlyParticulate.R")
+#source("baseScripts/initworld_onlyMolec.R")
+
+length(unique(World$kaas$process))
+
+ProcessNanoFunctions <- c("k_Advection", "k_Burial",
+                         "k_HeteroAgglomeration.a", "k_HeteroAgglomeration.wsd",
+                         "k_CWscavenging", "k_Degradation",
+                         "k_DryDeposition", "k_Erosion", "k_Escape",
+                         "k_Leaching", "k_Resuspension", "k_Runoff", "k_Sedimentation",
+                        "k_WetDeposition")
+
+
+
+
+ProcessNanoFunctions[!ProcessNanoFunctions %in% unique(World$kaas$process)]
+
+unique(World$kaas$process)
+
+```
+
+```{r data xlsx and R}
+#Comparing K's from R model to K's from excel model
+library(openxlsx)
+library(tidyverse)
+#read in K matrix from excel
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4plastics_rev009-1_",substance,".xlsx") 
+
+SBexcel.K <- read.xlsx(SBExcelName,
+                  colNames = FALSE,
+                  namedRegion = "K")
+SBexcel.Names <- read.xlsx(SBExcelName,
+                  colNames = FALSE,
+                  namedRegion = "box_names")
+
+colnames(SBexcel.K) <- SBexcel.Names
+
+SBexcel.K$to <-  as.character(SBexcel.Names)
+
+SBexcel.K <- pivot_longer(SBexcel.K, cols =  as.character(SBexcel.Names), values_to = "k", names_to = "from")
+
+length(SBexcel.K$k)
+
+#adding "from" and "to" acronyms to the R K matrix
+kaas <- as_tibble(World$kaas)
+unique(kaas$fromScale)
+unique(kaas$fromSubCompart)
+
+#R version does not us the acronyms of the excel version, set-up to convert them
+#Note: this map creates the wrong acronym for soil and sediment at global scale, this is fixed afterwards
+accronym_map <- c("marinesediment" = "sd2",
+                "freshwatersediment" = "sd1",
+                "lakesediment" = "sd0", #SB Excel does not have this compartment. To do: can we turn this off (exclude this compartment) for testing?
+                "agriculturalsoil" = "s2",
+                "naturalsoil" = "s1",
+                "othersoil" = "s3",
+                "air" = "a",
+                "deepocean" = "w3",
+                "sea" = "w2",
+                "river" = "w1",
+                "lake" = "w0", 
+                "cloudwater" = "cw")
+
+accronym_map2 <- c("Arctic" = "A",
+                   "Moderate" = "M",
+                   "Tropic" = "T",
+                   "Continental" = "C",
+                   "Regional" = "R")
+
+accronym_map3 <- c("Dissolved" = "D", 
+                   "Gas" = "G", 
+                   "Large" = "P", 
+                   "Small" = "A",
+                   "Solid" = "S", 
+                   "Unbound" = "U")
+
+# kaas |> filter(fromScale == "Tropic" & process == "k_Degradation") |> print(n=50)
+
+kaas <- kaas |> mutate(from =  paste0(accronym_map[fromSubCompart], 
+                            accronym_map2[fromScale], 
+                            accronym_map3[fromSpecies]),
+               to = paste0(accronym_map[toSubCompart], 
+                           accronym_map2[toScale], 
+                           accronym_map3[toSpecies]))
+
+# kaas$from <- paste0(accronym_map[kaas$fromSubCompart], accronym_map2[kaas$fromScale])
+
+# kaas$to <- paste0(accronym_map[kaas$toSubCompart], accronym_map2[kaas$toScale])
+
+# Issue that compartments sediment and soil at global scale in excel have sd and s as acronyms instead of sd2 and s1 , happens in this case as well
+
+#"sd2"="sd","s1"="s", "s2 =s", "s3 = s", "sd0 = sd", "sd1 = sd1")
+#("sd2"="sd","s1"="s")
+kaas <-
+  kaas |>
+  mutate(from =
+                   ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") &
+                            (fromSubCompart == "marinesediment" | fromSubCompart == "naturalsoil"),
+                          str_replace_all(from, c("sd2"="sd","s1"="s")),
+                          from)) |>
+  mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") &
+                       (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(to, c("sd2"="sd","s1"="s")), to))
+
+
+# kaas <-
+#   kaas |>
+#   mutate(from =
+#                    ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") &
+#                             (fromSubCompart == "lakesediment" | fromSubCompart == "freshwatersediment" | fromSubCompart ==  "agriculturalsoil" | fromSubCompart == "othersoil"),
+#                           str_replace_all(from, c("sd2"="sd","s1"="s", "sd0"="sd", "sd1"="sd", "s2"="s", "s1"="s")),
+#                           from)) |>
+#   mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") &
+#                        (toSubCompart == "lakesediment" | toSubCompart == "freshwatersediment" | toSubCompart ==  "agriculturalsoil" | toSubCompart == "othersoil"), str_replace_all(to, c("sd2"="sd","s1"="s", "sd0"="sd", "sd1"="sd", "s2"="s", "s1"="s")), to))
+#   
+
+diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] #all the diagonals in excel are negative values -> sums of all the "froms" of that compartment
+
+#filter out dissolved and gas processes
+
+filtered_excel <- diagonal_excel[!endsWith(diagonal_excel$from, "D"), ]
+filtered_excel <- filtered_excel[!endsWith(filtered_excel$from, "G"), ]
+
+#diagonal_excel <- filtered_excel
+
+#filter out molecular (unbound) state
+#R model has k values per process, not per box. For the "diagonal" ("from = to") boxes, this is different than in the excel version. summing all the "froms" here to be able to compare them with excel matrix. This should result in one value for each compartment (scale-subcomp-species combo)
+
+diagonal_R <-aggregate(k ~ from, data = kaas, FUN = sum) 
+print(diagonal_R$from)
+filtered_R <- diagonal_R[!endsWith(diagonal_R$from, "U"), ]
+#diagonal_R <- filtered_R
+      
+```
+
+```{r diagonal}
+#Check for any differences in what compartments there are between versions
+# diagonal_R$from[!diagonal_R$from %in% diagonal_excel$from] # "sd0C" "sd0R" were added in sboo v1
+library (ggplot2)
+library(plotly)
+filtered_R$from[!filtered_R$from %in% filtered_excel$from]
+# diagonal_excel$from[!diagonal_excel$from %in% diagonal_R$from] #all excel diagonals are in those of R
+filtered_excel$from[!filtered_excel$from %in% filtered_R$from]
+ifelse(length(diagonal_R$k)==length(diagonal_excel$k) ,
+       print("ok"), stop("too many compartment combo's")) 
+
+#Single dataframe with both the R and excel diagonals
+merged_diagonal <- merge(filtered_R, filtered_excel, by = "from", suffixes = c("_R", "_Excel")) 
+merged_diagonal$k_Excel <- -merged_diagonal$k_Excel #Turning the "negative" values from the Excel matrix into positive ones
+merged_diagonal$diff <- merged_diagonal$k_R - merged_diagonal$k_Excel 
+
+#Plot of differences of the diagonals per compartment
+plot <- ggplot(merged_diagonal, aes(x = from, y = diff)) +
+  geom_boxplot()
+
+# Convert ggplot to plotly
+plotly_plot <- ggplotly(plot)
+
+# Save as HTML
+#htmlwidgets::saveWidget(plotly_plot, file = "differences_diagonals_particulate.html")
+
+# Open in default web browser
+browseURL("differences_diagonals_particulate.html")
+
+
+
+sorted_diff <- merged_diagonal[order(abs(merged_diagonal$diff), decreasing = TRUE), ]
+print(sorted_diff$from)
+```
+
+
+```{r rate_constants}
+#Dataframe of all other boxes
+
+# kaas |> filter(to != from)
+
+
+kaas2 <- kaas |>  
+  filter(from != to) |> #filtering the diagonals ou
+  group_by(from, to) %>% summarize(k = sum(k)) #R version sometimes has multiple k's per fromto box; excel only has the summed k's per box
+kaas2 <- kaas2[!endsWith(kaas2$from, "U"), ]
+kaas2$fromto <- paste(sep = "_", kaas2$from, kaas2$to)
+
+SBexcel.K <- filter(SBexcel.K, k != 0 & SBexcel.K$from != SBexcel.K$to)
+SBexcel.K <- SBexcel.K |>
+  filter(!endsWith(from, "D") & !endsWith(from, "G")) |>
+  filter(!endsWith(to, "D") & !endsWith(to, "G"))
+SBexcel.K$fromto <- paste(sep = "_", SBexcel.K$from, SBexcel.K$to)
+
+SBexcel.K$fromto[!SBexcel.K$fromto %in% kaas2$fromto] # No xlsx missing
+
+
+kaas2$fromto[!kaas2$fromto %in% SBexcel.K$fromto] # more k's in SBoo than in SBxl
+
+mergedkaas <- merge(kaas2, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
+
+mergedkaas$diff <- mergedkaas$k_R - mergedkaas$k_Excel #compare R k to Excel K
+
+mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)
+
+sorted_diff_abs <- mergedkaas[order(abs(mergedkaas$diff), decreasing = TRUE), ]
+
+
+# Calculate relative differences
+mergedkaas <- mergedkaas %>% mutate(relDif = diff / k_R)
+
+# Sort compartments by relative difference from highest to lowest
+sorted_diff_rel <- mergedkaas[order(abs(mergedkaas$relDif), decreasing = TRUE), ]
+
+# Print compartments sorted by relative difference
+print("Compartments sorted by relative difference:")
+print(sorted_diff_rel$from)
+
+#Column "diff" in df "mergedkaas" shows the difference between the R k output and the k's in Excel. 
+
+#Visualize the diff per process in boxplots: which compartments (fromto boxes) have the largest differences between R and the excel model?
+
+#Diff per "from" compartment
+ggplot(mergedkaas, aes (x = from, y = diff)) +
+  geom_boxplot()
+
+#Diff per "to" compartment
+ggplot(mergedkaas, aes (x = to, y = diff)) +
+  geom_boxplot()
+
+# "To" and "from" in one plot
+ggplot(mergedkaas, aes(x = to, y = from, color = abs(diff))) + 
+  geom_point() +
+  scale_color_gradient(low = "green", high = "red", trans = "log10") 
+
+
+ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) + 
+  geom_point() +
+  scale_color_gradient(low = "green", high = "red") 
+#If you want to inspect per process instead of fromto box: look at the original kaas dataframe
+
+```
+
+## *air*
+
+```{r testing_aA, eval=FALSE, include=FALSE}
+
+
+
+# 
+kaas |> filter(from == "aAS")
+World$fetchData("Area")
+World$fetchData("Volume")
+World$fetchData("AEROSOLdeprate")
+World$moduleList[["k_HeteroAgglomeration.a"]]$execute()
+debugonce(k_HeteroAgglomeration.a)
+World$fetchData("k_HeteroAgglomeration.a")
+World$fetchData("gamma.surf")
+World$fetchData("beta.a")
+World$fetchData("RhoCP")
+World$fetchData("RadAcc")
+World$fetchData("Radius")
+World$fetchData("Runoff")
+World$fetchData("NumConcNuc")
+World$moduleList[["k_DryDeposition"]]
+World$moduleList[["k_DryDeposition"]]$FromAndTo
+World$moduleList[["k_Runoff"]]
+World$moduleList[["k_Runoff"]]$FromAndTo
+# World$moduleList[["k_CWscavenging"]]$execute()
+# World$fetchData("RAINrate")
+# World$fetchData("FRACtwet")
+# debugonce(k_CWscavenging)
+# World$fetchData("Matrix")
+# World$fetchData("RadCP")
+# World$fetchData("DiffCP.aA")
+# World$fetchData("Temp")
+# World$fetchData("DynViscAirStandard")
+# testair <- f_Diffusivity("air", Temp = 263, DynVisc = 1.81e-5, rad_species = 9.00e-7)
+# testother <- f_Diffusivity ("soil", Temp = 263, DynVisc = 1.81e-5, rad_species = 1.5e-7)
+
+```
+
+## *water*
+
+
+```{r}
+#kaas2$fromto[!kaas2$fromto %in% SBexcel.K$fromto] # more k's in SBoo than in SBxl
+```
+
+```{r test_w1R, eval=FALSE, include=FALSE}
+library(tidyverse)
+kaas |> filter(from == "sdTA")
+World$moduleList[["k_Advection"]]$execute()
+debugonce(k_Advection)
+World$fetchData("Volume")
+World$fetchData("FRACsea")
+World$fetchData("flow")
+World$fetchData("OceanCurrent")
+
+
+World$fetchData("TAUsea")
+World$fetchData("AirFlow")
+airflowregional <- World$fetchData("AirFlow") |>
+  filter(Scale == "Regional") |>
+  pull (`AirFlow`)
+volumeregional <- World$fetchData("Volume") |>
+  filter(Scale == "Regional" & SubCompart == "air") |>
+  pull(`Volume`)
+print(airflowregional)
+testflow <- airflowregional/volumeregional
+print(testflow)
+World$fetchData("COL")
+test <- World$fetchData("Matrix") 
+print(class(test))
+landfractest <-World$fetchData("landFRAC")
+testmerge <- left_join(
+  x = landfractest,
+  y = test,
+  by = join_by(SubCompart))
+
+test_landFRACwater <- testmerge |>
+  filter(Matrix == "water" & Scale == "Regional") |>
+  summarise(test_landFRACwater = sum(landFRAC, na.rm = TRUE)) |>
+  pull(test_landFRACwater)
+
+print(test_landFRACwater)
+
+kaas |> filter(from == "w2AS")
+debugonce(k_HeteroAgglomeration.wsd)
+```
+
+## Soil
+
+```{r test_sM}
+
+kaas |> filter(from == "s2CA")
+#World$moduleList[["k_Erosion"]]$execute()
+debugonce(k_Erosion)
+World$fetchData("Kscompw")
+World$fetchData("Runoff")
+World$fetchData("EROSIONsoil")
+World$fetchData("VertDistance")
+World$fetchData("FRACrun")
+World$fetchData("AreaLand")
+World$fetchData("Volume")
+World$fetchData("Matrix")
+
+debugonce(FracROWatComp)
+World$fetchData("FracROWatComp")
+df <-World$moduleList[["k_Runoff"]]$execute()
+
+kaas |> filter(from == "sAS")
+testVar <- World$NewCalcVariable("FracROWatComp")
+testVar$execute(debugAt = list(Scale = "Regional", SubCompart = "lake"))
+
+
+```
+
+## Sediment
+```{r test_sd}
+kaas |> filter(from == "sdAS")
+
+
+
+World$fetchData("DefaultNETsedrate")
+World$fetchData("NETsedrate")
+World$moduleList[["k_Runoff"]]$execute()
+
+World$fetchData("Temp")
+World$fetchData("alpha")
+World$fetchData("Udarcy")
+World$fetchData("diffs.W")
+World$fetchData("RadCP")
+World$fetchData("SUSP")
+World$moduleList[["k_Resuspension"]]$execute()
+debugonce(k_Resuspension)
+tetst<- 2.02e-20/(kboltz*263)
+print (tetst)
+
+```
