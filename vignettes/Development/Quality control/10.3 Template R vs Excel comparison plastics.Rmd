@@ -51,10 +51,10 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "1-Hexadecanamine, N,N-dimethyl-", # base
                           "1-Chloro-2-nitro-propane", # neutral
                           "Sb(III)", # metal
-                          "nAg_10nm", # nanoparticle (class particle) #not in substancelist?
-                          "microplastic", 
-                          "nTiO2_10nm") # microplastic (class particle)
-substance <- Potential_substances[8]
+                          "nTiO2_10nm", # nanoparticle (class particle) #not in substancelist?
+                          "nC60_10nm", 
+                          "microplastic") # microplastic (class particle)
+substance <- Potential_substances[6]
 #create the relevant world for the substance selected
 source("baseScripts/initWorld_onlyParticulate.R")
 #source("baseScripts/initworld_onlyMolec.R")
@@ -310,7 +310,7 @@ World$fetchData("k_HeteroAgglomeration.a")
 World$fetchData("gamma.surf")
 World$fetchData("beta.a")
 World$fetchData("RhoCP")
-World$fetchData("RadAcc")
+World$fetchData("RadS")
 World$fetchData("Radius")
 World$fetchData("Runoff")
 World$fetchData("NumConcNuc")
@@ -341,9 +341,9 @@ World$moduleList[["k_Runoff"]]$FromAndTo
 
 ```{r test_w1R, eval=FALSE, include=FALSE}
 library(tidyverse)
-kaas |> filter(from == "sdTA")
-World$moduleList[["k_Advection"]]$execute()
-debugonce(k_Advection)
+kaas |> filter(from == "w2RS")
+World$moduleList[["k_Sedimentation"]]$execute()
+debugonce(k_Sedimentation)
 World$fetchData("Volume")
 World$fetchData("FRACsea")
 World$fetchData("flow")
@@ -410,19 +410,22 @@ testVar$execute(debugAt = list(Scale = "Regional", SubCompart = "lake"))
 
 ## Sediment
 ```{r test_sd}
-kaas |> filter(from == "sdAS")
+kaas |> filter(from == "s3CS")
 
 
 
-World$fetchData("DefaultNETsedrate")
+World$fetchData("hamakerSP.w")
 World$fetchData("NETsedrate")
 World$moduleList[["k_Runoff"]]$execute()
 
 World$fetchData("Temp")
+World$fetchData("RhoS")
+World$fetchData("RadS")
+World$fetchData("RadCP")
 World$fetchData("alpha")
 World$fetchData("Udarcy")
 World$fetchData("diffs.W")
-World$fetchData("RadCP")
+World$fetchData("FRACs")
 World$fetchData("SUSP")
 World$moduleList[["k_Resuspension"]]$execute()
 debugonce(k_Resuspension)
