@@ -183,16 +183,15 @@ For a process to work, a couple of things need to be checked:
 
 If the model is not running for a certain substance, chances are high substance-specific input data is missing. Similarly to when you're wanting to add new substances, it is good to check and adjust the following csv files:
 
-- Substances.csv : All basic info needs to be present here. 
-- Substancecompartments.csv : Specific values for specific compartments, such as kdeg need to be present here. 
-- SubstanceSubCompartSpeciesdata: needed for variables such as attachment efficiency (alpha), kdis and kfrag and kmpdeg (microplastics)
+-   Substances.csv : All basic info needs to be present here.
+-   Substancecompartments.csv : Specific values for specific compartments, such as kdeg need to be present here.
+-   SubstanceSubCompartSpeciesdata: needed for variables such as attachment efficiency (alpha), kdis and kfrag and kmpdeg (microplastics)
 
-## Debugging strategies  
+## Debugging strategies
 
-There's several ways to start debugging. Due to the complicated structure of the R6-core, sometimes it's hard to identify where the error comes from exactly. If you have a specific error, it's good to search for the location of this error in the R6 core scripts. 
-However, if you're unsure of the outcome or the values of several variables, you can use the following strategies: 
+There's several ways to start debugging. Due to the complicated structure of the R6-core, sometimes it's hard to identify where the error comes from exactly. If you have a specific error, it's good to search for the location of this error in the R6 core scripts. However, if you're unsure of the outcome or the values of several variables, you can use the following strategies:
 
-The first option is to use $NeedVars . For this strategy you need to 'calculate' the variable again so you can access its information. The printing option gives you information on which function it comes from and which variables are needed. See below: 
+The first option is to use \$NeedVars . For this strategy you need to 'calculate' the variable again so you can access its information. The printing option gives you information on which function it comes from and which variables are needed. See below:
 
 ```{r, $needvars, eval=FALSE }
 CalcVariable <- World$NewCalcVariable("Area")
@@ -201,9 +200,13 @@ CalcVariable$needVars
 
 ```
 
-You can use the previously mentioned $execute function also to debug for certain specific subcompartments and scales like so: 
+You can use the previously mentioned \$execute function also to debug for certain specific subcompartments and scales like so:
 
 ```{r, debugging, eval=FALSE}
 
 CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
 ```
+
+##Emissions
+
+TO DO add emissions

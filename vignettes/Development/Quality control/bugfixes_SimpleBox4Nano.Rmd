@@ -20,6 +20,7 @@ knitr::opts_chunk$set(echo = TRUE)
 -   [Fix] correction factor now also applied to erosion for P (attached) species which do not have runoff
 -   [Fix] FractT was not 1 in global scales whereas it is one in regional and continental scales
 -   [Fix] 'Diffusivity of Coarse Aerosol Particles did not include Cunningham Slip Factor Coefficient, added on all scales'
+-   [Fix] Corrected names of cells of removal processes in arctic and tropical scales. 
 
 
 ## R
@@ -29,6 +30,13 @@ knitr::opts_chunk$set(echo = TRUE)
 - Heteroagglomeration input data was different than Excel version, this is changed. 
 - Net sedimentation rate for continetal scale was 0, this is changed. 
 - Correction factor variable (FracROWatComp) introduced to mimic the correction factor in the runoff term in Excel. 
-- Fixed input data for nTIO_10nm, had multiple discrepancies
+- Fixed input data for nTi02_10nm, had multiple discrepancies
+- Fixed input data for other nanoparticles and plastics, most is missing. Currently available: 
+  n_Ag_10nm, nTiO2_10nm, nC60_10nm, nZnO, microplastic
+- Added function k_Fragmentation to address microplastic fragmentation and degradation
+
+To be fixed: 
+See Github. 
+ 
 
 Note, the working branch in SBOO VDR_constantdeprate, has a constant deposition rate instead of the function that is implemented in SBOO to facilitate comparison. 

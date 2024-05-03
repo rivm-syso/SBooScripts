@@ -219,7 +219,7 @@ to
 and the relative differences (for one flow comparison from)
 
 | Flow    | R-old    | Excel-Old | Abs difference | Relative Difference | R-new    | Abs difference | Relative difference |
-|--------|--------|--------|--------|--------|--------|--------|--------|
+|---------|----------|-----------|----------------|---------------------|----------|----------------|---------------------|
 | aAS_aAP | 2.97e-19 | 1.43e-7   | 1.43e-7        | 4.8e+11             | 1.43e-07 | -8.02e-10      | 5.62e-03            |
 
 ![Relative differences after
@@ -245,7 +245,7 @@ considering aggregated particles in air to aggregated
 particles in cloudwater (e.g., aTA_cwTA)
 
 | Flow     | R-old   | Excel-Old | Abs difference | Relative Difference | Excel-New | Abs difference | Relative difference |
-|--------|--------|--------|--------|--------|--------|--------|--------|
+|----------|---------|-----------|----------------|---------------------|-----------|----------------|---------------------|
 | aTA_cwTA | 2.32e-7 | 8.14e-7   | 5.81e-7        | 2.50                | 2.32e-7   | 5.6e-12        | 2.41e-5             |
 
 ![Relative differences after cloudwater
@@ -301,7 +301,7 @@ advection flow. It should be split in two flows (advection
 and sedimentation). This caused the following discrepancy.
 
 | Flow      | R-old   | Excel-Old | Abs difference | Relative Difference | Excel-New | Abs difference | Relative difference |
-|--------|--------|--------|--------|--------|--------|--------|--------|
+|-----------|---------|-----------|----------------|---------------------|-----------|----------------|---------------------|
 | w2TP_w3TP | 2.27e-7 | 5.21e-7   | 2.94e-7        | 1.29                |           |                |                     |
 
 ### Heteroagglomeration
@@ -311,7 +311,7 @@ consistent between Excel and R was inconsistent, see table
 below.
 
 | Flow        | R-Old   | Excel-Old | Abs difference | Relative difference | R-New   | Abs difference | Relative difference |
-|--------|--------|--------|--------|--------|--------|--------|--------|
+|-------------|---------|-----------|----------------|---------------------|---------|----------------|---------------------|
 | sd1CS_sd1CA | 1.13e-1 | 2.25e-3   | 1.1e-1         | 9.8e-1              | 2.25e-3 | 2.92e-10       | 1.29e-7             |
 
 The problem was in the fact that colloid concentration
@@ -338,7 +338,7 @@ not implemented. This is adjusted in Excel since it should
 be there as well.
 
 | Flow      | R-Old    | Excel-Old | Abs difference | Relative difference | Excel-New | Abs difference | Relative difference |
-|--------|--------|--------|--------|--------|--------|--------|--------|
+|-----------|----------|-----------|----------------|---------------------|-----------|----------------|---------------------|
 | s2CP_w1CP | 1.09e-11 | 4.36e-12  | 6.36e-12       | 6.03e-1             | 1.01e-11  | 9.134260e-13   | 8.3e-2              |
 
 ### Resuspension from sediment to continental sea
@@ -350,7 +350,7 @@ following flow was also fixed, but there is probably another
 mistake
 
 | Flow       | R-Old  | Excel-Old | Abs difference | Relative difference | R-New   | Abs difference | Relative difference |
-|--------|--------|--------|--------|--------|--------|--------|--------|
+|------------|--------|-----------|----------------|---------------------|---------|----------------|---------------------|
 | sd2CA_w2CA | 9.8e-9 | 8.73e-9   | 1.06e-9        | 1.09e-1             | 8.88e-9 | 1.55e-10       | 1.74e-2             |
 
 Found other mistake. Settling velocity of Suspended
@@ -391,7 +391,67 @@ FracROWatComp <- function(all.landFRAC, all.Matrix, Matrix, SubCompartName, Scal
 
 ## Testing of SimpleBox4Plastic
 
-Did not work, missing data in SubstanceSubCompartSpeciesData. Needs all input variables explicitly defined. In the end, needs to be fixed through a variable, but for now need to adjust this. 
+Did not work, missing data in
+SubstanceSubCompartSpeciesData. Needs all input variables
+explicitly defined. In the end, needs to be fixed through a
+variable, but for now need to adjust this. The scripts that
+need to be adjusted before a new substance can be initiated:
 
-- Did fix discrepancies for nTiO2_10nm
+-   Substances.csv -- general data
 
+-   SubstanceSubCompartSpeciesDatascv -- alpha, kdis
+
+    -   for microplastics: kfrag, kmpdeg
+
+-   SubstanceCompartments.csv -- kdeg, EF (for
+    nanoparticles)
+
+Based on plastic insights, a new method is needed for the
+implementation of kdegradation in R. I made a new process
+called k_Fragmentation which deals with the fragmentation
+and degradation of plastics specifically. Need to figure out
+how to substract it from the same department (like
+degradation and escape). Better method needs to be found for
+nanoparticles (it is currently modelled as 1e-20 instead of
+0 but would be better if this was not necessary at all).
+
+### k_Fragmentation function
+
+Specific fragmentation and degradation behavior of
+microplastics was not included in the R implmentation of
+SimpleBox, whereas it was in the Excel function. I created a
+new function to initialize this behavior called
+k_Fragmentation. For this I had to adjust the following csv
+files:
+
+-   Processes4SpeciesTp
+
+-   SubCompartProcesses
+
+the function is defined as below:
+
+```{r Fragmentation }
+#' @title Fragmentation and degradation of plastics
+#' @name k_Fragmentation
+#' @description Calculation of fragmentation and degradation of plastics, only used in Plastics World
+#' @param kmpdeg degradation rate of plastic in certain subcompartment [s-1]
+#' @param kfrag fragmentation rate of plastic in certain subcompartment
+#' @return k_Fragmentation, the combined degradation and fragmentation rate of microplastics [s-1]
+#' @export
+
+
+k_Fragmentation <- function(kmpdeg, kfrag, SubCompartName, ScaleName){
+  if (((ScaleName %in% c("Tropic", "Moderate", "Arctic")) & (SubCompartName == "freshwatersediment" | 
+                                                             SubCompartName == "lakesediment" |
+                                                             SubCompartName == "lake" |
+                                                             SubCompartName == "river" |
+                                                             SubCompartName == "agriculturalsoil"|
+                                                             SubCompartName == "othersoil")) ){
+    return(NA)
+  } else {
+    return(kmpdeg + kfrag)
+  }
+    
+}
+
+```
