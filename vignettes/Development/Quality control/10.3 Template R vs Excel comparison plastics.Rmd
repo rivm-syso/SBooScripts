@@ -51,12 +51,12 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "1-Hexadecanamine, N,N-dimethyl-", # base
                           "1-Chloro-2-nitro-propane", # neutral
                           "Sb(III)", # metal
-                          "nTiO2_10nm", # nanoparticle (class particle) #not in substancelist?
+                          "nZnO", # nanoparticle (class particle) #not in substancelist?
                           "nC60_10nm", 
                           "microplastic") # microplastic (class particle)
-substance <- Potential_substances[6]
+substance <- Potential_substances[8]
 #create the relevant world for the substance selected
-source("baseScripts/initWorld_onlyParticulate.R")
+source("baseScripts/initWorld_onlyPlastics.R")
 #source("baseScripts/initworld_onlyMolec.R")
 
 length(unique(World$kaas$process))
@@ -141,14 +141,7 @@ kaas <- kaas |> mutate(from =  paste0(accronym_map[fromSubCompart],
                            accronym_map2[toScale], 
                            accronym_map3[toSpecies]))
 
-# kaas$from <- paste0(accronym_map[kaas$fromSubCompart], accronym_map2[kaas$fromScale])
 
-# kaas$to <- paste0(accronym_map[kaas$toSubCompart], accronym_map2[kaas$toScale])
-
-# Issue that compartments sediment and soil at global scale in excel have sd and s as acronyms instead of sd2 and s1 , happens in this case as well
-
-#"sd2"="sd","s1"="s", "s2 =s", "s3 = s", "sd0 = sd", "sd1 = sd1")
-#("sd2"="sd","s1"="s")
 kaas <-
   kaas |>
   mutate(from =
@@ -160,16 +153,7 @@ kaas <-
                        (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(to, c("sd2"="sd","s1"="s")), to))
 
 
-# kaas <-
-#   kaas |>
-#   mutate(from =
-#                    ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") &
-#                             (fromSubCompart == "lakesediment" | fromSubCompart == "freshwatersediment" | fromSubCompart ==  "agriculturalsoil" | fromSubCompart == "othersoil"),
-#                           str_replace_all(from, c("sd2"="sd","s1"="s", "sd0"="sd", "sd1"="sd", "s2"="s", "s1"="s")),
-#                           from)) |>
-#   mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") &
-#                        (toSubCompart == "lakesediment" | toSubCompart == "freshwatersediment" | toSubCompart ==  "agriculturalsoil" | toSubCompart == "othersoil"), str_replace_all(to, c("sd2"="sd","s1"="s", "sd0"="sd", "sd1"="sd", "s2"="s", "s1"="s")), to))
-#   
+
 
 diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] #all the diagonals in excel are negative values -> sums of all the "froms" of that compartment
 
@@ -300,24 +284,40 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
 
 
 # 
-kaas |> filter(from == "aAS")
-World$fetchData("Area")
+print(log)
+kaas |> filter(from == "aCP")
+World$fetchData("alpha")
 World$fetchData("Volume")
 World$fetchData("AEROSOLdeprate")
-World$moduleList[["k_HeteroAgglomeration.a"]]$execute()
-debugonce(k_HeteroAgglomeration.a)
+World$moduleList[["k_CWscavenging"]]$execute()
+#debugonce(k_CWscavenging)
 World$fetchData("k_HeteroAgglomeration.a")
+World$moduleList[["k_HeteroAgglomeration.a"]]$execute
+debugonce(k_HeteroAgglomeration.a)
 World$fetchData("gamma.surf")
 World$fetchData("beta.a")
+World$fetchData("Rad_RainDrop")
+World$fetchData("RadCP")
 World$fetchData("RhoCP")
-World$fetchData("RadS")
-World$fetchData("Radius")
+trial1 <- World$fetchData("kmpdeg")
+trial2 <- World$fetchData("kfrag")
+World$fetchData("RadAers")
+World$fetchData("RAINrate")
+World$fetchData("FRACtwet")
+World$fetchData("rad_species")
 World$fetchData("Runoff")
 World$fetchData("NumConcNuc")
+World$fetchData("NumConcCP")
+World$fetchData("DynViscAirStandard")
 World$moduleList[["k_DryDeposition"]]
 World$moduleList[["k_DryDeposition"]]$FromAndTo
 World$moduleList[["k_Runoff"]]
-World$moduleList[["k_Runoff"]]$FromAndTo
+World$moduleList[["k_Fragmentation"]]$execute()
+testmerge <- left_join(
+  x = trial1,
+  y = trial2)
+print(testmerge)
+#test <- World$fetchData("kmpdeg") + World$fetchData("kfrag")
 # World$moduleList[["k_CWscavenging"]]$execute()
 # World$fetchData("RAINrate")
 # World$fetchData("FRACtwet")
@@ -385,7 +385,7 @@ debugonce(k_HeteroAgglomeration.wsd)
 
 ```{r test_sM}
 
-kaas |> filter(from == "s2CA")
+kaas |> filter(from == "s1CS")
 #World$moduleList[["k_Erosion"]]$execute()
 debugonce(k_Erosion)
 World$fetchData("Kscompw")
@@ -396,7 +396,14 @@ World$fetchData("FRACrun")
 World$fetchData("AreaLand")
 World$fetchData("Volume")
 World$fetchData("Matrix")
-
+World$fetchData("Udarcy")
+World$fetchData("RadCP")
+World$fetchData("RadS")
+World$fetchData("DiffS.w")
+World$fetchData("DynVisc.w")
+World$fetchData("kboltz")
+kboltz <- constants::syms$k
+print(kboltz)
 debugonce(FracROWatComp)
 World$fetchData("FracROWatComp")
 df <-World$moduleList[["k_Runoff"]]$execute()
@@ -426,6 +433,9 @@ World$fetchData("alpha")
 World$fetchData("Udarcy")
 World$fetchData("diffs.W")
 World$fetchData("FRACs")
+World$fetchData("DynViscWaterStandard")
+World$fetchData("Df")
+World$fetchData("alpha")
 World$fetchData("SUSP")
 World$moduleList[["k_Resuspension"]]$execute()
 debugonce(k_Resuspension)
