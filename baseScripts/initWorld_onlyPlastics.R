@@ -34,7 +34,7 @@ if (is.na(World$fetchData("Pvap25"))) {
   World$SetConst(Pvap25 = 1e-7)
 }
 
-
+World$SetConst(DragMethod = "Stokes")
 AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 
