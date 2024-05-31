@@ -1,10 +1,13 @@
 "VarName","Compartment","Substance","Waarde","Unit"
+"EF","air","microplastic",0.333333333,NA
 "EF","air","nAg_10nm",0.333333333,NA
 "EF","air","nC60_10nm",0.333333333,NA
 "EF","air","nTiO2_10nm",0.333333333,NA
+"EF","soil","microplastic",0.333333333,NA
 "EF","soil","nAg_10nm",0.333333333,NA
 "EF","soil","nC60_10nm",0.333333333,NA
 "EF","soil","nTiO2_10nm",0.333333333,NA
+"EF","water","microplastic",0.333333333,NA
 "EF","water","nAg_10nm",0.333333333,NA
 "EF","water","nC60_10nm",0.333333333,NA
 "EF","water","nTiO2_10nm",0.333333333,NA
@@ -690,6 +693,7 @@
 "kdeg","air","METSULFURON-METHYL",1.93e-06,NA
 "kdeg","air","MEVINPHOS",2.73e-05,NA
 "kdeg","air","MEXACARBATE",2.17e-05,NA
+"kdeg","air","microplastic",1e-20,NA
 "kdeg","air","MISOPROSTOL",8.05e-05,NA
 "kdeg","air","Mn(II)",1e-20,NA
 "kdeg","air","Mo(VI)",1e-20,NA
@@ -1511,6 +1515,7 @@
 "kdeg","sediment","METSULFURON-METHYL",1.49e-08,NA
 "kdeg","sediment","MEVINPHOS",5.94e-08,NA
 "kdeg","sediment","MEXACARBATE",2.38e-08,NA
+"kdeg","sediment","microplastic",1e-20,NA
 "kdeg","sediment","MISOPROSTOL",2.38e-08,NA
 "kdeg","sediment","Mn(II)",1e-20,NA
 "kdeg","sediment","Mo(VI)",1e-20,NA
@@ -2428,6 +2433,7 @@
 "kdeg","soil","METSULFURON-METHYL",8.02e-07,NA
 "kdeg","soil","MEVINPHOS",6.69e-06,NA
 "kdeg","soil","MEXACARBATE",1e-06,NA
+"kdeg","soil","microplastic",1e-20,NA
 "kdeg","soil","MISOPROSTOL",1.07e-07,NA
 "kdeg","soil","Mn(II)",1e-20,NA
 "kdeg","soil","Mo(VI)",1e-20,NA
@@ -3454,6 +3460,7 @@
 "kdeg","water","METSULFURON-METHYL",1.34e-07,NA
 "kdeg","water","MEVINPHOS",5.35e-07,NA
 "kdeg","water","MEXACARBATE",2.14e-07,NA
+"kdeg","water","microplastic",1e-20,NA
 "kdeg","water","MISOPROSTOL",2.14e-07,NA
 "kdeg","water","Mn(II)",1e-20,NA
 "kdeg","water","Mo(VI)",1e-20,NA

@@ -29,7 +29,7 @@ if (World$fetchData("ChemClass")==("")) {
   warning("ChemClass is needed but missing, setting to neutral")
   World$SetConst(ChemClass = "neutral")
 }
-
+World$SetConst(DragMethod = "Stokes")
 AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 

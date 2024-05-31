@@ -6,7 +6,7 @@ source("baseScripts/fakeLib.R")
 #to run the script with another selection of substance / excel reference, #
 #set the variables substance and excelReference before sourcing this script, like substance = "nAg_10nm"
 if (!exists("substance")) {
-  substance <- "nAg_10nm"
+  substance <- "microplastic"
 }
 
 #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
@@ -28,14 +28,20 @@ if (World$fetchData("ChemClass")==("")) {
   warning("ChemClass is needed but missing, setting to particle")
   World$SetConst(ChemClass = "particle") #????
 }
-World$SetConst(DragMethod = "Stokes")
-World$SetConst(Shape = "Cylindric - circular" )
+
+if (is.na(World$fetchData("Pvap25"))) {
+  warning("Pvap is missing but not used, setting constant")
+  World$SetConst(Pvap25 = 1e-7)
+}
+World$SetConst(DragMethod = "Default")
+World$SetConst(Shape = shape)
+World$SetConst(RadS = particle_size)
 AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 
 #call the particulate processes 
 Processes4SpeciesTp <- read.csv("data/Processes4SpeciesTp.csv")
-ParProcesses <- Processes4SpeciesTp$Process[grepl("[a-z,A-Z]", Processes4SpeciesTp$Particulate)]
+ParProcesses <- Processes4SpeciesTp$Process[grepl("[a-z,A-Z]", Processes4SpeciesTp$Plastic)]
 sapply(paste("k", ParProcesses, sep = "_"), World$NewProcess)
 
 #add all flows, they are all part of "Advection"
@@ -45,10 +51,9 @@ sapply(names(AllF)[FluxDefFunctions], World$NewFlow)
 #derive needed variables
 World$VarsFromprocesses()
 
-World$SetConst(Ksw = 47500) #default, not used for particle behavior
-
+World$SetConst(Ksw = 47500) #default, not used for particle behavior")
 
 #World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
 
 World$UpdateKaas()
-# World$UpdateKaas()(debugAt = list())
+# World$UpdateKaas()(debugAt = list()
