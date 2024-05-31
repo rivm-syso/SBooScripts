@@ -33,8 +33,9 @@ if (is.na(World$fetchData("Pvap25"))) {
   warning("Pvap is missing but not used, setting constant")
   World$SetConst(Pvap25 = 1e-7)
 }
-
-World$SetConst(DragMethod = "Stokes")
+World$SetConst(DragMethod = "Default")
+World$SetConst(Shape = shape)
+World$SetConst(RadS = particle_size)
 AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 
@@ -50,8 +51,7 @@ sapply(names(AllF)[FluxDefFunctions], World$NewFlow)
 #derive needed variables
 World$VarsFromprocesses()
 
-World$SetConst(Ksw = 47500) #default, not used for particle behavior
-
+World$SetConst(Ksw = 47500) #default, not used for particle behavior")
 
 #World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
 
