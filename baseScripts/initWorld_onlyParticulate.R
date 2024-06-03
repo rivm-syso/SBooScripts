@@ -29,7 +29,6 @@ if (World$fetchData("ChemClass")==("")) {
   World$SetConst(ChemClass = "particle") #????
 }
 World$SetConst(DragMethod = "Stokes")
-World$SetConst(Shape = "Cylindric - circular" )
 AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 

@@ -53,8 +53,6 @@ World$VarsFromprocesses()
 unique(World$kaas$process)
 
 World$SetConst(Ksw = 47500) # default, not used for particle behavior")
-SB.K <-World$SB.k
-# World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
 
 World$UpdateKaas()
 World$fetchData("SettlingVelocity")
