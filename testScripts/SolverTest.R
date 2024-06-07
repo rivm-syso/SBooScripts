@@ -214,6 +214,19 @@ T <- split_dfs[["T"]]
 R <- split_dfs[["R"]]
 M <- split_dfs[["M"]]
 
+#extra filtering for A 
+# Regular expression to match columns with "A" as the first capital letter after lowercase letters and numbers
+pattern <- "^[a-z0-9]*A"
+
+# Identify columns that do not match the pattern
+columns_to_keep <- !grepl(pattern, names(A))
+
+# Subset the dataframe to keep only the desired columns
+A <- A[, !columns_to_keep]
+
+# Print the filtered dataframe
+print("Filtered Dataframe:")
+print(A)
 # Applying adjustments to all dataframes
 adjust_df <- function(df) {
   df$time <- solution_matrix$time
@@ -225,6 +238,7 @@ C <- adjust_df(C)
 T <- adjust_df(T)
 R <- adjust_df(R)
 M <- adjust_df(M)
+
 
 plot_dataframe <- function(df, title) {
   data_to_plot <- tidyr::gather(df, key = "variable", value = "value", -time)
