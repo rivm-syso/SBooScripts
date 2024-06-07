@@ -131,7 +131,7 @@ Solution<- SBsolve4(tmax = 24*(365.25*24*360), nTIMES = 130)
 Solution.df <- as.data.frame(Solution)
 colnames(Solution)[2:156] <- SBNames
 Solution_df <- as.data.frame(Solution)
-sum_of_columns <- colSums(Solution_df[, 2:156])
+
 
 signals <- Solution_df[, 157:311]
 signals$sum <- rowSums(signals)
@@ -146,11 +146,11 @@ ggplot(signals_plot, aes(x = time, y =signals.sum)) +
   labs(title = "Emissions Over Time", x = "Time", y = "Emissions")
 
 signals_plot$cumulative_area <- cumsum(c(0, diff(signals_plot$time) * (head(signals_plot$signals.sum, -1) + tail(signals_plot$signals.sum, -1)) / 2))
-
+mass_time <- data.frame(time = Solution_df$time, mass = rowSums(Solution_df[, 2:156]))
 # Plot the cumulative area
 p <- ggplot() +
   geom_line(data = signals_plot, aes(x = time/(365.25*24*360), y = cumulative_area, color = "Cumulative Signals"), size = 1.5) +
-  geom_line(data = mass_time, aes(x = time/(365.25*24*360), y = signals.sum, color = "Mass over Time"), size = 1.5) +
+  geom_line(data = mass_time, aes(x = time/(365.25*24*360), y = mass, color = "Mass over Time"), size = 1.5) +
   labs(title = "Amount [kgs]", x = "Time [years]", y = "Cumulative Area", color = "Dataset")
 print(p)
 
