@@ -1,0 +1,47 @@
+---
+title: "Solver script"
+author: "Valerie de Rijk, Joris Quik, Jaap Slootweg"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## Initiation
+
+```{r}
+library(dplyr)
+source("baseScripts/initWorld_onlyParticulate.R")
+```
+
+## NewSolver
+
+Different solvers are available, basically:
+
+1.  Solving the steadystate of the SimpleBox world
+
+2.  Solving in time the states of SimpleBox world
+
+Both will be illustrated bellow, but it starts with defining the solver you want to use by `world$NewSolver("[name of s_function]")`
+
+```{r SBsteady}
+World$NewSolver("SBsteady")
+```
+
+What solving means is that using matrix algebra a set of differential equations is solved:
+
+`K %*% m + e`
+
+Where:
+
+*K* is the matrix of rate constants for each process describing the mass transfers to and from and out of a state (e.g. substance in freshwater (w1U) or small heteroagglomerate in natural soil (s1A)).
+
+*m* is the mass in each compartment, e.g. 0 at t=0.
+
+*e* is the emission to each compartment per unit of time, e.g. 1 t/y.
+
+To solve this set of differential equations we thus need an emission, e.g. 1 ton/year to air.
+
+```{r}
+emissions <- data.frame(Abbr = "aRC", Emis = 1000/(365.25*24*60*60)) # convert 1 t/y to si units: kg/s
+```
