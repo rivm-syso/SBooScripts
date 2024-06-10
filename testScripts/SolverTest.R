@@ -8,7 +8,7 @@ compartment_abbrs <- c("aCS", "s1CS", "w1CS")
 
 World$kaas
 World$NewSolver("SBsteady")
-emissions <- data.frame(Abbr = "aRC", Emis = 1)
+emissions <- data.frame(Abbr = "aCS", Emis = 1)
 World$Solve(emissions)
 # Define the function for interpolation
 avg_emisfun <- function(Y) {
