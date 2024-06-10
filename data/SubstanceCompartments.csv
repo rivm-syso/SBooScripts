@@ -593,6 +593,7 @@
 "kdeg","air","GIBBERELLIC ACID",9.87e-05,NA
 "kdeg","air","glutaral",3.2e-05,NA
 "kdeg","air","glycerol",1.4e-05,NA
+"kdeg","air","GO-Chitosan",1e-20,NA
 "kdeg","air","guaiacol",2.23e-05,NA
 "kdeg","air","Guanidine, N,N'''-1,6-hexanediylbis N'-cyano-",0.000114765,NA
 "kdeg","air","Gyromitrin",1.38e-05,NA
@@ -1432,6 +1433,7 @@
 "kdeg","sediment","Gemfibrozil",2.38e-08,NA
 "kdeg","sediment","GERANIOL",5.94e-08,NA
 "kdeg","sediment","GIBBERELLIC ACID",1.49e-08,NA
+"kdeg","sediment","GO-Chitosan",1e-16,NA
 "kdeg","sediment","guaiacol",5.94e-08,NA
 "kdeg","sediment","Guanidine, N,N'''-1,6-hexanediylbis N'-cyano-",2.38e-08,NA
 "kdeg","sediment","Gyromitrin",5.94e-08,NA
@@ -2333,6 +2335,7 @@
 "kdeg","soil","GIBBERELLIC ACID",2.36e-06,NA
 "kdeg","soil","glutaral",6.5e-07,NA
 "kdeg","soil","glycerol",4.5e-06,NA
+"kdeg","soil","GO-Chitosan",1e-15,NA
 "kdeg","soil","guaiacol",2.67e-07,NA
 "kdeg","soil","Guanidine, N,N'''-1,6-hexanediylbis N'-cyano-",1.07e-07,NA
 "kdeg","soil","Gyromitrin",2.67e-07,NA
@@ -3354,6 +3357,7 @@
 "kdeg","water","GIBBERELLIC ACID",1.34e-07,NA
 "kdeg","water","glutaral",5.3e-07,NA
 "kdeg","water","glycerol",5.3e-07,NA
+"kdeg","water","GO-Chitosan",1e-13,NA
 "kdeg","water","guaiacol",5.35e-07,NA
 "kdeg","water","Guanidine, N,N'''-1,6-hexanediylbis N'-cyano-",2.14e-07,NA
 "kdeg","water","Gyromitrin",5.35e-07,NA
