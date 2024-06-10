@@ -1,5 +1,11 @@
 library(dplyr)
+
+substance <- "GO-Chitosan"
+
 source("baseScripts/initWorld_onlyParticulate.R")
+
+
+
 # Define the file paths and corresponding compartment abbreviations
 file_paths <- c("../Emissions/emissions/EU/Results_SinkDynamic_Air-GBM_EU_2024-01-30-11-43_12.csv", 
                 "../Emissions/emissions/EU/Results_SinkDynamic_STsoil-GBM_EU_2024-01-30-11-43_12.csv",
