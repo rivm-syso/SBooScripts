@@ -28,6 +28,11 @@ if (World$fetchData("ChemClass")==("")) {
   warning("ChemClass is needed but missing, setting to particle")
   World$SetConst(ChemClass = "particle") #????
 }
+
+if (is.na(World$fetchData("Pvap25"))) {
+  warning("Pvap is missing but not used, setting constant")
+  World$SetConst(Pvap25 = 1e-7)
+}
 World$SetConst(DragMethod = "Stokes")
 AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
