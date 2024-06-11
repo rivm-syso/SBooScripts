@@ -1,18 +1,16 @@
-substance <- "GO-Chitosan"
+#substance <- "GO-Chitosan"
 
 source("baseScripts/initWorld_onlyParticulate.R")
 
 
-
 # Define the file paths and corresponding compartment abbreviations
-file_paths <- c("../Emissions/emissions/EU/Results_SinkDynamic_Air-GBM_EU_2024-01-30-11-43_12.csv", 
-                "../Emissions/emissions/EU/Results_SinkDynamic_STsoil-GBM_EU_2024-01-30-11-43_12.csv",
-                "../Emissions/emissions/EU/Results_SinkDynamic_SurfaceWater-GBM_EU_2024-01-30-11-43_12.csv")
+file_paths <- c("/rivm/n/rijkdv/testing_simplebox/emissions/EU/Results_SinkDynamic_Air-GBM_EU_2024-01-30-11-43_12.csv", 
+                "/rivm/n/rijkdv/testing_simplebox/emissions/EU/Results_SinkDynamic_STsoil-GBM_EU_2024-01-30-11-43_12.csv",
+                "/rivm/n/rijkdv/testing_simplebox/emissions/EU/Results_SinkDynamic_SurfaceWater-GBM_EU_2024-01-30-11-43_12.csv")
 compartment_abbrs <- c("aCS", "s1CS", "w1CS")
 
-World$kaas
 World$NewSolver("SBsteady")
-emissions <- data.frame(Abbr = "aRC", Emis = 1)
+emissions <- data.frame(Abbr = "aCS", Emis = 1000/(365.25*24*60*60))
 World$Solve(emissions)
 # Define the function for interpolation
 avg_emisfun <- function(Y) {
@@ -88,32 +86,57 @@ ggplot(emissions, aes(x = Year_in_seconds, y = Emis, color = Abbr)) +
   theme_minimal()
 
 
+
 #dummy data 
-particle_sizes <- seq(from = 10, to = 1000, length.out = 5)
-print(particle_sizes)
+particle_sizes <- seq(from = 10, to = 1000, length.out = 30)
 #Generation of matrix 
 result_engine <- list()
 result_sedimentation <- list()
-result_index <- 1
 
-# Loop through particle sizes
-for (i in seq_along(particle_sizes)) {
-  print(i)
-  size <- particle_sizes[i]
-  World$SetConst(RadS = size)
-  World$UpdateKaas(mergeExisting = F)
-  sedimentation <- World$moduleList[["k_Sedimentation"]]$execute()
-  sedimentation$particle_size <- size
-  result_sedimentation[[result_index]] <- sedimentation
-  World$NewSolver("SBsteady")
-  World$Solve(emissions)
-  Engine <-World$exportEngineR()
-  result_engine[[result_index]] <- Engine
-  result_index <- result_index + 1
-  rm(Engine, sedimentation)
+
+#function for getting engines
+run_particle_simulation <- function(particle_sizes, emissions) {
+  # Function to run simulation for a single particle size
+  run_simulation <- function(size) {
+    print(paste("Running simulation for particle size:", size))
+    World$SetConst(RadS = size)
+    World$UpdateKaas(mergeExisting = FALSE)
+    
+    sedimentation <- World$moduleList[["k_Sedimentation"]]$execute()
+    sedimentation$particle_size <- size
+    
+    World$NewSolver("SBsteady")
+    World$Solve(emissions)
+    Engine <- World$exportEngineR()
+    
+    result <- list(
+      engine_result = Engine,
+      sedimentation_result = sedimentation
+    )
+    
+    return(result)
+  }
+  
+  # Use lapply to iterate over particle sizes
+  results <- lapply(particle_sizes, run_simulation)
+  
+  # Split results into separate lists for engine and sedimentation
+  result_engine <- lapply(results, function(res) res$engine_result)
+  result_sedimentation <- lapply(results, function(res) res$sedimentation_result)
+  
+  # Return results as a list
+  return(list(
+    engine_results = result_engine,
+    sedimentation_results = result_sedimentation
+  ))
 }
 
-combined_sedimentation <- do.call(rbind, result_sedimentation)
+# Call the function
+simulation_results <- run_particle_simulation(particle_sizes, emissions)
+sedimentation_results <- simulation_results$sedimentation_results
+engine_results <- simulation_results$engine_results
+ 
+combined_sedimentation <- do.call(rbind, sedimentation_results)
 test_sedimentation <- subset(combined_sedimentation, toSubCompart =="freshwatersediment" & fromSpecies == "Small")
 
 ggplot(test_sedimentation, aes(x = particle_size, y = k)) +
