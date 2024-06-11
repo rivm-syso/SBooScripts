@@ -1,0 +1,302 @@
+---
+title: "Solver script"
+author: "Valerie de Rijk, Joris Quik, Jaap Slootweg"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## *Initiation*
+
+*We assume you have the input data for a substance or material of interest and all the data describing the SimpleBox world to be created ready and thus can run the initWorld script.*
+
+```{r}
+library(dplyr)
+source("baseScripts/initWorld_onlyParticulate.R")
+```
+
+## *NewSolver*
+
+*Different solvers are available, basically:*
+
+1.  *Solving the steadystate of the SimpleBox world*
+
+2.  *Solving in time the states of SimpleBox world*
+
+*Both will be illustrated bellow, but it starts with defining the solver you want to use by `world$NewSolver("[name of s_function]")`*
+
+### *SBsteady*
+
+```{r SBsteady}
+World$NewSolver("SBsteady")
+```
+
+*What solving means is that using matrix algebra a set of differential equations is solved:*
+
+*`K %*% m + e`*
+
+*Where:*
+
+*K is the matrix of rate constants for each process describing the mass transfers to and from and out of a state (e.g. substance in freshwater (w1U) or small heteroagglomerate in natural soil (s1A)).*
+
+*m is the mass in each compartment, e.g. 0 at t=0.*
+
+*e is the emission to each compartment per unit of time, e.g. 1 t/y.*
+
+*To solve this set of differential equations we thus need an emission, e.g. 1 ton/year to air.*
+
+```{r constant emission}
+emissions <- data.frame(Abbr = "aCS", Emis = 1000/(365.25*24*60*60)) # convert 1 t/y to si units: kg/s
+
+# TODO: explain what is the reason for this Abbr? Why is it not a relational table defining scale, compartment and species as for all other data?
+```
+
+*Now er are ready to run the solver, which results in the mass in each compartment.*
+
+```{r}
+World$Solve(emissions)
+```
+
+## *SBdynamic*
+
+*It is possible to solve the differential equations dynamicallly in time, but the optimal implementation is still work in progress.*
+
+```{r}
+file_paths <- 
+  list.files("/rivm/n/rijkdv/testing_simplebox/emissions/",recursive = TRUE)
+
+
+
+```
+
+### *Prepare DPMFA data*
+
+*Data from an DPMFA model should be prepared to fit the SBoo world. For instance the time unit should be correct, the mass unit is not as important as this will be the same in the output then, but for good measure we use kg.*
+
+```{r WIPscript - Emissions}
+
+Emissions <-
+  read_csv(paste0("/rivm/n/rijkdv/testing_simplebox/emissions/",file_paths), id="file_name", col_names = c("RUN",0:24),skip = 1) # unit: Metric tonnes
+
+# TODO: solve for every RUN
+Emissions <- 
+  Emissions |>
+  pivot_longer(
+    cols = !c(file_name,RUN),
+    names_to = "year",
+    values_to = "emission_t" ) |> mutate_at('year',as.numeric) |> 
+  ungroup() |> 
+  group_by(file_name,year) |> 
+  summarise(Emission_p50_kg = quantile(emission_t,probs = 0.5)*1000,
+            Emission_mean_kg = mean(emission_t)*1000) |> ungroup()
+
+Emissions <- 
+  Emissions |> 
+  mutate(compartment = 
+           case_when(str_detect(file_name, "(?i)Air") ~ "Air",
+                     str_detect(file_name, "(?i)Soil") ~ "SludgeTreatedSoil",
+                     str_detect(file_name, "(?i)Water") ~ "SurfaceWater",
+                     str_detect(file_name, "(?i)Subsurface") ~ "Subsurface",
+                     TRUE ~ "Other"),
+         scale = 
+           case_when(str_detect(file_name, "(?i)EU") ~ "EU",
+                     str_detect(file_name, "(?i)Ireland") ~ "Ireland",
+                     str_detect(file_name, "(?i)Switzerland") ~ "Switzerland",
+                     TRUE ~ "Other"),
+         Substance = "GO-Chitosan",
+  )
+
+Emissions <-
+  Emissions |> 
+  # Emission in year 0 is the cummulative that is actually added up to the last second of the first year (so at time point (365.25*24*60*60)) at time 0 emission is 0.
+  mutate(time_s = year*(365.25*24*60*60)+(365.25*24*60*60)) |> 
+  group_by(compartment,scale,Substance) |> 
+  summarise(n=n(),
+            EmisFun = list(approxfun(
+              data.frame(time_s = c(0,time_s), emis_kg=c(0,Emission_mean_kg)),rule = 1:2)))
+
+# EmisFun with input in seconds and output in kg's going from 0 to 25 years in seconds.
+
+
+### filter and name the emissions that we actually have states for: 
+### needs manual tweaking for correct matching
+SBemissions <-
+  Emissions |> mutate(
+    Abr_comp =  case_match(compartment,
+                           "Air" ~ "a",
+                           "SludgeTreatedSoil" ~ "s2",
+                           "SurfaceWater" ~ "w1",
+                           .default = NA
+    ),
+    Abr_scale =  case_match(scale,
+                            "EU" ~ "C",
+                            "Switzerland" ~ "R",
+                            .default = NA
+    ),
+    Abr_species = "S"
+    
+  ) |> drop_na() |>  mutate(Abr = paste0(Abr_comp,Abr_scale,Abr_species))
+
+  funlist <- SBemissions$EmisFun
+  names(funlist) <- SBemissions$Abr
+
+```
+
+## Solver Module
+
+```{r Solver}
+SimpleBoxODE = function(t, m, parms) {
+  Fun2Emis <- function(x,funlist,t){
+    funlist[[x]](t)
+}
+  with(as.list(c(parms, m)), {
+    
+    NamesK = colnames(Kmatrix)
+    
+    e = data.frame(emis = rep(0, length(NamesK)),
+                              NamesK = NamesK)
+    
+    
+   emt = sapply(names(funlist),Fun2Emis,funlist,t)
+   emt = as.data.frame(emt)
+   emt = cbind(emt,data.frame(NamesK=row.names(emt)))
+   
+   e <- merge(e, emt, by = "NamesK", all.x = TRUE)
+e$emis <- ifelse(!is.na(e$emt), e$emt, e$emis)
+e <- as.vector(e[, c("emis")])
+
+    dm <- K%*% m + e
+    res <- c(dm)
+    list(res, signal = e)
+  })
+}
+
+Kmatrix <- World$exportEngineR()
+NamesK <- colnames(Kmatrix)
+SB.m0 <- rep(0, length(NamesK))
+SBtime <- seq(0,365.25*24*60*60*1,length.out = 1*12)
+
+out <- deSolve::ode(
+  y = as.numeric(SB.m0),
+  times = SBtime ,
+  func = SimpleBoxODE,
+  parms = list(K = Kmatrix, funlist),
+  rtol = 1e-10, atol = 1e-2)
+
+plot(out)
+
+
+```
+
+## Output Processing
+
+To move from the solution of the ODE solver to usable output data we need to split the output into corresponding mass data per compartment over time and emission signals over time.
+
+```{r Output Processing }
+Solution <- as.data.frame(out)
+print(NamesK)
+print(length(NamesK))
+colnames(Solution)[2:156] <- NamesK
+
+#seperate signals and matrix 
+#compartments 
+compartments <- Solution[, 1:156]
+compartments <- compartments |> select(-matches("U$"))
+signals <- Solution[, 157:311]
+signals_total <- data.frame(rowSums(signals))
+signals_total$time <- Solution[, 1]
+
+#Checks
+#Emission over time
+plot1 <-ggplot(signals_total, aes(x = time, y =rowSums.signals.)) + 
+  geom_line() +
+  labs(title = "Emissions Over Time", x = "Time", y = "Emissions")
+
+show(plot1)
+
+#further data manipulation for the compartments
+split_df <- function(df, solution_matrix) {
+  # Extract the capital letters (A, R, C, T, M) in column names
+  patterns <- unique(gsub("[^ARCTM]", "", colnames(df)))
+  
+  # Function to adjust the dataframe
+  adjust_df <- function(df) {
+    df$time <- compartments$time
+    return(df)
+  }
+  
+  # Split the dataframe based on the presence of specified capital letters using lapply
+  split_dfs <- lapply(patterns, function(pattern) {
+    cols <- grepl(pattern, colnames(df))
+    adjusted_df <- df[, cols, drop = FALSE]
+    adjust_df(adjusted_df)
+  })
+  
+  # Assign names to the split dataframes
+  names(split_dfs) <- patterns
+  
+  # Output the split dataframes
+  invisible(lapply(names(split_dfs), function(pattern) {
+    cat("Pattern:", pattern, "\n")
+    print(split_dfs[[pattern]])
+    cat("\n")
+  }))
+  
+  return(split_dfs)
+}
+
+# Apply the function to split the dataframe
+split_dfs <- split_df(compartments, solution_matrix)
+
+# Assuming A, C, T, R, and M are the split dataframes
+A <- split_dfs[["A"]]
+C <- split_dfs[["C"]]
+T <- split_dfs[["T"]]
+R <- split_dfs[["R"]]
+M <- split_dfs[["M"]]
+
+
+
+#extra filtering for A 
+# Regular expression to match columns with "A" as the first capital letter after lowercase letters and numbers
+pattern <- "^[a-z0-9]*A"
+
+# Identify columns that do not match the pattern
+columns_to_keep <- !grepl(pattern, names(A))
+
+# Subset the dataframe to keep only the desired columns
+A <- A[, !columns_to_keep]
+A$time <- compartments$time
+
+
+
+```
+
+## Plotting of Output
+
+```{r plotting}
+
+
+plot_dataframe <- function(df, title) {
+  data_to_plot <- tidyr::gather(df, key = "variable", value = "value", -time)
+  
+  ggplot(data_to_plot, aes(x = time, y = value, color = variable)) +
+    geom_line() +
+    labs(title = title,
+         x = "Time",
+         y = "Value")
+}
+
+# List of dataframes and their titles
+dfs <- list(A = A, C = C, T = T, R = R, M = M)
+titles <- c("A", "C", "T", "R", "M")
+
+# Loop through the list and plot each dataframe
+for (i in seq_along(dfs)) {
+  plot <- plot_dataframe(dfs[[i]], titles[i])
+  print(plot)
+}
+
+
+```
