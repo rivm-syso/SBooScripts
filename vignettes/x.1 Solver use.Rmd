@@ -137,31 +137,74 @@ SBemissions <-
     
   ) |> drop_na() |>  mutate(Abr = paste0(Abr_comp,Abr_scale,Abr_species))
 
+  funlist <- SBemissions$EmisFun
+  names(funlist) <- SBemissions$Abr
+
+# EmisFun2emist <- function(x,
+#                           SBNames, # states requiring an EmisFun
+#                           SBemissions, # tibble with defined emissions
+#                           t){
+#   default = approxfun(
+#     data.frame(time_s = c(0,1), emis_kg=c(0,0)),rule = 2:2)
+#   
+#   data = tibble(
+#     SBnames = SBNames) |> 
+#     full_join(SBemissions,join_by(SBnames == Abr)) |> 
+#     replace_na(list(EmisFun = list(default))) |> select(SBnames,EmisFun)
+#   
+#   funlist <- data$EmisFun
+#   names(funlist) = data$SBnames
+#   
+#   funlist[[x]](t)
+#   
+# }
+# seperate functions
+
+# Emis2fun <- function(
+#                               # SBNames, # states requiring an EmisFun
+#                           SBemissions # tibble with defined emissions
+#                           ){
+#   # default = approxfun(
+#   #   data.frame(time_s = c(0,1), emis_kg=c(0,0)),rule = 2:2)
+#   # 
+#   # data = tibble(
+#   #   SBnames = SBNames) |> 
+#   #   full_join(SBemissions,join_by(SBnames == Abr)) |> 
+#   #   replace_na(list(0)) |> select(SBnames,EmisFun)
+#   
+#   funlist = SBemissions$EmisFun
+#   names(funlist) = SBemissions$Abr
+#   # funlist <- data$EmisFun
+#   # names(funlist) = data$SBnames
+# 
+#   return(funlist)
+#   
+# }
+# x=SBNames[1]
 
 
-EmisFun2emist <- function(x,
-                          SBNames, # states requiring an EmisFun
-                          SBemissions, # tibble with defined emissions
-                          t){
-  default = approxfun(
-    data.frame(time_s = c(0,1), emis_kg=c(0,0)),rule = 2:2)
-  data = tibble(
-    SBnames = SBNames) |> 
-    full_join(SBemissions,join_by(SBnames == Abr)) |> 
-    replace_na(list(EmisFun = list(default))) |> select(SBnames,EmisFun)
-  
-  funlist <- data$EmisFun
-  names(funlist) = data$SBnames
-  
-  funlist[[x]](t)
-  
-}
+
 
 SimpleBoxODE = function(t, m, parms) {
-  
+  Fun2Emis <- function(x,funlist,t){
+    funlist[[x]](t)
+}
   with(as.list(c(parms, m)), {
     
-    e = as.vector(sapply(SBNames, EmisFun2emist,SBNames,SBemissions,t))
+    NamesK = colnames(Kmatrix)
+    
+    e = data.frame(emis = rep(0, length(NamesK)),
+                              NamesK = NamesK)
+    
+    
+   emt = sapply(names(funlist),Fun2Emis,funlist,t)
+   emt = as.data.frame(emt)
+   emt = cbind(emt,data.frame(NamesK=row.names(emt)))
+   
+   e <- merge(e, emt, by = "NamesK", all.x = TRUE)
+e$emis <- ifelse(!is.na(e$emt), e$emt, e$emis)
+e <- as.vector(e[, c("emis")])
+
     dm <- K%*% m + e
     res <- c(dm)
     list(res, signal = e)
@@ -169,17 +212,18 @@ SimpleBoxODE = function(t, m, parms) {
 }
 
 Kmatrix <- World$exportEngineR()
-SBNames <- colnames(Kmatrix)
-SB.m0 <- rep(0, length(SBNames))
-SBtime <- seq(0,365.25*24*60*60*25,length.out = 25*12)
+NamesK <- colnames(Kmatrix)
+SB.m0 <- rep(0, length(NamesK))
+SBtime <- seq(0,365.25*24*60*60*1,length.out = 1*12)
 
 out <- deSolve::ode(
   y = as.numeric(SB.m0),
   times = SBtime ,
   func = SimpleBoxODE,
-  parms = list(K = Kmatrix, SBNames,EmisFun2emist,SBemissions),
+  parms = list(K = Kmatrix, funlist),
   rtol = 1e-10, atol = 1e-2)
 
 plot(out)
+
 
 ```
