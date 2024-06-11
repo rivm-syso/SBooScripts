@@ -113,7 +113,7 @@ Emissions <-
   group_by(compartment,scale,Substance) |> 
   summarise(n=n(),
             EmisFun = list(approxfun(
-              data.frame(time_s = c(0,time_s), emis_kg=c(0,Emission_mean_kg)),rule = 1:2)))
+              data.frame(time_s = c(0,time_s), emis_kg=c(0,Emission_mean_kg)),rule = 1:1)))
 
 # EmisFun with input in seconds and output in kg's going from 0 to 25 years in seconds.
 
@@ -183,8 +183,6 @@ SBemissions <-
 # x=SBNames[1]
 
 
-
-
 SimpleBoxODE = function(t, m, parms) {
   Fun2Emis <- function(x,funlist,t){
     funlist[[x]](t)
@@ -195,7 +193,6 @@ SimpleBoxODE = function(t, m, parms) {
     
     e = data.frame(emis = rep(0, length(NamesK)),
                               NamesK = NamesK)
-    
     
    emt = sapply(names(funlist),Fun2Emis,funlist,t)
    emt = as.data.frame(emt)
@@ -214,7 +211,7 @@ e <- as.vector(e[, c("emis")])
 Kmatrix <- World$exportEngineR()
 NamesK <- colnames(Kmatrix)
 SB.m0 <- rep(0, length(NamesK))
-SBtime <- seq(0,365.25*24*60*60*1,length.out = 1*12)
+SBtime <- seq(0,365.25*24*60*60*25,length.out = 25*12)
 
 out <- deSolve::ode(
   y = as.numeric(SB.m0),
