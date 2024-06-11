@@ -1,3 +1,4 @@
+source("baseScripts/initWorld_onlyParticulate.R")
 # Retrieve the list of modules
 allves <- World$moduleList
 
@@ -11,7 +12,7 @@ vnamestrial <- data.frame(
 # Fetch the base data for the variables
 baseVars <- lapply(vnamestrial$vnames, World$fetchData)
 names(baseVars) <- vnamestrial$vnames
-
+n = 5
 # Assuming 'n' and 'unif01LHS' are defined and 'vnamesDistSD' is correctly set
 for (i in 1:n) {
   for (vari in 1:nrow(vnamestrial)) {
@@ -20,8 +21,7 @@ for (i in 1:n) {
     
     # Transform uniform to scaling factor 
     scalingF <- switch(vnamestrial$distNames[vari],
-                       "normal" = qnorm(p = unif01LHS[i, vari], mean = 1, sd = vnamestrial$secondPar[vari]),
-                       "uniform" = 1 + vnamestrial$secondPar[vari] * (unif01LHS[i, vari] - 0.5)
+                       "normal" = rnorm(1, mean = 1, sd = vnamestrial$secondPar[vari]),
     )
     
     # Add the scaling factor to the data frame
