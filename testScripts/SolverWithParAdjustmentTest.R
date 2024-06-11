@@ -1,13 +1,14 @@
-#substance <- "GO-Chitosan"
+substance <- "GO-Chitosan"
 
 source("baseScripts/initWorld_onlyParticulate.R")
-
-
 # Define the file paths and corresponding compartment abbreviations
 file_paths <- c("/rivm/n/rijkdv/testing_simplebox/emissions/EU/Results_SinkDynamic_Air-GBM_EU_2024-01-30-11-43_12.csv", 
                 "/rivm/n/rijkdv/testing_simplebox/emissions/EU/Results_SinkDynamic_STsoil-GBM_EU_2024-01-30-11-43_12.csv",
-                "/rivm/n/rijkdv/testing_simplebox/emissions/EU/Results_SinkDynamic_SurfaceWater-GBM_EU_2024-01-30-11-43_12.csv")
-compartment_abbrs <- c("aCS", "s1CS", "w1CS")
+                "/rivm/n/rijkdv/testing_simplebox/emissions/EU/Results_SinkDynamic_SurfaceWater-GBM_EU_2024-01-30-11-43_12.csv",
+                "/rivm/n/rijkdv/testing_simplebox/emissions/Switzerland/Results_SinkDynamic_Air-GBM_Switzerland_2024-01-30-14-00_26.csv", 
+                "/rivm/n/rijkdv/testing_simplebox/emissions/Switzerland/Results_SinkDynamic_Subsurface-GBM_Switzerland_2024-01-30-14-00_26.csv",
+                "/rivm/n/rijkdv/testing_simplebox/emissions/Switzerland/Results_SinkDynamic_Surfacewater-GBM_Switzerland_2024-01-30-14-00_26.csv")
+compartment_abbrs <- c("aCS", "s1CS", "w1CS", "aRS", "s1RS", "w1RS")
 
 World$NewSolver("SBsteady")
 emissions <- data.frame(Abbr = "aCS", Emis = 1000/(365.25*24*60*60))

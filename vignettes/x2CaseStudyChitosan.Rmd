@@ -72,7 +72,7 @@ file_paths <-
 
 ### *Prepare DPMFA data*
 
-*Data from an DPMFA model should be prepared to fit the SBoo world. For instance the time unit should be correct, the mass unit is not as important as this will be the same in the output then, but for good measure we use kg.*
+*Data from an DPMFA model should be prepared to fit the SBoo world. For instance the time unit should be correct, the mass unit is not as important as this will be the same in the output then, but for good measure we use kg.* Emissions seem to not be right.
 
 ```{r WIPscript - Emissions}
 
@@ -140,61 +140,146 @@ SBemissions <-
 
   funlist <- SBemissions$EmisFun
   names(funlist) <- SBemissions$Abr
+  
+SBtime <- times <- seq(0, 24*365.25*24*360, by = 10000)
+results <- lapply(funlist, function(f) f(SBtime))
 
+# Convert results to a data frame for plotting
+df <- data.frame(
+  Time = rep(SBtime, length(funlist)),
+  Value = unlist(results),
+  Function = rep(names(funlist), each = length(SBtime))
+)
+
+# Plot the results
+ggplot(df, aes(x = Time, y = Value, color = Function)) +
+  geom_line() +
+  labs(title = "Function Evaluations Over Time",
+       x = "Time (seconds)",
+       y = "Function Value") +
+  theme_minimal()
+
+```
+
+## Varying Input Data
+
+This is still work in progress. To try multiple definitions of input parameters, you currently have to extract the calculation engine from the R6 core with different input.
+
+```{r}
+particle_sizes <- seq(from = 10, to = 1000, length.out = 30)
+#Generation of matrix 
+result_engine <- list()
+result_sedimentation <- list()
+
+
+#function for getting engines
+run_particle_simulation <- function(particle_sizes, emissions) {
+  # Function to run simulation for a single particle size
+  run_simulation <- function(size) {
+    print(paste("Running simulation for particle size:", size))
+    World$SetConst(RadS = size)
+    World$UpdateKaas(mergeExisting = FALSE)
+    
+    sedimentation <- World$moduleList[["k_Sedimentation"]]$execute()
+    sedimentation$particle_size <- size
+    
+    World$NewSolver("SBsteady")
+    World$Solve(emissions)
+    Engine <- World$exportEngineR()
+    
+    result <- list(
+      engine_result = Engine,
+      sedimentation_result = sedimentation
+    )
+    
+    return(result)
+  }
+  
+  # Use lapply to iterate over particle sizes
+  results <- suppressWarnings(lapply(particle_sizes, run_simulation))
+  
+  # Split results into separate lists for engine and sedimentation
+  result_engine <- lapply(results, function(res) res$engine_result)
+  result_sedimentation <- lapply(results, function(res) res$sedimentation_result)
+  
+  # Return results as a list
+  return(list(
+    engine_results = result_engine,
+    sedimentation_results = result_sedimentation
+  ))
+}
+
+# Call the function
+simulation_results <- run_particle_simulation(particle_sizes, emissions)
+sedimentation_results <- simulation_results$sedimentation_results
+engine_results <- simulation_results$engine_results
+ 
 ```
 
 ## Solver Module
 
 ```{r Solver}
-SimpleBoxODE = function(t, m, parms) {
-  Fun2Emis <- function(x,funlist,t){
-    funlist[[x]](t)
-}
-  with(as.list(c(parms, m)), {
-    
-    NamesK = colnames(Kmatrix)
-    
-    e = data.frame(emis = rep(0, length(NamesK)),
-                              NamesK = NamesK)
-    
-    
-   emt = sapply(names(funlist),Fun2Emis,funlist,t)
-   emt = as.data.frame(emt)
-   emt = cbind(emt,data.frame(NamesK=row.names(emt)))
-   
-   e <- merge(e, emt, by = "NamesK", all.x = TRUE)
-e$emis <- ifelse(!is.na(e$emt), e$emt, e$emis)
-e <- as.vector(e[, c("emis")])
+library(deSolve)
 
-    dm <- K%*% m + e
+# Define the SimpleBoxODE function
+SimpleBoxODE <- function(t, m, parms) {
+  Fun2Emis <- function(x, funlist, t) {
+    funlist[[x]](t)
+  }
+  with(as.list(c(parms, m)), {
+    NamesK <- colnames(Kmatrix)
+    e <- data.frame(emis = rep(0, length(NamesK)), NamesK = NamesK)
+    emt <- sapply(names(funlist), Fun2Emis, funlist, t)
+    emt <- as.data.frame(emt)
+    emt <- cbind(emt, data.frame(NamesK = row.names(emt)))
+    e <- merge(e, emt, by = "NamesK", all.x = TRUE)
+    e$emis <- ifelse(!is.na(e$emt), e$emt, e$emis)
+    e <- as.vector(e[, "emis"])
+    dm <- K %*% m + e
     res <- c(dm)
     list(res, signal = e)
   })
 }
 
-Kmatrix <- World$exportEngineR()
-NamesK <- colnames(Kmatrix)
-SB.m0 <- rep(0, length(NamesK))
-SBtime <- seq(0,365.25*24*60*60*1,length.out = 1*12)
 
-out <- deSolve::ode(
-  y = as.numeric(SB.m0),
-  times = SBtime ,
-  func = SimpleBoxODE,
-  parms = list(K = Kmatrix, funlist),
-  rtol = 1e-10, atol = 1e-2)
 
-plot(out)
+# Initialize Solutions list
+Solutions <- list()
+
+# Loop over result_engine
+for (i in seq_along(engine_results)) {
+  cat("Running iteration", i, "\n")
+  funlist <- funlist
+  Kmatrix <- engine_results[[i]]
+  NamesK <- colnames(engine_results[[1]])
+  SB.m0 <- rep(0, length(NamesK))
+  SBtime <- seq(0, 365.25 * 24 * 60 * 60 * 1, length.out = 12)
+  
+  out <- ode(
+    y = as.numeric(SB.m0),
+    times = SBtime,
+    func = SimpleBoxODE,
+    parms = list(K = Kmatrix, funlist),
+    rtol = 1e-10, atol = 1e-2
+  )
+  
+  # Save the solution in the Solutions list
+  Solutions[[i]] <- out
+  
+}
+
+# Now Solutions list contains the results for each iteration
+
 
 
 ```
 
-## Output Processing
+## *Output Processing*
 
-To move from the solution of the ODE solver to usable output data we need to split the output into corresponding mass data per compartment over time and emission signals over time.
+To move from the solution of the ODE solver to usable output data we need to split the output into corresponding mass data per compartment over time and emission signals over time.It's only for one output now. # TODO make it for the list (possibly append all the runs to one dataframe per compartment)
 
 ```{r Output Processing }
-Solution <- as.data.frame(out)
+Solution <- as.data.frame(Solutions[[1]])
 print(NamesK)
 print(length(NamesK))
 colnames(Solution)[2:156] <- NamesK
@@ -204,6 +289,7 @@ colnames(Solution)[2:156] <- NamesK
 compartments <- Solution[, 1:156]
 compartments <- compartments |> select(-matches("U$"))
 signals <- Solution[, 157:311]
+colnames(signals) <- NamesK
 signals_total <- data.frame(rowSums(signals))
 signals_total$time <- Solution[, 1]
 
@@ -273,7 +359,8 @@ A$time <- compartments$time
 
 ```
 
-## Plotting of Output
+## *Plotting of Output*
+Now only for one output. To do, make it so that uncertainty is represented. 
 
 ```{r plotting}
 
