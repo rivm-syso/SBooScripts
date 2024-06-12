@@ -13,11 +13,12 @@ editor_options:
 
 ```{r}
 library(dplyr)
-Substance "GO-Chitosan"
+Substance <-  "GO-Chitosan"
 source("baseScripts/initWorld_onlyParticulate.R")
 ```
 
-## *Adjusting Parameters to Match considered Scale* 
+## *Adjusting Parameters to Match considered Scale*
+
 In this case study we are considering emission data for Switzerland and Europe. As such, we need to adjust the World to represent this country and continent. Since Europe is the default for the continental scale, adjustments here are not necessary. The data below adjust the Regional Scale to represent Switzerland. You can only adjust parameters that are initial input data, not variables that are calculated later in SBOO.The adjusted dataframes are printed below.
 
 ```{r}
@@ -42,6 +43,7 @@ for (i in seq_along(ParamToAdjust)) {
 }
 print(ParamToAdjust)
 ```
+
 ## *NewSolver*
 
 *Different solvers are available, basically:*
@@ -98,8 +100,7 @@ file_paths <-
 
 ### *Prepare DPMFA data*
 
-*Data from an DPMFA model should be prepared to fit the SBoo world. For instance the time unit should be correct, the mass unit is not as important as this will be the same in the output then, but for good measure we use kg.* 
-This is the quick and dirty way, a more elegant way is till in progress. 
+*Data from an DPMFA model should be prepared to fit the SBoo world. For instance the time unit should be correct, the mass unit is not as important as this will be the same in the output then, but for good measure we use kg.* This is the quick and dirty way, a more elegant way is till in progress.
 
 ```{r WIPscript - Emissions}
 
@@ -200,7 +201,7 @@ result_sedimentation <- list()
 This is still work in progress. To try multiple definitions of input parameters, you currently have to extract the calculation engine from the R6 core with different input.
 
 ```{r}
-particle_sizes <- seq(from = 10, to = 1000, length.out = 10)
+particle_sizes <- seq(from = 50e-6, to = 90e-6, length.out = 10)
 #Generation of matrix 
 result_engine <- list()
 result_sedimentation <- list()
@@ -260,12 +261,6 @@ SimpleBoxODE = function(t, m, parms) {
     for (name in names(interpolations)) {
       e[grep(name, SBNames)] <- interpolations[[name]](t)
     }
-    # e[grep("aCS", SBNames)] <- func_aCS(t)
-    # e[grep("s1CS",SBNames)] <- func_s1CS(t)
-    # e[grep("w1CS",SBNames)] <- func_w1CS(t)
-    # e[grep("aRS", SBNames)] <- func_aRS(t)
-    # e[grep("w1RS", SBNames)] <- func_w1RS(t)
-    # e[grep("s1RS", SBNames)] <- func_s1RS(t)
     dm <- K%*% m + e
     res <- c(dm)
     list(res, signal = e)
@@ -308,65 +303,14 @@ for (i in seq_along(engine_results)) {
   rm(Solution)
 }
 
-# 
-# # Define the SimpleBoxODE function
-# SimpleBoxODE <- function(t, m, parms) {
-#   Fun2Emis <- function(x, funlist, t) {
-#     funlist[[x]](t)
-#   }
-#   with(as.list(c(parms, m)), {
-#     NamesK <- colnames(Kmatrix)
-#     e <- data.frame(emis = rep(0, length(NamesK)), NamesK = NamesK)
-#     emt <- sapply(names(funlist), Fun2Emis, funlist, t)
-#     emt <- as.data.frame(emt)
-#     emt <- cbind(emt, data.frame(NamesK = row.names(emt)))
-#     e <- merge(e, emt, by = "NamesK", all.x = TRUE)
-#     e$emis <- ifelse(!is.na(e$emt), e$emt, e$emis)
-#     e <- as.vector(e[, "emis"])
-#     dm <- K %*% m + e
-#     res <- c(dm)
-#     list(res, signal = e)
-#   })
-# }
-# 
-# 
-# 
-# # Initialize Solutions list
-# Solutions <- list()
-# 
-# # Loop over result_engine
-# for (i in seq_along(engine_results)) {
-#   cat("Running iteration", i, "\n")
-#   funlist <- funlist
-#   Kmatrix <- engine_results[[i]]
-#   NamesK <- colnames(engine_results[[1]])
-#   SB.m0 <- rep(0, length(NamesK))
-#   SBtime <- seq(0, 365.25 * 24 * 60 * 60 * 24, length.out = 10)
-#   
-#   out <- ode(
-#     y = as.numeric(SB.m0),
-#     times = SBtime,
-#     func = SimpleBoxODE,
-#     parms = list(K = Kmatrix, funlist),
-#     rtol = 1e-10, atol = 1e-2
-#   )
-#   
-#   # Save the solution in the Solutions list
-#   Solutions[[i]] <- out
-#   
-# }
-
-# Now Solutions list contains the results for each iteration
-
-
-
 ```
 
 ## *Output Processing*
 
-To move from the solution of the ODE solver to usable output data we need to split the output into corresponding mass data per compartment over time and emission signals over time.It's only for one output now. # TODO make it for the list (possibly append all the runs to one dataframe per compartment)
+To move from the solution of the ODE solver to usable output data we need to split the output into corresponding mass data per compartment over time and emission signals over time.It's only for one output now. \# TODO make it for the list (possibly append all the runs to one dataframe per compartment)
 
 ```{r Output Processing }
+#for one Solution
 # Solution <- as.data.frame(Solutions[[2]])
 # NamesK <- SBNames
 # print(NamesK)
@@ -445,7 +389,7 @@ To move from the solution of the ODE solver to usable output data we need to spl
 # A$time <- compartments$time
 
 
-
+NamesK <- SBNames
 Solutions_all <- list()
 
 
@@ -532,7 +476,8 @@ for (i in seq_along(Solutions)) {
 ```
 
 ## *Plotting of Output*
-Now only for one output. To do, make it so that uncertainty is represented. 
+
+Now only for one output. To do, make it so that uncertainty is represented.
 
 ```{r plotting}
 # Define the plot_dataframe function
@@ -559,7 +504,6 @@ for (i in seq_along(Solutions_all)) {
 ```
 
 ```{r output from all frames}
-library(dplyr)
 
 # Initialize an empty list to store summary statistics per compartment
 summary_stats_per_compartment <- list()
