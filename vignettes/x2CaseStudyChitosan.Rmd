@@ -13,9 +13,35 @@ editor_options:
 
 ```{r}
 library(dplyr)
+Substance "GO-Chitosan"
 source("baseScripts/initWorld_onlyParticulate.R")
 ```
 
+## *Adjusting Parameters to Match considered Scale* 
+In this case study we are considering emission data for Switzerland and Europe. As such, we need to adjust the World to represent this country and continent. Since Europe is the default for the continental scale, adjustments here are not necessary. The data below adjust the Regional Scale to represent Switzerland. You can only adjust parameters that are initial input data, not variables that are calculated later in SBOO.The adjusted dataframes are printed below.
+
+```{r}
+TotalArea <- data.frame(
+  Scale = c("Arctic", "Continental", "Moderate", "Regional"),
+  TotalArea = c(4.25E+13, 7.43E+12, 8.50E+13, 4.13e+11)
+)
+
+Temperature <- data.frame(
+  Scale = "Regional", 
+  Temp = 279
+)
+
+RAINrate <- data.frame(
+  Scale = "Arctic",
+  RAINrate = 4.37e-5
+)
+
+ParamToAdjust <- list(TotalArea, Temperature, RAINrate)
+for (i in seq_along(ParamToAdjust)) {
+  ParamToAdjust[[i]] <- World$mutateVar(ParamToAdjust[[i]])
+}
+print(ParamToAdjust)
+```
 ## *NewSolver*
 
 *Different solvers are available, basically:*
@@ -72,92 +98,100 @@ file_paths <-
 
 ### *Prepare DPMFA data*
 
-*Data from an DPMFA model should be prepared to fit the SBoo world. For instance the time unit should be correct, the mass unit is not as important as this will be the same in the output then, but for good measure we use kg.* Emissions seem to not be right.
+*Data from an DPMFA model should be prepared to fit the SBoo world. For instance the time unit should be correct, the mass unit is not as important as this will be the same in the output then, but for good measure we use kg.* 
+This is the quick and dirty way, a more elegant way is till in progress. 
 
 ```{r WIPscript - Emissions}
 
-Emissions <-
-  read_csv(paste0("/rivm/n/rijkdv/testing_simplebox/emissions/",file_paths), id="file_name", col_names = c("RUN",0:24),skip = 1) # unit: Metric tonnes
+file_paths <- c("/rivm/n/rijkdv/testing_simplebox/emissions/EU/Results_SinkDynamic_Air-GBM_EU_2024-01-30-11-43_12.csv", 
+                "/rivm/n/rijkdv/testing_simplebox/emissions/EU/Results_SinkDynamic_STsoil-GBM_EU_2024-01-30-11-43_12.csv",
+                "/rivm/n/rijkdv/testing_simplebox/emissions/EU/Results_SinkDynamic_SurfaceWater-GBM_EU_2024-01-30-11-43_12.csv",
+                "/rivm/n/rijkdv/testing_simplebox/emissions/Switzerland/Results_SinkDynamic_Air-GBM_Switzerland_2024-01-30-14-00_26.csv", 
+                "/rivm/n/rijkdv/testing_simplebox/emissions/Switzerland/Results_SinkDynamic_Subsurface-GBM_Switzerland_2024-01-30-14-00_26.csv",
+                "/rivm/n/rijkdv/testing_simplebox/emissions/Switzerland/Results_SinkDynamic_Surfacewater-GBM_Switzerland_2024-01-30-14-00_26.csv")
+compartment_abbrs <- c("aCS", "s1CS", "w1CS", "aRS", "s1RS", "w1RS")
 
-# TODO: solve for every RUN
-Emissions <- 
-  Emissions |>
-  pivot_longer(
-    cols = !c(file_name,RUN),
-    names_to = "year",
-    values_to = "emission_t" ) |> mutate_at('year',as.numeric) |> 
-  ungroup() |> 
-  group_by(file_name,year) |> 
-  summarise(Emission_p50_kg = quantile(emission_t,probs = 0.5)*1000,
-            Emission_mean_kg = mean(emission_t)*1000) |> ungroup()
+# Define the function for interpolation
+avg_emisfun <- function(Y) {
+  # Use approxfun to create a linear interpolation function
+  approxfun(data.frame(year = Y$Year_in_seconds ,
+                       emis_kg = Y$Emis), rule = 1:2)
+}
 
-Emissions <- 
-  Emissions |> 
-  mutate(compartment = 
-           case_when(str_detect(file_name, "(?i)Air") ~ "Air",
-                     str_detect(file_name, "(?i)Soil") ~ "SludgeTreatedSoil",
-                     str_detect(file_name, "(?i)Water") ~ "SurfaceWater",
-                     str_detect(file_name, "(?i)Subsurface") ~ "Subsurface",
-                     TRUE ~ "Other"),
-         scale = 
-           case_when(str_detect(file_name, "(?i)EU") ~ "EU",
-                     str_detect(file_name, "(?i)Ireland") ~ "Ireland",
-                     str_detect(file_name, "(?i)Switzerland") ~ "Switzerland",
-                     TRUE ~ "Other"),
-         Substance = "GO-Chitosan",
-  )
-
-Emissions <-
-  Emissions |> 
-  # Emission in year 0 is the cummulative that is actually added up to the last second of the first year (so at time point (365.25*24*60*60)) at time 0 emission is 0.
-  mutate(time_s = year*(365.25*24*60*60)+(365.25*24*60*60)) |> 
-  group_by(compartment,scale,Substance) |> 
-  summarise(n=n(),
-            EmisFun = list(approxfun(
-              data.frame(time_s = c(0,time_s), emis_kg=c(0,Emission_mean_kg)),rule = 1:2)))
-
-# EmisFun with input in seconds and output in kg's going from 0 to 25 years in seconds.
+# Initialize an empty list to store the results
+results_list <- list()
+interpolations <- list()
+output_emissions_list <- list()
 
 
-### filter and name the emissions that we actually have states for: 
-### needs manual tweaking for correct matching
-SBemissions <-
-  Emissions |> mutate(
-    Abr_comp =  case_match(compartment,
-                           "Air" ~ "a",
-                           "SludgeTreatedSoil" ~ "s2",
-                           "SurfaceWater" ~ "w1",
-                           .default = NA
-    ),
-    Abr_scale =  case_match(scale,
-                            "EU" ~ "C",
-                            "Switzerland" ~ "R",
-                            .default = NA
-    ),
-    Abr_species = "S"
-    
-  ) |> drop_na() |>  mutate(Abr = paste0(Abr_comp,Abr_scale,Abr_species))
-
-  funlist <- SBemissions$EmisFun
-  names(funlist) <- SBemissions$Abr
+# Loop over each file path and its corresponding compartment abbreviation
+for (i in seq_along(file_paths)) {
+  file <- file_paths[i]
+  abbr <- compartment_abbrs[i]
   
-SBtime <- times <- seq(0, 24*365.25*24*360, by = 10000)
-results <- lapply(funlist, function(f) f(SBtime))
+  # Read the data
+  Emissions <- read.csv(file)
+  
+  # Calculate the mean of each column, ignoring NA values
+  avg_values <- sapply(Emissions, mean, na.rm = TRUE)
+  
+  # Create a new dataframe with the averages
+  avg_Emissions <- data.frame(Column = names(avg_values), Emis = avg_values*1000)
+  
+  # Add the Abbr column
+  avg_Emissions$Abbr <- abbr
+  
+  # Remove the first row
+  avg_Emissions <- avg_Emissions[-1, ]
+  
+  # Extract the year from the Column names
+  avg_Emissions$Year <- as.integer(sub("X", "", avg_Emissions$Column))
+  avg_Emissions$Year_in_seconds <- avg_Emissions$Year * 365.25 *24 * 360
+  
+  # Add the result to the list
+  results_list[[abbr]] <- avg_Emissions
+  interpolation_function <- avg_emisfun(avg_Emissions)
+  
+  # Store the interpolation with the appropriate name
+  interpolations[[abbr]] <- interpolation_function
+  
+  # Define the times sequence
+  times <- seq(0, 24*365.25*24*360, by = 10000)
+  
+  # Interpolate emissions for each time point
+  interpolated_emissions <- interpolation_function(times)
+  
+  # Create a dataframe for plotting
+  output_emissions <- data.frame(Year_in_seconds = times, Emis = interpolated_emissions, Abbr = abbr)
+  
+  # Add to the output emissions list
+  output_emissions_list[[abbr]] <- output_emissions
+}
 
-# Convert results to a data frame for plotting
-df <- data.frame(
-  Time = rep(SBtime, length(funlist)),
-  Value = unlist(results),
-  Function = rep(names(funlist), each = length(SBtime))
-)
 
-# Plot the results
-ggplot(df, aes(x = Time, y = Value, color = Function)) +
+#interpolations <- do.call(rbind, interpolations)
+emissions <- do.call(rbind, output_emissions_list)
+emissionsum <-sum(emissions$Emis)
+print(emissions)  # Example
+
+# Iterate over the names in interpolations
+for (name in names(interpolations)) {
+  # Create the function name by prefixing with 'func_'
+  func_name <- paste0("func_", name)
+  
+  # Assign the value from interpolations to the function name
+  assign(func_name, interpolations[[name]])
+}
+# Plot the interpolation function
+ggplot(emissions, aes(x = Year_in_seconds, y = Emis, color = Abbr)) +
   geom_line() +
-  labs(title = "Function Evaluations Over Time",
-       x = "Time (seconds)",
-       y = "Function Value") +
+  labs(x = "seconds", y = "Emissions (kg)", color = "Compartment") +
+  ggtitle("Interpolation Functions for Air, Soil, and Water") +
   theme_minimal()
+
+#Generation of matrix 
+result_engine <- list()
+result_sedimentation <- list()
 
 ```
 
@@ -166,7 +200,7 @@ ggplot(df, aes(x = Time, y = Value, color = Function)) +
 This is still work in progress. To try multiple definitions of input parameters, you currently have to extract the calculation engine from the R6 core with different input.
 
 ```{r}
-particle_sizes <- seq(from = 10, to = 1000, length.out = 30)
+particle_sizes <- seq(from = 10, to = 1000, length.out = 10)
 #Generation of matrix 
 result_engine <- list()
 result_sedimentation <- list()
@@ -219,54 +253,108 @@ engine_results <- simulation_results$engine_results
 ## Solver Module
 
 ```{r Solver}
-library(deSolve)
-
-# Define the SimpleBoxODE function
-SimpleBoxODE <- function(t, m, parms) {
-  Fun2Emis <- function(x, funlist, t) {
-    funlist[[x]](t)
-  }
+SimpleBoxODE = function(t, m, parms) {
+  
   with(as.list(c(parms, m)), {
-    NamesK <- colnames(Kmatrix)
-    e <- data.frame(emis = rep(0, length(NamesK)), NamesK = NamesK)
-    emt <- sapply(names(funlist), Fun2Emis, funlist, t)
-    emt <- as.data.frame(emt)
-    emt <- cbind(emt, data.frame(NamesK = row.names(emt)))
-    e <- merge(e, emt, by = "NamesK", all.x = TRUE)
-    e$emis <- ifelse(!is.na(e$emt), e$emt, e$emis)
-    e <- as.vector(e[, "emis"])
-    dm <- K %*% m + e
+    e <- c(rep(0, length(SBNames)))
+    for (name in names(interpolations)) {
+      e[grep(name, SBNames)] <- interpolations[[name]](t)
+    }
+    # e[grep("aCS", SBNames)] <- func_aCS(t)
+    # e[grep("s1CS",SBNames)] <- func_s1CS(t)
+    # e[grep("w1CS",SBNames)] <- func_w1CS(t)
+    # e[grep("aRS", SBNames)] <- func_aRS(t)
+    # e[grep("w1RS", SBNames)] <- func_w1RS(t)
+    # e[grep("s1RS", SBNames)] <- func_s1RS(t)
+    dm <- K%*% m + e
     res <- c(dm)
     list(res, signal = e)
   })
 }
 
+# exporting Engine
+Engine_1 <- engine_results[[1]]
+SBNames <-colnames(Engine_1)
+print(SBNames)
+print(SBNames)
+SB.m0 <- rep(0, length(SBNames))
+print(length(SB.m0))
 
-
-# Initialize Solutions list
-Solutions <- list()
-
-# Loop over result_engine
-for (i in seq_along(engine_results)) {
-  cat("Running iteration", i, "\n")
-  funlist <- funlist
-  Kmatrix <- engine_results[[i]]
-  NamesK <- colnames(engine_results[[1]])
-  SB.m0 <- rep(0, length(NamesK))
-  SBtime <- seq(0, 365.25 * 24 * 60 * 60 * 1, length.out = 12)
+SBsolve4 <- function(tmax = 1e10, nTIMES = 100, Engine) {
   
-  out <- ode(
+  SB.K <- Engine
+  
+  SBtime <- seq(0, tmax, length.out = nTIMES)
+  
+  out <- deSolve::ode(
     y = as.numeric(SB.m0),
     times = SBtime,
     func = SimpleBoxODE,
-    parms = list(K = Kmatrix, funlist),
+    parms = list(K = SB.K, SBNames, interpolations),
     rtol = 1e-10, atol = 1e-2
   )
   
-  # Save the solution in the Solutions list
-  Solutions[[i]] <- out
-  
+  return(out)
 }
+
+# Initialize a list to store the solutions
+Solutions <- list()
+
+# Loop through each Engine and solve
+for (i in seq_along(engine_results)) {
+  print(i)
+  Solution <- SBsolve4(tmax = 24 * (365.25 * 24 * 360), nTIMES = 10, Engine = engine_results[[i]])
+  Solutions[[i]] <- Solution
+  rm(Solution)
+}
+
+# 
+# # Define the SimpleBoxODE function
+# SimpleBoxODE <- function(t, m, parms) {
+#   Fun2Emis <- function(x, funlist, t) {
+#     funlist[[x]](t)
+#   }
+#   with(as.list(c(parms, m)), {
+#     NamesK <- colnames(Kmatrix)
+#     e <- data.frame(emis = rep(0, length(NamesK)), NamesK = NamesK)
+#     emt <- sapply(names(funlist), Fun2Emis, funlist, t)
+#     emt <- as.data.frame(emt)
+#     emt <- cbind(emt, data.frame(NamesK = row.names(emt)))
+#     e <- merge(e, emt, by = "NamesK", all.x = TRUE)
+#     e$emis <- ifelse(!is.na(e$emt), e$emt, e$emis)
+#     e <- as.vector(e[, "emis"])
+#     dm <- K %*% m + e
+#     res <- c(dm)
+#     list(res, signal = e)
+#   })
+# }
+# 
+# 
+# 
+# # Initialize Solutions list
+# Solutions <- list()
+# 
+# # Loop over result_engine
+# for (i in seq_along(engine_results)) {
+#   cat("Running iteration", i, "\n")
+#   funlist <- funlist
+#   Kmatrix <- engine_results[[i]]
+#   NamesK <- colnames(engine_results[[1]])
+#   SB.m0 <- rep(0, length(NamesK))
+#   SBtime <- seq(0, 365.25 * 24 * 60 * 60 * 24, length.out = 10)
+#   
+#   out <- ode(
+#     y = as.numeric(SB.m0),
+#     times = SBtime,
+#     func = SimpleBoxODE,
+#     parms = list(K = Kmatrix, funlist),
+#     rtol = 1e-10, atol = 1e-2
+#   )
+#   
+#   # Save the solution in the Solutions list
+#   Solutions[[i]] <- out
+#   
+# }
 
 # Now Solutions list contains the results for each iteration
 
@@ -279,30 +367,90 @@ for (i in seq_along(engine_results)) {
 To move from the solution of the ODE solver to usable output data we need to split the output into corresponding mass data per compartment over time and emission signals over time.It's only for one output now. # TODO make it for the list (possibly append all the runs to one dataframe per compartment)
 
 ```{r Output Processing }
-Solution <- as.data.frame(Solutions[[1]])
-print(NamesK)
-print(length(NamesK))
-colnames(Solution)[2:156] <- NamesK
+# Solution <- as.data.frame(Solutions[[2]])
+# NamesK <- SBNames
+# print(NamesK)
+# print(length(NamesK))
+# colnames(Solution)[2:156] <- NamesK
+# 
+# #seperate signals and matrix 
+# #compartments 
+# compartments <- Solution[, 1:156]
+# compartments <- compartments |> select(-matches("U$"))
+# signals <- Solution[, 157:311]
+# colnames(signals) <- NamesK
+# signals_total <- data.frame(rowSums(signals))
+# signals_total$time <- Solution[, 1]
+# 
+# #Checks
+# #Emission over time
+# plot1 <-ggplot(signals_total, aes(x = time, y =rowSums.signals.)) + 
+#   geom_line() +
+#   labs(title = "Emissions Over Time", x = "Time", y = "Emissions")
+# 
+# show(plot1)
+# 
+# #further data manipulation for the compartments
+# split_df <- function(df, solution_matrix) {
+#   # Extract the capital letters (A, R, C, T, M) in column names
+#   patterns <- unique(gsub("[^ARCTM]", "", colnames(df)))
+#   
+#   # Function to adjust the dataframe
+#   adjust_df <- function(df) {
+#     df$time <- compartments$time
+#     return(df)
+#   }
+#   
+#   # Split the dataframe based on the presence of specified capital letters using lapply
+#   split_dfs <- lapply(patterns, function(pattern) {
+#     cols <- grepl(pattern, colnames(df))
+#     adjusted_df <- df[, cols, drop = FALSE]
+#     adjust_df(adjusted_df)
+#   })
+#   
+#   # Assign names to the split dataframes
+#   names(split_dfs) <- patterns
+#   
+#   # Output the split dataframes
+#   invisible(lapply(names(split_dfs), function(pattern) {
+#     cat("Pattern:", pattern, "\n")
+#     print(split_dfs[[pattern]])
+#     cat("\n")
+#   }))
+#   
+#   return(split_dfs)
+# }
+# 
+# # Apply the function to split the dataframe
+# split_dfs <- split_df(compartments, solution_matrix)
+# 
+# # Assuming A, C, T, R, and M are the split dataframes
+# A <- split_dfs[["A"]]
+# C <- split_dfs[["C"]]
+# T <- split_dfs[["T"]]
+# R <- split_dfs[["R"]]
+# M <- split_dfs[["M"]]
+# 
+# 
+# 
+# #extra filtering for A 
+# # Regular expression to match columns with "A" as the first capital letter after lowercase letters and numbers
+# pattern <- "^[a-z0-9]*A"
+# 
+# # Identify columns that do not match the pattern
+# columns_to_keep <- !grepl(pattern, names(A))
+# 
+# # Subset the dataframe to keep only the desired columns
+# A <- A[, !columns_to_keep]
+# A$time <- compartments$time
 
-#seperate signals and matrix 
-#compartments 
-compartments <- Solution[, 1:156]
-compartments <- compartments |> select(-matches("U$"))
-signals <- Solution[, 157:311]
-colnames(signals) <- NamesK
-signals_total <- data.frame(rowSums(signals))
-signals_total$time <- Solution[, 1]
 
-#Checks
-#Emission over time
-plot1 <-ggplot(signals_total, aes(x = time, y =rowSums.signals.)) + 
-  geom_line() +
-  labs(title = "Emissions Over Time", x = "Time", y = "Emissions")
 
-show(plot1)
+Solutions_all <- list()
 
-#further data manipulation for the compartments
-split_df <- function(df, solution_matrix) {
+
+# Define the function to split dataframes based on patterns
+split_df <- function(df, compartments) {
   # Extract the capital letters (A, R, C, T, M) in column names
   patterns <- unique(gsub("[^ARCTM]", "", colnames(df)))
   
@@ -322,38 +470,62 @@ split_df <- function(df, solution_matrix) {
   # Assign names to the split dataframes
   names(split_dfs) <- patterns
   
-  # Output the split dataframes
-  invisible(lapply(names(split_dfs), function(pattern) {
-    cat("Pattern:", pattern, "\n")
-    print(split_dfs[[pattern]])
-    cat("\n")
-  }))
-  
   return(split_dfs)
 }
 
-# Apply the function to split the dataframe
-split_dfs <- split_df(compartments, solution_matrix)
+# Initialize a list to store the results)
 
-# Assuming A, C, T, R, and M are the split dataframes
-A <- split_dfs[["A"]]
-C <- split_dfs[["C"]]
-T <- split_dfs[["T"]]
-R <- split_dfs[["R"]]
-M <- split_dfs[["M"]]
+# Loop through all solutions in the list
+for (i in seq_along(Solutions)) {
+  # Convert the current solution to a dataframe
+  Solution <- as.data.frame(Solutions[[i]])
+  
+  # Set column names for the compartments and signals
+  colnames(Solution)[2:156] <- NamesK
+  
+  # Separate signals and matrix compartments
+  compartments <- Solution[, 1:156]
+  compartments <- compartments %>% select(-matches("U$"))
+  
+  signals <- Solution[, 157:311]
+  colnames(signals) <- NamesK
+  signals_total <- data.frame(rowSums(signals))
+  signals_total$time <- Solution[, 1]
+  
+  # Plot emissions over time
+  plot1 <- ggplot(signals_total, aes(x = time, y = rowSums.signals.)) + 
+    geom_line() +
+    labs(title = "Emissions Over Time", x = "Time", y = "Emissions")
+  
+  print(plot1)  # Use print instead of show in scripts
+  
+  # Split the compartments dataframe
+  split_dfs <- split_df(compartments, compartments)
+  
+  # Extract the individual split dataframes
+  A <- split_dfs[["A"]]
+  C <- split_dfs[["C"]]
+  T <- split_dfs[["T"]]
+  R <- split_dfs[["R"]]
+  M <- split_dfs[["M"]]
+  
+  # Further filtering for A
+  pattern <- "^[a-z0-9]*A"
+  columns_to_keep <- !grepl(pattern, names(A))
+  A <- A[, !columns_to_keep]
+  A$time <- compartments$time
 
+  
+  # Save the results in the list with dynamic names
+  Solutions_all[[paste0("Solution_", i)]] <- list(
+    A = A,
+    C = C,
+    T = T,
+    R = R,
+    M = M
+  )
+}
 
-
-#extra filtering for A 
-# Regular expression to match columns with "A" as the first capital letter after lowercase letters and numbers
-pattern <- "^[a-z0-9]*A"
-
-# Identify columns that do not match the pattern
-columns_to_keep <- !grepl(pattern, names(A))
-
-# Subset the dataframe to keep only the desired columns
-A <- A[, !columns_to_keep]
-A$time <- compartments$time
 
 
 
@@ -363,8 +535,7 @@ A$time <- compartments$time
 Now only for one output. To do, make it so that uncertainty is represented. 
 
 ```{r plotting}
-
-
+# Define the plot_dataframe function
 plot_dataframe <- function(df, title) {
   data_to_plot <- tidyr::gather(df, key = "variable", value = "value", -time)
   
@@ -375,15 +546,99 @@ plot_dataframe <- function(df, title) {
          y = "Value")
 }
 
-# List of dataframes and their titles
-dfs <- list(A = A, C = C, T = T, R = R, M = M)
-titles <- c("A", "C", "T", "R", "M")
-
-# Loop through the list and plot each dataframe
-for (i in seq_along(dfs)) {
-  plot <- plot_dataframe(dfs[[i]], titles[i])
-  print(plot)
+# Loop through the Solutions_all list and plot each dataframe
+for (i in seq_along(Solutions_all)) {
+  solution <- Solutions_all[[i]]
+  for (j in names(solution)) {
+    plot <- plot_dataframe(solution[[j]], title = j)
+    print(plot)
+  }
 }
+
+
+```
+
+```{r output from all frames}
+library(dplyr)
+
+# Initialize an empty list to store summary statistics per compartment
+summary_stats_per_compartment <- list()
+
+# Loop through each compartment (A, C, T, R, M)
+for (compartment in c("A", "C", "T", "R", "M")) {
+  compartment_data <- lapply(Solutions_all, function(solution) {
+    # Extract the dataframe for the current compartment
+    df <- solution[[compartment]]
+    df$time <- as.character(df$time) # Ensure time column is character for consistency
+    
+    # Gather the data for easier processing
+    df_gathered <- tidyr::gather(df, key = "variable", value = "value", -time)
+    
+    return(df_gathered)
+  })
+  
+  # Combine data for all solutions and calculate mean and standard deviation
+  combined_data <- bind_rows(compartment_data)
+  summary_stats <- combined_data %>%
+    group_by(time, variable) %>%
+    summarize(mean_value = mean(value),
+              sd_value = sd(value))
+  
+  # Add compartment information
+  summary_stats$compartment <- compartment
+  
+  # Append to the summary_stats_per_compartment list
+  summary_stats_per_compartment[[compartment]] <- summary_stats
+}
+
+# Combine all compartment summary statistics into one dataframe
+summary_stats_final <- bind_rows(summary_stats_per_compartment)
+
+summary_stats_C <- summary_stats_final %>%
+  filter(compartment == "C")
+
+# Plot for compartment A
+ggplot(summary_stats_C, aes(x = as.numeric(time), y = mean_value, group = variable, color = variable)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = mean_value - sd_value, ymax = mean_value + sd_value, fill = variable), alpha = 0.3) +
+  labs(title = "Mass in compartment with Standard Deviation for Compartment C",
+       x = "Time",
+       y = "Mean Value")
+       #color = "Variable").
+
+
+# Create a list to store the plots
+plots_list <- list()
+
+# Iterate over compartments
+for(compartment in unique(summary_stats_final$compartment)) {
+  
+  # Subset data for the current compartment
+  summary_stats_compartment <- summary_stats_final %>%
+    filter(compartment == compartment)
+  
+  # Get unique variables for the current compartment
+  unique_variables <- unique(summary_stats_compartment$variable)
+  
+  # Create plot for the current compartment
+  plot <- ggplot(summary_stats_compartment, aes(x = as.numeric(time), y = mean_value, group = variable, color = variable)) +
+    geom_line(data = subset(summary_stats_compartment, variable %in% unique_variables)) +
+    geom_ribbon(data = subset(summary_stats_compartment, variable %in% unique_variables), aes(ymin = mean_value - sd_value, ymax = mean_value + sd_value, fill = variable), alpha = 0.3) +
+    labs(title = paste("Mass in compartment with Standard Deviation for", compartment),
+         x = "Time",
+         y = "Mean Value",
+         color = "Variable",
+         fill = "Variable")
+  
+  # Store the plot in the list
+  plots_list[[compartment]] <- plot
+}
+
+# Print each plot
+for (i in 1:length(plots_list)) {
+  print(plots_list[[i]])
+}
+
 
 
 ```
