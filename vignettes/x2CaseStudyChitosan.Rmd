@@ -196,8 +196,10 @@ result_sedimentation <- list()
 
 ```
 
-## Solving for constant input data 
+## Solving for constant input data
+
 The chunk below gives the opportunity to Solve for constant input data. The chunk after that gives the opportunity to also vary SB Input data
+
 ```{r, eval=FALSE}
 
 Engine <-World$exportEngineR()
@@ -239,10 +241,9 @@ SBsolve4 <- function( tmax = 1e10, nTIMES = 100) {
 Solution<- SBsolve4(tmax = 24*(365.25*24*360), nTIMES = 130)
 ```
 
-
 ## Varying Input Data
 
-This is still work in progress. To try multiple definitions of input parameters, you currently have to extract the calculation engine from the R6 core with different input.This chunk gives the possibility to solve engines for (combinations of) varing particles and solve for the varying input data with the code chunck below that. 
+This is still work in progress. To try multiple definitions of input parameters, you currently have to extract the calculation engine from the R6 core with different input.This chunk gives the possibility to solve engines for (combinations of) varing particles and solve for the varying input data with the code chunck below that.
 
 ```{r}
 particle_sizes <- seq(from = 50e-6, to = 90e-6, length.out = 10)
@@ -351,7 +352,7 @@ for (i in seq_along(engine_results)) {
 
 ## *Output Processing*
 
-To move from the solution of the ODE solver to usable output data we need to split the output into corresponding mass data per compartment over time and emission signals over time. The first chunk is for one output, the latter chunk for varying input or emission data. 
+To move from the solution of the ODE solver to usable output data we need to split the output into corresponding mass data per compartment over time and emission signals over time. The first chunk is for one output, the latter chunk for varying input or emission data.
 
 ```{r Output Processing one solution, eval=False}
 library(dplyr)
@@ -435,7 +436,8 @@ A$time <- compartments$time
 
 ```
 
-Output processing for multiple solutions. 
+Output processing for multiple solutions.
+
 ```{r Output Processing }
 
 
@@ -527,7 +529,7 @@ for (i in seq_along(Solutions)) {
 
 ## *Plotting of Output*
 
-Below you can create a plot for one output, after that to represent uncertainty based on multiple outputs 
+Below you can create a plot for one output, after that to represent uncertainty based on multiple outputs
 
 ```{r plotting}
 # Define the plot_dataframe function
