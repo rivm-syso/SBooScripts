@@ -136,7 +136,7 @@ for (i in seq_along(file_paths)) {
   # Calculate the mean of each column, ignoring NA values
   avg_values <- sapply(Emissions, mean, na.rm = TRUE)
   
-  # Create a new dataframe with the averages
+  # Create a new dataframe with the averages, convert from tonnes to kg
   avg_Emissions <- data.frame(Column = names(avg_values), Emis = avg_values*1000)
   
   # Add the Abbr column
@@ -196,9 +196,53 @@ result_sedimentation <- list()
 
 ```
 
+## Solving for constant input data 
+The chunk below gives the opportunity to Solve for constant input data. The chunk after that gives the opportunity to also vary SB Input data
+```{r, eval=FALSE}
+
+Engine <-World$exportEngineR()
+##ODE
+SimpleBoxODE = function(t, m, parms) {
+  
+  with(as.list(c(parms, m)), {
+    e <- c(rep(0, length(SBNames)))
+    for (name in names(interpolations)) {
+      e[grep(name, SBNames)] <- interpolations[[name]](t)
+    }
+    dm <- K%*% m + e
+    res <- c(dm)
+    list(res, signal = e)
+  })
+}
+SBNames <-colnames(Engine)
+print(SBNames)
+SB.m0 <- rep(0, length(SBNames))
+
+#Function to Solve
+SBsolve4 <- function( tmax = 1e10, nTIMES = 100) {
+  
+  SB.K <- Engine
+  
+  SBtime <- seq(0,tmax,length.out = nTIMES)
+  
+  
+  out <- deSolve::ode(
+    y = as.numeric(SB.m0),
+    times = SBtime ,
+    func = SimpleBoxODE,
+    parms = list(K = SB.K, SBNames,func_aCS, func_s1CS, func_w1CS),
+    rtol = 1e-10, atol = 1e-2)
+  #if(as.character(class(deS)[1])!="data.frame") return (list(errorstate="error", deS))
+  
+}
+#Solving
+Solution<- SBsolve4(tmax = 24*(365.25*24*360), nTIMES = 130)
+```
+
+
 ## Varying Input Data
 
-This is still work in progress. To try multiple definitions of input parameters, you currently have to extract the calculation engine from the R6 core with different input.
+This is still work in progress. To try multiple definitions of input parameters, you currently have to extract the calculation engine from the R6 core with different input.This chunk gives the possibility to solve engines for (combinations of) varing particles and solve for the varying input data with the code chunck below that. 
 
 ```{r}
 particle_sizes <- seq(from = 50e-6, to = 90e-6, length.out = 10)
@@ -307,86 +351,92 @@ for (i in seq_along(engine_results)) {
 
 ## *Output Processing*
 
-To move from the solution of the ODE solver to usable output data we need to split the output into corresponding mass data per compartment over time and emission signals over time.It's only for one output now. \# TODO make it for the list (possibly append all the runs to one dataframe per compartment)
+To move from the solution of the ODE solver to usable output data we need to split the output into corresponding mass data per compartment over time and emission signals over time. The first chunk is for one output, the latter chunk for varying input or emission data. 
 
-```{r Output Processing }
+```{r Output Processing one solution, eval=False}
+library(dplyr)
 #for one Solution
-# Solution <- as.data.frame(Solutions[[2]])
-# NamesK <- SBNames
-# print(NamesK)
-# print(length(NamesK))
-# colnames(Solution)[2:156] <- NamesK
-# 
-# #seperate signals and matrix 
-# #compartments 
-# compartments <- Solution[, 1:156]
-# compartments <- compartments |> select(-matches("U$"))
-# signals <- Solution[, 157:311]
-# colnames(signals) <- NamesK
-# signals_total <- data.frame(rowSums(signals))
-# signals_total$time <- Solution[, 1]
-# 
-# #Checks
-# #Emission over time
-# plot1 <-ggplot(signals_total, aes(x = time, y =rowSums.signals.)) + 
-#   geom_line() +
-#   labs(title = "Emissions Over Time", x = "Time", y = "Emissions")
-# 
-# show(plot1)
-# 
-# #further data manipulation for the compartments
-# split_df <- function(df, solution_matrix) {
-#   # Extract the capital letters (A, R, C, T, M) in column names
-#   patterns <- unique(gsub("[^ARCTM]", "", colnames(df)))
-#   
-#   # Function to adjust the dataframe
-#   adjust_df <- function(df) {
-#     df$time <- compartments$time
-#     return(df)
-#   }
-#   
-#   # Split the dataframe based on the presence of specified capital letters using lapply
-#   split_dfs <- lapply(patterns, function(pattern) {
-#     cols <- grepl(pattern, colnames(df))
-#     adjusted_df <- df[, cols, drop = FALSE]
-#     adjust_df(adjusted_df)
-#   })
-#   
-#   # Assign names to the split dataframes
-#   names(split_dfs) <- patterns
-#   
-#   # Output the split dataframes
-#   invisible(lapply(names(split_dfs), function(pattern) {
-#     cat("Pattern:", pattern, "\n")
-#     print(split_dfs[[pattern]])
-#     cat("\n")
-#   }))
-#   
-#   return(split_dfs)
-# }
-# 
-# # Apply the function to split the dataframe
-# split_dfs <- split_df(compartments, solution_matrix)
-# 
-# # Assuming A, C, T, R, and M are the split dataframes
-# A <- split_dfs[["A"]]
-# C <- split_dfs[["C"]]
-# T <- split_dfs[["T"]]
-# R <- split_dfs[["R"]]
-# M <- split_dfs[["M"]]
-# 
-# 
-# 
-# #extra filtering for A 
-# # Regular expression to match columns with "A" as the first capital letter after lowercase letters and numbers
-# pattern <- "^[a-z0-9]*A"
-# 
-# # Identify columns that do not match the pattern
-# columns_to_keep <- !grepl(pattern, names(A))
-# 
-# # Subset the dataframe to keep only the desired columns
-# A <- A[, !columns_to_keep]
-# A$time <- compartments$time
+Solution <- as.data.frame(Solution)
+NamesK <- SBNames
+print(NamesK)
+print(length(NamesK))
+colnames(Solution)[2:156] <- NamesK
+
+#seperate signals and matrix
+#compartments
+compartments <- Solution[, 1:156]
+compartments <- compartments |> select(-matches("U$"))
+signals <- Solution[, 157:311]
+colnames(signals) <- NamesK
+signals_total <- data.frame(rowSums(signals))
+signals_total$time <- Solution[, 1]
+
+#Checks
+#Emission over time
+plot1 <-ggplot(signals_total, aes(x = time, y =rowSums.signals.)) +
+  geom_line() +
+  labs(title = "Emissions Over Time", x = "Time", y = "Emissions")
+
+show(plot1)
+
+#further data manipulation for the compartments
+split_df <- function(df, solution_matrix) {
+  # Extract the capital letters (A, R, C, T, M) in column names
+  patterns <- unique(gsub("[^ARCTM]", "", colnames(df)))
+
+  # Function to adjust the dataframe
+  adjust_df <- function(df) {
+    df$time <- compartments$time
+    return(df)
+  }
+
+  # Split the dataframe based on the presence of specified capital letters using lapply
+  split_dfs <- lapply(patterns, function(pattern) {
+    cols <- grepl(pattern, colnames(df))
+    adjusted_df <- df[, cols, drop = FALSE]
+    adjust_df(adjusted_df)
+  })
+
+  # Assign names to the split dataframes
+  names(split_dfs) <- patterns
+
+  # Output the split dataframes
+  invisible(lapply(names(split_dfs), function(pattern) {
+    cat("Pattern:", pattern, "\n")
+    print(split_dfs[[pattern]])
+    cat("\n")
+  }))
+
+  return(split_dfs)
+}
+
+# Apply the function to split the dataframe
+split_dfs <- split_df(compartments, solution_matrix)
+
+# Assuming A, C, T, R, and M are the split dataframes
+A <- split_dfs[["A"]]
+C <- split_dfs[["C"]]
+T <- split_dfs[["T"]]
+R <- split_dfs[["R"]]
+M <- split_dfs[["M"]]
+
+
+
+#extra filtering for A
+# Regular expression to match columns with "A" as the first capital letter after lowercase letters and numbers
+pattern <- "^[a-z0-9]*A"
+
+# Identify columns that do not match the pattern
+columns_to_keep <- !grepl(pattern, names(A))
+
+# Subset the dataframe to keep only the desired columns
+A <- A[, !columns_to_keep]
+A$time <- compartments$time
+
+```
+
+Output processing for multiple solutions. 
+```{r Output Processing }
 
 
 NamesK <- SBNames
@@ -477,7 +527,7 @@ for (i in seq_along(Solutions)) {
 
 ## *Plotting of Output*
 
-Now only for one output. To do, make it so that uncertainty is represented.
+Below you can create a plot for one output, after that to represent uncertainty based on multiple outputs 
 
 ```{r plotting}
 # Define the plot_dataframe function
@@ -491,6 +541,30 @@ plot_dataframe <- function(df, title) {
          y = "Value")
 }
 
+# Named list of dataframes
+dataframes <- list(
+  A = A,
+  C = C,
+  T = T,
+  R = R,
+  M = M
+)
+
+# Plot and print each dataframe
+plots <- lapply(names(dataframes), function(name) {
+  plot_dataframe(dataframes[[name]], name)
+})
+
+# Show the plots
+for (plot in plots) {
+  print(plot)
+}
+
+```
+
+```{r output from all solutions}
+
+## seperate dataframes 
 # Loop through the Solutions_all list and plot each dataframe
 for (i in seq_along(Solutions_all)) {
   solution <- Solutions_all[[i]]
@@ -500,10 +574,6 @@ for (i in seq_along(Solutions_all)) {
   }
 }
 
-
-```
-
-```{r output from all frames}
 
 # Initialize an empty list to store summary statistics per compartment
 summary_stats_per_compartment <- list()
