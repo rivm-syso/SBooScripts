@@ -13,36 +13,55 @@ editor_options:
 
 ```{r}
 library(dplyr)
-Substance <-  "GO-Chitosan"
+substance <-  "GO-Chitosan"
 source("baseScripts/initWorld_onlyParticulate.R")
+World$fetchData("RhoS")
+World$fetchData("RadS")
 ```
 
 ## *Adjusting Parameters to Match considered Scale*
 
-In this case study we are considering emission data for Switzerland and Europe. As such, we need to adjust the World to represent this country and continent. Since Europe is the default for the continental scale, adjustments here are not necessary. The data below adjust the Regional Scale to represent Switzerland. You can only adjust parameters that are initial input data, not variables that are calculated later in SBOO.The adjusted dataframes are printed below.
+In this case study we are considering emission data for Switzerland and Europe. As such, we need to adjust the World to represent this country and continent. Since Europe is the default for the continental scale, adjustments here are not necessary. The data below adjust the Regional Scale to represent Switzerland. You can only adjust parameters that are initial input data, not variables that are calculated later in SBOO.The adjusted dataframes are printed below. Note, at this point the input is already converted to SI units, so new data also needs to be put in this format. 
 
 ```{r}
-TotalArea <- data.frame(
-  Scale = c("Arctic", "Continental", "Moderate", "Regional"),
-  TotalArea = c(4.25E+13, 7.43E+12, 8.50E+13, 4.13e+11)
-)
+# 
+# LandFRAC <- data.frame(
+#   Scale = "Regional",
+#   SubCompart = c("agriculturalsoil", "lake", "naturalsoil", "othersoil" , "river"), 
+#   landFRAC = c(0.37, 0.02, 0.51, 0.08, 0.02)
+# )
+# # TotalArea <- data.frame(
+# #   Scale = c("Arctic", "Continental", "Moderate", "Regional"),
+# #   TotalArea = c(4.25E+13, 7.43E+12, 8.50E+13, 4.13e+11)
+# # )
+# 
+# Temperature <- data.frame(
+#   Scale = "Regional", 
+#   Temp = 279
+# )
+# 
+# RAINrate <- data.frame(
+#   Scale = "Arctic",
+#   RAINrate = 4.37e-5
+# )
+# 
+# ParamToAdjust <- list(LandFRAC, Temperature, RAINrate)
+# for (i in seq_along(ParamToAdjust)) {
+#   ParamToAdjust[[i]] <- World$mutateVar(ParamToAdjust[[i]])
+# }
+# print(ParamToAdjust)
 
-Temperature <- data.frame(
-  Scale = "Regional", 
-  Temp = 279
-)
+## scaling of world 
 
-RAINrate <- data.frame(
-  Scale = "Arctic",
-  RAINrate = 4.37e-5
-)
-
-ParamToAdjust <- list(TotalArea, Temperature, RAINrate)
-for (i in seq_along(ParamToAdjust)) {
-  ParamToAdjust[[i]] <- World$mutateVar(ParamToAdjust[[i]])
-}
-print(ParamToAdjust)
+Area <- World$fetchData("TotalArea")
+AreaRegional <- Area$TotalArea[Area$Scale =="Regional"]
+AreaContinental <- Area$TotalArea[Area$Scale =="Continental"]
+fracReg <- AreaRegional/AreaContinental
+fracCont <- 1-fracReg
+print(fracReg)
+print(fracCont)
 ```
+
 
 ## *NewSolver*
 
@@ -72,7 +91,7 @@ World$NewSolver("SBsteady")
 
 *e is the emission to each compartment per unit of time, e.g. 1 t/y.*
 
-*To solve this set of differential equations we thus need an emission, e.g. 1 ton/year to air.*
+*To solve this set of differential equations we thus need an emission, e.g. 1 ton/year to air. The height of this emission is not*
 
 ```{r constant emission}
 emissions <- data.frame(Abbr = "aCS", Emis = 1000/(365.25*24*60*60)) # convert 1 t/y to si units: kg/s
@@ -102,100 +121,208 @@ file_paths <-
 
 *Data from an DPMFA model should be prepared to fit the SBoo world. For instance the time unit should be correct, the mass unit is not as important as this will be the same in the output then, but for good measure we use kg.* This is the quick and dirty way, a more elegant way is till in progress.
 
-```{r WIPscript - Emissions}
+We define the compartments of the emission based on the DMPFA model. 
 
-file_paths <- c("/rivm/n/rijkdv/testing_simplebox/emissions/EU/Results_SinkDynamic_Air-GBM_EU_2024-01-30-11-43_12.csv", 
-                "/rivm/n/rijkdv/testing_simplebox/emissions/EU/Results_SinkDynamic_STsoil-GBM_EU_2024-01-30-11-43_12.csv",
-                "/rivm/n/rijkdv/testing_simplebox/emissions/EU/Results_SinkDynamic_SurfaceWater-GBM_EU_2024-01-30-11-43_12.csv",
-                "/rivm/n/rijkdv/testing_simplebox/emissions/Switzerland/Results_SinkDynamic_Air-GBM_Switzerland_2024-01-30-14-00_26.csv", 
-                "/rivm/n/rijkdv/testing_simplebox/emissions/Switzerland/Results_SinkDynamic_Subsurface-GBM_Switzerland_2024-01-30-14-00_26.csv",
-                "/rivm/n/rijkdv/testing_simplebox/emissions/Switzerland/Results_SinkDynamic_Surfacewater-GBM_Switzerland_2024-01-30-14-00_26.csv")
-compartment_abbrs <- c("aCS", "s1CS", "w1CS", "aRS", "s1RS", "w1RS")
+```{r Emissions}
+file_paths <- 
+  list.files("/rivm/n/rijkdv/testing_simplebox/emissions/",recursive = TRUE)
+Emissions <-
+  read_csv(paste0("/rivm/n/rijkdv/testing_simplebox/emissions/",file_paths), id="file_name", col_names = c("RUN",0:24),skip = 1) # unit: Metric tonnes
 
-# Define the function for interpolation
-avg_emisfun <- function(Y) {
-  # Use approxfun to create a linear interpolation function
-  approxfun(data.frame(year = Y$Year_in_seconds ,
-                       emis_kg = Y$Emis), rule = 1:2)
+# TODO: solve for every RUN
+Emissions <- 
+  Emissions |>
+  pivot_longer(
+    cols = !c(file_name,RUN),
+    names_to = "year",
+    values_to = "emission_t" ) |> mutate_at('year',as.numeric) |> 
+  ungroup() |> 
+  group_by(file_name,year) |> 
+  summarise(Emission_p50_kg = quantile(emission_t,probs = 0.5)*1000,
+            Emission_mean_kg = mean(emission_t)*1000) |> ungroup()
+
+Emissions <- 
+  Emissions |> 
+  mutate(compartment = 
+           case_when(str_detect(file_name, "(?i)Air") ~ "Air",
+                     str_detect(file_name, "(?i)Soil") ~ "SludgeTreatedSoil",
+                     str_detect(file_name, "(?i)Water") ~ "SurfaceWater",
+                     str_detect(file_name, "(?i)Subsurface") ~ "Subsurface",
+                     TRUE ~ "Other"),
+         scale = 
+           case_when(str_detect(file_name, "(?i)EU") ~ "EU",
+                     str_detect(file_name, "(?i)Ireland") ~ "Ireland",
+                     str_detect(file_name, "(?i)Switzerland") ~ "Switzerland",
+                     TRUE ~ "Other"),
+         Substance = "GO-Chitosan",
+  )
+
+```
+In this chunk, we adjust for the fact that the input data for the DMPFA model is all Europe based. Hence we scale by the factor fracReg and fracCont to ensure we do not overestimate input. The regional data is thus overwritten by the function EmissionContinental*FracReg
+
+```{r}
+
+SBEmissions2 <- 
+  Emissions |> mutate(
+    Abr_comp =  case_match(compartment,
+                           "Air" ~ "a",
+                           "SludgeTreatedSoil" ~ "s2",
+                           "SurfaceWater" ~ "w1",
+                           .default = NA
+    ),
+    Abr_scale =  case_match(scale,
+                            "EU" ~ "C",
+                            "Switzerland" ~ "R",
+                            .default = NA
+    ),
+    Abr_species = "S"
+    
+  ) |> drop_na() |>  mutate(Abr = paste0(Abr_comp,Abr_scale,Abr_species))
+
+update_emission <- function(SBEmissions2, cs_abr, rs_abr) {
+  cs_values <- SBEmissions2 |>
+    filter(Abr == cs_abr) |>
+    select(year, Emission_mean_kg)
+  
+  SBEmissions2 <- SBEmissions2 |>
+    left_join(cs_values, by = "year", suffix = c("", paste0("_", cs_abr))) |>
+    mutate(Emission_mean_kg = ifelse(Abr == rs_abr, get(paste0("Emission_mean_kg_", cs_abr)) * fracReg, Emission_mean_kg)) |>
+    select(-matches(paste0("Emission_mean_kg_", cs_abr)))
+  SBEmissions2 <- SBEmissions2 |>
+  mutate(Emission_mean_kg = ifelse(Abr == cs_abr, Emission_mean_kg * fracCont, Emission_mean_kg))
+  
+  return(SBEmissions2)
+  
+  
 }
 
-# Initialize an empty list to store the results
-results_list <- list()
-interpolations <- list()
-output_emissions_list <- list()
+# Update Emission_mean_kg for all specified pairs of compartments
+compartment_pairs <- list(c("aCS", "aRS"), c("s2CS", "s2RS"), c("w1CS", "w1RS"))
 
-
-# Loop over each file path and its corresponding compartment abbreviation
-for (i in seq_along(file_paths)) {
-  file <- file_paths[i]
-  abbr <- compartment_abbrs[i]
-  
-  # Read the data
-  Emissions <- read.csv(file)
-  
-  # Calculate the mean of each column, ignoring NA values
-  avg_values <- sapply(Emissions, mean, na.rm = TRUE)
-  
-  # Create a new dataframe with the averages, convert from tonnes to kg
-  avg_Emissions <- data.frame(Column = names(avg_values), Emis = avg_values*1000)
-  
-  # Add the Abbr column
-  avg_Emissions$Abbr <- abbr
-  
-  # Remove the first row
-  avg_Emissions <- avg_Emissions[-1, ]
-  
-  # Extract the year from the Column names
-  avg_Emissions$Year <- as.integer(sub("X", "", avg_Emissions$Column))
-  avg_Emissions$Year_in_seconds <- avg_Emissions$Year * 365.25 *24 * 360
-  
-  # Add the result to the list
-  results_list[[abbr]] <- avg_Emissions
-  interpolation_function <- avg_emisfun(avg_Emissions)
-  
-  # Store the interpolation with the appropriate name
-  interpolations[[abbr]] <- interpolation_function
-  
-  # Define the times sequence
-  times <- seq(0, 24*365.25*24*360, by = 10000)
-  
-  # Interpolate emissions for each time point
-  interpolated_emissions <- interpolation_function(times)
-  
-  # Create a dataframe for plotting
-  output_emissions <- data.frame(Year_in_seconds = times, Emis = interpolated_emissions, Abbr = abbr)
-  
-  # Add to the output emissions list
-  output_emissions_list[[abbr]] <- output_emissions
+for (pair in compartment_pairs) {
+  SBEmissions2 <- update_emission(SBEmissions2, pair[1], pair[2])
 }
 
+SBEmissions2 <- 
+  SBEmissions2 |> 
+  mutate(time_s = year*(365.25*24*60*60)+(365.25*24*60*60)) |> 
+  group_by(compartment,scale,Substance) |> 
+  summarise(n=n(),
+            EmisFun = list(approxfun(
+              data.frame(time_s = c(0,time_s), emis_kg=c(0,Emission_mean_kg)),rule = 1:1)))
 
-#interpolations <- do.call(rbind, interpolations)
-emissions <- do.call(rbind, output_emissions_list)
-emissionsum <-sum(emissions$Emis)
-print(emissions)  # Example
-
-# Iterate over the names in interpolations
-for (name in names(interpolations)) {
-  # Create the function name by prefixing with 'func_'
-  func_name <- paste0("func_", name)
+# EmisFun with input in seconds and output in kg's going from 0 to 25 years in seconds.
+SBEmissions2 <-
+  SBEmissions2 |> mutate(
+    Abr_comp =  case_match(compartment,
+                           "Air" ~ "a",
+                           "SludgeTreatedSoil" ~ "s2",
+                           "SurfaceWater" ~ "w1",
+                           .default = NA
+    ),
+    Abr_scale =  case_match(scale,
+                            "EU" ~ "C",
+                            "Switzerland" ~ "R",
+                            .default = NA
+    ),
+    Abr_species = "S"
+    
+  ) |> drop_na() |>  mutate(Abr = paste0(Abr_comp,Abr_scale,Abr_species))
+  funlist <- SBEmissions2$EmisFun
+  names(funlist) <- SBEmissions2$Abr
   
-  # Assign the value from interpolations to the function name
-  assign(func_name, interpolations[[name]])
+times <- seq(0, 25*365.25*24*3600, by = 10000)
+
+# Create a data frame to store the results
+results <- data.frame(Time = times)
+
+# Apply each function to the times and store the results
+for (name in names(funlist)) {
+  func <- funlist[[name]]
+  results[[name]] <- sapply(times, func)
 }
-# Plot the interpolation function
-ggplot(emissions, aes(x = Year_in_seconds, y = Emis, color = Abbr)) +
+
+# Convert the data frame to long format for ggplot2
+results_long <- results |>
+  pivot_longer(-Time, names_to = "Compartment", values_to = "Value")
+
+# Plot the results
+ggplot(results_long, aes(x = Time, y = Value, color = Compartment)) +
   geom_line() +
-  labs(x = "seconds", y = "Emissions (kg)", color = "Compartment") +
-  ggtitle("Interpolation Functions for Air, Soil, and Water") +
+  labs(title = "Function Results Over Time",
+       x = "Time (seconds)",
+       y = "Function Value") +
   theme_minimal()
 
-#Generation of matrix 
-result_engine <- list()
-result_sedimentation <- list()
 
 ```
 
+Here, the chunk is where you would potentially have input data from both regional and continental scale. 
+```{r}
+Emissions <-
+  Emissions |> 
+  # Emission in year 0 is the cumulative that is actually added up to the last second of the first year (so at time point (365.25*24*60*60)) at time 0 emission is 0.
+  mutate(time_s = year*(365.25*24*60*60)+(365.25*24*60*60)) |> 
+  group_by(compartment,scale,Substance) |> 
+  summarise(n=n(),
+            EmisFun = list(approxfun(
+              data.frame(time_s = c(0,time_s), emis_kg=c(0,Emission_mean_kg)),rule = 1:1)))
+
+
+
+# Assuming EmisFun is a list of functions indexed by compartment names
+
+
+### filter and name the emissions that we actually have states for: 
+### needs manual tweaking for correct matching
+SBemissions <-
+  Emissions |> mutate(
+    Abr_comp =  case_match(compartment,
+                           "Air" ~ "a",
+                           "SludgeTreatedSoil" ~ "s2",
+                           "SurfaceWater" ~ "w1",
+                           .default = NA
+    ),
+    Abr_scale =  case_match(scale,
+                            "EU" ~ "C",
+                            "Switzerland" ~ "R",
+                            .default = NA
+    ),
+    Abr_species = "S"
+    
+  ) |> drop_na() |>  mutate(Abr = paste0(Abr_comp,Abr_scale,Abr_species))
+
+  funlist <- SBemissions$EmisFun
+  names(funlist) <- SBemissions$Abr
+  
+funlist <- SBemissions$EmisFun
+names(funlist) <- SBemissions$Abr
+
+# Generate the sequence of times (from 0 to 1 year in seconds)
+times <- seq(0, 25*365.25*24*3600, by = 10000)
+
+# Create a data frame to store the results
+results <- data.frame(Time = times)
+
+# Apply each function to the times and store the results
+for (name in names(funlist)) {
+  func <- funlist[[name]]
+  results[[name]] <- sapply(times, func)
+}
+
+# Convert the data frame to long format for ggplot2
+results_long <- results |>
+  pivot_longer(-Time, names_to = "Compartment", values_to = "Value")
+
+# Plot the results
+ggplot(results_long, aes(x = Time, y = Value, color = Compartment)) +
+  geom_line() +
+  labs(title = "Function Results Over Time",
+       x = "Time (seconds)",
+       y = "Function Value") +
+  theme_minimal()
+
+```
 ## Solving for constant input data
 
 The chunk below gives the opportunity to Solve for constant input data. The chunk after that gives the opportunity to also vary SB Input data
@@ -203,6 +330,7 @@ The chunk below gives the opportunity to Solve for constant input data. The chun
 ```{r, eval=FALSE}
 
 Engine <-World$exportEngineR()
+interpolations <- funlist
 ##ODE
 SimpleBoxODE = function(t, m, parms) {
   
@@ -232,19 +360,19 @@ SBsolve4 <- function( tmax = 1e10, nTIMES = 100) {
     y = as.numeric(SB.m0),
     times = SBtime ,
     func = SimpleBoxODE,
-    parms = list(K = SB.K, SBNames,func_aCS, func_s1CS, func_w1CS),
+    parms = list(K = SB.K, SBNames, interpolations),
     rtol = 1e-10, atol = 1e-2)
   #if(as.character(class(deS)[1])!="data.frame") return (list(errorstate="error", deS))
   
 }
 #Solving
-Solution<- SBsolve4(tmax = 24*(365.25*24*360), nTIMES = 130)
+Solution<- SBsolve4(tmax = 25*(365.25*24*3600), nTIMES = 130)
 ```
 
 ## Varying Input Data
 
 This is still work in progress. To try multiple definitions of input parameters, you currently have to extract the calculation engine from the R6 core with different input.This chunk gives the possibility to solve engines for (combinations of) varing particles and solve for the varying input data with the code chunck below that.
-
+In this chunk, a check for the module k_Sedimentation is implemented as a check for dependency on particle size.
 ```{r}
 particle_sizes <- seq(from = 50e-6, to = 90e-6, length.out = 10)
 #Generation of matrix 
@@ -319,7 +447,7 @@ print(SBNames)
 print(SBNames)
 SB.m0 <- rep(0, length(SBNames))
 print(length(SB.m0))
-
+interpolations <-funlist
 SBsolve4 <- function(tmax = 1e10, nTIMES = 100, Engine) {
   
   SB.K <- Engine
@@ -343,7 +471,7 @@ Solutions <- list()
 # Loop through each Engine and solve
 for (i in seq_along(engine_results)) {
   print(i)
-  Solution <- SBsolve4(tmax = 24 * (365.25 * 24 * 360), nTIMES = 10, Engine = engine_results[[i]])
+  Solution <- SBsolve4(tmax = 25 * (365.25 * 24 * 3600), nTIMES = 10, Engine = engine_results[[i]])
   Solutions[[i]] <- Solution
   rm(Solution)
 }
@@ -529,7 +657,7 @@ for (i in seq_along(Solutions)) {
 
 ## *Plotting of Output*
 
-Below you can create a plot for one output, after that to represent uncertainty based on multiple outputs
+Below you can create a plot for one output, the chunk after that represents uncertainty based on multiple outputs.
 
 ```{r plotting}
 # Define the plot_dataframe function
