@@ -425,6 +425,7 @@
 "kdeg","air","Cetrimonium Bromide",2.56e-05,NA
 "kdeg","air","CGA 219417 (CYPRODINIL)",0.000150188,NA
 "kdeg","air","CHENODEOXYCHOLIC ACID",3.96e-05,NA
+"kdeg","air","Chitosan",1e-20,NA
 "kdeg","air","Chlorambucil",0.000142216,NA
 "kdeg","air","CHLORDIMEFORM",6.8e-05,NA
 "kdeg","air","CHLORFENSON",4.93e-06,NA
@@ -594,6 +595,7 @@
 "kdeg","air","glutaral",3.2e-05,NA
 "kdeg","air","glycerol",1.4e-05,NA
 "kdeg","air","GO-Chitosan",1e-20,NA
+"kdeg","air","Graphene Oxide",1e-20,NA
 "kdeg","air","guaiacol",2.23e-05,NA
 "kdeg","air","Guanidine, N,N'''-1,6-hexanediylbis N'-cyano-",0.000114765,NA
 "kdeg","air","Gyromitrin",1.38e-05,NA
@@ -1305,6 +1307,7 @@
 "kdeg","sediment","Cetrimonium Bromide",2.38e-08,NA
 "kdeg","sediment","CGA 219417 (CYPRODINIL)",2.38e-08,NA
 "kdeg","sediment","CHENODEOXYCHOLIC ACID",2.38e-08,NA
+"kdeg","sediment","Chitosan",1e-16,NA
 "kdeg","sediment","Chlorambucil",1.49e-08,NA
 "kdeg","sediment","CHLORDIMEFORM",2.38e-08,NA
 "kdeg","sediment","CHLORFENSON",1.49e-08,NA
@@ -1434,6 +1437,7 @@
 "kdeg","sediment","GERANIOL",5.94e-08,NA
 "kdeg","sediment","GIBBERELLIC ACID",1.49e-08,NA
 "kdeg","sediment","GO-Chitosan",1e-16,NA
+"kdeg","sediment","Graphene Oxide",1e-16,NA
 "kdeg","sediment","guaiacol",5.94e-08,NA
 "kdeg","sediment","Guanidine, N,N'''-1,6-hexanediylbis N'-cyano-",2.38e-08,NA
 "kdeg","sediment","Gyromitrin",5.94e-08,NA
@@ -2167,6 +2171,7 @@
 "kdeg","soil","Cetrimonium Bromide",1.07e-07,NA
 "kdeg","soil","CGA 219417 (CYPRODINIL)",1.78e-07,NA
 "kdeg","soil","CHENODEOXYCHOLIC ACID",1.07e-07,NA
+"kdeg","soil","Chitosan",1e-07,NA
 "kdeg","soil","Chlorambucil",6.69e-08,NA
 "kdeg","soil","CHLORDIMEFORM",2.67e-07,NA
 "kdeg","soil","CHLORFENSON",6.69e-08,NA
@@ -2336,6 +2341,7 @@
 "kdeg","soil","glutaral",6.5e-07,NA
 "kdeg","soil","glycerol",4.5e-06,NA
 "kdeg","soil","GO-Chitosan",1e-15,NA
+"kdeg","soil","Graphene Oxide",1e-15,NA
 "kdeg","soil","guaiacol",2.67e-07,NA
 "kdeg","soil","Guanidine, N,N'''-1,6-hexanediylbis N'-cyano-",1.07e-07,NA
 "kdeg","soil","Gyromitrin",2.67e-07,NA
@@ -3178,6 +3184,7 @@
 "kdeg","water","Cetrimonium Bromide",2.14e-07,NA
 "kdeg","water","CGA 219417 (CYPRODINIL)",2.14e-07,NA
 "kdeg","water","CHENODEOXYCHOLIC ACID",2.14e-07,NA
+"kdeg","water","Chitosan",1e-06,NA
 "kdeg","water","Chlorambucil",1.34e-07,NA
 "kdeg","water","CHLORDIMEFORM",2.14e-07,NA
 "kdeg","water","CHLORFENSON",1.34e-07,NA
@@ -3358,6 +3365,7 @@
 "kdeg","water","glutaral",5.3e-07,NA
 "kdeg","water","glycerol",5.3e-07,NA
 "kdeg","water","GO-Chitosan",1e-13,NA
+"kdeg","water","Graphene Oxide",1e-13,NA
 "kdeg","water","guaiacol",5.35e-07,NA
 "kdeg","water","Guanidine, N,N'''-1,6-hexanediylbis N'-cyano-",2.14e-07,NA
 "kdeg","water","Gyromitrin",5.35e-07,NA

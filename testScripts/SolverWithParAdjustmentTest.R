@@ -1,6 +1,8 @@
-substance <- "GO-Chitosan"
+#substance <- "GO-Chitosan"
 
 source("baseScripts/initWorld_onlyParticulate.R")
+
+
 # Define the file paths and corresponding compartment abbreviations
 file_paths <- c("/rivm/n/rijkdv/testing_simplebox/emissions/EU/Results_SinkDynamic_Air-GBM_EU_2024-01-30-11-43_12.csv", 
                 "/rivm/n/rijkdv/testing_simplebox/emissions/EU/Results_SinkDynamic_STsoil-GBM_EU_2024-01-30-11-43_12.csv",
@@ -49,6 +51,8 @@ for (i in seq_along(file_paths)) {
   # Extract the year from the Column names
   avg_Emissions$Year <- as.integer(sub("X", "", avg_Emissions$Column))
   avg_Emissions$Year_in_seconds <- avg_Emissions$Year * 365.25 *24 * 360
+  avg_Emissions$Year_in_seconds <- avg_Emissions$Year * 
+  
   
   # Add the result to the list
   results_list[[abbr]] <- avg_Emissions
@@ -89,7 +93,7 @@ ggplot(emissions, aes(x = Year_in_seconds, y = Emis, color = Abbr)) +
 
 
 #dummy data 
-particle_sizes <- seq(from = 10, to = 1000, length.out = 30)
+particle_sizes <- seq(from = 10, to = 1000, length.out = 10)
 #Generation of matrix 
 result_engine <- list()
 result_sedimentation <- list()
@@ -192,7 +196,7 @@ Solutions <- list()
 # Loop through each Engine and solve
 for (i in seq_along(result_engine)) {
   print(i)
-  Solution <- SBsolve4(tmax = 24 * (365.25 * 24 * 360), nTIMES = 130, Engine = result_engine[[i]])
+  Solution <- SBsolve4(tmax = 24 * (365.25 * 24 * 360), nTIMES = 10, Engine = result_engine[[i]])
   Solutions[[i]] <- Solution
   rm(Solution)
 }

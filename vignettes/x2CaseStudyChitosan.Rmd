@@ -13,11 +13,85 @@ editor_options:
 
 ```{r}
 library(dplyr)
-substance <-  "GO-Chitosan"
+substance <-  "Chitosan"
 source("baseScripts/initWorld_onlyParticulate.R")
 World$fetchData("RhoS")
 World$fetchData("RadS")
+
+
 ```
+
+## Computing Spherical equivalent diameter
+We calculate the spherical equivalent diameter (deq) and subsequently use it to overwrite radS. In this manner we include the shape of the considered particles. We update the matrix in the chunk after.
+
+We assume the following things for Chitosan: 
+- Graphene oxide has a diameter of roughly 70um 
+- Chitosan of approximately 10 um
+- GO-chitosan of 80um 
+
+The density of GO-chitosan is approximated by 7/8 * dens_Graphene + 1/8 * dens_Chitosan
+
+```{r}
+Longest <- World$fetchData("Longest_side")
+Intermediate <- World$fetchData("Intermediate_side")
+Shortest <- World$fetchData("Shortest_side")
+Volume <- Longest*Intermediate*Shortest
+d_eq <- ( 6/ pi * Volume)^(1/3)
+rad_eq <- d_eq/2
+print(rad_eq)
+
+World$SetConst(RadS = rad_eq)
+
+
+```
+## *Adjusting Parameters with Uncertainty*
+
+Since attachment efficiences (alpha) are very uncertain, below is a chunk where we can create distributions for these parameters. For the deterministic run we
+```{r Creating adjustments for unknown alpha parameters}
+#non-marine
+log_min <- -3
+log_max<- -1
+n <- 100000
+log_uniform_samples <- 10^runif(n, min = log10(10^log_min), max = log10(10^log_max))
+fw_alpha_mean_log_samples <- mean(log_uniform_samples)
+print(mean_log_samples)
+
+#Check with histogram 
+hist(log_uniform_samples, breaks = 30, freq = FALSE,
+     main = "Histogram of Log Uniform Distribution [10^-3, 10^-1]",
+     xlab = "Value", ylab = "Density")
+# Plot the probability density function (pdf) curve
+curve(dunif(log10(x), min = log10(10^log_min), max = log10(10^log_max)) / x,
+      from = 10^log_min, to = 10^log_max, add = TRUE, col = "blue", lwd = 2 )
+#marine 
+log_min <- -0.1 
+log_max <- -0.0001
+log_uniform_samples <- 10^runif(n, min = log10(10^log_min), max = log10(10^log_max))
+marine_alpha_mean_log_samples <- mean(log_uniform_samples)
+print(marine_alpha_mean_log_samples)
+
+#Assign data
+World$fetchData("alpha")
+subcomparts <- c("river", "lake", "water", "agriculturalsoil", "naturalsoil", "othersoil", "freshwatersediment", "lakesediment")
+alpha_adjust_fw <- data.frame(
+  SubCompart = subcomparts, 
+  alpha = fw_alpha_mean_log_samples
+  
+)
+
+World$mutateVar(alpha_adjust_fw)
+
+subcompartsmarine <- c("sea", "marinesediment", "freshwatersediment", "deepocean")
+alpha_adjust_marine <- data.frame(
+  SubCompart = subcompartsmarine, 
+  alpha = marine_alpha_mean_log_samples
+  
+)
+World$mutateVar(alpha_adjust_marine)
+World$UpdateKaas(mergeExisting = F)
+
+```
+
 
 ## *Adjusting Parameters to Match considered Scale*
 
@@ -158,7 +232,17 @@ Emissions <-
   )
 
 ```
-In this chunk, we adjust for the fact that the input data for the DMPFA model is all Europe based. Hence we scale by the factor fracReg and fracCont to ensure we do not overestimate input. The regional data is thus overwritten by the function EmissionContinental*FracReg
+
+### Scaling Input Data based on Density
+When running for only GO or only Chitosan, you want to correct for the fact that it's partly Chitosan and partly GO through using the densities. 
+```{r}
+
+
+```
+
+
+### Scaling Input Data based on World
+In this chunk, we adjust for the fact that the input data for the DMPFA model is all Europe based. Hence we scale by the factor fracReg and fracCont to ensure we do not overestimate input. The regional data is thus overwritten by the function EmissionContinental*fracReg
 
 ```{r}
 
@@ -689,7 +773,17 @@ plots <- lapply(names(dataframes), function(name) {
 for (plot in plots) {
   print(plot)
 }
+w2C <- C[c("w2CA", "w2CS", "w2CP", "time")]
 
+ggplot(w2C, aes(x = time)) +
+  geom_line(aes(y = w2CA, color = "w2CA")) +
+  geom_line(aes(y = w2CS, color = "w2CS")) +
+  geom_line(aes(y = w2CP, color = "w2CP")) +
+  labs(title = "Plot of w2CA, w2CS, and w2CP over time",
+       x = "Time",
+       y = "Values",
+       color = "Legend") +
+  theme_minimal()
 ```
 
 ```{r output from all solutions}
@@ -738,7 +832,7 @@ for (compartment in c("A", "C", "T", "R", "M")) {
 # Combine all compartment summary statistics into one dataframe
 summary_stats_final <- bind_rows(summary_stats_per_compartment)
 
-summary_stats_C <- summary_stats_final %>%
+summary_stats_C <- summary_stats_final |>
   filter(compartment == "C")
 
 # Plot for compartment A
