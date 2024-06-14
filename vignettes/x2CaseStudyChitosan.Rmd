@@ -236,8 +236,9 @@ Emissions <-
 ### Scaling Input Data based on Density
 When running for only GO or only Chitosan, you want to correct for the fact that it's partly Chitosan and partly GO through using the densities. 
 ```{r}
-
-
+# Weightfactor <- 7/8 
+# Emissions <- 
+#   Emissions |> mutate(Emissions$Emission_mean_kg , Emission_mean_kg* Weightfactor)
 ```
 
 
