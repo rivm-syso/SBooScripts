@@ -391,7 +391,7 @@ SBsolve4 <- function( tmax = 1e10, nTIMES = 100, Engine, funlist) {
   #if(as.character(class(deS)[1])!="data.frame") return (list(errorstate="error", deS))
   colnames(out)[1:length(SBNames)+1] <- SBNames
   colnames(out)[grep("signal",colnames(out))] <- paste("emis",SBNames,sep = "2")
-  out
+  as.data.frame(out)
   
 }
 #Solving
@@ -399,7 +399,16 @@ Solution <- SBsolve4(tmax = 25*(365.25*24*3600),
                      nTIMES = 130,
                      Engine = World$exportEngineR(),
                      funlist = funlist)
+Solution <- as.data.frame(Solution)
 
+# Same plot of emission as above
+plot(Solution$time,Solution$emis2w1CS)
+
+plot(Solution$time,Solution$w1CS)
+
+plot(Solution$time,Solution$s1CS)
+
+plot(Solution$time,Solution$aCS)
 
 ```
 
