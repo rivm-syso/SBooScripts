@@ -4,7 +4,7 @@ This repository and its supporting repository [SBOO](https://github.com/rivm-sys
 
 ## Installation
 
-SB is split over two projects. In order to use SBOO you need two projects with the parent folder in common. This repository and the SBOO repository thus need to be stored in the same folder. The working directory of the project should always be set to this folder. More info on the R-servers at RIVM can be found [here](http://wiki.rivm.nl/inwiki/bin/view/StatNMod/RStudio%2BServer).
+SB is split over two repositories. In order to use [SBOO](https://github.com/rivm-syso/SBoo) you need two projects with the parent folder in common. This repository and the SBOO repository thus need to be stored in the same folder. At the moment a sboo library is mimicked as part of a script, this will change in the future. For now starting point are scripts and R notebooks in SBooScripts. The preferred approach is creating two R projects in R-Studio.
 
 ### Dependencies
 
