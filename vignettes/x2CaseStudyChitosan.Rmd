@@ -7,6 +7,10 @@ editor_options:
   chunk_output_type: console
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = '/home/rijkdv/git_folder/SBooScripts')
+```
+
 ## Initiation
 
 We assume you have the input data for a substance or material of interest and all the data describing the SimpleBox world to be created ready and thus can run the initWorld script.
@@ -416,7 +420,7 @@ plot(Solution$time,Solution$aCS)
 
 This is still work in progress. To try multiple definitions of input parameters, you currently have to extract the calculation engine from the R6 core with different input.This chunk gives the possibility to solve engines for (combinations of) varing particles and solve for the varying input data with the code chunck below that. In this chunk, a check for the module k_Sedimentation is implemented as a check for dependency on particle size.
 
-```{r}
+```{r Input data, eval = FALSE}
 particle_sizes <- seq(from = 50e-6, to = 90e-6, length.out = 10)
 #Generation of matrix 
 result_engine <- list()
@@ -469,7 +473,7 @@ engine_results <- simulation_results$engine_results
 
 ## Solver Module
 
-```{r Solver}
+```{r Solver, eval = FALSE}
 SimpleBoxODE = function(t, m, parms) {
   
   with(as.list(c(parms, m)), {
@@ -525,11 +529,12 @@ for (i in seq_along(engine_results)) {
 
 To move from the solution of the ODE solver to usable output data we need to split the output into corresponding mass data per compartment over time and emission signals over time. The first chunk is for one output, the latter chunk for varying input or emission data.
 
-```{r Output Processing one solution, eval=False}
+```{r Output Processing one solution}
 library(dplyr)
 #for one Solution
 Solution <- as.data.frame(Solution)
-NamesK <- SBNames
+Engine <- World$exportEngineR()
+NamesK <- colnames(Engine)
 print(NamesK)
 print(length(NamesK))
 colnames(Solution)[2:156] <- NamesK
@@ -609,7 +614,7 @@ A$time <- compartments$time
 
 Output processing for multiple solutions.
 
-```{r Output Processing }
+```{r Output Processing, eval = FALSE }
 
 
 NamesK <- SBNames
@@ -745,7 +750,7 @@ ggplot(w2C, aes(x = time)) +
   theme_minimal()
 ```
 
-```{r output from all solutions}
+```{r output from all solutions, eval = FALSE}
 
 ## seperate dataframes 
 # Loop through the Solutions_all list and plot each dataframe
@@ -836,6 +841,110 @@ for (i in 1:length(plots_list)) {
   print(plots_list[[i]])
 }
 
+
+
+```
+##From mass to concentration 
+In this chunk we will convert the mass output into concentration output by calculating the respective volumes and calculating by this value. 
+```{r mass to concentration, eval = FALSE}
+Volume <-World$fetchData("Volume")
+FRACw <- World$fetchData("FRACw")
+FRACa <- World$fetchData("FRACa")
+Rho <-World$fetchData("rhoMatrix")
+
+
+accronym_map <- c("marinesediment" = "sd2",
+                  "freshwatersediment" = "sd1",
+                  "lakesediment" = "sd0", #SB Excel does not have this compartment. To do: can we turn this off (exclude this compartment) for testing?
+                  "agriculturalsoil" = "s2",
+                  "naturalsoil" = "s1",
+                  "othersoil" = "s3",
+                  "air" = "a",
+                  "deepocean" = "w3",
+                  "sea" = "w2",
+                  "river" = "w1",
+                  "lake" = "w0", 
+                  "cloudwater" = "cw")
+
+accronym_map2 <- c("Arctic" = "A",
+                   "Moderate" = "M",
+                   "Tropic" = "T",
+                   "Continental" = "C",
+                   "Regional" = "R")
+
+Volume <- Volume |> mutate(compartment =  paste0(accronym_map[SubCompart], 
+                                      accronym_map2[Scale]))
+FRACw <- FRACw |> mutate(compartment =  paste0(accronym_map[SubCompart], 
+                                               accronym_map2[Scale]))
+FRACa <- FRACa |> mutate(compartment =  paste0(accronym_map[SubCompart], 
+                                               accronym_map2[Scale]))
+Rho <-  Rho |> mutate(compartment =  paste0(accronym_map[SubCompart]))
+
+# List of columns in A that need transformation
+CompartmentsConc <-compartments
+columns_to_transform <- setdiff(names(CompartmentsConc), "time")
+print(columns_to_transform)
+# Loop through each column in A and calculate concentrations
+for (col in columns_to_transform) {
+  # Extract the compartment prefix (e.g., 'aA' from 'aAS')
+  compartment <- substr(col, 1, nchar(col) - 1)
+  
+  # Find the corresponding volume from Volume dataframe
+  volume <- Volume$Volume[Volume$compartment == compartment]
+  
+  # Check if volume was found
+  if (length(volume) == 1) {
+    # Divide the column values by the volume
+    CompartmentsConc[[col]] <- CompartmentsConc[[col]] / volume
+  } else {
+    warning(paste("Volume not found for compartment", compartment))
+  }
+}
+
+CompartmentsConc_soil_names <- grep("^s[123]", names(CompartmentsConc), value = TRUE)
+CompartmentsConc_soil <- CompartmentsConc[, CompartmentsConc_soil_names]
+RhoWater <- Rho |> filter(SubCompart == "river")
+
+ #need both water and soil/sediment
+f_Soil.wetweight <- function(CompartmentsConc.soil, # in kg/m3 soil or sediment
+                             Fracw,
+                             Fraca,
+                             RHOsolid){
+  CompartmentsConc.soil*1000/(FRACw*RhoWater+(1-FRACw-FRACa)*Rho) # in g/kg (wet) soil
+}
+
+#Extract the parameters
+
+compartment_prefixes_scale <- substr(names(CompartmentsConc_soil), 1, 3)
+compartment_prefixes <- substr(names(CompartmentsConc_soil), 1, 2)
+print(compartment_prefixes)
+
+# Find corresponding FRACw, FRACa, and Rho values
+FRACw_values <- FRACw$FRACw[match(compartment_prefixes_scale, FRACw$compartment)]
+FRACa_values <- FRACa$FRACa[match(compartment_prefixes_scale, FRACa$compartment)]
+Rho_values <- Rho$rhoMatrix[match(compartment_prefixes, Rho$compartment)]
+# Retrieve RhoWater value
+
+#Function f_Soil.wetweight
+f_Soil.wetweight <- function(CompartmentsConc.soil, Fracw, Fraca, RHOsolid) {
+  CompartmentsConc.soil * 1000 / (Fracw * RhoWater + (1 - Fracw - Fraca) * RHOsolid)
+}
+
+# Step 3: Apply the function to CompartmentsConc_soil
+CompartmentsConc_soil_adjusted <- CompartmentsConc_soil
+
+for (col in 1:ncol(CompartmentsConc_soil)) {
+  current_col <- CompartmentsConc_soil[, col]
+  current_Fracw <- FRACw_values[col]
+  current_Fraca <- FRACa_values[col]
+  current_Rho <- Rho_values[col]
+  
+  CompartmentsConc_soil_adjusted[, col] <- f_Soil.wetweight(current_col, current_Fracw, current_Fraca, current_Rho)
+}
+
+# Assigning column names to CompartmentsConc_soil_adjusted
+colnames(CompartmentsConc_soil_adjusted) <- colnames(CompartmentsConc_soil)
+print(CompartmentsConc_soil_adjusted)
 
 
 ```
