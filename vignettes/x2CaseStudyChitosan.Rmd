@@ -201,7 +201,7 @@ World$Solve(emissions)
 
 ```{r}
 file_paths <- 
-  list.files("/rivm/n/rijkdv/testing_simplebox/emissions/",recursive = TRUE)
+  list.files("/data/emissions/",recursive = TRUE)
 
 
 
@@ -215,9 +215,9 @@ We define the compartments of the emission based on the DMPFA model.
 
 ```{r Emissions}
 file_paths <- 
-  list.files("/rivm/n/rijkdv/testing_simplebox/emissions/",recursive = TRUE)
+  list.files("/data/emissions/",recursive = TRUE)
 Emissions <-
-  read_csv(paste0("/rivm/n/rijkdv/testing_simplebox/emissions/",file_paths), id="file_name", col_names = c("RUN",0:24),skip = 1) # unit: Metric tonnes
+  read_csv(paste0("/data/emissions/",file_paths), id="file_name", col_names = c("RUN",0:24),skip = 1) # unit: Metric tonnes
 
 # TODO: solve for every RUN
 Emissions <- 
