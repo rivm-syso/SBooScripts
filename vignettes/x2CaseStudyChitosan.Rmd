@@ -13,7 +13,7 @@ editor_options:
 
 ```{r}
 library(dplyr)
-substance <-  "Chitosan"
+substance <-  "GO-Chitosan"
 source("baseScripts/initWorld_onlyParticulate.R")
 World$fetchData("RhoS")
 World$fetchData("RadS")
@@ -22,16 +22,30 @@ World$fetchData("RadS")
 ```
 
 ## Computing Spherical equivalent diameter
-We calculate the spherical equivalent diameter (deq) and subsequently use it to overwrite radS. In this manner we include the shape of the considered particles. We update the matrix in the chunk after.
 
-We assume the following things for Chitosan: 
-- Graphene oxide has a diameter of roughly 70um 
-- Chitosan of approximately 10 um
-- GO-chitosan of 80um 
+We calculate the spherical equivalent diameter (deq) and subsequently use it to overwrite radS. In this manner we include the shape of the considered particles. We update the matrix in the chunk after. [TODO: In future this could be included in the initialization for relevant particles that consist of multiple components]
 
-The density of GO-chitosan is approximated by 7/8 * dens_Graphene + 1/8 * dens_Chitosan
+We need the following properties for the GO-Chitosan related particles:
+
+-   Shape
+
+-   Size
+
+-   Density
+
+-   Other 'unknown' variables, such as attachment efficiency, etc.
+
+| Property             | GO-Chitosan     | GO              | Chitoson      |
+|----------------------|-----------------|-----------------|---------------|
+| Shape                | Sheet-like      | Flake           | Fragment      |
+| Size - square (LxB)  | 70 - 90 (80) um | 60 - 70 (65) um | 10-20 (10) um |
+| Size - thickness (H) | 10-20 (15) um   | 1-10 (5) um     | 10-20 (10) um |
+| Density              | Calculated      | 0.35 g/ml       | 0.874 g/ml    |
+
+: The density of GO-chitosan is approximated by 7/8 \* dens_Graphene + 1/8 \* dens_Chitosan
 
 ```{r}
+
 Longest <- World$fetchData("Longest_side")
 Intermediate <- World$fetchData("Intermediate_side")
 Shortest <- World$fetchData("Shortest_side")
@@ -42,11 +56,13 @@ print(rad_eq)
 
 World$SetConst(RadS = rad_eq)
 
-
+World$fetchData("RhoS")
 ```
+
 ## *Adjusting Parameters with Uncertainty*
 
-Since attachment efficiences (alpha) are very uncertain, below is a chunk where we can create distributions for these parameters. For the deterministic run we
+Since attachment efficiencies (alpha) are very uncertain, below is a chunk where we can create distributions for these parameters. We start however with a deterministic calculation using averages.
+
 ```{r Creating adjustments for unknown alpha parameters}
 #non-marine
 log_min <- -3
@@ -54,7 +70,7 @@ log_max<- -1
 n <- 100000
 log_uniform_samples <- 10^runif(n, min = log10(10^log_min), max = log10(10^log_max))
 fw_alpha_mean_log_samples <- mean(log_uniform_samples)
-print(mean_log_samples)
+print(fw_alpha_mean_log_samples)
 
 #Check with histogram 
 hist(log_uniform_samples, breaks = 30, freq = FALSE,
@@ -92,10 +108,11 @@ World$UpdateKaas(mergeExisting = F)
 
 ```
 
-
 ## *Adjusting Parameters to Match considered Scale*
 
-In this case study we are considering emission data for Switzerland and Europe. As such, we need to adjust the World to represent this country and continent. Since Europe is the default for the continental scale, adjustments here are not necessary. The data below adjust the Regional Scale to represent Switzerland. You can only adjust parameters that are initial input data, not variables that are calculated later in SBOO.The adjusted dataframes are printed below. Note, at this point the input is already converted to SI units, so new data also needs to be put in this format. 
+In this case study we are considering emission data only for Europe. By default the 'World' is represented by a nested regional scale, which is not relevant for the current assessment using emissions data only for Europe. Here we use the option to allocate part of the emissions to the regional scale based on the fraction of surface area in order to mimic not having a nested scale. In future one would be interested for instance in including a local or national scale as well. One could adjust the regional scale for this purpose.
+
+The code is commented out, but this is an example of adjusting the regional scale to represent Switzerland. You can only adjust parameters that are initial input data, not variables that are calculated later in SBOO. The adjusted dataframes are printed below. Note, at this point the input is already converted to SI units, so new data also needs to be put in this format.
 
 ```{r}
 # 
@@ -135,7 +152,6 @@ fracCont <- 1-fracReg
 print(fracReg)
 print(fracCont)
 ```
-
 
 ## *NewSolver*
 
@@ -195,7 +211,7 @@ file_paths <-
 
 *Data from an DPMFA model should be prepared to fit the SBoo world. For instance the time unit should be correct, the mass unit is not as important as this will be the same in the output then, but for good measure we use kg.* This is the quick and dirty way, a more elegant way is till in progress.
 
-We define the compartments of the emission based on the DMPFA model. 
+We define the compartments of the emission based on the DMPFA model.
 
 ```{r Emissions}
 file_paths <- 
@@ -234,16 +250,18 @@ Emissions <-
 ```
 
 ### Scaling Input Data based on Density
-When running for only GO or only Chitosan, you want to correct for the fact that it's partly Chitosan and partly GO through using the densities. 
+
+When running for only GO or only Chitosan, you want to correct for the fact that it's partly Chitosan and partly GO through using the densities.
+
 ```{r}
 # Weightfactor <- 7/8 
 # Emissions <- 
 #   Emissions |> mutate(Emissions$Emission_mean_kg , Emission_mean_kg* Weightfactor)
 ```
 
-
 ### Scaling Input Data based on World
-In this chunk, we adjust for the fact that the input data for the DMPFA model is all Europe based. Hence we scale by the factor fracReg and fracCont to ensure we do not overestimate input. The regional data is thus overwritten by the function EmissionContinental*fracReg
+
+In this chunk, we adjust for the fact that the input data for the DMPFA model is all Europe based. Hence we scale by the factor fracReg and fracCont to ensure we do not overestimate input. The regional data is thus overwritten by the function EmissionContinental\*fracReg
 
 ```{r}
 
@@ -342,7 +360,8 @@ ggplot(results_long, aes(x = Time, y = Value, color = Compartment)) +
 
 ```
 
-Here, the chunk is where you would potentially have input data from both regional and continental scale. 
+Here, the chunk is where you would potentially have input data from both regional and continental scale.
+
 ```{r}
 Emissions <-
   Emissions |> 
@@ -408,6 +427,7 @@ ggplot(results_long, aes(x = Time, y = Value, color = Compartment)) +
   theme_minimal()
 
 ```
+
 ## Solving for constant input data
 
 The chunk below gives the opportunity to Solve for constant input data. The chunk after that gives the opportunity to also vary SB Input data
@@ -456,8 +476,8 @@ Solution<- SBsolve4(tmax = 25*(365.25*24*3600), nTIMES = 130)
 
 ## Varying Input Data
 
-This is still work in progress. To try multiple definitions of input parameters, you currently have to extract the calculation engine from the R6 core with different input.This chunk gives the possibility to solve engines for (combinations of) varing particles and solve for the varying input data with the code chunck below that.
-In this chunk, a check for the module k_Sedimentation is implemented as a check for dependency on particle size.
+This is still work in progress. To try multiple definitions of input parameters, you currently have to extract the calculation engine from the R6 core with different input.This chunk gives the possibility to solve engines for (combinations of) varing particles and solve for the varying input data with the code chunck below that. In this chunk, a check for the module k_Sedimentation is implemented as a check for dependency on particle size.
+
 ```{r}
 particle_sizes <- seq(from = 50e-6, to = 90e-6, length.out = 10)
 #Generation of matrix 
