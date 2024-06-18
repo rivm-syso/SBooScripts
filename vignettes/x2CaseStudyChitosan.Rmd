@@ -69,11 +69,10 @@ World$fetchData("RhoS")
 Since attachment efficiencies (alpha) are very uncertain, below is a chunk where we can create distributions for these parameters. We start however with a deterministic calculation using averages.
 
 ```{r Creating adjustments for unknown alpha parameters}
-#non-marine
-log_min <- -3
-log_max<- -1
+fwa_min <- 1e-4
+fwa_max<- 0.1
 n <- 100000
-log_uniform_samples <- 10^runif(n, min = log10(10^log_min), max = log10(10^log_max))
+log_uniform_samples <- 10^runif(n, min = log10(fwa_min), max = log10(fwa_max))
 fw_alpha_mean_log_samples <- mean(log_uniform_samples)
 print(fw_alpha_mean_log_samples)
 
@@ -85,9 +84,9 @@ hist(log_uniform_samples, breaks = 30, freq = FALSE,
 curve(dunif(log10(x), min = log10(10^log_min), max = log10(10^log_max)) / x,
       from = 10^log_min, to = 10^log_max, add = TRUE, col = "blue", lwd = 2 )
 #marine 
-log_min <- -0.1 
-log_max <- -0.0001
-log_uniform_samples <- 10^runif(n, min = log10(10^log_min), max = log10(10^log_max))
+ma_min <- 1e-3 
+ma_max <- 1
+log_uniform_samples <- 10^runif(n, min = log10(ma_min), max = log10(ma_max))
 marine_alpha_mean_log_samples <- mean(log_uniform_samples)
 print(marine_alpha_mean_log_samples)
 
