@@ -8,7 +8,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_knit$set(root.dir = '/home/rijkdv/git_folder/SBooScripts')
+
 ```
 
 ## Initiation
@@ -422,7 +422,7 @@ SBsolve4 <- function( tmax = 1e10, nTIMES = 100, Engine, funlist) {
 #                               col_names = FALSE) |> slice(1) |> as.character()
 # 
 
-Solving
+# Solving
 Solution <- SBsolve4(tmax = 25*(365.25*24*3600),
 nTIMES = 130,
 Engine = World$exportEngineR(),
