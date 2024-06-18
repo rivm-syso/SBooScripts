@@ -85,8 +85,8 @@ hist(log_uniform_samples, breaks = 30, freq = FALSE,
      main = "Histogram of Log Uniform Distribution [10^-3, 10^-1]",
      xlab = "Value", ylab = "Density")
 # Plot the probability density function (pdf) curve
-curve(dunif(log10(x), min = log10(10^log_min), max = log10(10^log_max)) / x,
-      from = 10^log_min, to = 10^log_max, add = TRUE, col = "blue", lwd = 2 )
+curve(dunif(log10(x), min = log10(fwa_min), max = log10(fwa_max)) / x,
+      from = fwa_min, to = fwa_max, add = TRUE, col = "blue", lwd = 2 )
 #marine 
 ma_min <- 1e-3 
 ma_max <- 1
@@ -357,6 +357,8 @@ plot(time_s,
 curve(PlotEmisFun,
       add = TRUE)
 
+
+
 ```
 
 
@@ -372,9 +374,11 @@ SimpleBoxODE = function(t, m, parms) {
   
   with(as.list(c(parms, m)), {
     e <- c(rep(0, length(SBNames)))
+    
     for (name in names(funlist)) {
       e[grep(name, SBNames)] <- funlist[[name]](t)
     }
+    
     dm <- K%*% m + e
     res <- c(dm)
     list(res, signal = e)
@@ -562,7 +566,7 @@ signals_total$time <- Solution[, 1]
 #Emission over time
 plot1 <-ggplot(signals_total, aes(x = time, y =rowSums.signals.)) +
   geom_line() +
-  labs(title = "Emissions Over Time", x = "Time", y = "Emissions")
+  labs(title = "Emissions Over Time (kg)", x = "Time", y = "Emissions")
 
 show(plot1)
 
