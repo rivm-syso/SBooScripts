@@ -244,7 +244,7 @@ Emissions <-
   ungroup() |> 
   group_by(file_name,year) |> 
   summarise(Emission_p50_kg = quantile(emission_t,probs = 0.5)*1000/(365.25*24*3600),
-            Emission_mean_kg = mean(emission_t)*1000)/(365.25*24*3600) |> ungroup()
+            Emission_mean_kg = mean(emission_t)*1000/(365.25*24*3600)) |> ungroup()
 
 Emissions <- 
   Emissions |> 
@@ -346,7 +346,7 @@ names(funlist) <- SBEmissions3$Abr
 
 times <- seq(0, 25*365.25*24*3600, by = 10000)
 
-CompartInterest <- "w1CS"
+CompartInterest <- "s2CS"
 
 time_s = c(0,(SBEmissions2 |> filter(Abr == CompartInterest) |> pull(year))*(365.25*24*60*60)+(365.25*24*60*60))
 emis_kg = c(0,(SBEmissions2 |> filter(Abr == CompartInterest) |> pull(Emission_mean_kg)))
@@ -409,15 +409,34 @@ SBsolve4 <- function( tmax = 1e10, nTIMES = 100, Engine, funlist) {
   as.data.frame(out)
   
 }
-#Solving
-Solution <- SBsolve4(tmax = 25*(365.25*24*3600), 
-                     nTIMES = 130,
-                     Engine = World$exportEngineR(),
-                     funlist = funlist)
+
+# Can also test with xlsx engine
+# read in K matrix from xlsx:
+# K.Matrix <- readxl::read_xlsx("vignettes/Development/Quality control/SBExcel/SimpleBox4plastics 4.03_GO-Chitosan.xlsx", 
+#                               sheet = "engine",
+#                               range = "D8:FB163") |> as.data.frame()
+# 
+# colnames(K.Matrix) <- readxl::read_xlsx("vignettes/Development/Quality control/SBExcel/SimpleBox4plastics 4.03_GO-Chitosan.xlsx", 
+#                               sheet = "engine",
+#                               range = "D3:FB3",
+#                               col_names = FALSE) |> slice(1) |> as.character()
+# 
+
+Solving
+Solution <- SBsolve4(tmax = 25*(365.25*24*3600),
+nTIMES = 130,
+Engine = World$exportEngineR(),
+funlist = funlist)
+
+# Solution <- SBsolve4(tmax = 25*(365.25*24*3600), 
+#                      nTIMES = 130,
+#                      Engine = as.matrix(K.Matrix),
+#                      funlist = funlist)
+
 Solution <- as.data.frame(Solution)
 
 # Same plot of emission as above
-plot(Solution$time,Solution$emis2w1CS)
+plot(Solution$time,Solution$emis2s2CS)
 
 plot(Solution$time,Solution$w1CS)
 
@@ -442,6 +461,7 @@ library(dplyr)
 Solution <- as.data.frame(Solution)
 Engine <- World$exportEngineR()
 NamesK <- colnames(Engine)
+
 print(NamesK)
 print(length(NamesK))
 colnames(Solution)[2:156] <- NamesK
