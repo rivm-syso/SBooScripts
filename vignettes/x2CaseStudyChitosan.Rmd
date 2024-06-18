@@ -85,13 +85,9 @@ hist(log_uniform_samples, breaks = 30, freq = FALSE,
      main = "Histogram of Log Uniform Distribution [10^-3, 10^-1]",
      xlab = "Value", ylab = "Density")
 # Plot the probability density function (pdf) curve
-<<<<<<< HEAD
 curve(dunif(log10(x), min = log10(fwa_min), max = log10(fwa_max)) / x,
       from = fwa_min, to = fwa_max, add = TRUE, col = "blue", lwd = 2 )
-=======
-#curve(dunif(log10(x), min = log10(10^log_min), max = log10(10^log_max)) / x,
-      #from = 10^log_min, to = 10^log_max, add = TRUE, col = "blue", lwd = 2 )
->>>>>>> 6ccc40767c02f00ee263dbc20a314944aade69a0
+
 #marine 
 ma_min <- 1e-3 
 ma_max <- 1
@@ -247,8 +243,8 @@ Emissions <-
     values_to = "emission_t" ) |> mutate_at('year',as.numeric) |> 
   ungroup() |> 
   group_by(file_name,year) |> 
-  summarise(Emission_p50_kg = quantile(emission_t,probs = 0.5)*1000,
-            Emission_mean_kg = mean(emission_t)*1000) |> ungroup()
+  summarise(Emission_p50_kg = quantile(emission_t,probs = 0.5)*1000/(365.25*24*3600),
+            Emission_mean_kg = mean(emission_t)*1000)/(365.25*24*3600) |> ungroup()
 
 Emissions <- 
   Emissions |> 
