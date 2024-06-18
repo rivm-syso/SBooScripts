@@ -560,6 +560,18 @@ ggplot(w2C, aes(x = time)) +
        y = "Values",
        color = "Legend") +
   theme_minimal()
+s2C <- C[c("s2CA", "s2CS", "s2CP", "time")]
+
+ggplot(s2C, aes(x = time)) +
+  geom_line(aes(y = s2CA, color = "s2CA")) +
+  geom_line(aes(y = s2CS, color = "s2CS")) +
+  geom_line(aes(y = s2CP, color = "s2CP")) +
+  labs(title = "Plot of s2CA, s2CS, and s2CP over time",
+       x = "Time",
+       y = "Values",
+       color = "Legend") +
+  theme_minimal()
+
 ```
 
 ##From mass to concentration 
@@ -662,6 +674,19 @@ lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$w1CS, col = "g
 
 # Add a legend to distinguish the lines
 legend("topright", legend = c("W1CA", "W1CP", "W1CS"), col = c("blue", "red", "green"), lty = 1)
+
+
+plot(CompartmentsConc_corrected$time, CompartmentsConc_corrected$s2CA, type = "l",
+     xlab = "Time", ylab = "Concentration [g/kg w.w.]",
+     main = "Soil concentrations over time",
+     col = "blue") # Set color for w1CA
+
+# Add the line for w1CP to the same plot
+lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$s2CP, col = "red") 
+lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$s2CS, col = "green")
+
+# Add a legend to distinguish the lines
+legend("topright", legend = c("s2CA", "s2CP", "s2CS"), col = c("blue", "red", "green"), lty = 1)
 
 
 ```
