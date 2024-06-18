@@ -706,7 +706,7 @@ for (i in seq_along(Solutions)) {
 
 ## Plotting of Output
 
-Below you can create a plot for one output, the chunk after that represents uncertainty based on multiple outputs.
+Below you can create a plot for one output for mass, the chunk after that represents uncertainty based on multiple outputs.
 
 ```{r plotting}
 # Define the plot_dataframe function
@@ -847,7 +847,7 @@ for (i in 1:length(plots_list)) {
 ```
 ##From mass to concentration 
 In this chunk we will convert the mass output into concentration output by calculating the respective volumes and calculating by this value. 
-```{r mass to concentration, eval = FALSE}
+```{r mass to concentration}
 # Fetch necessary data
 Volume <- World$fetchData("Volume")
 Area <- World$fetchData("Area")
@@ -927,5 +927,108 @@ CompartmentsConc_combined_adjusted <- mapply(
 # Assign column names to adjusted data
 colnames(CompartmentsConc_combined_adjusted) <- colnames(CompartmentsConc_combined)
 print(CompartmentsConc_combined_adjusted)
+
+
+CompartmentsConc_corrected <- CompartmentsConc
+
+# Overwrite the original soil and sediment columns with the adjusted values
+CompartmentsConc_corrected[, names(CompartmentsConc_combined_adjusted)] <- CompartmentsConc_combined_adjusted
+
+plot(CompartmentsConc_corrected$time, CompartmentsConc_corrected$w1CS, type = "l",  # type = "l" for a line plot, use "p" for points
+     xlab = "Time", ylab = "W1CS",
+     main = "Plot of W1CS against Time")
+
+
+
+```
+
+##Plotting Of Concentrations
+Here we append all concentrations per compartment for species A, S and P. Subsequently, we plot these results
+
+```{r Concentrations Plotting}
+summed_columns <- list()
+
+# Loop through each column and sum values of columns with the same prefix (removing the last letter)
+for (col in colnames(CompartmentsConc_corrected)) {
+  # Skip the 'time' column from summation but include it in the final dataframe
+  if (col == "time") {
+    summed_columns[[col]] <- CompartmentsConc_corrected[[col]]
+    next  # Skip to the next iteration
+  }
+  
+  # Extract the prefix by removing the last letter
+  prefix <- substr(col, 1, nchar(col) - 1)
+  
+  # Sum values for columns with the same prefix
+  if (!prefix %in% names(summed_columns)) {
+    summed_columns[[prefix]] <- rowSums(CompartmentsConc_corrected[, grepl(paste0("^", prefix), colnames(CompartmentsConc_corrected))])
+  }
+}
+
+# Convert the list to a data frame
+Conc_per_compartment <- as.data.frame(summed_columns)
+
+# Print the new dataframe
+print(Conc_per_compartment)
+
+# Filter columns ending with "C"
+columns_to_plot <- grep("C$", names(Conc_per_compartment), value = TRUE)
+seconds_in_a_year <- 60 * 60 * 24 * 365.25  
+Conc_per_compartment$time <- Conc_per_compartment$time / seconds_in_a_year
+
+ggplot(Conc_per_compartment, aes(x = time, y = w1C)) +
+  geom_line(color = "blue") +
+  labs(x = "Time", y = "w1CS", title = "w1CS over Time")
+
+ggplot(Conc_per_compartment, aes(x = time, y = s1C)) +
+  geom_line(color = "green") +
+  labs(x = "Time", y = "s1C", title = "s1C over Time")
+
+# Reshape data to long format for ggplot
+df_long <- pivot_longer(Conc_per_compartment, cols = columns_to_plot, names_to = "Compartment", values_to = "Value")
+
+
+ggplot(df_long, aes(x = time, y = Value, color = Compartment)) +
+  geom_line() +
+  labs(x = "Time", y = "Concentration", title = "Concentration per Compartment over Time")
+# Plot using ggplot
+ggplot(df_long, aes(x = time, y = Value, color = Compartment)) +
+  geom_line() +
+  labs(x = "Time [years]", y = "Concentration in [?]", title = "Continental scale") +
+  scale_color_discrete(name = "Compartment")
+df_water <- df_long[df_long$Compartment == "w1C", ]
+
+df_soil <- df_long[df_long$Compartment %in% c("s1C", "s2C", "s3C"), ]
+df_water <- df_long[df_long$Compartment %in% c("w1C", "w2C", "w3C"), ]
+
+#plot soil
+ggplot(df_soil, aes(x = time, y = Value, color = Compartment)) +
+  geom_line() +
+  labs(x = "Year", y = "Value", title = "s1C, s2C, and s3C") +
+  scale_color_discrete(name = "Compartment")
+
+ggplot(df_water, aes(x = time, y = Value, color = Compartment)) +
+  geom_line() +
+  labs(x = "Year", y = "Concentration [mg/L]", title = "water") +
+  scale_color_discrete(name = "Compartment")
+
+# Selecting specific compartments to plot
+compartments_to_plot <- c("aC", "s2C", "sd2C", "w1C")
+
+# Filtering dataframe
+df_plot <- df_long %>%
+  filter(Compartment %in% compartments_to_plot)
+
+# Plotting using ggplot2
+ggplot(df_plot, aes(x = time, y = Value)) +
+  facet_wrap(~ Compartment, scales = "free_y", nrow = 2) +
+  geom_line() +
+  labs(
+    x = "Time",
+    y = "Value",
+    title = "Compartment Values Over Time"
+  ) +
+  theme_minimal()
+
 
 ```
