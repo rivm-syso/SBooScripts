@@ -33,7 +33,7 @@ if (is.na(World$fetchData("Pvap25"))) {
   warning("Pvap is missing but not used, setting constant")
   World$SetConst(Pvap25 = 1e-7)
 }
-World$SetConst(DragMethod = "Stokes")
+World$SetConst(DragMethod = "Original")
 AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 
