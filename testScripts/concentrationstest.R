@@ -1,9 +1,11 @@
 Volume <-World$fetchData("Volume")
+World$fetchData("Area")
+World
 FRACw <- World$fetchData("FRACw")
 FRACa <- World$fetchData("FRACa")
 Rho <-World$fetchData("rhoMatrix")
 
-
+World$fetchData("Volume")
 accronym_map <- c("marinesediment" = "sd2",
                   "freshwatersediment" = "sd1",
                   "lakesediment" = "sd0", #SB Excel does not have this compartment. To do: can we turn this off (exclude this compartment) for testing?
@@ -39,12 +41,13 @@ FRACa <- FRACa |> mutate(compartment =  paste0(accronym_map[SubCompart],
 Rho <-  Rho |> mutate(compartment =  paste0(accronym_map[SubCompart]))
 
 # List of columns in A that need transformation
-AConc <- A
-columns_to_transform <- names(AConc)
+CompartmentsConc <-compartments
+columns_to_transform <- setdiff(names(CompartmentsConc), "time")
+print(columns_to_transform)
 # Loop through each column in A and calculate concentrations
 for (col in columns_to_transform) {
   # Extract the compartment prefix (e.g., 'aA' from 'aAS')
-  compartment <- substr(col, 1, 2)
+  compartment <- substr(col, 1, nchar(col) - 1)
   
   # Find the corresponding volume from Volume dataframe
   volume <- Volume$Volume[Volume$compartment == compartment]
@@ -52,27 +55,27 @@ for (col in columns_to_transform) {
   # Check if volume was found
   if (length(volume) == 1) {
     # Divide the column values by the volume
-    AConc[[col]] <- AConc[[col]] / volume
+    CompartmentsConc[[col]] <- CompartmentsConc[[col]] / volume
   } else {
     warning(paste("Volume not found for compartment", compartment))
   }
 }
 
-AConc_soil_names <- grep("^s[123]", names(AConc), value = TRUE)
-AConc_soil <- AConc[, AConc_soil_names]
+CompartmentsConc_soil_names <- grep("^s[123]", names(CompartmentsConc), value = TRUE)
+CompartmentsConc_soil <- CompartmentsConc[, CompartmentsConc_soil_names]
 RhoWater <- Rho |> filter(SubCompart == "river")
 
  #need both water and soil/sediment
-f_Soil.wetweight <- function(AConc.soil, # in kg/m3 soil or sediment
+f_Soil.wetweight <- function(CompartmentsConc.soil, # in kg/m3 soil or sediment
                              Fracw,
                              Fraca,
                              RHOsolid){
-  AConc.soil*1000/(FRACw*RhoWater+(1-FRACw-FRACa)*Rho) # in g/kg (wet) soil
+  CompartmentsConc.soil*1000/(FRACw*RhoWater+(1-FRACw-FRACa)*Rho) # in g/kg (wet) soil
 }
 
 # Step 1: Match and Extract Parameters
-compartment_prefixes_scale <- substr(names(AConc_soil), 1, 3)
-compartment_prefixes <- substr(names(AConc_soil), 1, 2)
+compartment_prefixes_scale <- substr(names(CompartmentsConc_soil), 1, 3)
+compartment_prefixes <- substr(names(CompartmentsConc_soil), 1, 2)
 print(compartment_prefixes)
 
 # Find corresponding FRACw, FRACa, and Rho values
@@ -86,22 +89,22 @@ print(Rho_values)
 RhoWater_value <- RhoWater$rhoMatrix
 
 # Step 2: Define the function f_Soil.wetweight
-f_Soil.wetweight <- function(AConc.soil, Fracw, Fraca, RHOsolid) {
-  AConc.soil * 1000 / (Fracw * RhoWater_value + (1 - Fracw - Fraca) * RHOsolid)
+f_Soil.wetweight <- function(CompartmentsConc.soil, Fracw, Fraca, RHOsolid) {
+  CompartmentsConc.soil * 1000 / (Fracw * RhoWater_value + (1 - Fracw - Fraca) * RHOsolid)
 }
 
-# Step 3: Apply the function to AConc_soil
-AConc_soil_adjusted <- AConc_soil
+# Step 3: Apply the function to CompartmentsConc_soil
+CompartmentsConc_soil_adjusted <- CompartmentsConc_soil
 
-for (col in 1:ncol(AConc_soil)) {
-  current_col <- AConc_soil[, col]
+for (col in 1:ncol(CompartmentsConc_soil)) {
+  current_col <- CompartmentsConc_soil[, col]
   current_Fracw <- FRACw_values[col]
   current_Fraca <- FRACa_values[col]
   current_Rho <- Rho_values[col]
   
-  AConc_soil_adjusted[, col] <- f_Soil.wetweight(current_col, current_Fracw, current_Fraca, current_Rho)
+  CompartmentsConc_soil_adjusted[, col] <- f_Soil.wetweight(current_col, current_Fracw, current_Fraca, current_Rho)
 }
 
-# Assigning column names to AConc_soil_adjusted
-colnames(AConc_soil_adjusted) <- colnames(AConc_soil)
-print(AConc_soil_adjusted)
+# Assigning column names to CompartmentsConc_soil_adjusted
+colnames(CompartmentsConc_soil_adjusted) <- colnames(CompartmentsConc_soil)
+print(CompartmentsConc_soil_adjusted)

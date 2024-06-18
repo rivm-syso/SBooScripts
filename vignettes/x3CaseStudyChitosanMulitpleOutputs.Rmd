@@ -1,4 +1,3 @@
----
 title: "Solver script"
 author: "Valerie de Rijk, Joris Quik, Jaap Slootweg"
 date: "`r Sys.Date()`"
@@ -85,13 +84,8 @@ hist(log_uniform_samples, breaks = 30, freq = FALSE,
      main = "Histogram of Log Uniform Distribution [10^-3, 10^-1]",
      xlab = "Value", ylab = "Density")
 # Plot the probability density function (pdf) curve
-<<<<<<< HEAD
-curve(dunif(log10(x), min = log10(fwa_min), max = log10(fwa_max)) / x,
-      from = fwa_min, to = fwa_max, add = TRUE, col = "blue", lwd = 2 )
-=======
-#curve(dunif(log10(x), min = log10(10^log_min), max = log10(10^log_max)) / x,
-      #from = 10^log_min, to = 10^log_max, add = TRUE, col = "blue", lwd = 2 )
->>>>>>> 6ccc40767c02f00ee263dbc20a314944aade69a0
+curve(dunif(log10(x), min = log10(10^log_min), max = log10(10^log_max)) / x,
+      from = 10^log_min, to = 10^log_max, add = TRUE, col = "blue", lwd = 2 )
 #marine 
 ma_min <- 1e-3 
 ma_max <- 1
@@ -362,8 +356,6 @@ plot(time_s,
 curve(PlotEmisFun,
       add = TRUE)
 
-
-
 ```
 
 
@@ -379,11 +371,9 @@ SimpleBoxODE = function(t, m, parms) {
   
   with(as.list(c(parms, m)), {
     e <- c(rep(0, length(SBNames)))
-    
     for (name in names(funlist)) {
       e[grep(name, SBNames)] <- funlist[[name]](t)
     }
-    
     dm <- K%*% m + e
     res <- c(dm)
     list(res, signal = e)
@@ -435,6 +425,114 @@ plot(Solution$time,Solution$aCS)
 
 ```
 
+## Varying Input Data
+
+This is still work in progress. To try multiple definitions of input parameters, you currently have to extract the calculation engine from the R6 core with different input.This chunk gives the possibility to solve engines for (combinations of) varing particles and solve for the varying input data with the code chunck below that. In this chunk, a check for the module k_Sedimentation is implemented as a check for dependency on particle size.
+
+```{r Input data, eval = FALSE}
+particle_sizes <- seq(from = 50e-6, to = 90e-6, length.out = 10)
+#Generation of matrix 
+result_engine <- list()
+result_sedimentation <- list()
+
+
+#function for getting engines
+run_particle_simulation <- function(particle_sizes, emissions) {
+  # Function to run simulation for a single particle size
+  run_simulation <- function(size) {
+    print(paste("Running simulation for particle size:", size))
+    World$SetConst(RadS = size)
+    World$UpdateKaas(mergeExisting = FALSE)
+    
+    sedimentation <- World$moduleList[["k_Sedimentation"]]$execute()
+    sedimentation$particle_size <- size
+    
+    World$NewSolver("SBsteady")
+    World$Solve(emissions)
+    Engine <- World$exportEngineR()
+    
+    result <- list(
+      engine_result = Engine,
+      sedimentation_result = sedimentation
+    )
+    
+    return(result)
+  }
+  
+  # Use lapply to iterate over particle sizes
+  results <- suppressWarnings(lapply(particle_sizes, run_simulation))
+  
+  # Split results into separate lists for engine and sedimentation
+  result_engine <- lapply(results, function(res) res$engine_result)
+  result_sedimentation <- lapply(results, function(res) res$sedimentation_result)
+  
+  # Return results as a list
+  return(list(
+    engine_results = result_engine,
+    sedimentation_results = result_sedimentation
+  ))
+}
+
+# Call the function
+simulation_results <- run_particle_simulation(particle_sizes, emissions)
+sedimentation_results <- simulation_results$sedimentation_results
+engine_results <- simulation_results$engine_results
+
+```
+
+## Solver Module
+
+```{r Solver, eval = FALSE}
+SimpleBoxODE = function(t, m, parms) {
+  
+  with(as.list(c(parms, m)), {
+    e <- c(rep(0, length(SBNames)))
+    for (name in names(interpolations)) {
+      e[grep(name, SBNames)] <- interpolations[[name]](t)
+    }
+    dm <- K%*% m + e
+    res <- c(dm)
+    list(res, signal = e)
+  })
+}
+
+# exporting Engine
+Engine_1 <- engine_results[[1]]
+SBNames <-colnames(Engine_1)
+print(SBNames)
+print(SBNames)
+SB.m0 <- rep(0, length(SBNames))
+print(length(SB.m0))
+interpolations <-funlist
+SBsolve4 <- function(tmax = 1e10, nTIMES = 100, Engine) {
+  
+  SB.K <- Engine
+  
+  SBtime <- seq(0, tmax, length.out = nTIMES)
+  
+  out <- deSolve::ode(
+    y = as.numeric(SB.m0),
+    times = SBtime,
+    func = SimpleBoxODE,
+    parms = list(K = SB.K, SBNames, interpolations),
+    rtol = 1e-10, atol = 1e-2
+  )
+  
+  return(out)
+}
+
+# Initialize a list to store the solutions
+Solutions <- list()
+
+# Loop through each Engine and solve
+for (i in seq_along(engine_results)) {
+  print(i)
+  Solution <- SBsolve4(tmax = 25 * (365.25 * 24 * 3600), nTIMES = 10, Engine = engine_results[[i]])
+  Solutions[[i]] <- Solution
+  rm(Solution)
+}
+
+```
 
 ## Output Processing
 
@@ -463,7 +561,7 @@ signals_total$time <- Solution[, 1]
 #Emission over time
 plot1 <-ggplot(signals_total, aes(x = time, y =rowSums.signals.)) +
   geom_line() +
-  labs(title = "Emissions Over Time (kg)", x = "Time", y = "Emissions")
+  labs(title = "Emissions Over Time", x = "Time", y = "Emissions")
 
 show(plot1)
 
@@ -523,6 +621,96 @@ A$time <- compartments$time
 
 ```
 
+Output processing for multiple solutions.
+
+```{r Output Processing, eval = FALSE }
+
+
+NamesK <- SBNames
+Solutions_all <- list()
+
+
+# Define the function to split dataframes based on patterns
+split_df <- function(df, compartments) {
+  # Extract the capital letters (A, R, C, T, M) in column names
+  patterns <- unique(gsub("[^ARCTM]", "", colnames(df)))
+  
+  # Function to adjust the dataframe
+  adjust_df <- function(df) {
+    df$time <- compartments$time
+    return(df)
+  }
+  
+  # Split the dataframe based on the presence of specified capital letters using lapply
+  split_dfs <- lapply(patterns, function(pattern) {
+    cols <- grepl(pattern, colnames(df))
+    adjusted_df <- df[, cols, drop = FALSE]
+    adjust_df(adjusted_df)
+  })
+  
+  # Assign names to the split dataframes
+  names(split_dfs) <- patterns
+  
+  return(split_dfs)
+}
+
+# Initialize a list to store the results)
+
+# Loop through all solutions in the list
+for (i in seq_along(Solutions)) {
+  # Convert the current solution to a dataframe
+  Solution <- as.data.frame(Solutions[[i]])
+  
+  # Set column names for the compartments and signals
+  colnames(Solution)[2:156] <- NamesK
+  
+  # Separate signals and matrix compartments
+  compartments <- Solution[, 1:156]
+  compartments <- compartments %>% select(-matches("U$"))
+  
+  signals <- Solution[, 157:311]
+  colnames(signals) <- NamesK
+  signals_total <- data.frame(rowSums(signals))
+  signals_total$time <- Solution[, 1]
+  
+  # Plot emissions over time
+  plot1 <- ggplot(signals_total, aes(x = time, y = rowSums.signals.)) + 
+    geom_line() +
+    labs(title = "Emissions Over Time", x = "Time", y = "Emissions")
+  
+  print(plot1)  # Use print instead of show in scripts
+  
+  # Split the compartments dataframe
+  split_dfs <- split_df(compartments, compartments)
+  
+  # Extract the individual split dataframes
+  A <- split_dfs[["A"]]
+  C <- split_dfs[["C"]]
+  T <- split_dfs[["T"]]
+  R <- split_dfs[["R"]]
+  M <- split_dfs[["M"]]
+  
+  # Further filtering for A
+  pattern <- "^[a-z0-9]*A"
+  columns_to_keep <- !grepl(pattern, names(A))
+  A <- A[, !columns_to_keep]
+  A$time <- compartments$time
+  
+  
+  # Save the results in the list with dynamic names
+  Solutions_all[[paste0("Solution_", i)]] <- list(
+    A = A,
+    C = C,
+    T = T,
+    R = R,
+    M = M
+  )
+}
+
+
+
+
+```
 
 ## Plotting of Output
 
@@ -569,20 +757,102 @@ ggplot(w2C, aes(x = time)) +
        y = "Values",
        color = "Legend") +
   theme_minimal()
-s2C <- C[c("s2CA", "s2CS", "s2CP", "time")]
-
-ggplot(s2C, aes(x = time)) +
-  geom_line(aes(y = s2CA, color = "s2CA")) +
-  geom_line(aes(y = s2CS, color = "s2CS")) +
-  geom_line(aes(y = s2CP, color = "s2CP")) +
-  labs(title = "Plot of s2CA, s2CS, and s2CP over time",
-       x = "Time",
-       y = "Values",
-       color = "Legend") +
-  theme_minimal()
-
 ```
 
+```{r output from all solutions, eval = FALSE}
+
+## seperate dataframes 
+# Loop through the Solutions_all list and plot each dataframe
+for (i in seq_along(Solutions_all)) {
+  solution <- Solutions_all[[i]]
+  for (j in names(solution)) {
+    plot <- plot_dataframe(solution[[j]], title = j)
+    print(plot)
+  }
+}
+
+
+# Initialize an empty list to store summary statistics per compartment
+summary_stats_per_compartment <- list()
+
+# Loop through each compartment (A, C, T, R, M)
+for (compartment in c("A", "C", "T", "R", "M")) {
+  compartment_data <- lapply(Solutions_all, function(solution) {
+    # Extract the dataframe for the current compartment
+    df <- solution[[compartment]]
+    df$time <- as.character(df$time) # Ensure time column is character for consistency
+    
+    # Gather the data for easier processing
+    df_gathered <- tidyr::gather(df, key = "variable", value = "value", -time)
+    
+    return(df_gathered)
+  })
+  
+  # Combine data for all solutions and calculate mean and standard deviation
+  combined_data <- bind_rows(compartment_data)
+  summary_stats <- combined_data %>%
+    group_by(time, variable) %>%
+    summarize(mean_value = mean(value),
+              sd_value = sd(value))
+  
+  # Add compartment information
+  summary_stats$compartment <- compartment
+  
+  # Append to the summary_stats_per_compartment list
+  summary_stats_per_compartment[[compartment]] <- summary_stats
+}
+
+# Combine all compartment summary statistics into one dataframe
+summary_stats_final <- bind_rows(summary_stats_per_compartment)
+
+summary_stats_C <- summary_stats_final |>
+  filter(compartment == "C")
+
+# Plot for compartment A
+ggplot(summary_stats_C, aes(x = as.numeric(time), y = mean_value, group = variable, color = variable)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = mean_value - sd_value, ymax = mean_value + sd_value, fill = variable), alpha = 0.3) +
+  labs(title = "Mass in compartment with Standard Deviation for Compartment C",
+       x = "Time",
+       y = "Mean Value")
+#color = "Variable").
+
+
+# Create a list to store the plots
+plots_list <- list()
+
+# Iterate over compartments
+for(compartment in unique(summary_stats_final$compartment)) {
+  
+  # Subset data for the current compartment
+  summary_stats_compartment <- summary_stats_final %>%
+    filter(compartment == compartment)
+  
+  # Get unique variables for the current compartment
+  unique_variables <- unique(summary_stats_compartment$variable)
+  
+  # Create plot for the current compartment
+  plot <- ggplot(summary_stats_compartment, aes(x = as.numeric(time), y = mean_value, group = variable, color = variable)) +
+    geom_line(data = subset(summary_stats_compartment, variable %in% unique_variables)) +
+    geom_ribbon(data = subset(summary_stats_compartment, variable %in% unique_variables), aes(ymin = mean_value - sd_value, ymax = mean_value + sd_value, fill = variable), alpha = 0.3) +
+    labs(title = paste("Mass in compartment with Standard Deviation for", compartment),
+         x = "Time",
+         y = "Mean Value",
+         color = "Variable",
+         fill = "Variable")
+  
+  # Store the plot in the list
+  plots_list[[compartment]] <- plot
+}
+
+# Print each plot
+for (i in 1:length(plots_list)) {
+  print(plots_list[[i]])
+}
+
+
+
+```
 ##From mass to concentration 
 In this chunk we will convert the mass output into concentration output by calculating the respective volumes and calculating by this value. 
 ```{r mass to concentration}
@@ -672,30 +942,10 @@ CompartmentsConc_corrected <- CompartmentsConc
 # Overwrite the original soil and sediment columns with the adjusted values
 CompartmentsConc_corrected[, names(CompartmentsConc_combined_adjusted)] <- CompartmentsConc_combined_adjusted
 
-plot(CompartmentsConc_corrected$time, CompartmentsConc_corrected$w1CA, type = "l",
-     xlab = "Time", ylab = "Concentration [g/L",
-     main = "Freshwater concentrations over time",
-     col = "blue") # Set color for w1CA
+plot(CompartmentsConc_corrected$time, CompartmentsConc_corrected$w1CS, type = "l",  # type = "l" for a line plot, use "p" for points
+     xlab = "Time", ylab = "W1CS",
+     main = "Plot of W1CS against Time")
 
-# Add the line for w1CP to the same plot
-lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$w1CP, col = "red") 
-lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$w1CS, col = "green")
-
-# Add a legend to distinguish the lines
-legend("topright", legend = c("W1CA", "W1CP", "W1CS"), col = c("blue", "red", "green"), lty = 1)
-
-
-plot(CompartmentsConc_corrected$time, CompartmentsConc_corrected$s2CA, type = "l",
-     xlab = "Time", ylab = "Concentration [g/kg w.w.]",
-     main = "Soil concentrations over time",
-     col = "blue") # Set color for w1CA
-
-# Add the line for w1CP to the same plot
-lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$s2CP, col = "red") 
-lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$s2CS, col = "green")
-
-# Add a legend to distinguish the lines
-legend("topright", legend = c("s2CA", "s2CP", "s2CS"), col = c("blue", "red", "green"), lty = 1)
 
 
 ```
@@ -711,7 +961,7 @@ for (col in colnames(CompartmentsConc_corrected)) {
   # Skip the 'time' column from summation but include it in the final dataframe
   if (col == "time") {
     summed_columns[[col]] <- CompartmentsConc_corrected[[col]]
-    next  # 
+    next  # Skip to the next iteration
   }
   
   # Extract the prefix by removing the last letter
@@ -734,6 +984,13 @@ columns_to_plot <- grep("C$", names(Conc_per_compartment), value = TRUE)
 seconds_in_a_year <- 60 * 60 * 24 * 365.25  
 Conc_per_compartment$time <- Conc_per_compartment$time / seconds_in_a_year
 
+ggplot(Conc_per_compartment, aes(x = time, y = w1C)) +
+  geom_line(color = "blue") +
+  labs(x = "Time", y = "w1CS", title = "w1CS over Time")
+
+ggplot(Conc_per_compartment, aes(x = time, y = s1C)) +
+  geom_line(color = "green") +
+  labs(x = "Time", y = "s1C", title = "s1C over Time")
 
 # Reshape data to long format for ggplot
 df_long <- pivot_longer(Conc_per_compartment, cols = columns_to_plot, names_to = "Compartment", values_to = "Value")
@@ -757,55 +1014,29 @@ ggplot(df_soil, aes(x = time, y = Value, color = Compartment)) +
   geom_line() +
   labs(x = "Year", y = "Value", title = "s1C, s2C, and s3C") +
   scale_color_discrete(name = "Compartment")
-#plot water
+
 ggplot(df_water, aes(x = time, y = Value, color = Compartment)) +
   geom_line() +
   labs(x = "Year", y = "Concentration [mg/L]", title = "water") +
   scale_color_discrete(name = "Compartment")
 
-
 # Selecting specific compartments to plot
 compartments_to_plot <- c("aC", "s2C", "sd2C", "w1C")
 
-# Define a named vector with new compartment names and their corresponding units
-new_names <- c(
-  "aC" = "air",
-  "s2C" = "soil",
-  "sd2C" = "sediment",
-  "w1C" = "water"
-)
-
-units <- c(
-  "air" = "ng/m³",
-  "soil" = "g/kg w.w.",
-  "sediment" = "g/kg w.w.",
-  "water" = "g/L"
-)
-
-# Custom labeller function to include units in facet labels
-custom_labeller <- function(variable, value) {
-  paste0(new_names[value], " [", units[new_names[value]], "]")
-}
-
-# Filtering and mutating dataframe
+# Filtering dataframe
 df_plot <- df_long %>%
-  filter(Compartment %in% compartments_to_plot) |>
-  mutate(Value = ifelse(Compartment == "sd2C" & is.na(Value), 0, Value),
-         Value = ifelse(Compartment == "aC", Value * 1e9, Value))
+  filter(Compartment %in% compartments_to_plot)
 
-# PlottiNG
+# Plotting using ggplot2
 ggplot(df_plot, aes(x = time, y = Value)) +
-  facet_wrap(~ Compartment, scales = "free_y", nrow = 2, labeller = as_labeller(custom_labeller)) +
+  facet_wrap(~ Compartment, scales = "free_y", nrow = 2) +
   geom_line() +
   labs(
-    x = "Time [years]",
-    y = "Concentration",
-    title = "Compartment Concentrations Over Time"
+    x = "Time",
+    y = "Value",
+    title = "Compartment Values Over Time"
   ) +
-  theme_minimal() +
-  theme(
-    strip.text = element_text(size = 10)
-  )
+  theme_minimal()
 
 
 ```
