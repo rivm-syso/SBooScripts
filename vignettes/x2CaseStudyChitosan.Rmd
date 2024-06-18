@@ -43,17 +43,21 @@ We need the following properties for the GO-Chitosan related particles:
 | Property             | GO-Chitosan     | GO              | Chitoson      |
 |----------------------|-----------------|-----------------|---------------|
 | Shape                | Sheet-like      | Flake           | Fragment      |
-| Size - square (LxB)  | 70 - 90 (80) um | 60 - 70 (65) um | 10-20 (10) um |
-| Size - thickness (H) | 10-20 (15) um   | 1-10 (5) um     | 10-20 (10) um |
+| Size - square (LxB)  | 70 - 90 (80) um | 70 - 90 (80) um | 100-200 (150) nm |
+| Size - thickness (H) | 10-20 (15) nm   | 1-10 (5) nm     | 100-200 (150) nm |
 | Density              | Calculated      | 0.35 g/ml       | 0.874 g/ml    |
 
 : The density of GO-chitosan is approximated by 7/8 \* dens_Graphene + 1/8 \* dens_Chitosan
 
 ```{r}
 
-Longest <- World$fetchData("Longest_side")
-Intermediate <- World$fetchData("Intermediate_side")
-Shortest <- World$fetchData("Shortest_side")
+# Longest <- World$fetchData("Longest_side")
+# Intermediate <- World$fetchData("Intermediate_side")
+# Shortest <- World$fetchData("Shortest_side")
+Longest <- 80*1e-06
+Intermediate <- 80*1e-06
+Shortest <- 15*1e-9
+
 Volume <- Longest*Intermediate*Shortest
 d_eq <- ( 6/ pi * Volume)^(1/3)
 rad_eq <- d_eq/2
@@ -68,7 +72,7 @@ World$fetchData("RhoS")
 
 Since attachment efficiencies (alpha) are very uncertain, below is a chunk where we can create distributions for these parameters. We start however with a deterministic calculation using averages.
 
-```{r Creating adjustments for unknown alpha parameters}
+```{r Example Uncertain Alpha}
 fwa_min <- 1e-4
 fwa_max<- 0.1
 n <- 100000
@@ -109,6 +113,8 @@ alpha_adjust_marine <- data.frame(
 )
 World$mutateVar(alpha_adjust_marine)
 World$UpdateKaas(mergeExisting = F)
+
+World$fetchData("KdegDorC")
 
 ```
 
@@ -410,9 +416,13 @@ plot(Solution$time,Solution$emis2w1CS)
 
 plot(Solution$time,Solution$w1CS)
 
-plot(Solution$time,Solution$s1CS)
+plot(Solution$time,Solution$s2CS)
+plot(Solution$time,Solution$s2CA)
+plot(Solution$time,Solution$s2CP)
 
 plot(Solution$time,Solution$aCS)
+
+
 
 ```
 
