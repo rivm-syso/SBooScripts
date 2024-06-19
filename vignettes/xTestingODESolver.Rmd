@@ -1,0 +1,229 @@
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = '/home/rijkdv/git_folder/SBooScripts')
+```
+
+```{r Initialize World}
+substance <-  "GO-Chitosan"
+source("baseScripts/initWorld_onlyParticulate.R")
+
+```
+
+
+
+
+```{r SBsteady}
+World$NewSolver("SBsteady")
+```
+
+What solving means is that using matrix algebra a set of differential equations is solved:
+
+`K %*% m + e`
+
+Where:
+
+K is the matrix of rate constants for each process describing the mass transfers to and from and out of a state (e.g. substance in freshwater (w1U) or small heteroagglomerate in natural soil (s1A)).
+
+m is the mass in each compartment, e.g. 0 at t=0.
+
+e is the emission to each compartment per unit of time, e.g. 1 t/y.
+
+To solve this set of differential equations we thus need an emission, e.g. 1 ton/year to air. The height of this emission is not
+
+```{r constant emission}
+emissions <- data.frame(Abbr = "aCS", Emis = 1000/(365.25*24*60*60)) # convert 1 t/y to si units: kg/s
+
+# TODO: explain what is the reason for this Abbr? Why is it not a relational table defining scale, compartment and species as for all other data?
+```
+
+Now we are ready to run the solver, which results in the mass in each compartment.
+
+```{r}
+World$Solve(emissions)
+```
+
+
+
+```{r emission data}
+file_paths <- 
+  list.files("data/emissions",recursive = TRUE)
+Emissions <-
+  read_csv(paste0("data/emissions/",file_paths), id="file_name", col_names = c("RUN",0:24),skip = 1)
+
+Emissions <- 
+  Emissions |>
+  pivot_longer(
+    cols = !c(file_name,RUN),
+    names_to = "year",
+    values_to = "emission_t" ) |> mutate_at('year',as.numeric) |> 
+  ungroup() |> 
+  group_by(file_name,year) |> 
+  summarise(Emission_p50_kg = quantile(emission_t,probs = 0.5),
+            Emission_mean = mean(emission_t)) |> ungroup()
+
+Emissions <- 
+  Emissions |> 
+  mutate(compartment = 
+           case_when(str_detect(file_name, "(?i)Air") ~ "Air",
+                     str_detect(file_name, "(?i)Soil") ~ "SludgeTreatedSoil",
+                     str_detect(file_name, "(?i)Water") ~ "SurfaceWater",
+                     str_detect(file_name, "(?i)Subsurface") ~ "Subsurface",
+                     TRUE ~ "Other"),
+         scale = 
+           case_when(str_detect(file_name, "(?i)EU") ~ "EU_average",
+                     str_detect(file_name, "(?i)Ireland") ~ "EU_STsoil",
+                     str_detect(file_name, "(?i)Switzerland") ~ "EU_noSTsoil",
+                     TRUE ~ "Other"),
+         Substance = "GO-Chitosan",
+  )
+Emissions <- 
+  Emissions |> 
+  mutate(compartment = 
+           case_when(str_detect(file_name, "(?i)Air") ~ "Air",
+                     str_detect(file_name, "(?i)Soil") ~ "SludgeTreatedSoil",
+                     str_detect(file_name, "(?i)Water") ~ "SurfaceWater",
+                     str_detect(file_name, "(?i)Subsurface") ~ "Subsurface",
+                     TRUE ~ "Other"),
+         scale = 
+           case_when(str_detect(file_name, "(?i)EU") ~ "EU_average",
+                     str_detect(file_name, "(?i)Ireland") ~ "EU_STsoil",
+                     str_detect(file_name, "(?i)Switzerland") ~ "EU_noSTsoil",
+                     TRUE ~ "Other"),
+         Substance = "GO-Chitosan",
+  )
+
+Emissions <- Emissions |>
+  filter(compartment == "SurfaceWater" & scale == "EU_average") |> 
+  select(everything())
+
+
+
+plot(Emissions$year, Emissions$Emission_mean, 
+     type = "l",  # "l" for line plot, or use "p" for points
+     xlab = "Time", ylab = "Emission_mean_tonnes",
+     main = "Emission Mean over Time")
+
+```
+
+
+```{r emission prep}
+
+Emissions <- Emissions |>
+  mutate(Abr = "w1CS")
+
+Emissions <- Emissions |>
+  mutate(time_s = year*(365.25*24*60*60)+(365.25*24*60*60))
+
+Emissions <- Emissions |> 
+  mutate(Emission_mean_kg = Emission_mean* 1000)
+
+
+SBEmissions <- 
+  Emissions |> 
+  mutate(time_s = year*(365.25*24*60*60)+(365.25*24*60*60)) |> ungroup() |> 
+  group_by(Abr) |> 
+  summarise(n=n(),
+            EmisFun = list(
+              approxfun(
+                data.frame(time_s = c(0,time_s), 
+                           emis_kg=c(0,Emission_mean_kg)),
+                rule = 1)
+            )
+  )
+
+funlist <- SBEmissions$EmisFun
+names(funlist) <- "w1CS"
+w1CS <- funlist[["w1CS"]]
+
+
+times <- seq(0, 25*365.25*24*3600, by = 10000)
+
+
+time <- Emissions$year
+time_s <-  c(0, time*(365.25*24*60*60)+(365.25*24*60*60))
+emis_kg = c(0,(Emissions |> pull(Emission_mean_kg)))
+
+
+plot(time_s,
+     emis_kg)
+curve(w1CS,
+      add = TRUE)
+
+
+
+```
+
+
+```{r Events}
+
+events <- data.frame(
+  var = "w1CS",
+  time = Emissions$time_s,
+  value = Emissions$Emission_mean_kg,
+  method = "add"
+)
+
+
+```
+
+```{r}
+
+
+# Define the ODE function without using funlist
+SimpleBoxODE <- function(t, m, parms) {
+  with(as.list(c(parms, m)), {
+    # Emission values for each compartment
+    e <- c(rep(0, length(SBNames)))
+    
+    # Add events directly to the respective compartment
+    if (!is.null(events) && any(events$time == t)) {
+      event_idx <- which(events$time == t)
+      for (idx in event_idx) {
+        name <- events$var[idx]
+        e[grep(name, SBNames)] <- events$value[idx]
+      }
+    }
+    
+    dm <- K %*% m + e
+    res <- c(dm)
+    list(res, signal = e)
+  })
+}
+
+# Function to solve ODE with events
+SBsolve4 <- function(tmax = 1e10, nTIMES = 100, Engine, events) {
+  SB.K <- Engine
+  SBNames <- colnames(Engine)
+  SB.m0 <- rep(0, length(SBNames))
+  SBtime <- seq(0, tmax, length.out = nTIMES)
+  
+  out <- deSolve::ode(
+    y = as.numeric(SB.m0),
+    times = SBtime,
+    func = SimpleBoxODE,
+    parms = list(K = SB.K, SBNames = SBNames, events = events),
+    rtol = 1e-10, atol = 1e-2
+  )
+  
+  colnames(out)[1:length(SBNames) + 1] <- SBNames
+  as.data.frame(out)
+}
+
+
+# Example engine matrix
+SBEngine <- World$exportEngineR()  # Example engine matrix
+
+# Solve the ODE
+results <- SBsolve4(tmax = (365.25*24*60*60)+(365.25*24*60*60*24), nTIMES = 25, Engine = SBEngine, events = events)
+
+print(head(results))
+print(head(events))
+
+# Plot the results
+plot(results$time, results$w1CS, type = "l", xlab = "Time (seconds)", ylab = "Emission (kg)")
+points(events$time, events$value, col = "red")
+
+#data is not right
+
+
+```
