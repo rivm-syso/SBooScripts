@@ -17,7 +17,7 @@ We assume you have the input data for a substance or material of interest and al
 
 ```{r}
 library(dplyr)
-substance <-  "GO-Chitosan"
+#substance <-  "GO-Chitosan"
 source("baseScripts/initWorld_onlyParticulate.R")
 World$fetchData("RhoS")
 World$fetchData("RadS")
@@ -65,14 +65,16 @@ print(rad_eq)
 
 World$SetConst(RadS = rad_eq)
 
+
 World$fetchData("RhoS")
+World$UpdateKaas(mergeExisting = F)
 ```
 
 ## Adjusting Parameters with Uncertainty
 
 Since attachment efficiencies (alpha) are very uncertain, below is a chunk where we can create distributions for these parameters. We start however with a deterministic calculation using averages.
 
-```{r Example Uncertain Alpha}
+```{r Example Uncertain Alpha, include = FALSE}
 fwa_min <- 1e-4
 fwa_max<- 0.1
 n <- 100000
@@ -98,24 +100,27 @@ print(marine_alpha_mean_log_samples)
 #Assign data
 World$fetchData("alpha")
 subcomparts <- c("river", "lake", "water", "agriculturalsoil", "naturalsoil", "othersoil", "freshwatersediment", "lakesediment")
-alpha_adjust_fw <- data.frame(
-  SubCompart = subcomparts, 
-  alpha = fw_alpha_mean_log_samples
-  
+alpha_adjust_fw <- list(
+  alpha = data.frame(
+    SubCompart = subcomparts, 
+    alpha = fw_alpha_mean_log_samples
+  )
 )
 
-World$mutateVar(alpha_adjust_fw)
+World$mutateVars(alpha_adjust_fw)
 
 subcompartsmarine <- c("sea", "marinesediment", "freshwatersediment", "deepocean")
-alpha_adjust_marine <- data.frame(
+alpha_adjust_marine <- list(
+  alpha = data.frame(
   SubCompart = subcompartsmarine, 
   alpha = marine_alpha_mean_log_samples
-  
+  )
 )
-World$mutateVar(alpha_adjust_marine)
+World$mutateVars(alpha_adjust_marine)
 World$UpdateKaas(mergeExisting = F)
+World$fetchData("alpha")
 
-World$fetchData("KdegDorC")
+#World$fetchData("KdegDorC")
 
 ```
 
@@ -200,10 +205,13 @@ m is the mass in each compartment, e.g. 0 at t=0.
 
 e is the emission to each compartment per unit of time, e.g. 1 t/y.
 
-To solve this set of differential equations we thus need an emission, e.g. 1 ton/year to air. The height of this emission is not
+Here, we define the emissions for a Steady State Calculation, based on averages for 2035 for GO-Chitosan. We convert the emissions to kg/s
 
 ```{r constant emission}
-emissions <- data.frame(Abbr = "aCS", Emis = 1000/(365.25*24*60*60)) # convert 1 t/y to si units: kg/s
+emissions <- data.frame(Abbr = c("aCS", "s2CS", "w1CS"), 
+                        Emis = c(0.000047, 43, 150))
+emissions$Emis<- emissions$Emis * 1000 / (365.25 * 24 * 60 * 60)
+
 
 # TODO: explain what is the reason for this Abbr? Why is it not a relational table defining scale, compartment and species as for all other data?
 ```
@@ -211,8 +219,114 @@ emissions <- data.frame(Abbr = "aCS", Emis = 1000/(365.25*24*60*60)) # convert 1
 Now we are ready to run the solver, which results in the mass in each compartment.
 
 ```{r}
-World$Solve(emissions)
+Solution <- World$Solve(emissions)
+print(Solution)
+Solution <- Solution |>
+  filter(Species != "Unbound")
+#Solution <- World$SolutionAsRelational(Solution)
 ```
+
+```{r Mass Fraction}
+TotalMass <- Solution |>
+  group_by(Scale) |>
+  summarise(TotalMass = sum(EqMass))
+
+TotalMassSpecies <- Solution |>
+  group_by(Scale, Species) |>
+  summarise(TotalMassSpecies = sum(EqMass))
+
+
+MassFractions <- TotalMassSpecies |>
+  left_join(TotalMass, by = "Scale") |>
+  mutate(MassFraction = TotalMassSpecies / TotalMass)
+
+ggplot(TotalMass, aes(x = Scale, y = TotalMass, fill = Scale)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Scale", y = "Total Mass", title = "Total Mass per Scale") +
+  theme_minimal()
+ggplot(MassFractions, aes(x = Scale, y = MassFraction, fill = Species)) +
+  geom_bar(stat = "identity", position = "stack") +  # Adjust width as needed
+  labs(x = "Scale", y = "Mass Fraction", title = "Mass Fraction of Species per Scale") +
+  theme_minimal()
+
+```
+We are also interested in concentrations per compartment. For this, we need to ensure that we convert the Equilibrium Mass into the Equilibrium concentration, which we will do below. We need to adjust the concentrations to end up in respective units. We convert concentrations in soil and sediment to g/kg wet weight. Concentrations in water are in grams/L. In air, concentrations are in kg/kg air. 
+```{r}
+# Fetch necessary data
+Volume <- World$fetchData("Volume")
+Area <- World$fetchData("Area")
+FRACw <- World$fetchData("FRACw")
+FRACa <- World$fetchData("FRACa")
+Fractrial <- FRACa$FRACa[FRACa$SubCompart =="air" & FRACa$Scale =="Arctic" ]
+print(Fractrial)
+Rho <- World$fetchData("rhoMatrix")
+print(Rho)
+Concentration_eq <- merge(Solution, Volume, by = c("SubCompart", "Scale"))
+Concentration_eq$Concentration <- Concentration_eq$EqMass / Concentration_eq$Volume
+RhoWater_value <- Rho$rhoMatrix[Rho$SubCompart == "river"]
+
+f_adjust_concentration <- function(Concentration, FRACw, FRACa, SubCompart, Scale, Rho, RhoWater_value) {
+  print(class(FRACw))
+  # Fetch Fracw based on SubCompart and Scale
+  Fracw <- FRACw$FRACw[FRACw$SubCompart == SubCompart & FRACw$Scale == Scale]
+  print(class(Fracw))
+  
+  # Fetch Fraca based on SubCompart and Scale
+  Fraca <- FRACa$FRACa[FRACa$SubCompart == SubCompart & FRACa$Scale == Scale]
+  print(class(Fraca))
+  
+  # Fetch RHOsolid based on SubCompart
+  RHOsolid <- Rho$rhoMatrix[Rho$SubCompart == SubCompart]
+  print(class(RHOsolid))
+  
+  # Check if any of Fracw, Fraca, or RHOsolid are N
+  
+  Concentration * 1000 / (Fracw * RhoWater_value + (1 - Fracw - Fraca) * RHOsolid)
+}
+
+subcomparts <- c("agriculturalsoil", "naturalsoil", "othersoil", "freshwatersediment", "marinesediment")
+
+filtered_data <- Concentration_eq[Concentration_eq$SubCompart %in% subcomparts, ]
+
+# Apply the adjustment function to the filtered data
+adjusted_concentrations <- apply(filtered_data, 1, function(row) {
+  f_adjust_concentration(
+    Concentration = as.numeric(row["Concentration"]),
+    FRACw = subset(FRACw, SubCompart == row["SubCompart"] & Scale == row["Scale"]),
+    FRACa = subset(FRACa, SubCompart == row["SubCompart"] & Scale == row["Scale"]),
+    Rho = subset(Rho, SubCompart == row["SubCompart"]),
+    RhoWater_value = 998,  # Replace with your actual RhoWater_value
+    SubCompart = row["SubCompart"],
+    Scale = row["Scale"]
+  )
+})
+print(adjusted_concentrations)
+# Update Concentration_eq with adjusted concentrations
+Concentration_eq[Concentration_eq$SubCompart %in% subcomparts, "Concentration"] <- adjusted_concentrations
+
+# Print or return the updated Concentration_eq dataframe
+print(Concentration_eq)
+
+library(knitr)
+library(kableExtra)
+subcompart <- c("agriculturalsoil", "naturalsoil", "othersoil", "freshwatersediment", "marinesediment", 
+                "air", "deepocean", "river", "sea", "cloudwater")
+units <- c("g/kg w", "g/kg w", "g/kg w", "g/kg w", "g/kg w", "g/kg w",
+           "kg/kg", "g/L", "g/L", "g/L", "g/L")
+
+# Combine into a named list
+subcompart_units <- setNames(units, subcompart)
+Concentration_eq <- Concentration_eq |>
+  mutate(Units_per_SubCompart = subcompart_units[SubCompart])
+
+kable(Concentration_eq, format = "markdown", align = "c", caption = "Concentration per Compartment") |>
+  kable_styling(full_width = T)
+  kableExtra::kableExtraOptions(digits = 4, format = "markdown")
+
+
+```
+
+
 
 ## SBdynamic
 
