@@ -108,3 +108,5 @@ for (col in 1:ncol(CompartmentsConc_soil)) {
 # Assigning column names to CompartmentsConc_soil_adjusted
 colnames(CompartmentsConc_soil_adjusted) <- colnames(CompartmentsConc_soil)
 print(CompartmentsConc_soil_adjusted)
+
+
