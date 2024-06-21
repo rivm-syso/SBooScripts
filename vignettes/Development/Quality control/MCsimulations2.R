@@ -1,74 +1,66 @@
-library(foreach)
-library(doParallel)
 library(lhs)
 library(ggplot2)
-library(plotly)
+#Initialize fake library
+source("baseScripts/fakeLib.R")
 
-# Define the range for particle size in consistent units (meters)
+if (!exists("substance")) {
+  substance <- "microplastic"
+}
+ClassicStateModule <- ClassicNanoWorld$new("data", substance)
+World <- SBcore$new(ClassicStateModule)
+World$SetConst(DragMethod = "Default")
+
 lower_bound <- 1
-upper_bound <- 200000
+upper_bound <- 20000
+n_samples <- 100
 
-# Define shape categories and encode them numerically
-shapes <- c("Sphere", "Cube", "Ellipsoid")
-shape_codes <- seq_along(shapes)
+#Latin Hypercube Sampling
+set.seed(121) # Setting seed for reproducibility
+lhs_samples <- randomLHS(n_samples, 1)
 
-#Define Solvers 
-solvers <- c("Dioguardi","Swamee", "Stokes", "Original")
-solver_codes <- seq_along(solvers)
+particle_sizes <- lower_bound + (upper_bound - lower_bound) * lhs_samples[, 1]
 
-# Number of samples
-n_samples <- 10
-
-# Generate Latin Hypercube Samples for both particle size and shape code
-set.seed(123)  # Setting seed for reproducibility
-lhs_samples <- randomLHS(n_samples, 3)
-
-# Scale samples to the specified ranges
-scaled_particle_sizes <- lower_bound + (upper_bound - lower_bound) * lhs_samples[, 1]
-scaled_shape_codes <- round(1 + (length(shapes) - 1) * lhs_samples[, 2])
-scaled_solver_codes <- round(1 + (length(solvers) - 1) * lhs_samples[, 3])
-
-# Map shape codes back to shape names
-sample_shapes <- shapes[scaled_shape_codes]
-sample_solvers <-solvers[scaled_solver_codes]
-# Initialize a list to store the results for SettlingVelocity
-settling_velocity_results <- list()
-substance <- "microplastic"
-#source("baseScripts/initWorld_onlyPlastics.R")
-
-# Initialize parallel processing
-cores <- detectCores()
-cl <- makeCluster(cores)
-registerDoParallel(cl)
-
-# Run the function in parallel
-foreach(i = 1:n_samples, .combine = rbind) %dopar% {
-  # Set the current sample values in the environment
-  shape <- sample_shapes[i]
-  print(shape)
-  particle_size <- scaled_particle_sizes[i]
-  DragMethod <- sample_solvers[i]  # Corrected variable name
+#initialize list 
+results <- list()
+#loop through particle sizes
+for (i in seq_along(particle_sizes)) {
+  print(i)
+  size <- particle_sizes[i]
+  World$SetConst(RadS = size)
   
-  # Source the initialization script with the current sample
-  source("baseScripts/initWorld_onlyPlastics.R")
+  World$NewCalcVariable("rad_species")
+  World$CalcVar("rad_species")
   
-  # Fetch the SettlingVelocity after initialization
+  World$NewCalcVariable("rho_species")
+  needs <- World$moduleList[["rho_species"]]$needVars
+  # for (aNeed in needs){
+  #   print(aNeed)
+  #   #print(World$fetchData(aNeed))
+  # }
+  #RhoS is missing!
+  World$CalcVar("rho_species")
+  
+  World$NewCalcVariable("SettlingVelocity")
+  World$CalcVar("SettlingVelocity")
+  
   settling_velocity <- World$fetchData("SettlingVelocity")
-  
-  # Convert the result to a data frame and add columns for particle size and shape
+  #print(settling_velocity)
+
   settling_velocity_df <- as.data.frame(settling_velocity)
-  settling_velocity_df$particle_size <- particle_size
-  settling_velocity_df$shape <- shape  # Assign shape correctly
-  settling_velocity_df$solver <- DragMethod  # Assign solver correctly
+  settling_velocity_df$particle_size <- size
   
-  settling_velocity_results[[i]] <- settling_velocity_df
+  results[[i]] <- settling_velocity_df
+  rm(settling_velocity_df, settling_velocity)
+  
 }
 
-# Stop parallel processing
-stopCluster(cl)
-combined_results_df <- do.call(rbind, settling_velocity_results)
-# Rename the columns for clarity
-#colnames(results)[colnames(results) == "X1"] <- "SettlingVelocity"
+combined_results_df <- do.call(rbind, results)
 
-# Combine the results into a single data frame
-#final_result <- results
+filtered_results <- subset(combined_results_df, Scale == "Moderate" & SubCompart == "air" & Species == "Solid")
+
+ggplot(filtered_results, aes(x = particle_size, y = SettlingVelocity)) +
+  geom_point() +
+  labs(title = "Settling Velocity vs Particle Size",
+       x = "Particle Size",
+       y = "Settling Velocity") +
+  theme_minimal()

@@ -1,0 +1,827 @@
+---
+title: "Solver script"
+author: "Valerie de Rijk, Joris Quik, Jaap Slootweg"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+
+```
+
+## Initiation
+
+We assume you have the input data for a substance or material of interest and all the data describing the SimpleBox world to be created ready and thus can run the initWorld script.
+
+```{r}
+library(dplyr)
+substance <-  "GO-Chitosan"
+source("baseScripts/initWorld_onlyParticulate.R")
+World$fetchData("RhoS")
+World$fetchData("RadS")
+World$fetchData("landFRAC")
+World$fetchData("Area")
+
+```
+
+## Computing Spherical equivalent diameter
+
+We calculate the spherical equivalent diameter (deq) and subsequently use it to overwrite radS. In this manner we include the shape of the considered particles. We update the matrix in the chunk after. [TODO: In future this could be included in the initialization for relevant particles that consist of multiple components]
+
+We need the following properties for the GO-Chitosan related particles:
+
+-   Shape
+
+-   Size
+
+-   Density
+
+-   Other 'unknown' variables, such as attachment efficiency, etc.
+
+| Property             | GO-Chitosan     | GO              | Chitoson      |
+|----------------------|-----------------|-----------------|---------------|
+| Shape                | Sheet-like      | Flake           | Fragment      |
+| Size - square (LxB)  | 70 - 90 (80) um | 70 - 90 (80) um | 100-200 (150) nm |
+| Size - thickness (H) | 10-20 (15) nm   | 1-10 (5) nm     | 100-200 (150) nm |
+| Density              | Calculated      | 0.35 g/ml       | 0.874 g/ml    |
+
+: The density of GO-chitosan is approximated by 7/8 \* dens_Graphene + 1/8 \* dens_Chitosan
+
+```{r}
+
+# Longest <- World$fetchData("Longest_side")
+# Intermediate <- World$fetchData("Intermediate_side")
+# Shortest <- World$fetchData("Shortest_side")
+Longest <- 80*1e-06
+Intermediate <- 80*1e-06
+Shortest <- 15*1e-9
+
+Volume <- Longest*Intermediate*Shortest
+d_eq <- ( 6/ pi * Volume)^(1/3)
+rad_eq <- d_eq/2
+print(rad_eq)
+
+World$SetConst(RadS = rad_eq)
+
+World$fetchData("RhoS")
+```
+
+## Adjusting Parameters with Uncertainty
+
+Since attachment efficiencies (alpha) are very uncertain, below is a chunk where we can create distributions for these parameters. We start however with a deterministic calculation using averages.
+
+```{r Example Uncertain Alpha}
+fwa_min <- 1e-4
+fwa_max<- 0.1
+n <- 100000
+log_uniform_samples <- 10^runif(n, min = log10(fwa_min), max = log10(fwa_max))
+fw_alpha_mean_log_samples <- mean(log_uniform_samples)
+print(fw_alpha_mean_log_samples)
+
+#Check with histogram 
+hist(log_uniform_samples, breaks = 30, freq = FALSE,
+     main = "Histogram of Log Uniform Distribution [10^-3, 10^-1]",
+     xlab = "Value", ylab = "Density")
+# Plot the probability density function (pdf) curve
+curve(dunif(log10(x), min = log10(fwa_min), max = log10(fwa_max)) / x,
+      from = fwa_min, to = fwa_max, add = TRUE, col = "blue", lwd = 2 )
+
+#marine 
+ma_min <- 1e-3 
+ma_max <- 1
+log_uniform_samples <- 10^runif(n, min = log10(ma_min), max = log10(ma_max))
+marine_alpha_mean_log_samples <- mean(log_uniform_samples)
+print(marine_alpha_mean_log_samples)
+
+#Assign data
+World$fetchData("alpha")
+subcomparts <- c("river", "lake", "water", "agriculturalsoil", "naturalsoil", "othersoil", "freshwatersediment", "lakesediment")
+alpha_adjust_fw <- data.frame(
+  SubCompart = subcomparts, 
+  alpha = fw_alpha_mean_log_samples
+  
+)
+
+World$mutateVar(alpha_adjust_fw)
+
+subcompartsmarine <- c("sea", "marinesediment", "freshwatersediment", "deepocean")
+alpha_adjust_marine <- data.frame(
+  SubCompart = subcompartsmarine, 
+  alpha = marine_alpha_mean_log_samples
+  
+)
+World$mutateVar(alpha_adjust_marine)
+World$UpdateKaas(mergeExisting = F)
+
+World$fetchData("KdegDorC")
+
+```
+
+## Adjusting Parameters to Match considered Scale
+
+In this case study we are considering emission data only for Europe. By default the 'World' is represented by a nested regional scale, which is not relevant for the current assessment using emissions data only for Europe. Here we use the option to allocate part of the emissions to the regional scale based on the fraction of surface area in order to mimic not having a nested scale. In future one would be interested for instance in including a local or national scale as well. One could adjust the regional scale for this purpose.
+
+The code is commented out, but this is an example of adjusting the regional scale to represent Switzerland. You can only adjust parameters that are initial input data, not variables that are calculated later in SBOO. The adjusted dataframes are printed below. Note, at this point the input is already converted to SI units, so new data also needs to be put in this format.
+
+```{r}
+# 
+# LandFRAC <- data.frame(
+#   Scale = "Regional",
+#   SubCompart = c("agriculturalsoil", "lake", "naturalsoil", "othersoil" , "river"), 
+#   landFRAC = c(0.37, 0.02, 0.51, 0.08, 0.02)
+# )
+# # TotalArea <- data.frame(
+# #   Scale = c("Arctic", "Continental", "Moderate", "Regional"),
+# #   TotalArea = c(4.25E+13, 7.43E+12, 8.50E+13, 4.13e+11)
+# # )
+# 
+# Temperature <- data.frame(
+#   Scale = "Regional", 
+#   Temp = 279
+# )
+# 
+# RAINrate <- data.frame(
+#   Scale = "Arctic",
+#   RAINrate = 4.37e-5
+# )
+# 
+# ParamToAdjust <- list(LandFRAC, Temperature, RAINrate)
+# for (i in seq_along(ParamToAdjust)) {
+#   ParamToAdjust[[i]] <- World$mutateVar(ParamToAdjust[[i]])
+# }
+# print(ParamToAdjust)
+
+## scaling of world 
+
+Area <- World$fetchData("TotalArea")
+AreaRegional <- Area$TotalArea[Area$Scale =="Regional"]
+AreaContinental <- Area$TotalArea[Area$Scale =="Continental"]
+fracReg <- AreaRegional/AreaContinental
+fracCont <- 1-fracReg
+
+FracRC <- tibble(
+  Scale_SBname = c("Regional","Continental"),
+  Abr_scale = c("R","C"),
+  AreaFraction = c(fracReg,fracCont)
+)
+
+
+print(FracRC)
+
+```
+
+## NewSolver
+
+Different solvers are available, basically:
+
+1.  Solving the steadystate of the SimpleBox world
+
+2.  Solving in time the states of SimpleBox world
+
+Both will be illustrated bellow, but it starts with defining the solver you want to use by `world$NewSolver("[name of s_function]")`
+
+### SBsteady
+
+```{r SBsteady}
+World$NewSolver("SBsteady")
+```
+
+What solving means is that using matrix algebra a set of differential equations is solved:
+
+`K %*% m + e`
+
+Where:
+
+K is the matrix of rate constants for each process describing the mass transfers to and from and out of a state (e.g. substance in freshwater (w1U) or small heteroagglomerate in natural soil (s1A)).
+
+m is the mass in each compartment, e.g. 0 at t=0.
+
+e is the emission to each compartment per unit of time, e.g. 1 t/y.
+
+To solve this set of differential equations we thus need an emission, e.g. 1 ton/year to air. The height of this emission is not
+
+```{r constant emission}
+emissions <- data.frame(Abbr = "aCS", Emis = 1000/(365.25*24*60*60)) # convert 1 t/y to si units: kg/s
+
+# TODO: explain what is the reason for this Abbr? Why is it not a relational table defining scale, compartment and species as for all other data?
+```
+
+Now we are ready to run the solver, which results in the mass in each compartment.
+
+```{r}
+World$Solve(emissions)
+```
+
+## SBdynamic
+
+We can also solve the differential equations dynamically in time, but the optimal implementation is still work in progress, see [issue](https://github.com/rivm-syso/SBoo/issues/111).
+
+```{r emission data}
+file_paths <- 
+  list.files("data/emissions",recursive = TRUE)
+Emissions <-
+  read_csv(paste0("data/emissions/",file_paths), id="file_name", col_names = c("RUN",0:24),skip = 1) # unit: Metric tonnes
+
+
+```
+
+### Prepare DPMFA data
+
+Data from an DPMFA model should be prepared to fit the SBoo world. For instance the time unit should be correct, the mass unit is not as important as this will be the same in the output then, but for good measure we use kg. This is the quick and dirty way, a more elegant way is till in progress as mentioned above.
+
+We define the compartments of the emission based on the DMPFA model.
+
+```{r Emissions}
+# TODO: solve for every RUN
+Emissions <- 
+  Emissions |>
+  pivot_longer(
+    cols = !c(file_name,RUN),
+    names_to = "year",
+    values_to = "emission_t" ) |> mutate_at('year',as.numeric) |> 
+  ungroup() |> 
+  group_by(file_name,year) |> 
+  summarise(Emission_p50_kg = quantile(emission_t,probs = 0.5)*1000/(365.25*24*3600),
+            Emission_mean_kg = mean(emission_t)*1000/(365.25*24*3600)) |> ungroup()
+
+Emissions <- 
+  Emissions |> 
+  mutate(compartment = 
+           case_when(str_detect(file_name, "(?i)Air") ~ "Air",
+                     str_detect(file_name, "(?i)Soil") ~ "SludgeTreatedSoil",
+                     str_detect(file_name, "(?i)Water") ~ "SurfaceWater",
+                     str_detect(file_name, "(?i)Subsurface") ~ "Subsurface",
+                     TRUE ~ "Other"),
+         scale = 
+           case_when(str_detect(file_name, "(?i)EU") ~ "EU_average",
+                     str_detect(file_name, "(?i)Ireland") ~ "EU_STsoil",
+                     str_detect(file_name, "(?i)Switzerland") ~ "EU_noSTsoil",
+                     TRUE ~ "Other"),
+         Substance = "GO-Chitosan",
+  )
+
+```
+
+### Scaling Emission data based on material density
+
+When running for only GO or only Chitosan, you want to correct for the fact that it's partly Chitosan and partly GO through using the densities.
+
+```{r DensityScaling}
+
+Weightfactor <- switch(substance,
+                       "GO-Chitosan" = 1,
+                       "Chitosan" = 7/8,
+                       "GO" = 1/8)
+
+Emissions <-
+  Emissions |> mutate(Emission_mean_kg = Emission_mean_kg* Weightfactor,
+                      Emission_p50_kg = Emission_p50_kg*Weightfactor)
+
+head(Emissions)
+
+```
+
+### Scaling Input Data based on World (Regional nested in Continental)
+
+In this chunk, we adjust for the fact that the input data for the DMPFA model is all Europe based. Hence we scale by the factor fracReg and fracCont to still include the current regional scale (could alse be done differently). The regional data is thus a portion of the EU emission, scaled based on the land surface area.
+
+```{r ScaleScaling}
+
+SBEmissions2 <- 
+  Emissions |> mutate(
+    Abr_comp =  case_match(compartment,
+                           "Air" ~ "a",
+                           "SludgeTreatedSoil" ~ "s2",
+                           "SurfaceWater" ~ "w1",
+                           .default = NA
+    ),
+    Abr_scale =  case_match(scale,
+                            "EU_average" ~ "C",
+                            .default = NA
+    ),
+    Abr_species = "S"
+    
+  ) |> drop_na() 
+
+SBEmissions2 <-  
+  SBEmissions2 |> rbind(
+    SBEmissions2 |> 
+      mutate(
+        Abr_scale =  case_match(Abr_scale,
+                                "C" ~ "R",
+                                .default = NA
+        ),
+        scale = "EU_average"
+      )
+  ) |> full_join(FracRC) |> 
+  
+  mutate(Abr = paste0(Abr_comp,Abr_scale,Abr_species)) |> 
+  mutate(Emission_mean_kg = Emission_mean_kg*AreaFraction,
+         Emission_p50_kg = Emission_p50_kg*AreaFraction)
+
+head(SBEmissions2)
+
+```
+
+### make time dependant emission functions
+
+```{r approxfuns}
+SBEmissions3 <- 
+  SBEmissions2 |> 
+  mutate(time_s = year*(365.25*24*60*60)+(365.25*24*60*60)) |> ungroup() |> 
+  group_by(compartment,Abr_scale,Abr,Substance) |> 
+  summarise(n=n(),
+            EmisFun = list(
+              approxfun(
+                data.frame(time_s = c(0,time_s), 
+                           emis_kg=c(0,Emission_mean_kg)),
+                rule = 1:1)
+            )
+  )
+
+funlist <- SBEmissions3$EmisFun
+names(funlist) <- SBEmissions3$Abr
+
+times <- seq(0, 25*365.25*24*3600, by = 10000)
+
+CompartInterest <- "s2CS"
+
+time_s = c(0,(SBEmissions2 |> filter(Abr == CompartInterest) |> pull(year))*(365.25*24*60*60)+(365.25*24*60*60))
+emis_kg = c(0,(SBEmissions2 |> filter(Abr == CompartInterest) |> pull(Emission_mean_kg)))
+
+PlotEmisFun = funlist[[CompartInterest]]
+
+plot(time_s,
+     emis_kg)
+curve(PlotEmisFun,
+      add = TRUE)
+
+
+
+```
+
+
+## Dynamic solving for deterministic input data
+
+The chunk below gives the opportunity to Solve for constant input data. The chunk after that gives the opportunity to also vary SB Input data
+
+```{r DynamicSolve}
+
+##ODE
+
+SimpleBoxODE = function(t, m, parms) {
+  
+  with(as.list(c(parms, m)), {
+    e <- c(rep(0, length(SBNames)))
+    
+    for (name in names(funlist)) {
+      e[grep(name, SBNames)] <- funlist[[name]](t)
+    }
+    
+    dm <- K%*% m + e
+    res <- c(dm)
+    list(res, signal = e)
+  })
+}
+
+# print(SBNames)
+
+#Function to Solve
+SBsolve4 <- function( tmax = 1e10, nTIMES = 100, Engine, funlist) {
+  
+  SB.K = Engine
+  SBNames = colnames(Engine)
+  SB.m0 <- rep(0, length(SBNames))
+  SBtime <- seq(0,tmax,length.out = nTIMES)
+  
+  
+  out <- deSolve::ode(
+    y = as.numeric(SB.m0),
+    times = SBtime ,
+    func = SimpleBoxODE,
+    parms = list(K = SB.K, SBNames=SBNames, funlist=funlist),
+    rtol = 1e-10, atol = 1e-2)
+  #if(as.character(class(deS)[1])!="data.frame") return (list(errorstate="error", deS))
+  colnames(out)[1:length(SBNames)+1] <- SBNames
+  colnames(out)[grep("signal",colnames(out))] <- paste("emis",SBNames,sep = "2")
+  as.data.frame(out)
+  
+}
+
+# Can also test with xlsx engine
+# read in K matrix from xlsx:
+# K.Matrix <- readxl::read_xlsx("vignettes/Development/Quality control/SBExcel/SimpleBox4plastics 4.03_GO-Chitosan.xlsx", 
+#                               sheet = "engine",
+#                               range = "D8:FB163") |> as.data.frame()
+# 
+# colnames(K.Matrix) <- readxl::read_xlsx("vignettes/Development/Quality control/SBExcel/SimpleBox4plastics 4.03_GO-Chitosan.xlsx", 
+#                               sheet = "engine",
+#                               range = "D3:FB3",
+#                               col_names = FALSE) |> slice(1) |> as.character()
+# 
+
+# Solving
+Solution <- SBsolve4(tmax = 25*(365.25*24*3600),
+nTIMES = 130,
+Engine = World$exportEngineR(),
+funlist = funlist)
+
+# Solution <- SBsolve4(tmax = 25*(365.25*24*3600), 
+#                      nTIMES = 130,
+#                      Engine = as.matrix(K.Matrix),
+#                      funlist = funlist)
+
+Solution <- as.data.frame(Solution)
+
+# Same plot of emission as above
+plot(Solution$time,Solution$emis2s2CS)
+
+plot(Solution$time,Solution$w1CS)
+
+plot(Solution$time,Solution$s2CS)
+plot(Solution$time,Solution$s2CA)
+plot(Solution$time,Solution$s2CP)
+
+plot(Solution$time,Solution$aCS)
+
+
+
+```
+
+
+## Output Processing
+
+To move from the solution of the ODE solver to usable output data we need to split the output into corresponding mass data per compartment over time and emission signals over time. The first chunk is for one output, the latter chunk for varying input or emission data.
+
+```{r Output Processing one solution}
+library(dplyr)
+#for one Solution
+Solution <- as.data.frame(Solution)
+Engine <- World$exportEngineR()
+NamesK <- colnames(Engine)
+
+print(NamesK)
+print(length(NamesK))
+colnames(Solution)[2:156] <- NamesK
+
+#seperate signals and matrix
+#compartments
+compartments <- Solution[, 1:156]
+compartments <- compartments |> select(-matches("U$"))
+signals <- Solution[, 157:311]
+colnames(signals) <- NamesK
+signals_total <- data.frame(rowSums(signals))
+signals_total$time <- Solution[, 1]
+
+#Checks
+#Emission over time
+plot1 <-ggplot(signals_total, aes(x = time, y =rowSums.signals.)) +
+  geom_line() +
+  labs(title = "Emissions Over Time (kg)", x = "Time", y = "Emissions")
+
+show(plot1)
+
+#further data manipulation for the compartments
+split_df <- function(df, solution_matrix) {
+  # Extract the capital letters (A, R, C, T, M) in column names
+  patterns <- unique(gsub("[^ARCTM]", "", colnames(df)))
+  
+  # Function to adjust the dataframe
+  adjust_df <- function(df) {
+    df$time <- compartments$time
+    return(df)
+  }
+  
+  # Split the dataframe based on the presence of specified capital letters using lapply
+  split_dfs <- lapply(patterns, function(pattern) {
+    cols <- grepl(pattern, colnames(df))
+    adjusted_df <- df[, cols, drop = FALSE]
+    adjust_df(adjusted_df)
+  })
+  
+  # Assign names to the split dataframes
+  names(split_dfs) <- patterns
+  
+  # Output the split dataframes
+  invisible(lapply(names(split_dfs), function(pattern) {
+    cat("Pattern:", pattern, "\n")
+    print(split_dfs[[pattern]])
+    cat("\n")
+  }))
+  
+  return(split_dfs)
+}
+
+# Apply the function to split the dataframe
+split_dfs <- split_df(compartments, solution_matrix)
+
+# Assuming A, C, T, R, and M are the split dataframes
+A <- split_dfs[["A"]]
+C <- split_dfs[["C"]]
+T <- split_dfs[["T"]]
+R <- split_dfs[["R"]]
+M <- split_dfs[["M"]]
+
+
+
+#extra filtering for A
+# Regular expression to match columns with "A" as the first capital letter after lowercase letters and numbers
+pattern <- "^[a-z0-9]*A"
+
+# Identify columns that do not match the pattern
+columns_to_keep <- !grepl(pattern, names(A))
+
+# Subset the dataframe to keep only the desired columns
+A <- A[, !columns_to_keep]
+A$time <- compartments$time
+
+```
+
+
+## Plotting of Output
+
+Below you can create a plot for one output for mass, the chunk after that represents uncertainty based on multiple outputs.
+
+```{r plotting}
+# Define the plot_dataframe function
+plot_dataframe <- function(df, title) {
+  data_to_plot <- tidyr::gather(df, key = "variable", value = "value", -time)
+  
+  ggplot(data_to_plot, aes(x = time, y = value, color = variable)) +
+    geom_line() +
+    labs(title = title,
+         x = "Time",
+         y = "Value")
+}
+
+# Named list of dataframes
+dataframes <- list(
+  A = A,
+  C = C,
+  T = T,
+  R = R,
+  M = M
+)
+
+# Plot and print each dataframe
+plots <- lapply(names(dataframes), function(name) {
+  plot_dataframe(dataframes[[name]], name)
+})
+
+# Show the plots
+for (plot in plots) {
+  print(plot)
+}
+w2C <- C[c("w2CA", "w2CS", "w2CP", "time")]
+
+ggplot(w2C, aes(x = time)) +
+  geom_line(aes(y = w2CA, color = "w2CA")) +
+  geom_line(aes(y = w2CS, color = "w2CS")) +
+  geom_line(aes(y = w2CP, color = "w2CP")) +
+  labs(title = "Plot of w2CA, w2CS, and w2CP over time",
+       x = "Time",
+       y = "Values",
+       color = "Legend") +
+  theme_minimal()
+s2C <- C[c("s2CA", "s2CS", "s2CP", "time")]
+
+ggplot(s2C, aes(x = time)) +
+  geom_line(aes(y = s2CA, color = "s2CA")) +
+  geom_line(aes(y = s2CS, color = "s2CS")) +
+  geom_line(aes(y = s2CP, color = "s2CP")) +
+  labs(title = "Plot of s2CA, s2CS, and s2CP over time",
+       x = "Time",
+       y = "Values",
+       color = "Legend") +
+  theme_minimal()
+
+```
+
+##From mass to concentration 
+In this chunk we will convert the mass output into concentration output by calculating the respective volumes and calculating by this value. 
+```{r mass to concentration}
+# Fetch necessary data
+Volume <- World$fetchData("Volume")
+Area <- World$fetchData("Area")
+FRACw <- World$fetchData("FRACw")
+FRACa <- World$fetchData("FRACa")
+Rho <- World$fetchData("rhoMatrix")
+
+
+# Define acronyms maps
+acronym_map <- c(
+  "marinesediment" = "sd2", "freshwatersediment" = "sd1", "lakesediment" = "sd0",
+  "agriculturalsoil" = "s2", "naturalsoil" = "s1", "othersoil" = "s3",
+  "air" = "a", "deepocean" = "w3", "sea" = "w2", "river" = "w1", "lake" = "w0", "cloudwater" = "cw"
+)
+acronym_map2 <- c("Arctic" = "A", "Moderate" = "M", "Tropic" = "T", "Continental" = "C", "Regional" = "R")
+acronym_map3 <- c("Dissolved" = "D", "Gas" = "G", "Large" = "P", "Small" = "A", "Solid" = "S", "Unbound" = "U")
+
+# Add compartment column to data
+Volume <- Volume |> mutate(compartment = paste0(acronym_map[SubCompart], acronym_map2[Scale]))
+FRACw <- FRACw |> mutate(compartment = paste0(acronym_map[SubCompart], acronym_map2[Scale]))
+FRACa <- FRACa |> mutate(compartment = paste0(acronym_map[SubCompart], acronym_map2[Scale]))
+Rho <- Rho |> mutate(compartment = paste0(acronym_map[SubCompart]))
+
+CompartmentsConc <- compartments
+# List of columns in CompartmentsConc that need transformation
+columns_to_transform <- setdiff(names(CompartmentsConc), "time")
+
+# Calculate concentrations by dividing by the corresponding volume
+for (col in columns_to_transform) {
+  compartment <- substr(col, 1, nchar(col) - 1)
+  volume <- Volume$Volume[Volume$compartment == compartment]
+  if (length(volume) == 1) {
+    CompartmentsConc[[col]] <- CompartmentsConc[[col]] / volume
+  } else {
+    warning(paste("Volume not found for compartment", compartment))
+  }
+}
+
+## Extract soil and sediment columns
+CompartmentsConc_soil_names <- grep("^s[123]", names(CompartmentsConc), value = TRUE)
+CompartmentsConc_sediment_names <- grep("^sd[123]", names(CompartmentsConc), value = TRUE)
+print(CompartmentsConc_sediment_names)
+CompartmentsConc_soil <- CompartmentsConc[, CompartmentsConc_soil_names]
+CompartmentsConc_sediment <- CompartmentsConc[, CompartmentsConc_sediment_names]
+
+
+# Combine soil and sediment columns
+CompartmentsConc_combined <- cbind(CompartmentsConc_soil, CompartmentsConc_sediment)
+
+# Get RhoWater value for river compartment
+RhoWater_value <- Rho$rhoMatrix[Rho$SubCompart == "river"]
+
+# Define function to adjust concentrations
+f_adjust_concentration <- function(CompConc, Fracw, Fraca, RHOsolid) {
+  CompConc * 1000 / (Fracw * RhoWater_value + (1 - Fracw - Fraca) * RHOsolid)
+}
+
+# Get compartment prefixes for combined soil and sediment
+compartment_prefixes_combined_scale <- substr(names(CompartmentsConc_combined), 1, 3)
+compartment_prefixes_combined <- substr(names(CompartmentsConc_combined), 1, 2)
+
+# Get corresponding FRACw, FRACa, and Rho values for combined soil and sediment
+FRACw_values_combined <- FRACw$FRACw[match(compartment_prefixes_combined_scale, FRACw$compartment)]
+FRACa_values_combined <- FRACa$FRACa[match(compartment_prefixes_combined_scale, FRACa$compartment)]
+Rho_values_combined <- Rho$rhoMatrix[match(compartment_prefixes_combined, Rho$compartment)]
+
+# Apply the function to adjust combined soil and sediment concentrations
+CompartmentsConc_combined_adjusted <- mapply(
+  f_adjust_concentration,
+  CompartmentsConc_combined,
+  Fracw = FRACw_values_combined,
+  Fraca = FRACa_values_combined,
+  RHOsolid = Rho_values_combined,
+  SIMPLIFY = FALSE
+) |> as.data.frame()
+
+# Assign column names to adjusted data
+colnames(CompartmentsConc_combined_adjusted) <- colnames(CompartmentsConc_combined)
+print(CompartmentsConc_combined_adjusted)
+
+
+CompartmentsConc_corrected <- CompartmentsConc
+
+# Overwrite the original soil and sediment columns with the adjusted values
+CompartmentsConc_corrected[, names(CompartmentsConc_combined_adjusted)] <- CompartmentsConc_combined_adjusted
+
+plot(CompartmentsConc_corrected$time, CompartmentsConc_corrected$w1CA, type = "l",
+     xlab = "Time", ylab = "Concentration [g/L",
+     main = "Freshwater concentrations over time",
+     col = "blue") # Set color for w1CA
+
+# Add the line for w1CP to the same plot
+lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$w1CP, col = "red") 
+lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$w1CS, col = "green")
+
+# Add a legend to distinguish the lines
+legend("topright", legend = c("W1CA", "W1CP", "W1CS"), col = c("blue", "red", "green"), lty = 1)
+
+
+plot(CompartmentsConc_corrected$time, CompartmentsConc_corrected$s2CA, type = "l",
+     xlab = "Time", ylab = "Concentration [g/kg w.w.]",
+     main = "Soil concentrations over time",
+     col = "blue") # Set color for w1CA
+
+# Add the line for w1CP to the same plot
+lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$s2CP, col = "red") 
+lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$s2CS, col = "green")
+
+# Add a legend to distinguish the lines
+legend("topright", legend = c("s2CA", "s2CP", "s2CS"), col = c("blue", "red", "green"), lty = 1)
+
+
+```
+
+##Plotting Of Concentrations
+Here we append all concentrations per compartment for species A, S and P. Subsequently, we plot these results
+
+```{r Concentrations Plotting}
+summed_columns <- list()
+
+# Loop through each column and sum values of columns with the same prefix (removing the last letter)
+for (col in colnames(CompartmentsConc_corrected)) {
+  # Skip the 'time' column from summation but include it in the final dataframe
+  if (col == "time") {
+    summed_columns[[col]] <- CompartmentsConc_corrected[[col]]
+    next  # 
+  }
+  
+  # Extract the prefix by removing the last letter
+  prefix <- substr(col, 1, nchar(col) - 1)
+  
+  # Sum values for columns with the same prefix
+  if (!prefix %in% names(summed_columns)) {
+    summed_columns[[prefix]] <- rowSums(CompartmentsConc_corrected[, grepl(paste0("^", prefix), colnames(CompartmentsConc_corrected))])
+  }
+}
+
+# Convert the list to a data frame
+Conc_per_compartment <- as.data.frame(summed_columns)
+
+# Print the new dataframe
+print(Conc_per_compartment)
+
+# Filter columns ending with "C"
+columns_to_plot <- grep("C$", names(Conc_per_compartment), value = TRUE)
+seconds_in_a_year <- 60 * 60 * 24 * 365.25  
+Conc_per_compartment$time <- Conc_per_compartment$time / seconds_in_a_year
+
+
+# Reshape data to long format for ggplot
+df_long <- pivot_longer(Conc_per_compartment, cols = columns_to_plot, names_to = "Compartment", values_to = "Value")
+
+
+ggplot(df_long, aes(x = time, y = Value, color = Compartment)) +
+  geom_line() +
+  labs(x = "Time", y = "Concentration", title = "Concentration per Compartment over Time")
+# Plot using ggplot
+ggplot(df_long, aes(x = time, y = Value, color = Compartment)) +
+  geom_line() +
+  labs(x = "Time [years]", y = "Concentration in [?]", title = "Continental scale") +
+  scale_color_discrete(name = "Compartment")
+df_water <- df_long[df_long$Compartment == "w1C", ]
+
+df_soil <- df_long[df_long$Compartment %in% c("s1C", "s2C", "s3C"), ]
+df_water <- df_long[df_long$Compartment %in% c("w1C", "w2C", "w3C"), ]
+
+#plot soil
+ggplot(df_soil, aes(x = time, y = Value, color = Compartment)) +
+  geom_line() +
+  labs(x = "Year", y = "Value", title = "s1C, s2C, and s3C") +
+  scale_color_discrete(name = "Compartment")
+#plot water
+ggplot(df_water, aes(x = time, y = Value, color = Compartment)) +
+  geom_line() +
+  labs(x = "Year", y = "Concentration [mg/L]", title = "water") +
+  scale_color_discrete(name = "Compartment")
+
+
+# Selecting specific compartments to plot
+compartments_to_plot <- c("aC", "s2C", "sd2C", "w1C")
+
+# Define a named vector with new compartment names and their corresponding units
+new_names <- c(
+  "aC" = "air",
+  "s2C" = "soil",
+  "sd2C" = "sediment",
+  "w1C" = "water"
+)
+
+units <- c(
+  "air" = "ng/m³",
+  "soil" = "g/kg w.w.",
+  "sediment" = "g/kg w.w.",
+  "water" = "g/L"
+)
+
+# Custom labeller function to include units in facet labels
+custom_labeller <- function(variable, value) {
+  paste0(new_names[value], " [", units[new_names[value]], "]")
+}
+
+# Filtering and mutating dataframe
+df_plot <- df_long %>%
+  filter(Compartment %in% compartments_to_plot) |>
+  mutate(Value = ifelse(Compartment == "sd2C" & is.na(Value), 0, Value),
+         Value = ifelse(Compartment == "aC", Value * 1e9, Value))
+
+# PlottiNG
+ggplot(df_plot, aes(x = time, y = Value)) +
+  facet_wrap(~ Compartment, scales = "free_y", nrow = 2, labeller = as_labeller(custom_labeller)) +
+  geom_line() +
+  labs(
+    x = "Time [years]",
+    y = "Concentration",
+    title = "Compartment Concentrations Over Time"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 10)
+  )
+
+
+```
