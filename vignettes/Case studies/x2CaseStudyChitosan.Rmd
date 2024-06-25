@@ -20,10 +20,6 @@ We assume you have the input data for a substance or material of interest and al
 library(dplyr)
 substance <-  "GO-Chitosan"
 source("baseScripts/initWorld_onlyParticulate.R")
-World$fetchData("RhoS")
-World$fetchData("RadS")
-World$fetchData("landFRAC")
-World$fetchData("Area")
 
 ```
 
@@ -202,7 +198,7 @@ ggplot(MassFractions, aes(x = Scale, y = MassFraction, fill = Species)) +
   theme_minimal()
 
 ```
-We are also interested in concentrations per compartment. For this, we need to ensure that we convert the Equilibrium Mass into the Equilibrium concentration, which we will do below. We need to adjust the concentrations to end up in respective units. We convert concentrations in soil and sediment to g/kg wet weight. Concentrations in water are in grams/L. In air, concentrations are in kg/kg air. 
+We are also interested in concentrations per compartment. For this, we need to ensure that we convert the Equilibrium Mass into the Equilibrium concentration, which we will do below. We need to adjust the concentrations to end up in respective units. We convert concentrations in soil and sediment to ng/kg wet weight. Concentrations in water are converted in ng/L. In air, concentrations are in ng/kg air. 
 ```{r Output Table}
 library(knitr)
 library(kableExtra)
@@ -262,7 +258,7 @@ Concentration_eq[Concentration_eq$SubCompart %in% subcomparts, "Concentration"] 
 print(Concentration_eq)
 subcompart <- c("agriculturalsoil", "naturalsoil", "othersoil", "freshwatersediment", "marinesediment",  "lakesediment", "air", "deepocean", "lake" , "river", "sea", "cloudwater")
 units <- c("g/kg w", "g/kg w", "g/kg w", "g/kg w", "g/kg w", "g/kg w",
-           "kg/kg", "g/L", "g/L", "g/L", "g/L", "g/L", "g/L")
+           "kg/kg", "kg/L", "kg/L", "kg/L", "kg/L", "kg/L", "kg/L")
 
 # Combine into a named list
 subcompart_units <- setNames(units, subcompart)
@@ -276,8 +272,8 @@ convert_units <- function(concentration, unit) {
     return(concentration * 1e9)
   } else if (unit == "kg/kg") {
     return(concentration * 1e12)
-  } else if (unit == "g/L") {
-    return(concentration * 1e9)
+  } else if (unit == "kg/L") {
+    return(concentration * 1e12)
   } else {
     return(concentration)
   }
