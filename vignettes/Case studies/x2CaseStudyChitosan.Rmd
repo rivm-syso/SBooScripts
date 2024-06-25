@@ -101,13 +101,12 @@ print(marine_alpha_mean_log_samples)
 subcompartsmarine <- c("sea", "marinesediment", "freshwatersediment", "deepocean")
 
 
-subcomparts <- c("river", "lake", "water", "agriculturalsoil", "naturalsoil", "othersoil", "freshwatersediment", "lakesediment")
+subcomparts <- c("river", "lake", "water", "agriculturalsoil", "naturalsoil", "othersoil")
 all_subcomparts <- c(subcomparts, subcompartsmarine)
-species <- rep(c("Large", "Small"), times = length(all_subcomparts))
+#species <- rep(c("Large", "Small"), times = length(all_subcomparts))
 
 alpha = data.frame(
 SubCompart = c(subcomparts,subcompartsmarine),  
-Species = species,
 alpha = c(fw_alpha_mean_log_samples, marine_alpha_mean_log_samples))
 
 World$fetchData("alpha")
