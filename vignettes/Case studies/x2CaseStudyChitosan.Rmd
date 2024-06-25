@@ -307,6 +307,7 @@ kable(Concentration_eq, format = "markdown", align = "c", caption = "Concentrati
 ```
 
 ## SBdynamic
+*This part is still Work In Progress and in need of additional development.*
 
 ## Adjusting Parameters to Match considered Scale
 
