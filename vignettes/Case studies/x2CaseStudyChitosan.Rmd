@@ -214,7 +214,7 @@ ggplot(MassFractions, aes(x = Scale, y = MassFraction, fill = Species)) +
 We are also interested in concentrations per compartment. For this, we need to ensure that we convert the Equilibrium Mass into the Equilibrium concentration, which we will do below. We need to adjust the concentrations to end up in respective units. We convert concentrations in soil and sediment to ng/kg wet weight. Concentrations in water are converted in ng/L. In air, concentrations are in ng/kg air. The output is in the form of a table, with both the Equilibrium Mass and the concentration in the compartment per species.
 
 ```{r Output Table, paged.print=TRUE}
-# library(knitr)
+library(knitr)
 # library(kableExtra)
 # Fetch necessary data
 Volume <- World$fetchData("Volume")
@@ -299,7 +299,8 @@ Concentration_eq<- Concentration_eq |> rename(Unit = Units_per_SubCompart)
 # Create the table with kable and style it with kableExtra
 # kable(Concentration_eq, format = "markdown", align = "c", caption = "Concentration per Compartment") |>
 #   kable_styling(full_width = T)
-print(Concentration_eq)
+# library(DT)
+kable(Concentration_eq)
 
 ```
 
