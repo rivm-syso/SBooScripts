@@ -290,6 +290,9 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
   scale_color_gradient(low = "green", high = "red") 
 #If you want to inspect per process instead of fromto box: look at the original kaas dataframe
 
+mergedkaas |> filter(relDif>0.5)
+
+
 ```
 
 ## *air*
@@ -317,6 +320,11 @@ World$moduleList[["k_DryDeposition"]]
 World$moduleList[["k_DryDeposition"]]$FromAndTo
 World$moduleList[["k_Runoff"]]
 World$moduleList[["k_Runoff"]]$FromAndTo
+
+
+# there is an update of the implementation of the surface resistance froma constant to variable depending on surface type based on LOTEUR guidance.
+
+
 
 
 ```
