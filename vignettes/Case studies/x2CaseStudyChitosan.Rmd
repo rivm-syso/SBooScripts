@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 We assume you have the input data for a substance or material of interest and all the data describing the SimpleBox world to be created ready and thus can run the initWorld script.
 
-```{r}
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
 library(dplyr)
 substance <-  "GO-Chitosan"
 source("baseScripts/initWorld_onlyParticulate.R")
@@ -41,16 +41,16 @@ We need the following properties for the GO-Chitosan related particles:
 
 -   Other 'unknown' variables, such as attachment efficiency, etc.
 
-| Property             | GO-Chitosan     | GO              | Chitoson      |
-|----------------------|-----------------|-----------------|---------------|
-| Shape                | Sheet-like      | Flake           | Fragment      |
+| Property             | GO-Chitosan     | GO              | Chitoson         |
+|----------------------|-----------------|-----------------|------------------|
+| Shape                | Sheet-like      | Flake           | Fragment         |
 | Size - square (LxB)  | 70 - 90 (80) um | 70 - 90 (80) um | 100-200 (150) nm |
 | Size - thickness (H) | 10-20 (15) nm   | 1-10 (5) nm     | 100-200 (150) nm |
-| Density              | Calculated      | 0.35 g/ml       | 0.874 g/ml    |
+| Density              | Calculated      | 0.35 g/ml       | 0.874 g/ml       |
 
 : The density of GO-chitosan is approximated by 7/8 \* dens_Graphene + 1/8 \* dens_Chitosan
 
-```{r Computing Raduius}
+```{r Computing Radius}
 
 # Longest <- World$fetchData("Longest_side")
 # Intermediate <- World$fetchData("Intermediate_side")
@@ -75,7 +75,7 @@ World$UpdateKaas(mergeExisting = F)
 
 Since attachment efficiencies (alpha) are very uncertain, below is a chunk where we can create distributions for these parameters. We start however with a deterministic calculation using averages.
 
-```{r Example Uncertain Alpha, include = FALSE}
+```{r Example Uncertain Alpha, message=FALSE, warning=FALSE}
 fwa_min <- 1e-4
 fwa_max<- 0.1
 n <- 100000
@@ -128,7 +128,6 @@ World$fetchData("alpha")
 
 ```
 
-
 ## NewSolver
 
 Different solvers are available, basically:
@@ -141,8 +140,19 @@ Both will be illustrated bellow, but it starts with defining the solver you want
 
 ### SBsteady
 
+Currently there are two ways to solve the matrix in steady state, so with constant emission and infinite time horizon. These are:
+
+1.  `SB1solve` - using solve from base R
+
+2.  `SBsteady` - using runsteady from the rootSolve package
+
+Another option would be to set a time horizon using the ode solver from the DeSolve package. This can be done using `SBsolve`.
+
 ```{r SBsteady}
-World$NewSolver("SBsteady")
+# World$NewSolver("SBsteady")
+# SB1Solve provides the best results, this uses the solve function in R.
+World$NewSolver("SB1Solve") 
+
 ```
 
 What solving means is that using matrix algebra a set of differential equations is solved:
@@ -202,7 +212,9 @@ ggplot(MassFractions, aes(x = Scale, y = MassFraction, fill = Species)) +
   theme_minimal()
 
 ```
-We are also interested in concentrations per compartment. For this, we need to ensure that we convert the Equilibrium Mass into the Equilibrium concentration, which we will do below. We need to adjust the concentrations to end up in respective units. We convert concentrations in soil and sediment to g/kg wet weight. Concentrations in water are in grams/L. In air, concentrations are in kg/kg air. 
+
+We are also interested in concentrations per compartment. For this, we need to ensure that we convert the Equilibrium Mass into the Equilibrium concentration, which we will do below. We need to adjust the concentrations to end up in respective units. We convert concentrations in soil and sediment to g/kg wet weight. Concentrations in water are in grams/L. In air, concentrations are in kg/kg air.
+
 ```{r Output Table}
 library(knitr)
 library(kableExtra)
@@ -297,8 +309,6 @@ kable(Concentration_eq, format = "markdown", align = "c", caption = "Concentrati
 
 ```
 
-
-
 ## SBdynamic
 
 ## Adjusting Parameters to Match considered Scale
@@ -353,7 +363,6 @@ FracRC <- tibble(
 print(FracRC)
 
 ```
-
 
 We can also solve the differential equations dynamically in time, but the optimal implementation is still work in progress, see [issue](https://github.com/rivm-syso/SBoo/issues/111).
 
@@ -501,7 +510,6 @@ curve(PlotEmisFun,
 
 ```
 
-
 ## Dynamic solving for deterministic input data
 
 The chunk below gives the opportunity to Solve for constant input data. The chunk after that gives the opportunity to also vary SB Input data
@@ -588,7 +596,6 @@ plot(Solution$time,Solution$aCS)
 
 
 ```
-
 
 ## Output Processing
 
@@ -678,7 +685,6 @@ A$time <- compartments$time
 
 ```
 
-
 ## Plotting of Output
 
 Below you can create a plot for one output for mass, the chunk after that represents uncertainty based on multiple outputs.
@@ -738,8 +744,8 @@ ggplot(s2C, aes(x = time)) +
 
 ```
 
-##From mass to concentration 
-In this chunk we will convert the mass output into concentration output by calculating the respective volumes and calculating by this value. 
+##From mass to concentration In this chunk we will convert the mass output into concentration output by calculating the respective volumes and calculating by this value.
+
 ```{r mass to concentration, include=FALSE}
 # Fetch necessary data
 Volume <- World$fetchData("Volume")
@@ -855,8 +861,7 @@ legend("topright", legend = c("s2CA", "s2CP", "s2CS"), col = c("blue", "red", "g
 
 ```
 
-##Plotting Of Concentrations
-Here we append all concentrations per compartment for species A, S and P. Subsequently, we plot these results
+##Plotting Of Concentrations Here we append all concentrations per compartment for species A, S and P. Subsequently, we plot these results
 
 ```{r Concentrations Plotting, include=FALSE}
 summed_columns <- list()
