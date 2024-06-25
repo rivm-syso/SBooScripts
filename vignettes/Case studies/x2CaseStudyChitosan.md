@@ -162,26 +162,26 @@ World$fetchData("alpha")
 ```
 
     ##            SubCompart Species      alpha
-    ## 1    agriculturalsoil   Large 0.14425234
-    ## 2    agriculturalsoil   Small 0.14425234
-    ## 12          deepocean   Large 0.14425234
-    ## 13          deepocean   Small 0.14425234
-    ## 16 freshwatersediment   Large 0.01457418
-    ## 17 freshwatersediment   Small 0.01457418
-    ## 20               lake   Large 0.14425234
-    ## 21               lake   Small 0.14425234
+    ## 1    agriculturalsoil   Large 0.14430204
+    ## 2    agriculturalsoil   Small 0.14430204
+    ## 12          deepocean   Large 0.14430204
+    ## 13          deepocean   Small 0.14430204
+    ## 16 freshwatersediment   Large 0.01445863
+    ## 17 freshwatersediment   Small 0.01445863
+    ## 20               lake   Large 0.14430204
+    ## 21               lake   Small 0.14430204
     ## 24       lakesediment   Large 0.40000000
     ## 25       lakesediment   Small 0.10000000
-    ## 28     marinesediment   Large 0.14425234
-    ## 29     marinesediment   Small 0.14425234
-    ## 32        naturalsoil   Large 0.01457418
-    ## 33        naturalsoil   Small 0.01457418
-    ## 36          othersoil   Large 0.14425234
-    ## 37          othersoil   Small 0.14425234
-    ## 40              river   Large 0.01457418
-    ## 41              river   Small 0.01457418
-    ## 44                sea   Large 0.01457418
-    ## 45                sea   Small 0.01457418
+    ## 28     marinesediment   Large 0.14430204
+    ## 29     marinesediment   Small 0.14430204
+    ## 32        naturalsoil   Large 0.01445863
+    ## 33        naturalsoil   Small 0.01445863
+    ## 36          othersoil   Large 0.14430204
+    ## 37          othersoil   Small 0.14430204
+    ## 40              river   Large 0.01445863
+    ## 41              river   Small 0.01445863
+    ## 44                sea   Large 0.01445863
+    ## 45                sea   Small 0.01445863
 
 ## NewSolver
 
@@ -385,12 +385,12 @@ kable(Concentration_eq)
 
 | SubCompart         | Scale       | Abbr  | Species | EqMass       | Volume       | Concentration | Unit    |
 |:-------------------|:------------|:------|:--------|:-------------|:-------------|:--------------|:--------|
-| agriculturalsoil   | Continental | s2CS  | Solid   | 1.931825e-08 | 4.183202e+11 | 2.717141e-11  | ng/kg w |
-| agriculturalsoil   | Continental | s2CA  | Small   | 2.122787e+04 | 4.183202e+11 | 2.717141e-11  | ng/kg w |
-| agriculturalsoil   | Continental | s2CP  | Large   | 7.767049e-01 | 4.183202e+11 | 2.717141e-11  | ng/kg w |
-| agriculturalsoil   | Regional    | s2RS  | Solid   | 8.043322e-28 | 2.747978e+10 | 2.717141e-11  | ng/kg w |
-| agriculturalsoil   | Regional    | s2RA  | Small   | 2.484933e-04 | 2.747978e+10 | 2.717141e-11  | ng/kg w |
-| agriculturalsoil   | Regional    | s2RP  | Large   | 5.689352e-03 | 2.747978e+10 | 2.717141e-11  | ng/kg w |
+| agriculturalsoil   | Continental | s2CS  | Solid   | 1.931160e-08 | 4.183202e+11 | 2.716206e-11  | ng/kg w |
+| agriculturalsoil   | Continental | s2CA  | Small   | 2.122787e+04 | 4.183202e+11 | 2.716206e-11  | ng/kg w |
+| agriculturalsoil   | Continental | s2CP  | Large   | 7.767049e-01 | 4.183202e+11 | 2.716206e-11  | ng/kg w |
+| agriculturalsoil   | Regional    | s2RS  | Solid   | 8.040552e-28 | 2.747978e+10 | 2.716206e-11  | ng/kg w |
+| agriculturalsoil   | Regional    | s2RA  | Small   | 2.484933e-04 | 2.747978e+10 | 2.716206e-11  | ng/kg w |
+| agriculturalsoil   | Regional    | s2RP  | Large   | 5.689352e-03 | 2.747978e+10 | 2.716206e-11  | ng/kg w |
 | air                | Arctic      | aAS   | Solid   | 3.940017e-39 | 4.249999e+16 | 9.270630e-44  | ng/kg   |
 | air                | Arctic      | aAA   | Small   | 1.412815e-05 | 4.249999e+16 | 3.324272e-10  | ng/kg   |
 | air                | Arctic      | aAP   | Large   | 9.598941e-11 | 4.249999e+16 | 2.258575e-15  | ng/kg   |
@@ -421,25 +421,25 @@ kable(Concentration_eq)
 | cloudwater         | Tropic      | cwTS  | Solid   | 3.596209e-30 | 3.825000e+10 | 9.401852e-29  | ng/L    |
 | cloudwater         | Tropic      | cwTA  | Small   | 4.538497e-08 | 3.825000e+10 | 1.186535e-06  | ng/L    |
 | cloudwater         | Tropic      | cwTP  | Large   | 3.367774e-11 | 3.825000e+10 | 8.804639e-10  | ng/L    |
-| deepocean          | Arctic      | w3AS  | Solid   | 1.482797e-40 | 7.650000e+16 | 1.938297e-45  | ng/L    |
+| deepocean          | Arctic      | w3AS  | Solid   | 1.518611e-40 | 7.650000e+16 | 1.985112e-45  | ng/L    |
 | deepocean          | Arctic      | w3AA  | Small   | 9.200193e+09 | 7.650000e+16 | 1.202640e+05  | ng/L    |
 | deepocean          | Arctic      | w3AP  | Large   | 2.130885e+08 | 7.650000e+16 | 2.785471e+03  | ng/L    |
-| deepocean          | Moderate    | w3MS  | Solid   | 2.174073e-31 | 1.163550e+17 | 1.868482e-36  | ng/L    |
+| deepocean          | Moderate    | w3MS  | Solid   | 2.208930e-31 | 1.163550e+17 | 1.898440e-36  | ng/L    |
 | deepocean          | Moderate    | w3MA  | Small   | 1.399381e+10 | 1.163550e+17 | 1.202682e+05  | ng/L    |
 | deepocean          | Moderate    | w3MP  | Large   | 3.241150e+08 | 1.163550e+17 | 2.785570e+03  | ng/L    |
-| deepocean          | Tropic      | w3TS  | Solid   | 3.776646e-43 | 2.677500e+17 | 1.410512e-48  | ng/L    |
+| deepocean          | Tropic      | w3TS  | Solid   | 3.835764e-43 | 2.677500e+17 | 1.432591e-48  | ng/L    |
 | deepocean          | Tropic      | w3TA  | Small   | 3.457661e+10 | 2.677500e+17 | 1.291377e+05  | ng/L    |
 | deepocean          | Tropic      | w3TP  | Large   | 8.008394e+08 | 2.677500e+17 | 2.990997e+03  | ng/L    |
-| freshwatersediment | Continental | sd1CS | Solid   | 0.000000e+00 | 2.875952e+09 | 2.717141e-11  | ng/kg w |
-| freshwatersediment | Continental | sd1CA | Small   | 0.000000e+00 | 2.875952e+09 | 2.717141e-11  | ng/kg w |
-| freshwatersediment | Continental | sd1CP | Large   | 0.000000e+00 | 2.875952e+09 | 2.717141e-11  | ng/kg w |
-| freshwatersediment | Regional    | sd1RS | Solid   | 0.000000e+00 | 1.889235e+08 | 2.717141e-11  | ng/kg w |
-| freshwatersediment | Regional    | sd1RA | Small   | 0.000000e+00 | 1.889235e+08 | 2.717141e-11  | ng/kg w |
-| freshwatersediment | Regional    | sd1RP | Large   | 0.000000e+00 | 1.889235e+08 | 2.717141e-11  | ng/kg w |
-| lake               | Continental | w0CS  | Solid   | 3.206264e-16 | 8.715005e+11 | 3.679016e-16  | ng/L    |
+| freshwatersediment | Continental | sd1CS | Solid   | 0.000000e+00 | 2.875952e+09 | 2.716206e-11  | ng/kg w |
+| freshwatersediment | Continental | sd1CA | Small   | 0.000000e+00 | 2.875952e+09 | 2.716206e-11  | ng/kg w |
+| freshwatersediment | Continental | sd1CP | Large   | 0.000000e+00 | 2.875952e+09 | 2.716206e-11  | ng/kg w |
+| freshwatersediment | Regional    | sd1RS | Solid   | 0.000000e+00 | 1.889235e+08 | 2.716206e-11  | ng/kg w |
+| freshwatersediment | Regional    | sd1RA | Small   | 0.000000e+00 | 1.889235e+08 | 2.716206e-11  | ng/kg w |
+| freshwatersediment | Regional    | sd1RP | Large   | 0.000000e+00 | 1.889235e+08 | 2.716206e-11  | ng/kg w |
+| lake               | Continental | w0CS  | Solid   | 3.205159e-16 | 8.715005e+11 | 3.677748e-16  | ng/L    |
 | lake               | Continental | w0CA  | Small   | 4.736419e+04 | 8.715005e+11 | 5.434787e+04  | ng/L    |
 | lake               | Continental | w0CP  | Large   | 4.950111e-04 | 8.715005e+11 | 5.679986e-04  | ng/L    |
-| lake               | Regional    | w0RS  | Solid   | 3.348036e-28 | 5.724953e+10 | 5.848146e-27  | ng/L    |
+| lake               | Regional    | w0RS  | Solid   | 3.346883e-28 | 5.724953e+10 | 5.846132e-27  | ng/L    |
 | lake               | Regional    | w0RA  | Small   | 8.801498e-04 | 5.724953e+10 | 1.537392e-02  | ng/L    |
 | lake               | Regional    | w0RP  | Large   | 3.625258e-06 | 5.724953e+10 | 6.332380e-05  | ng/L    |
 | lakesediment       | Continental | sd0CS | Solid   | 0.000000e+00 | 2.614501e+08 | 0.000000e+00  | ng/kg w |
@@ -448,61 +448,61 @@ kable(Concentration_eq)
 | lakesediment       | Regional    | sd0RS | Solid   | 0.000000e+00 | 1.717486e+07 | 0.000000e+00  | ng/kg w |
 | lakesediment       | Regional    | sd0RA | Small   | 0.000000e+00 | 1.717486e+07 | 0.000000e+00  | ng/kg w |
 | lakesediment       | Regional    | sd0RP | Large   | 0.000000e+00 | 1.717486e+07 | 0.000000e+00  | ng/kg w |
-| marinesediment     | Arctic      | sd2AS | Solid   | 0.000000e+00 | 7.650000e+11 | 2.717141e-11  | ng/kg w |
-| marinesediment     | Arctic      | sd2AA | Small   | 0.000000e+00 | 7.650000e+11 | 2.717141e-11  | ng/kg w |
-| marinesediment     | Arctic      | sd2AP | Large   | 0.000000e+00 | 7.650000e+11 | 2.717141e-11  | ng/kg w |
-| marinesediment     | Continental | sd2CS | Solid   | 0.000000e+00 | 1.114199e+11 | 2.717141e-11  | ng/kg w |
-| marinesediment     | Continental | sd2CA | Small   | 0.000000e+00 | 1.114199e+11 | 2.717141e-11  | ng/kg w |
-| marinesediment     | Continental | sd2CP | Large   | 0.000000e+00 | 1.114199e+11 | 2.717141e-11  | ng/kg w |
-| marinesediment     | Moderate    | sd2MS | Solid   | 0.000000e+00 | 1.163550e+12 | 2.717141e-11  | ng/kg w |
-| marinesediment     | Moderate    | sd2MA | Small   | 0.000000e+00 | 1.163550e+12 | 2.717141e-11  | ng/kg w |
-| marinesediment     | Moderate    | sd2MP | Large   | 0.000000e+00 | 1.163550e+12 | 2.717141e-11  | ng/kg w |
-| marinesediment     | Regional    | sd2RS | Solid   | 0.000000e+00 | 3.005619e+07 | 2.717141e-11  | ng/kg w |
-| marinesediment     | Regional    | sd2RA | Small   | 0.000000e+00 | 3.005619e+07 | 2.717141e-11  | ng/kg w |
-| marinesediment     | Regional    | sd2RP | Large   | 0.000000e+00 | 3.005619e+07 | 2.717141e-11  | ng/kg w |
-| marinesediment     | Tropic      | sd2TS | Solid   | 0.000000e+00 | 2.677500e+12 | 2.717141e-11  | ng/kg w |
-| marinesediment     | Tropic      | sd2TA | Small   | 0.000000e+00 | 2.677500e+12 | 2.717141e-11  | ng/kg w |
-| marinesediment     | Tropic      | sd2TP | Large   | 0.000000e+00 | 2.677500e+12 | 2.717141e-11  | ng/kg w |
-| naturalsoil        | Arctic      | s1AS  | Solid   | 1.641893e-38 | 8.500000e+11 | 2.717141e-11  | ng/kg w |
-| naturalsoil        | Arctic      | s1AA  | Small   | 3.669671e-04 | 8.500000e+11 | 2.717141e-11  | ng/kg w |
-| naturalsoil        | Arctic      | s1AP  | Large   | 4.356519e-05 | 8.500000e+11 | 2.717141e-11  | ng/kg w |
-| naturalsoil        | Continental | s1CS  | Solid   | 3.429238e-15 | 4.706103e+10 | 2.717141e-11  | ng/kg w |
-| naturalsoil        | Continental | s1CA  | Small   | 1.142934e-03 | 4.706103e+10 | 2.717141e-11  | ng/kg w |
-| naturalsoil        | Continental | s1CP  | Large   | 1.590572e-01 | 4.706103e+10 | 2.717141e-11  | ng/kg w |
-| naturalsoil        | Moderate    | s1MS  | Solid   | 3.061802e-26 | 1.939250e+12 | 2.717141e-11  | ng/kg w |
-| naturalsoil        | Moderate    | s1MA  | Small   | 1.401571e-03 | 1.939250e+12 | 2.717141e-11  | ng/kg w |
-| naturalsoil        | Moderate    | s1MP  | Large   | 1.103743e-02 | 1.939250e+12 | 2.717141e-11  | ng/kg w |
-| naturalsoil        | Regional    | s1RS  | Solid   | 3.582504e-27 | 3.091475e+09 | 2.717141e-11  | ng/kg w |
-| naturalsoil        | Regional    | s1RA  | Small   | 4.622731e-05 | 3.091475e+09 | 2.717141e-11  | ng/kg w |
-| naturalsoil        | Regional    | s1RP  | Large   | 1.165091e-03 | 3.091475e+09 | 2.717141e-11  | ng/kg w |
-| naturalsoil        | Tropic      | s1TS  | Solid   | 1.989538e-38 | 1.912500e+12 | 2.717141e-11  | ng/kg w |
-| naturalsoil        | Tropic      | s1TA  | Small   | 1.077133e-04 | 1.912500e+12 | 2.717141e-11  | ng/kg w |
-| naturalsoil        | Tropic      | s1TP  | Large   | 5.785505e-05 | 1.912500e+12 | 2.717141e-11  | ng/kg w |
-| othersoil          | Continental | s3CS  | Solid   | 1.283202e-16 | 1.743001e+10 | 2.717141e-11  | ng/kg w |
-| othersoil          | Continental | s3CA  | Small   | 4.273234e-04 | 1.743001e+10 | 2.717141e-11  | ng/kg w |
-| othersoil          | Continental | s3CP  | Large   | 5.891006e-02 | 1.743001e+10 | 2.717141e-11  | ng/kg w |
-| othersoil          | Regional    | s3RS  | Solid   | 1.340554e-28 | 1.144991e+09 | 2.717141e-11  | ng/kg w |
-| othersoil          | Regional    | s3RA  | Small   | 1.731238e-05 | 1.144991e+09 | 2.717141e-11  | ng/kg w |
-| othersoil          | Regional    | s3RP  | Large   | 4.315153e-04 | 1.144991e+09 | 2.717141e-11  | ng/kg w |
-| river              | Continental | w1CS  | Solid   | 6.475780e-05 | 2.875952e+11 | 2.251700e-04  | ng/L    |
+| marinesediment     | Arctic      | sd2AS | Solid   | 0.000000e+00 | 7.650000e+11 | 2.716206e-11  | ng/kg w |
+| marinesediment     | Arctic      | sd2AA | Small   | 0.000000e+00 | 7.650000e+11 | 2.716206e-11  | ng/kg w |
+| marinesediment     | Arctic      | sd2AP | Large   | 0.000000e+00 | 7.650000e+11 | 2.716206e-11  | ng/kg w |
+| marinesediment     | Continental | sd2CS | Solid   | 0.000000e+00 | 1.114199e+11 | 2.716206e-11  | ng/kg w |
+| marinesediment     | Continental | sd2CA | Small   | 0.000000e+00 | 1.114199e+11 | 2.716206e-11  | ng/kg w |
+| marinesediment     | Continental | sd2CP | Large   | 0.000000e+00 | 1.114199e+11 | 2.716206e-11  | ng/kg w |
+| marinesediment     | Moderate    | sd2MS | Solid   | 0.000000e+00 | 1.163550e+12 | 2.716206e-11  | ng/kg w |
+| marinesediment     | Moderate    | sd2MA | Small   | 0.000000e+00 | 1.163550e+12 | 2.716206e-11  | ng/kg w |
+| marinesediment     | Moderate    | sd2MP | Large   | 0.000000e+00 | 1.163550e+12 | 2.716206e-11  | ng/kg w |
+| marinesediment     | Regional    | sd2RS | Solid   | 0.000000e+00 | 3.005619e+07 | 2.716206e-11  | ng/kg w |
+| marinesediment     | Regional    | sd2RA | Small   | 0.000000e+00 | 3.005619e+07 | 2.716206e-11  | ng/kg w |
+| marinesediment     | Regional    | sd2RP | Large   | 0.000000e+00 | 3.005619e+07 | 2.716206e-11  | ng/kg w |
+| marinesediment     | Tropic      | sd2TS | Solid   | 0.000000e+00 | 2.677500e+12 | 2.716206e-11  | ng/kg w |
+| marinesediment     | Tropic      | sd2TA | Small   | 0.000000e+00 | 2.677500e+12 | 2.716206e-11  | ng/kg w |
+| marinesediment     | Tropic      | sd2TP | Large   | 0.000000e+00 | 2.677500e+12 | 2.716206e-11  | ng/kg w |
+| naturalsoil        | Arctic      | s1AS  | Solid   | 1.655014e-38 | 8.500000e+11 | 2.716206e-11  | ng/kg w |
+| naturalsoil        | Arctic      | s1AA  | Small   | 3.669671e-04 | 8.500000e+11 | 2.716206e-11  | ng/kg w |
+| naturalsoil        | Arctic      | s1AP  | Large   | 4.356519e-05 | 8.500000e+11 | 2.716206e-11  | ng/kg w |
+| naturalsoil        | Continental | s1CS  | Solid   | 3.456642e-15 | 4.706103e+10 | 2.716206e-11  | ng/kg w |
+| naturalsoil        | Continental | s1CA  | Small   | 1.142934e-03 | 4.706103e+10 | 2.716206e-11  | ng/kg w |
+| naturalsoil        | Continental | s1CP  | Large   | 1.590572e-01 | 4.706103e+10 | 2.716206e-11  | ng/kg w |
+| naturalsoil        | Moderate    | s1MS  | Solid   | 3.086270e-26 | 1.939250e+12 | 2.716206e-11  | ng/kg w |
+| naturalsoil        | Moderate    | s1MA  | Small   | 1.401571e-03 | 1.939250e+12 | 2.716206e-11  | ng/kg w |
+| naturalsoil        | Moderate    | s1MP  | Large   | 1.103743e-02 | 1.939250e+12 | 2.716206e-11  | ng/kg w |
+| naturalsoil        | Regional    | s1RS  | Solid   | 3.611133e-27 | 3.091475e+09 | 2.716206e-11  | ng/kg w |
+| naturalsoil        | Regional    | s1RA  | Small   | 4.622731e-05 | 3.091475e+09 | 2.716206e-11  | ng/kg w |
+| naturalsoil        | Regional    | s1RP  | Large   | 1.165091e-03 | 3.091475e+09 | 2.716206e-11  | ng/kg w |
+| naturalsoil        | Tropic      | s1TS  | Solid   | 2.005437e-38 | 1.912500e+12 | 2.716206e-11  | ng/kg w |
+| naturalsoil        | Tropic      | s1TA  | Small   | 1.077133e-04 | 1.912500e+12 | 2.716206e-11  | ng/kg w |
+| naturalsoil        | Tropic      | s1TP  | Large   | 5.785505e-05 | 1.912500e+12 | 2.716206e-11  | ng/kg w |
+| othersoil          | Continental | s3CS  | Solid   | 1.282760e-16 | 1.743001e+10 | 2.716206e-11  | ng/kg w |
+| othersoil          | Continental | s3CA  | Small   | 4.273234e-04 | 1.743001e+10 | 2.716206e-11  | ng/kg w |
+| othersoil          | Continental | s3CP  | Large   | 5.891006e-02 | 1.743001e+10 | 2.716206e-11  | ng/kg w |
+| othersoil          | Regional    | s3RS  | Solid   | 1.340092e-28 | 1.144991e+09 | 2.716206e-11  | ng/kg w |
+| othersoil          | Regional    | s3RA  | Small   | 1.731238e-05 | 1.144991e+09 | 2.716206e-11  | ng/kg w |
+| othersoil          | Regional    | s3RP  | Large   | 4.315153e-04 | 1.144991e+09 | 2.716206e-11  | ng/kg w |
+| river              | Continental | w1CS  | Solid   | 6.527531e-05 | 2.875952e+11 | 2.269694e-04  | ng/L    |
 | river              | Continental | w1CA  | Small   | 8.228243e+04 | 2.875952e+11 | 2.861051e+05  | ng/L    |
 | river              | Continental | w1CP  | Large   | 1.905769e+03 | 2.875952e+11 | 6.626567e+03  | ng/L    |
-| river              | Regional    | w1RS  | Solid   | 3.542570e-26 | 1.889235e+10 | 1.875135e-24  | ng/L    |
+| river              | Regional    | w1RS  | Solid   | 3.570880e-26 | 1.889235e+10 | 1.890120e-24  | ng/L    |
 | river              | Regional    | w1RA  | Small   | 3.485522e-04 | 1.889235e+10 | 1.844939e-02  | ng/L    |
 | river              | Regional    | w1RP  | Large   | 1.435655e-06 | 1.889235e+10 | 7.599136e-05  | ng/L    |
-| sea                | Arctic      | w2AS  | Solid   | 3.620236e-31 | 2.550000e+15 | 1.419700e-34  | ng/L    |
+| sea                | Arctic      | w2AS  | Solid   | 3.708952e-31 | 2.550000e+15 | 1.454491e-34  | ng/L    |
 | sea                | Arctic      | w2AA  | Small   | 3.736732e+08 | 2.550000e+15 | 1.465385e+05  | ng/L    |
 | sea                | Arctic      | w2AP  | Large   | 8.654759e+06 | 2.550000e+15 | 3.394023e+03  | ng/L    |
-| sea                | Continental | w2CS  | Solid   | 1.405119e-12 | 7.427996e+14 | 1.891652e-15  | ng/L    |
+| sea                | Continental | w2CS  | Solid   | 1.416874e-12 | 7.427996e+14 | 1.907478e-15  | ng/L    |
 | sea                | Continental | w2CA  | Small   | 8.952510e+07 | 7.427996e+14 | 1.205239e+05  | ng/L    |
 | sea                | Continental | w2CP  | Large   | 2.073518e+06 | 7.427996e+14 | 2.791491e+03  | ng/L    |
-| sea                | Moderate    | w2MS  | Solid   | 6.217227e-22 | 3.878500e+15 | 1.602998e-25  | ng/L    |
+| sea                | Moderate    | w2MS  | Solid   | 6.319086e-22 | 3.878500e+15 | 1.629260e-25  | ng/L    |
 | sea                | Moderate    | w2MA  | Small   | 4.664685e+08 | 3.878500e+15 | 1.202703e+05  | ng/L    |
 | sea                | Moderate    | w2MP  | Large   | 1.080402e+07 | 3.878500e+15 | 2.785619e+03  | ng/L    |
-| sea                | Regional    | w2RS  | Solid   | 3.303798e-25 | 1.001873e+10 | 3.297621e-23  | ng/L    |
+| sea                | Regional    | w2RS  | Solid   | 3.357576e-25 | 1.001873e+10 | 3.351299e-23  | ng/L    |
 | sea                | Regional    | w2RA  | Small   | 1.086747e+03 | 1.001873e+10 | 1.084715e+05  | ng/L    |
 | sea                | Regional    | w2RP  | Large   | 2.517047e+01 | 1.001873e+10 | 2.512342e+03  | ng/L    |
-| sea                | Tropic      | w2TS  | Solid   | 4.596293e-36 | 8.925000e+15 | 5.149908e-40  | ng/L    |
+| sea                | Tropic      | w2TS  | Solid   | 4.633023e-36 | 8.925000e+15 | 5.191063e-40  | ng/L    |
 | sea                | Tropic      | w2TA  | Small   | 1.073182e+09 | 8.925000e+15 | 1.202445e+05  | ng/L    |
 | sea                | Tropic      | w2TP  | Large   | 2.485630e+07 | 8.925000e+15 | 2.785019e+03  | ng/L    |
 
