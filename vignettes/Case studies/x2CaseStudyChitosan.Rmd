@@ -11,8 +11,8 @@ editor_options:
 knitr::knit_meta()
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(warning = FALSE)
-# projectRoot <- paste(getwd(), "..", "..", sep = "/")
-# knitr::opts_knit$set(root.dir = projectRoot) 
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) 
 ```
 
 ## Initiation
@@ -696,7 +696,7 @@ plot_dataframe <- function(df, title) {
     geom_line() +
     labs(title = title,
          x = "Time",
-         y = "Value")
+         y = "Value [kg]")
 }
 
 # Named list of dataframes
@@ -725,7 +725,7 @@ ggplot(w2C, aes(x = time)) +
   geom_line(aes(y = w2CP, color = "w2CP")) +
   labs(title = "Plot of w2CA, w2CS, and w2CP over time",
        x = "Time",
-       y = "Values",
+       y = "Kg of Substance",
        color = "Legend") +
   theme_minimal()
 s2C <- C[c("s2CA", "s2CS", "s2CP", "time")]
@@ -736,7 +736,7 @@ ggplot(s2C, aes(x = time)) +
   geom_line(aes(y = s2CP, color = "s2CP")) +
   labs(title = "Plot of s2CA, s2CS, and s2CP over time",
        x = "Time",
-       y = "Values",
+       y = "Kg of Substance",
        color = "Legend") +
   theme_minimal()
 
@@ -794,6 +794,14 @@ CompartmentsConc_sediment <- CompartmentsConc[, CompartmentsConc_sediment_names]
 # Combine soil and sediment columns
 CompartmentsConc_combined <- cbind(CompartmentsConc_soil, CompartmentsConc_sediment)
 
+
+# Identify the columns that are not in the excluded list
+included_names <- setdiff(names(CompartmentsConc), names(CompartmentsConc_combined))
+included_names <- included_names[!grepl("time", included_names, ignore.case = TRUE)]
+
+# Multiply the included columns by 1000
+CompartmentsConc[included_names] <- CompartmentsConc[included_names] * 1000
+
 # Get RhoWater value for river compartment
 RhoWater_value <- Rho$rhoMatrix[Rho$SubCompart == "river"]
 
@@ -832,7 +840,7 @@ CompartmentsConc_corrected <- CompartmentsConc
 CompartmentsConc_corrected[, names(CompartmentsConc_combined_adjusted)] <- CompartmentsConc_combined_adjusted
 
 plot(CompartmentsConc_corrected$time, CompartmentsConc_corrected$w1CA, type = "l",
-     xlab = "Time", ylab = "Concentration [g/L",
+     xlab = "Time", ylab = "Concentration [g/L]",
      main = "Freshwater concentrations over time",
      col = "blue") # Set color for w1CA
 
@@ -856,9 +864,48 @@ lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$s2CS, col = "g
 # Add a legend to distinguish the lines
 legend("topright", legend = c("s2CA", "s2CP", "s2CS"), col = c("blue", "red", "green"), lty = 1)
 
+CompartmentsConc_corrected[is.na(CompartmentsConc_corrected)] <- 0
+CompartmentsConc_corrected <- CompartmentsConc_corrected |>
+  mutate(across(where(is.numeric), ~ format(., scientific = TRUE)))
+CompartmentsConc_corrected  <- CompartmentsConc_corrected |>
+  mutate(row_number = row_number())
+FinalConcentration <- CompartmentsConc_corrected |>
+  filter(row_number == 129) |>
+  select(-row_number)
+FinalConcentration <- FinalConcentration %>%
+  pivot_longer(
+    cols = -time,
+    names_to = "Compartment",
+    values_to = "Concentration"
+  )
+FinalConcentration <- FinalConcentration |> 
+  mutate(Concentration = replace_na(Concentration, 0))
+kable(FinalConcentration)
 
 ```
 
+```{r Comparing to Steady state}
+##convert to ng
+FinalConcentration <- FinalConcentration %>%
+  mutate(across(where(is.numeric), ~ . * 1e9))
+Concentration_eq <- Concentration_eq |>
+  mutate(Concentration = as.numeric(format(Concentration, scientific = FALSE)))
+FinalConcentration <- FinalConcentration |>
+  mutate(Concentration = as.numeric(format(Concentration, scientific = FALSE)))
+
+DiffSteadyDynamic <- FinalConcentration |>
+  left_join(Concentration_eq, by = c("Compartment" = "Abbr")) |>
+  # Rename concentration.x and concentration.y
+  mutate(ConcDynamic = Concentration.x,
+         ConcSteady = Concentration.y) |>
+  # Calculate concentration difference
+  mutate(concentration_difference = ConcDynamic - ConcSteady) |>
+  # Select relevant columns
+  select(Compartment, ConcDynamic, ConcSteady, concentration_difference)
+kable(DiffSteadyDynamic)
+
+
+```
 Plotting Of Concentrations Here we append all concentrations per compartment for species A, S and P. Subsequently, we plot these results
 
 ```{r Concentrations Plotting, include=FALSE}
