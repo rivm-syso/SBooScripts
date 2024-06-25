@@ -2,7 +2,10 @@
 title: "Solver script"
 author: "Valerie de Rijk, Joris Quik, Jaap Slootweg"
 date: "`r Sys.Date()`"
-output: github_document
+output: 
+  html_document:
+    toc: true  # Table of contents
+    toc_float: true  # Floating table of contents
 editor_options: 
   chunk_output_type: console
 ---
@@ -10,6 +13,9 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::knit_meta()
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE) 
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) 
 ```
 
 ## Initiation
@@ -77,7 +83,7 @@ fwa_max<- 0.1
 n <- 100000
 log_uniform_samples <- 10^runif(n, min = log10(fwa_min), max = log10(fwa_max))
 fw_alpha_mean_log_samples <- mean(log_uniform_samples)
-print(fw_alpha_mean_log_samples)
+
 
 #Check with histogram 
 hist(log_uniform_samples, breaks = 30, freq = FALSE,
@@ -92,7 +98,7 @@ ma_min <- 1e-3
 ma_max <- 1
 log_uniform_samples <- 10^runif(n, min = log10(ma_min), max = log10(ma_max))
 marine_alpha_mean_log_samples <- mean(log_uniform_samples)
-print(marine_alpha_mean_log_samples)
+
 
 subcompartsmarine <- c("sea", "marinesediment", "freshwatersediment", "deepocean")
 
@@ -120,7 +126,6 @@ World$mutateVars(dfs)
 World$UpdateKaas(mergeExisting = F)
 World$fetchData("alpha")
 
-#World$fetchData("KdegDorC")
 
 ```
 
@@ -170,7 +175,6 @@ Now we are ready to run the solver, which results in the mass in each compartmen
 Solution <- World$Solve(emissions)
 Solution <- Solution |>
   filter(Species != "Unbound")
-print(Solution)
 #Solution <- World$SolutionAsRelational(Solution)
 ```
 
@@ -198,7 +202,9 @@ ggplot(MassFractions, aes(x = Scale, y = MassFraction, fill = Species)) +
   theme_minimal()
 
 ```
-We are also interested in concentrations per compartment. For this, we need to ensure that we convert the Equilibrium Mass into the Equilibrium concentration, which we will do below. We need to adjust the concentrations to end up in respective units. We convert concentrations in soil and sediment to ng/kg wet weight. Concentrations in water are converted in ng/L. In air, concentrations are in ng/kg air. 
+
+We are also interested in concentrations per compartment. For this, we need to ensure that we convert the Equilibrium Mass into the Equilibrium concentration, which we will do below. We need to adjust the concentrations to end up in respective units. We convert concentrations in soil and sediment to ng/kg wet weight. Concentrations in water are converted in ng/L. In air, concentrations are in ng/kg air. The output is in the form of a table, with both the Equilibrium Mass and the concentration in the compartment per species.
+
 ```{r Output Table}
 library(knitr)
 library(kableExtra)
@@ -208,9 +214,7 @@ Area <- World$fetchData("Area")
 FRACw <- World$fetchData("FRACw")
 FRACa <- World$fetchData("FRACa")
 Fractrial <- FRACa$FRACa[FRACa$SubCompart =="air" & FRACa$Scale =="Arctic" ]
-print(Fractrial)
 Rho <- World$fetchData("rhoMatrix")
-print(Rho)
 Concentration_eq <- merge(Solution, Volume, by = c("SubCompart", "Scale"))
 Concentration_eq$Concentration <- Concentration_eq$EqMass / Concentration_eq$Volume
 RhoWater_value <- Rho$rhoMatrix[Rho$SubCompart == "river"]
@@ -219,15 +223,12 @@ f_adjust_concentration <- function(Concentration, FRACw, FRACa, SubCompart, Scal
   print(class(FRACw))
   # Fetch Fracw based on SubCompart and Scale
   Fracw <- FRACw$FRACw[FRACw$SubCompart == SubCompart & FRACw$Scale == Scale]
-  print(class(Fracw))
   
   # Fetch Fraca based on SubCompart and Scale
   Fraca <- FRACa$FRACa[FRACa$SubCompart == SubCompart & FRACa$Scale == Scale]
-  print(class(Fraca))
   
   # Fetch RHOsolid based on SubCompart
   RHOsolid <- Rho$rhoMatrix[Rho$SubCompart == SubCompart]
-  print(class(RHOsolid))
   
   # Check if any of Fracw, Fraca, or RHOsolid are N
   
@@ -250,12 +251,10 @@ adjusted_concentrations <- apply(filtered_data, 1, function(row) {
     Scale = row["Scale"]
   )
 })
-print(adjusted_concentrations)
 # Update Concentration_eq with adjusted concentrations
 Concentration_eq[Concentration_eq$SubCompart %in% subcomparts, "Concentration"] <- adjusted_concentrations
 
-# Print or return the updated Concentration_eq dataframe
-print(Concentration_eq)
+#Define the units
 subcompart <- c("agriculturalsoil", "naturalsoil", "othersoil", "freshwatersediment", "marinesediment",  "lakesediment", "air", "deepocean", "lake" , "river", "sea", "cloudwater")
 units <- c("g/kg w", "g/kg w", "g/kg w", "g/kg w", "g/kg w", "g/kg w",
            "kg/kg", "kg/L", "kg/L", "kg/L", "kg/L", "kg/L", "kg/L")
@@ -285,7 +284,11 @@ Concentration_eq <- Concentration_eq |>
          Concentration = mapply(convert_units, Concentration, Units_per_SubCompart),
          Units_per_SubCompart = ifelse(Units_per_SubCompart == "g/kg w", "ng/kg w", 
                                        ifelse(Units_per_SubCompart == "kg/kg", "ng/kg", "ng/L")))
-Concentration_eq$Concentration <- format(Concentration_eq$Concentration, scientific = TRUE)
+Concentration_eq <- Concentration_eq |>
+  mutate(across(where(is.numeric), ~ format(., scientific = TRUE)))
+
+#Concentration_eq <- subset(Concentration_eq, select = -old_EqMass)
+Concentration_eq<- Concentration_eq |> rename(Unit = Units_per_SubCompart)
 # Create the table with kable and style it with kableExtra
 kable(Concentration_eq, format = "markdown", align = "c", caption = "Concentration per Compartment") |>
   kable_styling(full_width = T)
