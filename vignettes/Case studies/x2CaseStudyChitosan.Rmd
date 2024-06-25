@@ -2,10 +2,7 @@
 title: "Solver script"
 author: "Valerie de Rijk, Joris Quik, Jaap Slootweg"
 date: "`r Sys.Date()`"
-output: 
-  html_document:
-    toc: true  # Table of contents
-    toc_float: true  # Floating table of contents
+output: github_document
 editor_options: 
   chunk_output_type: console
 ---
@@ -13,9 +10,9 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::knit_meta()
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(warning = FALSE) 
-projectRoot <- paste(getwd(), "..", "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) 
+knitr::opts_chunk$set(warning = FALSE)
+# projectRoot <- paste(getwd(), "..", "..", sep = "/")
+# knitr::opts_knit$set(root.dir = projectRoot) 
 ```
 
 ## Initiation
@@ -50,9 +47,9 @@ We need the following properties for the GO-Chitosan related particles:
 | Size - thickness (H) | 10-20 (15) nm   | 1-10 (5) nm     | 100-200 (150) nm |
 | Density              | Calculated      | 0.35 g/ml       | 0.874 g/ml       |
 
-: The density of GO-chitosan is approximated by 7/8 \* dens_Graphene + 1/8 \* dens_Chitosan
+: The density of GO-chitosan is approximated by 1/8 \* dens_Graphene + 7/8 \* dens_Chitosan
 
-```{r Computing Radius}
+```{r Computing Radius, message=FALSE, warning=FALSE}
 
 # Longest <- World$fetchData("Longest_side")
 # Intermediate <- World$fetchData("Intermediate_side")
@@ -216,9 +213,9 @@ ggplot(MassFractions, aes(x = Scale, y = MassFraction, fill = Species)) +
 
 We are also interested in concentrations per compartment. For this, we need to ensure that we convert the Equilibrium Mass into the Equilibrium concentration, which we will do below. We need to adjust the concentrations to end up in respective units. We convert concentrations in soil and sediment to ng/kg wet weight. Concentrations in water are converted in ng/L. In air, concentrations are in ng/kg air. The output is in the form of a table, with both the Equilibrium Mass and the concentration in the compartment per species.
 
-```{r Output Table}
-library(knitr)
-library(kableExtra)
+```{r Output Table, paged.print=TRUE}
+# library(knitr)
+# library(kableExtra)
 # Fetch necessary data
 Volume <- World$fetchData("Volume")
 Area <- World$fetchData("Area")
@@ -300,15 +297,15 @@ Concentration_eq <- Concentration_eq |>
 #Concentration_eq <- subset(Concentration_eq, select = -old_EqMass)
 Concentration_eq<- Concentration_eq |> rename(Unit = Units_per_SubCompart)
 # Create the table with kable and style it with kableExtra
-kable(Concentration_eq, format = "markdown", align = "c", caption = "Concentration per Compartment") |>
-  kable_styling(full_width = T)
-
+# kable(Concentration_eq, format = "markdown", align = "c", caption = "Concentration per Compartment") |>
+#   kable_styling(full_width = T)
+print(Concentration_eq)
 
 ```
 
-## SBdynamic
+## SBdynamic [WORK IN PROGRESS - needs some fixes]
 
-## Adjusting Parameters to Match considered Scale
+### Adjusting Parameters to Match considered Scale
 
 In this case study we are considering emission data only for Europe. By default the 'World' is represented by a nested regional scale, which is not relevant for the current assessment using emissions data only for Europe. Here we use the option to allocate part of the emissions to the regional scale based on the fraction of surface area in order to mimic not having a nested scale. In future one would be interested for instance in including a local or national scale as well. One could adjust the regional scale for this purpose.
 
@@ -507,7 +504,7 @@ curve(PlotEmisFun,
 
 ```
 
-## Dynamic solving for deterministic input data
+### Dynamic solving for deterministic input data
 
 The chunk below gives the opportunity to Solve for constant input data. The chunk after that gives the opportunity to also vary SB Input data
 
@@ -594,7 +591,7 @@ plot(Solution$time,Solution$aCS)
 
 ```
 
-## Output Processing
+### Output Processing
 
 To move from the solution of the ODE solver to usable output data we need to split the output into corresponding mass data per compartment over time and emission signals over time. The first chunk is for one output, the latter chunk for varying input or emission data.
 
@@ -682,7 +679,7 @@ A$time <- compartments$time
 
 ```
 
-## Plotting of Output
+### Plotting of Output
 
 Below you can create a plot for one output for mass, the chunk after that represents uncertainty based on multiple outputs.
 
@@ -741,7 +738,7 @@ ggplot(s2C, aes(x = time)) +
 
 ```
 
-##From mass to concentration In this chunk we will convert the mass output into concentration output by calculating the respective volumes and calculating by this value.
+From mass to concentration In this chunk we will convert the mass output into concentration output by calculating the respective volumes and calculating by this value.
 
 ```{r mass to concentration, include=FALSE}
 # Fetch necessary data
@@ -858,7 +855,7 @@ legend("topright", legend = c("s2CA", "s2CP", "s2CS"), col = c("blue", "red", "g
 
 ```
 
-##Plotting Of Concentrations Here we append all concentrations per compartment for species A, S and P. Subsequently, we plot these results
+Plotting Of Concentrations Here we append all concentrations per compartment for species A, S and P. Subsequently, we plot these results
 
 ```{r Concentrations Plotting, include=FALSE}
 summed_columns <- list()
