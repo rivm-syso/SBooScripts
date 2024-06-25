@@ -220,7 +220,6 @@ Concentration_eq$Concentration <- Concentration_eq$EqMass / Concentration_eq$Vol
 RhoWater_value <- Rho$rhoMatrix[Rho$SubCompart == "river"]
 
 f_adjust_concentration <- function(Concentration, FRACw, FRACa, SubCompart, Scale, Rho, RhoWater_value) {
-  print(class(FRACw))
   # Fetch Fracw based on SubCompart and Scale
   Fracw <- FRACw$FRACw[FRACw$SubCompart == SubCompart & FRACw$Scale == Scale]
   
