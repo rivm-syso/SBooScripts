@@ -305,6 +305,9 @@ print(Concentration_eq)
 
 ## SBdynamic [WORK IN PROGRESS - needs some fixes]
 
+*This part is still Work In Progress and in need of additional development.*
+
+
 ### Adjusting Parameters to Match considered Scale
 
 In this case study we are considering emission data only for Europe. By default the 'World' is represented by a nested regional scale, which is not relevant for the current assessment using emissions data only for Europe. Here we use the option to allocate part of the emissions to the regional scale based on the fraction of surface area in order to mimic not having a nested scale. In future one would be interested for instance in including a local or national scale as well. One could adjust the regional scale for this purpose.

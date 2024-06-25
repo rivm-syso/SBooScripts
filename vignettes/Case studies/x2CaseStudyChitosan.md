@@ -162,26 +162,26 @@ World$fetchData("alpha")
 ```
 
     ##            SubCompart Species      alpha
-    ## 1    agriculturalsoil   Large 0.14520251
-    ## 2    agriculturalsoil   Small 0.14520251
-    ## 12          deepocean   Large 0.14520251
-    ## 13          deepocean   Small 0.14520251
-    ## 16 freshwatersediment   Large 0.01453975
-    ## 17 freshwatersediment   Small 0.01453975
-    ## 20               lake   Large 0.14520251
-    ## 21               lake   Small 0.14520251
+    ## 1    agriculturalsoil   Large 0.14583167
+    ## 2    agriculturalsoil   Small 0.14583167
+    ## 12          deepocean   Large 0.14583167
+    ## 13          deepocean   Small 0.14583167
+    ## 16 freshwatersediment   Large 0.01436581
+    ## 17 freshwatersediment   Small 0.01436581
+    ## 20               lake   Large 0.14583167
+    ## 21               lake   Small 0.14583167
     ## 24       lakesediment   Large 0.40000000
     ## 25       lakesediment   Small 0.10000000
-    ## 28     marinesediment   Large 0.14520251
-    ## 29     marinesediment   Small 0.14520251
-    ## 32        naturalsoil   Large 0.01453975
-    ## 33        naturalsoil   Small 0.01453975
-    ## 36          othersoil   Large 0.14520251
-    ## 37          othersoil   Small 0.14520251
-    ## 40              river   Large 0.01453975
-    ## 41              river   Small 0.01453975
-    ## 44                sea   Large 0.01453975
-    ## 45                sea   Small 0.01453975
+    ## 28     marinesediment   Large 0.14583167
+    ## 29     marinesediment   Small 0.14583167
+    ## 32        naturalsoil   Large 0.01436581
+    ## 33        naturalsoil   Small 0.01436581
+    ## 36          othersoil   Large 0.14583167
+    ## 37          othersoil   Small 0.14583167
+    ## 40              river   Large 0.01436581
+    ## 41              river   Small 0.01436581
+    ## 44                sea   Large 0.01436581
+    ## 45                sea   Small 0.01436581
 
 ## NewSolver
 
@@ -379,9 +379,256 @@ Concentration_eq<- Concentration_eq |> rename(Unit = Units_per_SubCompart)
 # Create the table with kable and style it with kableExtra
 # kable(Concentration_eq, format = "markdown", align = "c", caption = "Concentration per Compartment") |>
 #   kable_styling(full_width = T)
+print(Concentration_eq)
 ```
 
+    ##             SubCompart       Scale  Abbr Species       EqMass       Volume
+    ## 1     agriculturalsoil Continental  s2CS   Solid 1.910904e-08 4.183202e+11
+    ## 2     agriculturalsoil Continental  s2CA   Small 2.122787e+04 4.183202e+11
+    ## 3     agriculturalsoil Continental  s2CP   Large 7.767049e-01 4.183202e+11
+    ## 4     agriculturalsoil    Regional  s2RS   Solid 7.956214e-28 2.747978e+10
+    ## 5     agriculturalsoil    Regional  s2RA   Small 2.484933e-04 2.747978e+10
+    ## 6     agriculturalsoil    Regional  s2RP   Large 5.689352e-03 2.747978e+10
+    ## 7                  air      Arctic   aAS   Solid 3.940017e-39 4.249999e+16
+    ## 8                  air      Arctic   aAA   Small 1.412815e-05 4.249999e+16
+    ## 9                  air      Arctic   aAP   Large 9.598941e-11 4.249999e+16
+    ## 10                 air Continental   aCS   Solid 2.516678e-15 7.199998e+15
+    ## 11                 air Continental   aCA   Small 3.075643e-04 7.199998e+15
+    ## 12                 air Continental   aCP   Large 3.921763e-07 7.199998e+15
+    ## 13                 air    Moderate   aMS   Solid 5.874839e-27 7.756998e+16
+    ## 14                 air    Moderate   aMA   Small 1.160883e-04 7.756998e+16
+    ## 15                 air    Moderate   aMP   Large 7.115163e-09 7.756998e+16
+    ## 16                 air    Regional   aRS   Solid 1.278521e-27 2.299999e+14
+    ## 17                 air    Regional   aRA   Small 7.121547e-06 2.299999e+14
+    ## 18                 air    Regional   aRP   Large 1.396944e-09 2.299999e+14
+    ## 19                 air      Tropic   aTS   Solid 6.359984e-39 1.275000e+17
+    ## 20                 air      Tropic   aTA   Small 2.685557e-05 1.275000e+17
+    ## 21                 air      Tropic   aTP   Large 3.367774e-11 1.275000e+17
+    ## 22          cloudwater      Arctic  cwAS   Solid 1.021508e-29 1.275000e+10
+    ## 23          cloudwater      Arctic  cwAA   Small 5.830827e-08 1.275000e+10
+    ## 24          cloudwater      Arctic  cwAP   Large 9.598941e-11 1.275000e+10
+    ## 25          cloudwater Continental  cwCS   Solid 2.526542e-06 2.160000e+09
+    ## 26          cloudwater Continental  cwCA   Small 7.267690e-07 2.160000e+09
+    ## 27          cloudwater Continental  cwCP   Large 3.921763e-07 2.160000e+09
+    ## 28          cloudwater    Moderate  cwMS   Solid 5.897866e-18 2.327100e+10
+    ## 29          cloudwater    Moderate  cwMA   Small 2.743147e-07 2.327100e+10
+    ## 30          cloudwater    Moderate  cwMP   Large 7.115163e-09 2.327100e+10
+    ## 31          cloudwater    Regional  cwRS   Solid 1.283532e-18 6.900000e+07
+    ## 32          cloudwater    Regional  cwRA   Small 1.682809e-08 6.900000e+07
+    ## 33          cloudwater    Regional  cwRP   Large 1.396944e-09 6.900000e+07
+    ## 34          cloudwater      Tropic  cwTS   Solid 3.596209e-30 3.825000e+10
+    ## 35          cloudwater      Tropic  cwTA   Small 4.538497e-08 3.825000e+10
+    ## 36          cloudwater      Tropic  cwTP   Large 3.367774e-11 3.825000e+10
+    ## 37           deepocean      Arctic  w3AS   Solid 1.532412e-40 7.650000e+16
+    ## 38           deepocean      Arctic  w3AA   Small 9.200193e+09 7.650000e+16
+    ## 39           deepocean      Arctic  w3AP   Large 2.130885e+08 7.650000e+16
+    ## 40           deepocean    Moderate  w3MS   Solid 2.214695e-31 1.163550e+17
+    ## 41           deepocean    Moderate  w3MA   Small 1.399381e+10 1.163550e+17
+    ## 42           deepocean    Moderate  w3MP   Large 3.241150e+08 1.163550e+17
+    ## 43           deepocean      Tropic  w3TS   Solid 3.805490e-43 2.677500e+17
+    ## 44           deepocean      Tropic  w3TA   Small 3.457661e+10 2.677500e+17
+    ## 45           deepocean      Tropic  w3TP   Large 8.008394e+08 2.677500e+17
+    ## 46  freshwatersediment Continental sd1CS   Solid 0.000000e+00 2.875952e+09
+    ## 47  freshwatersediment Continental sd1CA   Small 0.000000e+00 2.875952e+09
+    ## 48  freshwatersediment Continental sd1CP   Large 0.000000e+00 2.875952e+09
+    ## 49  freshwatersediment    Regional sd1RS   Solid 0.000000e+00 1.889235e+08
+    ## 50  freshwatersediment    Regional sd1RA   Small 0.000000e+00 1.889235e+08
+    ## 51  freshwatersediment    Regional sd1RP   Large 0.000000e+00 1.889235e+08
+    ## 52                lake Continental  w0CS   Solid 3.171525e-16 8.715005e+11
+    ## 53                lake Continental  w0CA   Small 4.736419e+04 8.715005e+11
+    ## 54                lake Continental  w0CP   Large 4.950111e-04 8.715005e+11
+    ## 55                lake    Regional  w0RS   Solid 3.311777e-28 5.724953e+10
+    ## 56                lake    Regional  w0RA   Small 8.801498e-04 5.724953e+10
+    ## 57                lake    Regional  w0RP   Large 3.625258e-06 5.724953e+10
+    ## 58        lakesediment Continental sd0CS   Solid 0.000000e+00 2.614501e+08
+    ## 59        lakesediment Continental sd0CA   Small 0.000000e+00 2.614501e+08
+    ## 60        lakesediment Continental sd0CP   Large 0.000000e+00 2.614501e+08
+    ## 61        lakesediment    Regional sd0RS   Solid 0.000000e+00 1.717486e+07
+    ## 62        lakesediment    Regional sd0RA   Small 0.000000e+00 1.717486e+07
+    ## 63        lakesediment    Regional sd0RP   Large 0.000000e+00 1.717486e+07
+    ## 64      marinesediment      Arctic sd2AS   Solid 0.000000e+00 7.650000e+11
+    ## 65      marinesediment      Arctic sd2AA   Small 0.000000e+00 7.650000e+11
+    ## 66      marinesediment      Arctic sd2AP   Large 0.000000e+00 7.650000e+11
+    ## 67      marinesediment Continental sd2CS   Solid 0.000000e+00 1.114199e+11
+    ## 68      marinesediment Continental sd2CA   Small 0.000000e+00 1.114199e+11
+    ## 69      marinesediment Continental sd2CP   Large 0.000000e+00 1.114199e+11
+    ## 70      marinesediment    Moderate sd2MS   Solid 0.000000e+00 1.163550e+12
+    ## 71      marinesediment    Moderate sd2MA   Small 0.000000e+00 1.163550e+12
+    ## 72      marinesediment    Moderate sd2MP   Large 0.000000e+00 1.163550e+12
+    ## 73      marinesediment    Regional sd2RS   Solid 0.000000e+00 3.005619e+07
+    ## 74      marinesediment    Regional sd2RA   Small 0.000000e+00 3.005619e+07
+    ## 75      marinesediment    Regional sd2RP   Large 0.000000e+00 3.005619e+07
+    ## 76      marinesediment      Tropic sd2TS   Solid 0.000000e+00 2.677500e+12
+    ## 77      marinesediment      Tropic sd2TA   Small 0.000000e+00 2.677500e+12
+    ## 78      marinesediment      Tropic sd2TP   Large 0.000000e+00 2.677500e+12
+    ## 79         naturalsoil      Arctic  s1AS   Solid 1.665708e-38 8.500000e+11
+    ## 80         naturalsoil      Arctic  s1AA   Small 3.669671e-04 8.500000e+11
+    ## 81         naturalsoil      Arctic  s1AP   Large 4.356519e-05 8.500000e+11
+    ## 82         naturalsoil Continental  s1CS   Solid 3.478976e-15 4.706103e+10
+    ## 83         naturalsoil Continental  s1CA   Small 1.142934e-03 4.706103e+10
+    ## 84         naturalsoil Continental  s1CP   Large 1.590572e-01 4.706103e+10
+    ## 85         naturalsoil    Moderate  s1MS   Solid 3.106211e-26 1.939250e+12
+    ## 86         naturalsoil    Moderate  s1MA   Small 1.401571e-03 1.939250e+12
+    ## 87         naturalsoil    Moderate  s1MP   Large 1.103743e-02 1.939250e+12
+    ## 88         naturalsoil    Regional  s1RS   Solid 3.634466e-27 3.091475e+09
+    ## 89         naturalsoil    Regional  s1RA   Small 4.622731e-05 3.091475e+09
+    ## 90         naturalsoil    Regional  s1RP   Large 1.165091e-03 3.091475e+09
+    ## 91         naturalsoil      Tropic  s1TS   Solid 2.018395e-38 1.912500e+12
+    ## 92         naturalsoil      Tropic  s1TA   Small 1.077133e-04 1.912500e+12
+    ## 93         naturalsoil      Tropic  s1TP   Large 5.785505e-05 1.912500e+12
+    ## 94           othersoil Continental  s3CS   Solid 1.269305e-16 1.743001e+10
+    ## 95           othersoil Continental  s3CA   Small 4.273234e-04 1.743001e+10
+    ## 96           othersoil Continental  s3CP   Large 5.891006e-02 1.743001e+10
+    ## 97           othersoil    Regional  s3RS   Solid 1.326036e-28 1.144991e+09
+    ## 98           othersoil    Regional  s3RA   Small 1.731238e-05 1.144991e+09
+    ## 99           othersoil    Regional  s3RP   Large 4.315153e-04 1.144991e+09
+    ## 100              river Continental  w1CS   Solid 6.569706e-05 2.875952e+11
+    ## 101              river Continental  w1CA   Small 8.228243e+04 2.875952e+11
+    ## 102              river Continental  w1CP   Large 1.905769e+03 2.875952e+11
+    ## 103              river    Regional  w1RS   Solid 3.593952e-26 1.889235e+10
+    ## 104              river    Regional  w1RA   Small 3.485522e-04 1.889235e+10
+    ## 105              river    Regional  w1RP   Large 1.435655e-06 1.889235e+10
+    ## 106                sea      Arctic  w2AS   Solid 3.782331e-31 2.550000e+15
+    ## 107                sea      Arctic  w2AA   Small 3.736732e+08 2.550000e+15
+    ## 108                sea      Arctic  w2AP   Large 8.654759e+06 2.550000e+15
+    ## 109                sea Continental  w2CS   Solid 1.426461e-12 7.427996e+14
+    ## 110                sea Continental  w2CA   Small 8.952510e+07 7.427996e+14
+    ## 111                sea Continental  w2CP   Large 2.073518e+06 7.427996e+14
+    ## 112                sea    Moderate  w2MS   Solid 6.402737e-22 3.878500e+15
+    ## 113                sea    Moderate  w2MA   Small 4.664685e+08 3.878500e+15
+    ## 114                sea    Moderate  w2MP   Large 1.080402e+07 3.878500e+15
+    ## 115                sea    Regional  w2RS   Solid 3.401739e-25 1.001873e+10
+    ## 116                sea    Regional  w2RA   Small 1.086747e+03 1.001873e+10
+    ## 117                sea    Regional  w2RP   Large 2.517047e+01 1.001873e+10
+    ## 118                sea      Tropic  w2TS   Solid 4.662958e-36 8.925000e+15
+    ## 119                sea      Tropic  w2TA   Small 1.073182e+09 8.925000e+15
+    ## 120                sea      Tropic  w2TP   Large 2.485630e+07 8.925000e+15
+    ##     Concentration    Unit
+    ## 1    2.687715e-11 ng/kg w
+    ## 2    2.687715e-11 ng/kg w
+    ## 3    2.687715e-11 ng/kg w
+    ## 4    2.687715e-11 ng/kg w
+    ## 5    2.687715e-11 ng/kg w
+    ## 6    2.687715e-11 ng/kg w
+    ## 7    9.270630e-44   ng/kg
+    ## 8    3.324272e-10   ng/kg
+    ## 9    2.258575e-15   ng/kg
+    ## 10   3.495387e-19   ng/kg
+    ## 11   4.271727e-08   ng/kg
+    ## 12   5.446895e-11   ng/kg
+    ## 13   7.573599e-32   ng/kg
+    ## 14   1.496563e-09   ng/kg
+    ## 15   9.172573e-14   ng/kg
+    ## 16   5.558787e-30   ng/kg
+    ## 17   3.096326e-08   ng/kg
+    ## 18   6.073673e-12   ng/kg
+    ## 19   4.988224e-44   ng/kg
+    ## 20   2.106320e-10   ng/kg
+    ## 21   2.641392e-16   ng/kg
+    ## 22   8.011825e-28    ng/L
+    ## 23   4.573198e-06    ng/L
+    ## 24   7.528581e-09    ng/L
+    ## 25   1.169695e-03    ng/L
+    ## 26   3.364671e-04    ng/L
+    ## 27   1.815631e-04    ng/L
+    ## 28   2.534427e-16    ng/L
+    ## 29   1.178783e-05    ng/L
+    ## 30   3.057523e-07    ng/L
+    ## 31   1.860191e-14    ng/L
+    ## 32   2.438854e-04    ng/L
+    ## 33   2.024557e-05    ng/L
+    ## 34   9.401852e-29    ng/L
+    ## 35   1.186535e-06    ng/L
+    ## 36   8.804639e-10    ng/L
+    ## 37   2.003153e-45    ng/L
+    ## 38   1.202640e+05    ng/L
+    ## 39   2.785471e+03    ng/L
+    ## 40   1.903395e-36    ng/L
+    ## 41   1.202682e+05    ng/L
+    ## 42   2.785570e+03    ng/L
+    ## 43   1.421285e-48    ng/L
+    ## 44   1.291377e+05    ng/L
+    ## 45   2.990997e+03    ng/L
+    ## 46   2.687715e-11 ng/kg w
+    ## 47   2.687715e-11 ng/kg w
+    ## 48   2.687715e-11 ng/kg w
+    ## 49   2.687715e-11 ng/kg w
+    ## 50   2.687715e-11 ng/kg w
+    ## 51   2.687715e-11 ng/kg w
+    ## 52   3.639155e-16    ng/L
+    ## 53   5.434787e+04    ng/L
+    ## 54   5.679986e-04    ng/L
+    ## 55   5.784811e-27    ng/L
+    ## 56   1.537392e-02    ng/L
+    ## 57   6.332380e-05    ng/L
+    ## 58   0.000000e+00 ng/kg w
+    ## 59   0.000000e+00 ng/kg w
+    ## 60   0.000000e+00 ng/kg w
+    ## 61   0.000000e+00 ng/kg w
+    ## 62   0.000000e+00 ng/kg w
+    ## 63   0.000000e+00 ng/kg w
+    ## 64   2.687715e-11 ng/kg w
+    ## 65   2.687715e-11 ng/kg w
+    ## 66   2.687715e-11 ng/kg w
+    ## 67   2.687715e-11 ng/kg w
+    ## 68   2.687715e-11 ng/kg w
+    ## 69   2.687715e-11 ng/kg w
+    ## 70   2.687715e-11 ng/kg w
+    ## 71   2.687715e-11 ng/kg w
+    ## 72   2.687715e-11 ng/kg w
+    ## 73   2.687715e-11 ng/kg w
+    ## 74   2.687715e-11 ng/kg w
+    ## 75   2.687715e-11 ng/kg w
+    ## 76   2.687715e-11 ng/kg w
+    ## 77   2.687715e-11 ng/kg w
+    ## 78   2.687715e-11 ng/kg w
+    ## 79   2.687715e-11 ng/kg w
+    ## 80   2.687715e-11 ng/kg w
+    ## 81   2.687715e-11 ng/kg w
+    ## 82   2.687715e-11 ng/kg w
+    ## 83   2.687715e-11 ng/kg w
+    ## 84   2.687715e-11 ng/kg w
+    ## 85   2.687715e-11 ng/kg w
+    ## 86   2.687715e-11 ng/kg w
+    ## 87   2.687715e-11 ng/kg w
+    ## 88   2.687715e-11 ng/kg w
+    ## 89   2.687715e-11 ng/kg w
+    ## 90   2.687715e-11 ng/kg w
+    ## 91   2.687715e-11 ng/kg w
+    ## 92   2.687715e-11 ng/kg w
+    ## 93   2.687715e-11 ng/kg w
+    ## 94   2.687715e-11 ng/kg w
+    ## 95   2.687715e-11 ng/kg w
+    ## 96   2.687715e-11 ng/kg w
+    ## 97   2.687715e-11 ng/kg w
+    ## 98   2.687715e-11 ng/kg w
+    ## 99   2.687715e-11 ng/kg w
+    ## 100  2.284359e-04    ng/L
+    ## 101  2.861051e+05    ng/L
+    ## 102  6.626567e+03    ng/L
+    ## 103  1.902332e-24    ng/L
+    ## 104  1.844939e-02    ng/L
+    ## 105  7.599136e-05    ng/L
+    ## 106  1.483267e-34    ng/L
+    ## 107  1.465385e+05    ng/L
+    ## 108  3.394023e+03    ng/L
+    ## 109  1.920384e-15    ng/L
+    ## 110  1.205239e+05    ng/L
+    ## 111  2.791491e+03    ng/L
+    ## 112  1.650828e-25    ng/L
+    ## 113  1.202703e+05    ng/L
+    ## 114  2.785619e+03    ng/L
+    ## 115  3.395379e-23    ng/L
+    ## 116  1.084715e+05    ng/L
+    ## 117  2.512342e+03    ng/L
+    ## 118  5.224603e-40    ng/L
+    ## 119  1.202445e+05    ng/L
+    ## 120  2.785019e+03    ng/L
+
 ## SBdynamic \[WORK IN PROGRESS - needs some fixes\]
+
+*This part is still Work In Progress and in need of additional
+development.*
 
 ### Adjusting Parameters to Match considered Scale
 
