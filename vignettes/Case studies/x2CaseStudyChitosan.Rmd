@@ -169,7 +169,7 @@ Here, we define the emissions for a Steady State Calculation, based on averages 
 
 ```{r constant emission}
 emissions <- data.frame(Abbr = c("aCS", "s2CS", "w1CS"), 
-                        Emis = c(0.000047, 43, 150))
+                        Emis = c(0.000047, 150, 43))
 emissions$Emis<- emissions$Emis * 1000 / (365.25 * 24 * 60 * 60)
 
 
@@ -783,9 +783,8 @@ for (col in columns_to_transform) {
   }
 }
 
-## Extract soil and sediment columns
 CompartmentsConc_soil_names <- grep("^s[123]", names(CompartmentsConc), value = TRUE)
-CompartmentsConc_sediment_names <- grep("^sd[123]", names(CompartmentsConc), value = TRUE)
+CompartmentsConc_sediment_names <- grep("^sd[0123]", names(CompartmentsConc), value = TRUE)
 print(CompartmentsConc_sediment_names)
 CompartmentsConc_soil <- CompartmentsConc[, CompartmentsConc_soil_names]
 CompartmentsConc_sediment <- CompartmentsConc[, CompartmentsConc_sediment_names]
@@ -798,6 +797,7 @@ CompartmentsConc_combined <- cbind(CompartmentsConc_soil, CompartmentsConc_sedim
 # Identify the columns that are not in the excluded list
 included_names <- setdiff(names(CompartmentsConc), names(CompartmentsConc_combined))
 included_names <- included_names[!grepl("time", included_names, ignore.case = TRUE)]
+print(included_names)
 
 # Multiply the included columns by 1000
 CompartmentsConc[included_names] <- CompartmentsConc[included_names] * 1000
@@ -811,9 +811,12 @@ f_adjust_concentration <- function(CompConc, Fracw, Fraca, RHOsolid) {
 }
 
 # Get compartment prefixes for combined soil and sediment
-compartment_prefixes_combined_scale <- substr(names(CompartmentsConc_combined), 1, 3)
-compartment_prefixes_combined <- substr(names(CompartmentsConc_combined), 1, 2)
-
+compartment_prefixes_scale_sd <- substr(names(CompartmentsConc_sediment), 1, 4)
+compartment_prefixes_scale_s <- substr(names(CompartmentsConc_soil), 1, 3)
+compartment_prefixes_combined_scale <- cbind(compartment_prefixes_scale_s, compartment_prefixes_scale_sd)
+compartment_prefixes_sd <- substr(names(CompartmentsConc_sediment), 1, 3)
+compartment_prefixes_s <- substr(names(CompartmentsConc_soil),1, 2)
+compartment_prefixes_combined <- cbind(compartment_prefixes_s, compartment_prefixes_sd)
 # Get corresponding FRACw, FRACa, and Rho values for combined soil and sediment
 FRACw_values_combined <- FRACw$FRACw[match(compartment_prefixes_combined_scale, FRACw$compartment)]
 FRACa_values_combined <- FRACa$FRACa[match(compartment_prefixes_combined_scale, FRACa$compartment)]
@@ -884,7 +887,8 @@ kable(FinalConcentration)
 
 ```
 
-```{r Comparing to Steady state}
+Here we compare the output of the last step of the dynamic computation to the output of steady state. 
+```{r Comparing to Steady state, include = FALSE}
 ##convert to ng
 FinalConcentration <- FinalConcentration %>%
   mutate(across(where(is.numeric), ~ . * 1e9))
