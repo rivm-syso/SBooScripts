@@ -45,13 +45,107 @@ emissions$Emis<- emissions$Emis * 1000 / (365.25 * 24 * 60 * 60) # convert 1 t/y
 
 Now we are ready to run the solver, which results in the mass in each compartment.
 
-```{r}
+```{r Solution Steady}
 SolutionSteady <- World$Solve(emissions)
 SolutionSteady <- SolutionSteady |>
   filter(Species != "Unbound")
 ```
 
+```{r ODE Steady}
+SimpleBoxODE = function(t, m, parms) {
 
+  with(as.list(c(parms, m)), {
+    e <- c(rep(0, length(SBNames)))
+    for (name in names(emis)) {
+      e[grep(name, SBNames)] <- emis[[name]] * (t[2] -t [1])
+    }
+    dm <- K%*% m + e
+    res <- c(dm)
+    list(res, signal = e)
+  })
+}
+
+SBsolve4 <- function( tmax = 1e10, nTIMES = 100, Engine) {
+
+  SB.K = Engine
+  SBNames = colnames(Engine)
+  SB.m0 <- rep(0, length(SBNames))
+  SBtime <- seq(0,tmax,length.out = nTIMES)
+  emis <- data.frame(w1CS = (43*1000))
+
+
+  out <- deSolve::ode(
+    y = as.numeric(SB.m0),
+    times = SBtime ,
+    func = SimpleBoxODE,
+    parms = list(K = SB.K, SBNames=SBNames, emis= emis),
+    rtol = 1e-10, atol = 1e-2)
+  #if(as.character(class(deS)[1])!="data.frame") return (list(errorstate="error", deS))
+  colnames(out)[1:length(SBNames)+1] <- SBNames
+  colnames(out)[grep("signal",colnames(out))] <- paste("emis",SBNames,sep = "2")
+  as.data.frame(out) }
+
+SolutionConstantEmissions <- SBsolve4(tmax = 25*(365.25*24*3600),
+  nTIMES = 25,
+  Engine = World$exportEngineR())
+
+```
+
+
+```{r mass steady}
+library(dplyr)
+TotalMass <- SolutionSteady |>
+  summarise(TotalMass = sum(EqMass, na.rm = TRUE)) %>%
+  pull(TotalMass)
+
+nTIMES = 25
+MassConstantemissions <- SolutionConstantEmissions |>
+  mutate(row_number = row_number())
+MassConstantemissions <- MassConstantemissions |>
+  filter(row_number == (nTIMES - 1)) |>
+  select(-row_number)
+
+columns_to_sum <- MassConstantemissions[, !names(MassConstantemissions) %in% c("time")]
+
+# Calculate the row-wise sum of the selected columns
+row_sums <- rowSums(columns_to_sum)
+print(row_sums)
+print(TotalMass)
+
+```
+
+```{r Emission Check}
+ggplot(SolutionConstantEmissions, aes(x = time, y = emis2w1CS)) +
+  geom_line() +  
+  geom_hline(yintercept = 43*1000, linetype = "dashed", color = "red") +# Add a line for w1Cs2emis over time
+  labs(title = "Plot of w1Cs2emis against Time",
+       x = "Time",
+       y = "w1Cs2emis") +   # Add labels for axes and title
+  theme_minimal()      # Use a minimal theme
+```
+
+
+```{r plots Steady vs Constant Emissions}
+library (ggplot2)
+w1CS_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w1CS"]
+ggplot(SolutionConstantEmissions, aes(x = time, y = w1CS)) +
+  geom_line() +   
+  geom_hline(yintercept = w1CS_value, linetype = "dashed", color = "red")# Add a line for w1CS over time
+  labs(title = "Plot of w1CS against Time",
+       x = "Time",
+       y = "w1CS") +   # Add labels for axes and title
+  theme_minimal()  
+  
+w1CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w1CA"]
+ ggplot(SolutionConstantEmissions, aes(x = time, y = w1CA)) +
+  geom_line() +   
+  geom_hline(yintercept = w1CA_value, linetype = "dashed", color = "red")# Add a line for w1CS over time
+  labs(title = "Plot of w1CA against Time",
+       x = "Time",
+       y = "w1CA") +   # Add labels for axes and title
+  theme_minimal()   
+
+```
 
 ```{r emission data}
 library(pracma)
