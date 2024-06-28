@@ -1,7 +1,13 @@
 ODE solver set up
 ================
 Valerie de Rijk
-2024-06-27
+2024-06-28
+
+# *Initializing World and Substance*
+
+Depending on the substance you want to analyze, a selection needs to be
+made from the three different”worlds” : Molecular, Paticulate and
+Plastics. Here, we initialize the world for particulates.
 
 ``` r
 source("baseScripts/initWorld_onlyParticulate.R")
@@ -39,6 +45,9 @@ source("baseScripts/initWorld_onlyParticulate.R")
     ## Joining with `by = join_by(Matrix)`
     ## Joining with `by = join_by(Compartment)`
 
+Next, we initialize the solver. SimpleBox in R gives the opportunity to
+choose from multiple solvers, but here we choose the Base-R solve.
+
 ``` r
 World$NewSolver("SB1Solve")
 ```
@@ -58,8 +67,12 @@ m is the mass in each compartment, e.g. 0 at t=0.
 
 e is the emission to each compartment per unit of time, e.g. 1 t/y.
 
-To solve this set of differential equations we thus need an emission,
-e.g. 1 ton/year to air. The height of this emission is not
+# *Testing the Solver with real- life emissions*
+
+To test this solver, we use data from a case study on GO-Chitosan. The
+emission data is based on Monte Carlo simulations of a DMPFA model. To
+test, we first select emissions from one scenario and towards one
+compartment.
 
 ``` r
 library(pracma)
@@ -149,16 +162,23 @@ plot(Emissions$year, Emissions$Emission_mean,
 
 ![](xTestingODESolver_files/figure-gfm/emission%20data-1.png)<!-- -->
 
+# *Solving for Steady State*
+
+We are first going to solve for a steady state output, meaning that we
+will read in a dataframe with constant emissions in kg/s. For this, we
+take the mean of the yearly averages (which is the mean of the 1000 MC
+runs)
+
 ``` r
 Emissions <- Emissions |>
   mutate(Abr = "w1CS")
 Emissions_avg <- Emissions[-nrow(Emissions), ]
 
-average_emission <- mean(Emissions_avg$Emission_mean, na.rm = TRUE)
+average_emission <- mean(Emissions_avg$Emission_mean[7:23], na.rm = TRUE)
 print(average_emission)
 ```
 
-    ## [1] 28.22046
+    ## [1] 33.89534
 
 ``` r
 emissions <- data.frame(Abbr = "w1CS", 
@@ -174,6 +194,12 @@ SolutionSteady <- World$Solve(emissions)
 SolutionSteady <- SolutionSteady |>
   filter(Species != "Unbound")
 ```
+
+# *Dynamically Solving with average Emissions*
+
+With these average emissions, we are now going to solve dynamically. As
+such, we divide the average emission again to be kg/s and use the
+deSolve::ODE to run the model.
 
 ``` r
 SimpleBoxODE = function(t, m, parms) {
@@ -214,6 +240,8 @@ SolutionConstantEmissions <- SBsolve4(tmax = 24*(365.25*24*3600),
   Engine = World$exportEngineR())
 ```
 
+## Checking mass and emission output
+
 ``` r
 library(dplyr)
 TotalMass <- SolutionSteady |>
@@ -234,13 +262,13 @@ row_sums <- rowSums(columns_to_sum)
 print(row_sums)
 ```
 
-    ## [1] 541719.3
+    ## [1] 650654.1
 
 ``` r
 print(TotalMass)
 ```
 
-    ## [1] 16908044301
+    ## [1] 20308099498
 
 ``` r
 ggplot(SolutionConstantEmissions, aes(x = time, y = emis2w1CS)) +
@@ -254,42 +282,45 @@ ggplot(SolutionConstantEmissions, aes(x = time, y = emis2w1CS)) +
 
 ![](xTestingODESolver_files/figure-gfm/Emission%20Check-1.png)<!-- -->
 
+## Comparing Steady and constant
+
 ``` r
 library (ggplot2)
 w1CS_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w1CS"]
 ggplot(SolutionConstantEmissions, aes(x = time, y = w1CS)) +
-  geom_line() +   
-  geom_hline(yintercept = w1CS_value, linetype = "dashed", color = "red")# Add a line for w1CS over time
+  geom_line(aes(color = "Average Emissions")) +
+  geom_hline(aes(yintercept = w1CS_value, color = "Steady"), linetype = "dashed") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue")) +
+  labs(title = "Plot of w1CS against Time",
+       x = "Time [s]",
+       y = "w1CS [kg]",
+       color = "Legend") +  # Adding legend title
+  theme_minimal()
 ```
 
 ![](xTestingODESolver_files/figure-gfm/plots%20Steady%20vs%20Constant%20Emissions-1.png)<!-- -->
 
 ``` r
-  labs(title = "Plot of w1CS against Time",
-       x = "Time",
-       y = "w1CS") +   # Add labels for axes and title
-  theme_minimal()  
-```
-
-    ## NULL
-
-``` r
-w1CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w1CA"]
- ggplot(SolutionConstantEmissions, aes(x = time, y = w1CA)) +
-  geom_line() +   
-  geom_hline(yintercept = w1CA_value, linetype = "dashed", color = "red")# Add a line for w1CS over time
+w1CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w1CA"]  
+ggplot(SolutionConstantEmissions, aes(x = time, y = w1CA)) +
+  geom_line(aes(color = "Average Emissions")) +
+  geom_hline(aes(yintercept = w1CA_value, color = "Steady"), linetype = "dashed") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue")) +
+  labs(title = "Plot of w1CA against Time",
+       x = "Time [s]",
+       y = "w1CA [kg]",
+       color = "Legend") +  # Adding legend title
+  theme_minimal()
 ```
 
 ![](xTestingODESolver_files/figure-gfm/plots%20Steady%20vs%20Constant%20Emissions-2.png)<!-- -->
 
-``` r
-  labs(title = "Plot of w1CA against Time",
-       x = "Time",
-       y = "w1CA") +   # Add labels for axes and title
-  theme_minimal()   
-```
+# *Testing ODE’s ApproxFun*
 
-    ## NULL
+In this part, we are testing the approxfun from base-R. We will latere
+use this to interpolate between the emission data points. However, first
+we test it on the average emission to ensure it generates the same
+output.
 
 ``` r
 tmax <- 25 * (365.25 * 24 * 3600)  # Total number of seconds in 25 years
@@ -345,42 +376,39 @@ SolutionConstantApproxFun <- SBsolve4(tmax = 24*(365.25*24*3600),
   emislist = emislist)
 ```
 
+## Comparison of the three results so far
+
 ``` r
 w1CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w1CA"]
 w1CS_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w1CS"]
 w2CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w2CA"]
 s1CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "s1CA"]
-print(s1CA_value)
-```
 
-    ## [1] 0
 
-``` r
 ggplot() +
-  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CS)) +
-  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w1CS), linetype = "dashed", color = "blue") +
-  geom_hline(yintercept = w1CS_value, linetype = "dashed", color = "red")# Add a line for w1CS over time
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CS, color = "Average Emissions")) +
+  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w1CS, color = "Approximation Function avg Emissions"), linetype = "dashed") +
+  geom_hline(aes(yintercept = w1CS_value, color = "Steady"), linetype = "dashed") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Approximation Function avg Emissions" = "green")) +
+  labs(title = "Plot of w1CS against Time",
+       x = "Time [s]",
+       y = "w1CS [kg]",
+       color = "Legend") +  # Adding legend title
+  theme_minimal()
 ```
 
 ![](xTestingODESolver_files/figure-gfm/Comparison%20of%203%20results-1.png)<!-- -->
 
 ``` r
-  labs(title = "Plot of w1CS against Time",
-       x = "Time",
-       y = "w1CS") +   # Add labels for axes and title
-  theme_minimal() 
-```
-
-    ## NULL
-
-``` r
 ggplot() +
-  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CA)) +
-  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w1CA), linetype = "dashed", color = "blue") +
-  geom_hline(yintercept = w1CA_value, linetype = "dashed", color = "red") +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CA, color = "Average Emissions")) +
+  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w1CA, color = "Approximation Function avg Emissions"), linetype = "dashed") +
+  geom_hline(aes(yintercept = w1CA_value, color = "Steady"), linetype = "dashed") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Approximation Function avg Emissions" = "green")) +
   labs(title = "Plot of w1CA against Time",
-       x = "Time",
-       y = "w1CA") +
+       x = "Time [s]",
+       y = "w1CA [kg]",
+       color = "Legend") +  # Adding legend title
   theme_minimal()
 ```
 
@@ -388,16 +416,28 @@ ggplot() +
 
 ``` r
 ggplot() +
-  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w2CA)) +
-  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w2CA), linetype = "dashed", color = "green") +
-  geom_hline(yintercept = w2CA_value, linetype = "dashed", color = "red") +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w2CA, color = "Average Emissions")) +
+  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w2CA, color = "Approximation Function avg Emissions"), linetype = "dashed") +
+  geom_hline(aes(yintercept = w2CA_value, color = "Steady"), linetype = "dashed") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Approximation Function avg Emissions" = "green")) +
   labs(title = "Plot of w2CA against Time",
-       x = "Time",
-       y = "w2CA") +
+       x = "Time [s]",
+       y = "w2CA [kg]",
+       color = "Legend") +  # Adding legend title
   theme_minimal()
 ```
 
 ![](xTestingODESolver_files/figure-gfm/Comparison%20of%203%20results-3.png)<!-- -->
+
+# *Solving for yearly emission data with approxFun*
+
+Here, we will start solving for the actual emission data (one value per
+year). We first create the approxfun which we solve in a list to use as
+input for the ODE Solver. Importantly, the emissions should be converted
+into mass/seconds to ensure proper working of the solver. This is due to
+the fact that the matrix solves per second.
+
+## prepping ApproxFun
 
 ``` r
 Emissions <- Emissions |>
@@ -406,7 +446,6 @@ Emissions <- Emissions |>
 Emissions <- Emissions |> 
   mutate(Emission_mean_kg = (Emission_mean* 1000)/(365.25*24*60*60) )
 
-dfapprox<- data.frame(time_s = c(0,Emissions$time_s), emis_kg=c(0,Emissions$Emission_mean_kg))
 SBEmissions <- 
   Emissions |> 
   group_by(Abr) |> 
@@ -460,6 +499,8 @@ curve(w1CS,
 ```
 
 ![](xTestingODESolver_files/figure-gfm/emission%20prep-1.png)<!-- -->
+
+## Solving for yearly emission data
 
 ``` r
 ##ODE
@@ -533,54 +574,20 @@ plot(Solution$time,Solution$emis2w1CS)
 
 ![](xTestingODESolver_files/figure-gfm/original%20ode%20with%20approxfun-1.png)<!-- -->
 
-``` r
-plot(Solution$time,Solution$w1CS)
-```
-
-![](xTestingODESolver_files/figure-gfm/original%20ode%20with%20approxfun-2.png)<!-- -->
-
-``` r
-plot(Solution$time,Solution$s2CS)
-```
-
-![](xTestingODESolver_files/figure-gfm/original%20ode%20with%20approxfun-3.png)<!-- -->
-
-``` r
-plot(Solution$time,Solution$s2CA)
-```
-
-![](xTestingODESolver_files/figure-gfm/original%20ode%20with%20approxfun-4.png)<!-- -->
-
-``` r
-plot(Solution$time,Solution$s2CP)
-```
-
-![](xTestingODESolver_files/figure-gfm/original%20ode%20with%20approxfun-5.png)<!-- -->
-
-``` r
-plot(Solution$time,Solution$aCS)
-```
-
-![](xTestingODESolver_files/figure-gfm/original%20ode%20with%20approxfun-6.png)<!-- -->
-
-``` r
-plot(Solution$time,Solution$sd1CA)
-```
-
-![](xTestingODESolver_files/figure-gfm/original%20ode%20with%20approxfun-7.png)<!-- -->
+# *Comparison of all mass output together*
 
 ``` r
 # Plot for w2CA
 plot_w2CA <- ggplot() +
-  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w2CA, color = "Constant Emissions")) +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w2CA, color = "Average Emissions")) +
   geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w2CA, color = "Constant ApproxFun")) +
-  geom_line(data = SolutionEmissionData, aes(x = time, y = w2CA, color = "SolutionEmissionData")) +
-  geom_hline(yintercept = w2CA_value, linetype = "dashed", color = "red", show.legend = TRUE) +
+  geom_line(data = SolutionEmissionData, aes(x = time, y = w2CA, color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = w2CA_value, color = "Steady"), linetype = "dashed") +
   labs(title = "Plot of w2CA against Time",
        x = "Time (s)",
        y = "w2CA [kg]",
        color = "Data Source") +
-  scale_color_manual(values = c("Constant Emissions" = "black", "Constant ApproxFun" = "blue", "SolutionEmissionData" = "green")) +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Constant ApproxFun" = "green", "Approxfun Emission Data" = "pink")) +
   theme_minimal()
 
 # Display the plot
@@ -592,15 +599,15 @@ print(plot_w2CA)
 ``` r
 # Plot for w1CS
 plot_w1CS <- ggplot() +
-  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CS, color = "Constant Emissions")) +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CS, color = "Average Emissions")) +
   geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w1CS,  color = "Constant ApproxFun")) +
-  geom_line(data = SolutionEmissionData, aes(x = time, y = w1CS, color = "SolutionEmissionData")) +
-  geom_hline(yintercept = w1CS_value, linetype = "dashed", color = "red", show.legend = TRUE) +
+  geom_line(data = SolutionEmissionData, aes(x = time, y = w1CS, color = "Approxfun Emission Data")) +
+ geom_hline(aes(yintercept = w1CS_value, color = "Steady"), linetype = "dashed") +
   labs(title = "Plot of w1CS against Time",
        x = "Time (s)",
-       y = "w2CA [kg]",
+       y = "w1CS [kg]",
        color = "Data Source") +
-  scale_color_manual(values = c("Constant Emissions" = "black", "Constant ApproxFun" = "blue", "SolutionEmissionData" = "green")) +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Constant ApproxFun" = "green", "Approxfun Emission Data" = "pink")) +
   theme_minimal()
 
 # Display the plot for w1CS
@@ -612,103 +619,53 @@ print(plot_w1CS)
 ``` r
 # Plot for w1CA
 plot_w1CA <- ggplot() +
-  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CA, color = "Constant Emissions")) +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CA, color = "Average Emissions")) +
   geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w1CA,  color = "Constant ApproxFun")) +
-  geom_line(data = SolutionEmissionData, aes(x = time, y = w1CA, color = "SolutionEmissionData")) +
-  geom_hline(yintercept = w1CA_value, linetype = "dashed", color = "red", show.legend = TRUE) +
+  geom_line(data = SolutionEmissionData, aes(x = time, y = w1CA, color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = w1CA_value, color = "Steady"), linetype = "dashed") + 
   labs(title = "Plot of w1CA against Time",
        x = "Time (s)",
        y = "w2CA [kg]",
        color = "Data Source") +
-  scale_color_manual(values = c("Constant Emissions" = "black", "Constant ApproxFun" = "blue", "SolutionEmissionData" = "green")) +
+   scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Constant ApproxFun" = "green", "Approxfun Emission Data" = "pink")) +
   theme_minimal()
-s1CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "s1CA"]
-print(s1CA_value)
-```
-
-    ## [1] 0
-
-``` r
-plot_s1CA <- ggplot() +
-  geom_line(data = SolutionConstantEmissions, aes(x = time, y = s1CA, color = "Constant Emissions")) +
-  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = s1CA,  color = "Constant ApproxFun")) +
-  geom_line(data = SolutionEmissionData, aes(x = time, y = s1CA, color = "SolutionEmissionData")) +
-  geom_hline(yintercept = s1CA_value, linetype = "dashed", color = "red", show.legend = TRUE) +
-  labs(title = "Plot of s1CA against Time",
-       x = "Time (s)",
-       y = "w2CA [kg]",
-       color = "Data Source") +
-  scale_color_manual(values = c("Constant Emissions" = "black", "Constant ApproxFun" = "blue", "SolutionEmissionData" = "green")) +
-  theme_minimal()
-
-print(plot_s1CA)
+print(plot_w1CA)
 ```
 
 ![](xTestingODESolver_files/figure-gfm/comparison%20to%20steady-3.png)<!-- -->
 
 ``` r
-kaas <- World$kaas
-w1cs <- kaas |> filter (fromScale == "Continental" & fromSubCompart == "river")
-print(w1cs)
+s1CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "s1CA"]
+
+plot_s1CA <- ggplot() +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = s1CA, color = "Average Emissions")) +
+  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = s1CA,  color = "Constant ApproxFun")) +
+  geom_line(data = SolutionEmissionData, aes(x = time, y = s1CA, color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = s1CA_value, color = "Steady"), linetype = "dashed") + 
+  labs(title = "Plot of s1CA against Time",
+       x = "Time (s)",
+       y = "w2CA [kg]",
+       color = "Data Source") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Constant ApproxFun" = "green", "Approxfun Emission Data" = "pink")) +
+  theme_minimal()
+
+print(plot_s1CA)
 ```
 
-    ##                                                process   fromScale
-    ## k_HeteroAgglomeration.wsd.83 k_HeteroAgglomeration.wsd Continental
-    ## k_HeteroAgglomeration.wsd.84 k_HeteroAgglomeration.wsd Continental
-    ## k_Degradation.21                         k_Degradation Continental
-    ## k_Degradation.76                         k_Degradation Continental
-    ## k_Degradation.131                        k_Degradation Continental
-    ## k_Degradation.186                        k_Degradation Continental
-    ## k_Sedimentation.8                      k_Sedimentation Continental
-    ## k_Sedimentation.33                     k_Sedimentation Continental
-    ## k_Sedimentation.58                     k_Sedimentation Continental
-    ## k_Sedimentation.83                     k_Sedimentation Continental
-    ## k_Advection.25                             k_Advection Continental
-    ## k_Advection.26                             k_Advection Continental
-    ## k_Advection.27                             k_Advection Continental
-    ## k_Advection.28                             k_Advection Continental
-    ## k_Advection.41                             k_Advection Continental
-    ## k_Advection.42                             k_Advection Continental
-    ## k_Advection.43                             k_Advection Continental
-    ## k_Advection.44                             k_Advection Continental
-    ##                              fromSubCompart fromSpecies     toScale
-    ## k_HeteroAgglomeration.wsd.83          river       Solid Continental
-    ## k_HeteroAgglomeration.wsd.84          river       Solid Continental
-    ## k_Degradation.21                      river       Large Continental
-    ## k_Degradation.76                      river       Small Continental
-    ## k_Degradation.131                     river       Solid Continental
-    ## k_Degradation.186                     river     Unbound Continental
-    ## k_Sedimentation.8                     river       Large Continental
-    ## k_Sedimentation.33                    river       Small Continental
-    ## k_Sedimentation.58                    river       Solid Continental
-    ## k_Sedimentation.83                    river     Unbound Continental
-    ## k_Advection.25                        river       Large Continental
-    ## k_Advection.26                        river     Unbound Continental
-    ## k_Advection.27                        river       Small Continental
-    ## k_Advection.28                        river       Solid Continental
-    ## k_Advection.41                        river       Solid    Regional
-    ## k_Advection.42                        river       Large    Regional
-    ## k_Advection.43                        river     Unbound    Regional
-    ## k_Advection.44                        river       Small    Regional
-    ##                                    toSubCompart toSpecies            k
-    ## k_HeteroAgglomeration.wsd.83              river     Large 2.878207e-04
-    ## k_HeteroAgglomeration.wsd.84              river     Small 1.133822e-03
-    ## k_Degradation.21                          river     Large 1.000000e-20
-    ## k_Degradation.76                          river     Small 1.000000e-20
-    ## k_Degradation.131                         river     Solid 1.000000e-20
-    ## k_Degradation.186                         river   Unbound 1.674746e-21
-    ## k_Sedimentation.8            freshwatersediment     Large 9.800125e-06
-    ## k_Sedimentation.33           freshwatersediment     Small 1.634995e-08
-    ## k_Sedimentation.58           freshwatersediment     Solid 1.722163e-10
-    ## k_Sedimentation.83           freshwatersediment   Unbound 5.758839e-06
-    ## k_Advection.25                              sea     Large 7.264425e-08
-    ## k_Advection.26                              sea   Unbound 7.264425e-08
-    ## k_Advection.27                              sea     Small 7.264425e-08
-    ## k_Advection.28                              sea     Solid 7.264425e-08
-    ## k_Advection.41                            river     Solid 0.000000e+00
-    ## k_Advection.42                            river     Large 0.000000e+00
-    ## k_Advection.43                            river   Unbound 0.000000e+00
-    ## k_Advection.44                            river     Small 0.000000e+00
+![](xTestingODESolver_files/figure-gfm/comparison%20to%20steady-4.png)<!-- -->
+
+# *Computation of Concentrations*
+
+To have a better understanding of the orders of magnitude of the output,
+we compute the concentrations per compartment. First, we will do so for
+the Steady State output. Since this output is relatively
+straightforward, the computation is simple.
+
+## Steady State concentrations
+
+For soil and sediment, we decide to compute the output /kg wet weight
+(w.w.), as is standard in concentration reporting. This requires some
+extra computational steps.
 
 ``` r
 library(knitr)
@@ -790,136 +747,141 @@ Concentration_eq <- Concentration_eq |>
   mutate(across(where(is.numeric), ~ format(., scientific = TRUE)))
 
 #Concentration_eq <- subset(Concentration_eq, select = -old_EqMass)
-Concentration_eq<- Concentration_eq |> rename(Unit = Units_per_SubCompart)
-# Create the table with kable and style it with kableExtra
-# kable(Concentration_eq, format = "markdown", align = "c", caption = "Concentration per Compartment") |>
-#   kable_styling(full_width = T)
-# library(DT)
+
 kable(Concentration_eq)
 ```
 
-| SubCompart         | Scale       | Abbr  | Species | EqMass       | Volume       | Concentration | Unit    |
-|:-------------------|:------------|:------|:--------|:-------------|:-------------|:--------------|:--------|
-| agriculturalsoil   | Continental | s2CS  | Solid   | 0.000000e+00 | 4.183202e+11 | 0.000000e+00  | ng/kg w |
-| agriculturalsoil   | Continental | s2CA  | Small   | 0.000000e+00 | 4.183202e+11 | 0.000000e+00  | ng/kg w |
-| agriculturalsoil   | Continental | s2CP  | Large   | 0.000000e+00 | 4.183202e+11 | 0.000000e+00  | ng/kg w |
-| agriculturalsoil   | Regional    | s2RS  | Solid   | 0.000000e+00 | 2.747978e+10 | 0.000000e+00  | ng/kg w |
-| agriculturalsoil   | Regional    | s2RA  | Small   | 0.000000e+00 | 2.747978e+10 | 0.000000e+00  | ng/kg w |
-| agriculturalsoil   | Regional    | s2RP  | Large   | 0.000000e+00 | 2.747978e+10 | 0.000000e+00  | ng/kg w |
-| air                | Arctic      | aAS   | Solid   | 0.000000e+00 | 4.249999e+16 | 0.000000e+00  | ng/kg   |
-| air                | Arctic      | aAA   | Small   | 0.000000e+00 | 4.249999e+16 | 0.000000e+00  | ng/kg   |
-| air                | Arctic      | aAP   | Large   | 0.000000e+00 | 4.249999e+16 | 0.000000e+00  | ng/kg   |
-| air                | Continental | aCS   | Solid   | 0.000000e+00 | 7.199998e+15 | 0.000000e+00  | ng/kg   |
-| air                | Continental | aCA   | Small   | 0.000000e+00 | 7.199998e+15 | 0.000000e+00  | ng/kg   |
-| air                | Continental | aCP   | Large   | 0.000000e+00 | 7.199998e+15 | 0.000000e+00  | ng/kg   |
-| air                | Moderate    | aMS   | Solid   | 0.000000e+00 | 7.756998e+16 | 0.000000e+00  | ng/kg   |
-| air                | Moderate    | aMA   | Small   | 0.000000e+00 | 7.756998e+16 | 0.000000e+00  | ng/kg   |
-| air                | Moderate    | aMP   | Large   | 0.000000e+00 | 7.756998e+16 | 0.000000e+00  | ng/kg   |
-| air                | Regional    | aRS   | Solid   | 0.000000e+00 | 2.299999e+14 | 0.000000e+00  | ng/kg   |
-| air                | Regional    | aRA   | Small   | 0.000000e+00 | 2.299999e+14 | 0.000000e+00  | ng/kg   |
-| air                | Regional    | aRP   | Large   | 0.000000e+00 | 2.299999e+14 | 0.000000e+00  | ng/kg   |
-| air                | Tropic      | aTS   | Solid   | 0.000000e+00 | 1.275000e+17 | 0.000000e+00  | ng/kg   |
-| air                | Tropic      | aTA   | Small   | 0.000000e+00 | 1.275000e+17 | 0.000000e+00  | ng/kg   |
-| air                | Tropic      | aTP   | Large   | 0.000000e+00 | 1.275000e+17 | 0.000000e+00  | ng/kg   |
-| cloudwater         | Arctic      | cwAS  | Solid   | 0.000000e+00 | 1.275000e+10 | 0.000000e+00  | ng/L    |
-| cloudwater         | Arctic      | cwAA  | Small   | 0.000000e+00 | 1.275000e+10 | 0.000000e+00  | ng/L    |
-| cloudwater         | Arctic      | cwAP  | Large   | 0.000000e+00 | 1.275000e+10 | 0.000000e+00  | ng/L    |
-| cloudwater         | Continental | cwCS  | Solid   | 0.000000e+00 | 2.160000e+09 | 0.000000e+00  | ng/L    |
-| cloudwater         | Continental | cwCA  | Small   | 0.000000e+00 | 2.160000e+09 | 0.000000e+00  | ng/L    |
-| cloudwater         | Continental | cwCP  | Large   | 0.000000e+00 | 2.160000e+09 | 0.000000e+00  | ng/L    |
-| cloudwater         | Moderate    | cwMS  | Solid   | 0.000000e+00 | 2.327100e+10 | 0.000000e+00  | ng/L    |
-| cloudwater         | Moderate    | cwMA  | Small   | 0.000000e+00 | 2.327100e+10 | 0.000000e+00  | ng/L    |
-| cloudwater         | Moderate    | cwMP  | Large   | 0.000000e+00 | 2.327100e+10 | 0.000000e+00  | ng/L    |
-| cloudwater         | Regional    | cwRS  | Solid   | 0.000000e+00 | 6.900000e+07 | 0.000000e+00  | ng/L    |
-| cloudwater         | Regional    | cwRA  | Small   | 0.000000e+00 | 6.900000e+07 | 0.000000e+00  | ng/L    |
-| cloudwater         | Regional    | cwRP  | Large   | 0.000000e+00 | 6.900000e+07 | 0.000000e+00  | ng/L    |
-| cloudwater         | Tropic      | cwTS  | Solid   | 0.000000e+00 | 3.825000e+10 | 0.000000e+00  | ng/L    |
-| cloudwater         | Tropic      | cwTA  | Small   | 0.000000e+00 | 3.825000e+10 | 0.000000e+00  | ng/L    |
-| cloudwater         | Tropic      | cwTP  | Large   | 0.000000e+00 | 3.825000e+10 | 0.000000e+00  | ng/L    |
-| deepocean          | Arctic      | w3AS  | Solid   | 2.134301e-19 | 7.650000e+16 | 2.789936e-24  | ng/L    |
-| deepocean          | Arctic      | w3AA  | Small   | 2.579908e+09 | 7.650000e+16 | 3.372429e+04  | ng/L    |
-| deepocean          | Arctic      | w3AP  | Large   | 4.117660e+04 | 7.650000e+16 | 5.382562e-01  | ng/L    |
-| deepocean          | Moderate    | w3MS  | Solid   | 1.313524e-14 | 1.163550e+17 | 1.128894e-19  | ng/L    |
-| deepocean          | Moderate    | w3MA  | Small   | 3.937375e+09 | 1.163550e+17 | 3.383933e+04  | ng/L    |
-| deepocean          | Moderate    | w3MP  | Large   | 1.907831e+05 | 1.163550e+17 | 1.639664e+00  | ng/L    |
-| deepocean          | Tropic      | w3TS  | Solid   | 5.369668e-21 | 2.677500e+17 | 2.005478e-26  | ng/L    |
-| deepocean          | Tropic      | w3TA  | Small   | 9.769569e+09 | 2.677500e+17 | 3.648765e+04  | ng/L    |
-| deepocean          | Tropic      | w3TP  | Large   | 1.579872e+06 | 2.677500e+17 | 5.900548e+00  | ng/L    |
-| freshwatersediment | Continental | sd1CS | Solid   | 1.187238e-08 | 2.875952e+09 | 3.179417e-09  | ng/kg w |
-| freshwatersediment | Continental | sd1CA | Small   | 5.342287e+03 | 2.875952e+09 | 1.430662e+03  | ng/kg w |
-| freshwatersediment | Continental | sd1CP | Large   | 5.869090e+04 | 2.875952e+09 | 1.571740e+04  | ng/kg w |
-| freshwatersediment | Regional    | sd1RS | Solid   | 0.000000e+00 | 1.889235e+08 | 0.000000e+00  | ng/kg w |
-| freshwatersediment | Regional    | sd1RA | Small   | 0.000000e+00 | 1.889235e+08 | 0.000000e+00  | ng/kg w |
-| freshwatersediment | Regional    | sd1RP | Large   | 0.000000e+00 | 1.889235e+08 | 0.000000e+00  | ng/kg w |
-| lake               | Continental | w0CS  | Solid   | 0.000000e+00 | 8.715005e+11 | 0.000000e+00  | ng/L    |
-| lake               | Continental | w0CA  | Small   | 0.000000e+00 | 8.715005e+11 | 0.000000e+00  | ng/L    |
-| lake               | Continental | w0CP  | Large   | 0.000000e+00 | 8.715005e+11 | 0.000000e+00  | ng/L    |
-| lake               | Regional    | w0RS  | Solid   | 0.000000e+00 | 5.724953e+10 | 0.000000e+00  | ng/L    |
-| lake               | Regional    | w0RA  | Small   | 0.000000e+00 | 5.724953e+10 | 0.000000e+00  | ng/L    |
-| lake               | Regional    | w0RP  | Large   | 0.000000e+00 | 5.724953e+10 | 0.000000e+00  | ng/L    |
-| lakesediment       | Continental | sd0CS | Solid   | 0.000000e+00 | 2.614501e+08 | 0.000000e+00  | ng/kg w |
-| lakesediment       | Continental | sd0CA | Small   | 0.000000e+00 | 2.614501e+08 | 0.000000e+00  | ng/kg w |
-| lakesediment       | Continental | sd0CP | Large   | 0.000000e+00 | 2.614501e+08 | 0.000000e+00  | ng/kg w |
-| lakesediment       | Regional    | sd0RS | Solid   | 0.000000e+00 | 1.717486e+07 | 0.000000e+00  | ng/kg w |
-| lakesediment       | Regional    | sd0RA | Small   | 0.000000e+00 | 1.717486e+07 | 0.000000e+00  | ng/kg w |
-| lakesediment       | Regional    | sd0RP | Large   | 0.000000e+00 | 1.717486e+07 | 0.000000e+00  | ng/kg w |
-| marinesediment     | Arctic      | sd2AS | Solid   | 8.974529e-25 | 7.650000e+11 | 9.035282e-28  | ng/kg w |
-| marinesediment     | Arctic      | sd2AA | Small   | 9.529601e+06 | 7.650000e+11 | 9.594116e+03  | ng/kg w |
-| marinesediment     | Arctic      | sd2AP | Large   | 5.693946e+04 | 7.650000e+11 | 5.732491e+01  | ng/kg w |
-| marinesediment     | Continental | sd2CS | Solid   | 2.884102e-15 | 1.114199e+11 | 1.993606e-17  | ng/kg w |
-| marinesediment     | Continental | sd2CA | Small   | 6.269903e+05 | 1.114199e+11 | 4.334005e+03  | ng/kg w |
-| marinesediment     | Continental | sd2CP | Large   | 8.419899e+03 | 1.114199e+11 | 5.820167e+01  | ng/kg w |
-| marinesediment     | Moderate    | sd2MS | Solid   | 6.058580e-20 | 1.163550e+12 | 4.010304e-23  | ng/kg w |
-| marinesediment     | Moderate    | sd2MA | Small   | 1.311547e+07 | 1.163550e+12 | 8.681408e+03  | ng/kg w |
-| marinesediment     | Moderate    | sd2MP | Large   | 2.535046e+05 | 1.163550e+12 | 1.678001e+02  | ng/kg w |
-| marinesediment     | Regional    | sd2RS | Solid   | 3.177843e-22 | 3.005619e+07 | 8.143107e-21  | ng/kg w |
-| marinesediment     | Regional    | sd2RA | Small   | 1.521709e+02 | 3.005619e+07 | 3.899322e+03  | ng/kg w |
-| marinesediment     | Regional    | sd2RP | Large   | 1.707613e+00 | 3.005619e+07 | 4.375695e+01  | ng/kg w |
-| marinesediment     | Tropic      | sd2TS | Solid   | 6.575441e-32 | 2.677500e+12 | 1.891416e-35  | ng/kg w |
-| marinesediment     | Tropic      | sd2TA | Small   | 3.141476e+07 | 2.677500e+12 | 9.036406e+03  | ng/kg w |
-| marinesediment     | Tropic      | sd2TP | Large   | 2.011352e+06 | 2.677500e+12 | 5.785623e+02  | ng/kg w |
-| naturalsoil        | Arctic      | s1AS  | Solid   | 0.000000e+00 | 8.500000e+11 | 0.000000e+00  | ng/kg w |
-| naturalsoil        | Arctic      | s1AA  | Small   | 0.000000e+00 | 8.500000e+11 | 0.000000e+00  | ng/kg w |
-| naturalsoil        | Arctic      | s1AP  | Large   | 0.000000e+00 | 8.500000e+11 | 0.000000e+00  | ng/kg w |
-| naturalsoil        | Continental | s1CS  | Solid   | 0.000000e+00 | 4.706103e+10 | 0.000000e+00  | ng/kg w |
-| naturalsoil        | Continental | s1CA  | Small   | 0.000000e+00 | 4.706103e+10 | 0.000000e+00  | ng/kg w |
-| naturalsoil        | Continental | s1CP  | Large   | 0.000000e+00 | 4.706103e+10 | 0.000000e+00  | ng/kg w |
-| naturalsoil        | Moderate    | s1MS  | Solid   | 0.000000e+00 | 1.939250e+12 | 0.000000e+00  | ng/kg w |
-| naturalsoil        | Moderate    | s1MA  | Small   | 0.000000e+00 | 1.939250e+12 | 0.000000e+00  | ng/kg w |
-| naturalsoil        | Moderate    | s1MP  | Large   | 0.000000e+00 | 1.939250e+12 | 0.000000e+00  | ng/kg w |
-| naturalsoil        | Regional    | s1RS  | Solid   | 0.000000e+00 | 3.091475e+09 | 0.000000e+00  | ng/kg w |
-| naturalsoil        | Regional    | s1RA  | Small   | 0.000000e+00 | 3.091475e+09 | 0.000000e+00  | ng/kg w |
-| naturalsoil        | Regional    | s1RP  | Large   | 0.000000e+00 | 3.091475e+09 | 0.000000e+00  | ng/kg w |
-| naturalsoil        | Tropic      | s1TS  | Solid   | 0.000000e+00 | 1.912500e+12 | 0.000000e+00  | ng/kg w |
-| naturalsoil        | Tropic      | s1TA  | Small   | 0.000000e+00 | 1.912500e+12 | 0.000000e+00  | ng/kg w |
-| naturalsoil        | Tropic      | s1TP  | Large   | 0.000000e+00 | 1.912500e+12 | 0.000000e+00  | ng/kg w |
-| othersoil          | Continental | s3CS  | Solid   | 0.000000e+00 | 1.743001e+10 | 0.000000e+00  | ng/kg w |
-| othersoil          | Continental | s3CA  | Small   | 0.000000e+00 | 1.743001e+10 | 0.000000e+00  | ng/kg w |
-| othersoil          | Continental | s3CP  | Large   | 0.000000e+00 | 1.743001e+10 | 0.000000e+00  | ng/kg w |
-| othersoil          | Regional    | s3RS  | Solid   | 0.000000e+00 | 1.144991e+09 | 0.000000e+00  | ng/kg w |
-| othersoil          | Regional    | s3RA  | Small   | 0.000000e+00 | 1.144991e+09 | 0.000000e+00  | ng/kg w |
-| othersoil          | Regional    | s3RP  | Large   | 0.000000e+00 | 1.144991e+09 | 0.000000e+00  | ng/kg w |
-| river              | Continental | w1CS  | Solid   | 6.289952e-01 | 2.875952e+11 | 2.187085e+00  | ng/L    |
-| river              | Continental | w1CA  | Small   | 9.606463e+03 | 2.875952e+11 | 3.340273e+04  | ng/L    |
-| river              | Continental | w1CP  | Large   | 1.760727e+02 | 2.875952e+11 | 6.122242e+02  | ng/L    |
-| river              | Regional    | w1RS  | Solid   | 0.000000e+00 | 1.889235e+10 | 0.000000e+00  | ng/L    |
-| river              | Regional    | w1RA  | Small   | 0.000000e+00 | 1.889235e+10 | 0.000000e+00  | ng/L    |
-| river              | Regional    | w1RP  | Large   | 0.000000e+00 | 1.889235e+10 | 0.000000e+00  | ng/L    |
-| sea                | Arctic      | w2AS  | Solid   | 2.208169e-15 | 2.550000e+15 | 8.659486e-19  | ng/L    |
-| sea                | Arctic      | w2AA  | Small   | 1.044038e+08 | 2.550000e+15 | 4.094265e+04  | ng/L    |
-| sea                | Arctic      | w2AP  | Large   | 5.254285e+02 | 2.550000e+15 | 2.060504e-01  | ng/L    |
-| sea                | Continental | w2CS  | Solid   | 1.514520e-05 | 7.427996e+14 | 2.038935e-08  | ng/L    |
-| sea                | Continental | w2CA  | Small   | 2.505444e+07 | 7.427996e+14 | 3.372974e+04  | ng/L    |
-| sea                | Continental | w2CP  | Large   | 5.613266e+02 | 7.427996e+14 | 7.556905e-01  | ng/L    |
-| sea                | Moderate    | w2MS  | Solid   | 1.590757e-10 | 3.878500e+15 | 4.101476e-14  | ng/L    |
-| sea                | Moderate    | w2MA  | Small   | 1.308002e+08 | 3.878500e+15 | 3.372443e+04  | ng/L    |
-| sea                | Moderate    | w2MP  | Large   | 2.090719e+03 | 3.878500e+15 | 5.390534e-01  | ng/L    |
-| sea                | Regional    | w2RS  | Solid   | 8.343856e-14 | 1.001873e+10 | 8.328256e-12  | ng/L    |
-| sea                | Regional    | w2RA  | Small   | 3.040363e+02 | 1.001873e+10 | 3.034679e+04  | ng/L    |
-| sea                | Regional    | w2RP  | Large   | 5.692045e-03 | 1.001873e+10 | 5.681403e-01  | ng/L    |
-| sea                | Tropic      | w2TS  | Solid   | 1.289704e-26 | 8.925000e+15 | 1.445047e-30  | ng/L    |
-| sea                | Tropic      | w2TA  | Small   | 3.020121e+08 | 8.925000e+15 | 3.383889e+04  | ng/L    |
-| sea                | Tropic      | w2TP  | Large   | 1.438268e+04 | 8.925000e+15 | 1.611505e+00  | ng/L    |
+| SubCompart         | Scale       | Abbr  | Species | EqMass       | Volume       | Concentration | Units_per_SubCompart |
+|:-------------------|:------------|:------|:--------|:-------------|:-------------|:--------------|:---------------------|
+| agriculturalsoil   | Continental | s2CS  | Solid   | 0.000000e+00 | 4.183202e+11 | 0.000000e+00  | ng/kg w              |
+| agriculturalsoil   | Continental | s2CA  | Small   | 0.000000e+00 | 4.183202e+11 | 0.000000e+00  | ng/kg w              |
+| agriculturalsoil   | Continental | s2CP  | Large   | 0.000000e+00 | 4.183202e+11 | 0.000000e+00  | ng/kg w              |
+| agriculturalsoil   | Regional    | s2RS  | Solid   | 0.000000e+00 | 2.747978e+10 | 0.000000e+00  | ng/kg w              |
+| agriculturalsoil   | Regional    | s2RA  | Small   | 0.000000e+00 | 2.747978e+10 | 0.000000e+00  | ng/kg w              |
+| agriculturalsoil   | Regional    | s2RP  | Large   | 0.000000e+00 | 2.747978e+10 | 0.000000e+00  | ng/kg w              |
+| air                | Arctic      | aAS   | Solid   | 0.000000e+00 | 4.249999e+16 | 0.000000e+00  | ng/kg                |
+| air                | Arctic      | aAA   | Small   | 0.000000e+00 | 4.249999e+16 | 0.000000e+00  | ng/kg                |
+| air                | Arctic      | aAP   | Large   | 0.000000e+00 | 4.249999e+16 | 0.000000e+00  | ng/kg                |
+| air                | Continental | aCS   | Solid   | 0.000000e+00 | 7.199998e+15 | 0.000000e+00  | ng/kg                |
+| air                | Continental | aCA   | Small   | 0.000000e+00 | 7.199998e+15 | 0.000000e+00  | ng/kg                |
+| air                | Continental | aCP   | Large   | 0.000000e+00 | 7.199998e+15 | 0.000000e+00  | ng/kg                |
+| air                | Moderate    | aMS   | Solid   | 0.000000e+00 | 7.756998e+16 | 0.000000e+00  | ng/kg                |
+| air                | Moderate    | aMA   | Small   | 0.000000e+00 | 7.756998e+16 | 0.000000e+00  | ng/kg                |
+| air                | Moderate    | aMP   | Large   | 0.000000e+00 | 7.756998e+16 | 0.000000e+00  | ng/kg                |
+| air                | Regional    | aRS   | Solid   | 0.000000e+00 | 2.299999e+14 | 0.000000e+00  | ng/kg                |
+| air                | Regional    | aRA   | Small   | 0.000000e+00 | 2.299999e+14 | 0.000000e+00  | ng/kg                |
+| air                | Regional    | aRP   | Large   | 0.000000e+00 | 2.299999e+14 | 0.000000e+00  | ng/kg                |
+| air                | Tropic      | aTS   | Solid   | 0.000000e+00 | 1.275000e+17 | 0.000000e+00  | ng/kg                |
+| air                | Tropic      | aTA   | Small   | 0.000000e+00 | 1.275000e+17 | 0.000000e+00  | ng/kg                |
+| air                | Tropic      | aTP   | Large   | 0.000000e+00 | 1.275000e+17 | 0.000000e+00  | ng/kg                |
+| cloudwater         | Arctic      | cwAS  | Solid   | 0.000000e+00 | 1.275000e+10 | 0.000000e+00  | ng/L                 |
+| cloudwater         | Arctic      | cwAA  | Small   | 0.000000e+00 | 1.275000e+10 | 0.000000e+00  | ng/L                 |
+| cloudwater         | Arctic      | cwAP  | Large   | 0.000000e+00 | 1.275000e+10 | 0.000000e+00  | ng/L                 |
+| cloudwater         | Continental | cwCS  | Solid   | 0.000000e+00 | 2.160000e+09 | 0.000000e+00  | ng/L                 |
+| cloudwater         | Continental | cwCA  | Small   | 0.000000e+00 | 2.160000e+09 | 0.000000e+00  | ng/L                 |
+| cloudwater         | Continental | cwCP  | Large   | 0.000000e+00 | 2.160000e+09 | 0.000000e+00  | ng/L                 |
+| cloudwater         | Moderate    | cwMS  | Solid   | 0.000000e+00 | 2.327100e+10 | 0.000000e+00  | ng/L                 |
+| cloudwater         | Moderate    | cwMA  | Small   | 0.000000e+00 | 2.327100e+10 | 0.000000e+00  | ng/L                 |
+| cloudwater         | Moderate    | cwMP  | Large   | 0.000000e+00 | 2.327100e+10 | 0.000000e+00  | ng/L                 |
+| cloudwater         | Regional    | cwRS  | Solid   | 0.000000e+00 | 6.900000e+07 | 0.000000e+00  | ng/L                 |
+| cloudwater         | Regional    | cwRA  | Small   | 0.000000e+00 | 6.900000e+07 | 0.000000e+00  | ng/L                 |
+| cloudwater         | Regional    | cwRP  | Large   | 0.000000e+00 | 6.900000e+07 | 0.000000e+00  | ng/L                 |
+| cloudwater         | Tropic      | cwTS  | Solid   | 0.000000e+00 | 3.825000e+10 | 0.000000e+00  | ng/L                 |
+| cloudwater         | Tropic      | cwTA  | Small   | 0.000000e+00 | 3.825000e+10 | 0.000000e+00  | ng/L                 |
+| cloudwater         | Tropic      | cwTP  | Large   | 0.000000e+00 | 3.825000e+10 | 0.000000e+00  | ng/L                 |
+| deepocean          | Arctic      | w3AS  | Solid   | 2.563489e-19 | 7.650000e+16 | 3.350967e-24  | ng/L                 |
+| deepocean          | Arctic      | w3AA  | Small   | 3.098705e+09 | 7.650000e+16 | 4.050594e+04  | ng/L                 |
+| deepocean          | Arctic      | w3AP  | Large   | 4.945685e+04 | 7.650000e+16 | 6.464947e-01  | ng/L                 |
+| deepocean          | Moderate    | w3MS  | Solid   | 1.577662e-14 | 1.163550e+17 | 1.355904e-19  | ng/L                 |
+| deepocean          | Moderate    | w3MA  | Small   | 4.729146e+09 | 1.163550e+17 | 4.064412e+04  | ng/L                 |
+| deepocean          | Moderate    | w3MP  | Large   | 2.291479e+05 | 1.163550e+17 | 1.969386e+00  | ng/L                 |
+| deepocean          | Tropic      | w3TS  | Solid   | 6.449460e-21 | 2.677500e+17 | 2.408762e-26  | ng/L                 |
+| deepocean          | Tropic      | w3TA  | Small   | 1.173414e+10 | 2.677500e+17 | 4.382499e+04  | ng/L                 |
+| deepocean          | Tropic      | w3TP  | Large   | 1.897570e+06 | 2.677500e+17 | 7.087095e+00  | ng/L                 |
+| freshwatersediment | Continental | sd1CS | Solid   | 1.425980e-08 | 2.875952e+09 | 3.818769e-09  | ng/kg w              |
+| freshwatersediment | Continental | sd1CA | Small   | 6.416573e+03 | 2.875952e+09 | 1.718356e+03  | ng/kg w              |
+| freshwatersediment | Continental | sd1CP | Large   | 7.049312e+04 | 2.875952e+09 | 1.887803e+04  | ng/kg w              |
+| freshwatersediment | Regional    | sd1RS | Solid   | 0.000000e+00 | 1.889235e+08 | 0.000000e+00  | ng/kg w              |
+| freshwatersediment | Regional    | sd1RA | Small   | 0.000000e+00 | 1.889235e+08 | 0.000000e+00  | ng/kg w              |
+| freshwatersediment | Regional    | sd1RP | Large   | 0.000000e+00 | 1.889235e+08 | 0.000000e+00  | ng/kg w              |
+| lake               | Continental | w0CS  | Solid   | 0.000000e+00 | 8.715005e+11 | 0.000000e+00  | ng/L                 |
+| lake               | Continental | w0CA  | Small   | 0.000000e+00 | 8.715005e+11 | 0.000000e+00  | ng/L                 |
+| lake               | Continental | w0CP  | Large   | 0.000000e+00 | 8.715005e+11 | 0.000000e+00  | ng/L                 |
+| lake               | Regional    | w0RS  | Solid   | 0.000000e+00 | 5.724953e+10 | 0.000000e+00  | ng/L                 |
+| lake               | Regional    | w0RA  | Small   | 0.000000e+00 | 5.724953e+10 | 0.000000e+00  | ng/L                 |
+| lake               | Regional    | w0RP  | Large   | 0.000000e+00 | 5.724953e+10 | 0.000000e+00  | ng/L                 |
+| lakesediment       | Continental | sd0CS | Solid   | 0.000000e+00 | 2.614501e+08 | 0.000000e+00  | ng/kg w              |
+| lakesediment       | Continental | sd0CA | Small   | 0.000000e+00 | 2.614501e+08 | 0.000000e+00  | ng/kg w              |
+| lakesediment       | Continental | sd0CP | Large   | 0.000000e+00 | 2.614501e+08 | 0.000000e+00  | ng/kg w              |
+| lakesediment       | Regional    | sd0RS | Solid   | 0.000000e+00 | 1.717486e+07 | 0.000000e+00  | ng/kg w              |
+| lakesediment       | Regional    | sd0RA | Small   | 0.000000e+00 | 1.717486e+07 | 0.000000e+00  | ng/kg w              |
+| lakesediment       | Regional    | sd0RP | Large   | 0.000000e+00 | 1.717486e+07 | 0.000000e+00  | ng/kg w              |
+| marinesediment     | Arctic      | sd2AS | Solid   | 1.077923e-24 | 7.650000e+11 | 1.085220e-27  | ng/kg w              |
+| marinesediment     | Arctic      | sd2AA | Small   | 1.144592e+07 | 7.650000e+11 | 1.152340e+04  | ng/kg w              |
+| marinesediment     | Arctic      | sd2AP | Large   | 6.838947e+04 | 7.650000e+11 | 6.885243e+01  | ng/kg w              |
+| marinesediment     | Continental | sd2CS | Solid   | 3.464069e-15 | 1.114199e+11 | 2.394502e-17  | ng/kg w              |
+| marinesediment     | Continental | sd2CA | Small   | 7.530724e+05 | 1.114199e+11 | 5.205535e+03  | ng/kg w              |
+| marinesediment     | Continental | sd2CP | Large   | 1.011306e+04 | 1.114199e+11 | 6.990550e+01  | ng/kg w              |
+| marinesediment     | Moderate    | sd2MS | Solid   | 7.276906e-20 | 1.163550e+12 | 4.816740e-23  | ng/kg w              |
+| marinesediment     | Moderate    | sd2MA | Small   | 1.575287e+07 | 1.163550e+12 | 1.042716e+04  | ng/kg w              |
+| marinesediment     | Moderate    | sd2MP | Large   | 3.044821e+05 | 1.163550e+12 | 2.015433e+02  | ng/kg w              |
+| marinesediment     | Regional    | sd2RS | Solid   | 3.816879e-22 | 3.005619e+07 | 9.780607e-21  | ng/kg w              |
+| marinesediment     | Regional    | sd2RA | Small   | 1.827711e+02 | 3.005619e+07 | 4.683441e+03  | ng/kg w              |
+| marinesediment     | Regional    | sd2RP | Large   | 2.050999e+00 | 3.005619e+07 | 5.255608e+01  | ng/kg w              |
+| marinesediment     | Tropic      | sd2TS | Solid   | 7.897703e-32 | 2.677500e+12 | 2.271762e-35  | ng/kg w              |
+| marinesediment     | Tropic      | sd2TA | Small   | 3.773198e+07 | 2.677500e+12 | 1.085354e+04  | ng/kg w              |
+| marinesediment     | Tropic      | sd2TP | Large   | 2.415817e+06 | 2.677500e+12 | 6.949060e+02  | ng/kg w              |
+| naturalsoil        | Arctic      | s1AS  | Solid   | 0.000000e+00 | 8.500000e+11 | 0.000000e+00  | ng/kg w              |
+| naturalsoil        | Arctic      | s1AA  | Small   | 0.000000e+00 | 8.500000e+11 | 0.000000e+00  | ng/kg w              |
+| naturalsoil        | Arctic      | s1AP  | Large   | 0.000000e+00 | 8.500000e+11 | 0.000000e+00  | ng/kg w              |
+| naturalsoil        | Continental | s1CS  | Solid   | 0.000000e+00 | 4.706103e+10 | 0.000000e+00  | ng/kg w              |
+| naturalsoil        | Continental | s1CA  | Small   | 0.000000e+00 | 4.706103e+10 | 0.000000e+00  | ng/kg w              |
+| naturalsoil        | Continental | s1CP  | Large   | 0.000000e+00 | 4.706103e+10 | 0.000000e+00  | ng/kg w              |
+| naturalsoil        | Moderate    | s1MS  | Solid   | 0.000000e+00 | 1.939250e+12 | 0.000000e+00  | ng/kg w              |
+| naturalsoil        | Moderate    | s1MA  | Small   | 0.000000e+00 | 1.939250e+12 | 0.000000e+00  | ng/kg w              |
+| naturalsoil        | Moderate    | s1MP  | Large   | 0.000000e+00 | 1.939250e+12 | 0.000000e+00  | ng/kg w              |
+| naturalsoil        | Regional    | s1RS  | Solid   | 0.000000e+00 | 3.091475e+09 | 0.000000e+00  | ng/kg w              |
+| naturalsoil        | Regional    | s1RA  | Small   | 0.000000e+00 | 3.091475e+09 | 0.000000e+00  | ng/kg w              |
+| naturalsoil        | Regional    | s1RP  | Large   | 0.000000e+00 | 3.091475e+09 | 0.000000e+00  | ng/kg w              |
+| naturalsoil        | Tropic      | s1TS  | Solid   | 0.000000e+00 | 1.912500e+12 | 0.000000e+00  | ng/kg w              |
+| naturalsoil        | Tropic      | s1TA  | Small   | 0.000000e+00 | 1.912500e+12 | 0.000000e+00  | ng/kg w              |
+| naturalsoil        | Tropic      | s1TP  | Large   | 0.000000e+00 | 1.912500e+12 | 0.000000e+00  | ng/kg w              |
+| othersoil          | Continental | s3CS  | Solid   | 0.000000e+00 | 1.743001e+10 | 0.000000e+00  | ng/kg w              |
+| othersoil          | Continental | s3CA  | Small   | 0.000000e+00 | 1.743001e+10 | 0.000000e+00  | ng/kg w              |
+| othersoil          | Continental | s3CP  | Large   | 0.000000e+00 | 1.743001e+10 | 0.000000e+00  | ng/kg w              |
+| othersoil          | Regional    | s3RS  | Solid   | 0.000000e+00 | 1.144991e+09 | 0.000000e+00  | ng/kg w              |
+| othersoil          | Regional    | s3RA  | Small   | 0.000000e+00 | 1.144991e+09 | 0.000000e+00  | ng/kg w              |
+| othersoil          | Regional    | s3RP  | Large   | 0.000000e+00 | 1.144991e+09 | 0.000000e+00  | ng/kg w              |
+| river              | Continental | w1CS  | Solid   | 7.554804e-01 | 2.875952e+11 | 2.626889e+00  | ng/L                 |
+| river              | Continental | w1CA  | Small   | 1.153824e+04 | 2.875952e+11 | 4.011972e+04  | ng/L                 |
+| river              | Continental | w1CP  | Large   | 2.114793e+02 | 2.875952e+11 | 7.353369e+02  | ng/L                 |
+| river              | Regional    | w1RS  | Solid   | 0.000000e+00 | 1.889235e+10 | 0.000000e+00  | ng/L                 |
+| river              | Regional    | w1RA  | Small   | 0.000000e+00 | 1.889235e+10 | 0.000000e+00  | ng/L                 |
+| river              | Regional    | w1RP  | Large   | 0.000000e+00 | 1.889235e+10 | 0.000000e+00  | ng/L                 |
+| sea                | Arctic      | w2AS  | Solid   | 2.652212e-15 | 2.550000e+15 | 1.040083e-18  | ng/L                 |
+| sea                | Arctic      | w2AA  | Small   | 1.253984e+08 | 2.550000e+15 | 4.917585e+04  | ng/L                 |
+| sea                | Arctic      | w2AP  | Large   | 6.310874e+02 | 2.550000e+15 | 2.474853e-01  | ng/L                 |
+| sea                | Continental | w2CS  | Solid   | 1.819076e-05 | 7.427996e+14 | 2.448946e-08  | ng/L                 |
+| sea                | Continental | w2CA  | Small   | 3.009266e+07 | 7.427996e+14 | 4.051249e+04  | ng/L                 |
+| sea                | Continental | w2CP  | Large   | 6.742043e+02 | 7.427996e+14 | 9.076530e-01  | ng/L                 |
+| sea                | Moderate    | w2MS  | Solid   | 1.910644e-10 | 3.878500e+15 | 4.926246e-14  | ng/L                 |
+| sea                | Moderate    | w2MA  | Small   | 1.571029e+08 | 3.878500e+15 | 4.050610e+04  | ng/L                 |
+| sea                | Moderate    | w2MP  | Large   | 2.511143e+03 | 3.878500e+15 | 6.474522e-01  | ng/L                 |
+| sea                | Regional    | w2RS  | Solid   | 1.002173e-13 | 1.001873e+10 | 1.000299e-11  | ng/L                 |
+| sea                | Regional    | w2RA  | Small   | 3.651753e+02 | 1.001873e+10 | 3.644925e+04  | ng/L                 |
+| sea                | Regional    | w2RP  | Large   | 6.836663e-03 | 1.001873e+10 | 6.823882e-01  | ng/L                 |
+| sea                | Tropic      | w2TS  | Solid   | 1.549052e-26 | 8.925000e+15 | 1.735633e-30  | ng/L                 |
+| sea                | Tropic      | w2TA  | Small   | 3.627440e+08 | 8.925000e+15 | 4.064359e+04  | ng/L                 |
+| sea                | Tropic      | w2TP  | Large   | 1.727491e+04 | 8.925000e+15 | 1.935564e+00  | ng/L                 |
+
+## Dynamic concentrations
+
+The output of the ODE solver currently only returns output per
+compartment abbreviation. As such, we need to ensure that we match the
+right constants with the right compartments. This requires some
+additional steps. The principles of calculation are the same as above.
+We create some visual output to look at the first results for the
+dynamic concentration.
 
 ``` r
 library(dplyr)
@@ -933,90 +895,10 @@ signals <- SolutionEmissionData[, 157:311]
 Volume <- World$fetchData("Volume")
 Area <- World$fetchData("Area")
 FRACw <- World$fetchData("FRACw")
-print(FRACw)
-```
-
-    ##          Scale         SubCompart FRACw
-    ## 2       Arctic                air 2e-11
-    ## 8       Arctic     marinesediment 8e-01
-    ## 9       Arctic        naturalsoil 2e-01
-    ## 13 Continental   agriculturalsoil 2e-01
-    ## 14 Continental                air 2e-11
-    ## 17 Continental freshwatersediment 8e-01
-    ## 19 Continental       lakesediment 8e-01
-    ## 20 Continental     marinesediment 8e-01
-    ## 21 Continental        naturalsoil 2e-01
-    ## 22 Continental          othersoil 2e-01
-    ## 26    Moderate                air 2e-11
-    ## 32    Moderate     marinesediment 8e-01
-    ## 33    Moderate        naturalsoil 2e-01
-    ## 37    Regional   agriculturalsoil 2e-01
-    ## 38    Regional                air 2e-11
-    ## 41    Regional freshwatersediment 8e-01
-    ## 43    Regional       lakesediment 8e-01
-    ## 44    Regional     marinesediment 8e-01
-    ## 45    Regional        naturalsoil 2e-01
-    ## 46    Regional          othersoil 2e-01
-    ## 50      Tropic                air 2e-11
-    ## 56      Tropic     marinesediment 8e-01
-    ## 57      Tropic        naturalsoil 2e-01
-
-``` r
 FRACa <- World$fetchData("FRACa")
-print(FRACa)
-```
-
-    ##          Scale         SubCompart FRACa
-    ## 2       Arctic                air   1.0
-    ## 5       Arctic freshwatersediment   0.0
-    ## 7       Arctic       lakesediment   0.0
-    ## 8       Arctic     marinesediment   0.0
-    ## 9       Arctic        naturalsoil   0.2
-    ## 13 Continental   agriculturalsoil   0.2
-    ## 14 Continental                air   1.0
-    ## 17 Continental freshwatersediment   0.0
-    ## 19 Continental       lakesediment   0.0
-    ## 20 Continental     marinesediment   0.0
-    ## 21 Continental        naturalsoil   0.2
-    ## 22 Continental          othersoil   0.2
-    ## 26    Moderate                air   1.0
-    ## 29    Moderate freshwatersediment   0.0
-    ## 31    Moderate       lakesediment   0.0
-    ## 32    Moderate     marinesediment   0.0
-    ## 33    Moderate        naturalsoil   0.2
-    ## 37    Regional   agriculturalsoil   0.2
-    ## 38    Regional                air   1.0
-    ## 41    Regional freshwatersediment   0.0
-    ## 43    Regional       lakesediment   0.0
-    ## 44    Regional     marinesediment   0.0
-    ## 45    Regional        naturalsoil   0.2
-    ## 46    Regional          othersoil   0.2
-    ## 50      Tropic                air   1.0
-    ## 53      Tropic freshwatersediment   0.0
-    ## 55      Tropic       lakesediment   0.0
-    ## 56      Tropic     marinesediment   0.0
-    ## 57      Tropic        naturalsoil   0.2
-
-``` r
 Rho <- World$fetchData("rhoMatrix")
-print(Rho)
-```
 
-    ##            SubCompart rhoMatrix
-    ## 1    agriculturalsoil  2500.000
-    ## 2                 air     1.225
-    ## 3          cloudwater   998.000
-    ## 4           deepocean   998.000
-    ## 5  freshwatersediment  2500.000
-    ## 6                lake   998.000
-    ## 7        lakesediment  2500.000
-    ## 8      marinesediment  2500.000
-    ## 9         naturalsoil  2500.000
-    ## 10          othersoil  2500.000
-    ## 11              river   998.000
-    ## 12                sea   998.000
 
-``` r
 # Define acronyms maps
 acronym_map <- c(
   "marinesediment" = "sd2", "freshwatersediment" = "sd1", "lakesediment" = "sd0",
@@ -1373,7 +1255,7 @@ lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$w1CS, col = "g
 legend("topright", legend = c("W1CA", "W1CP", "W1CS"), col = c("blue", "red", "green"), lty = 1)
 ```
 
-![](xTestingODESolver_files/figure-gfm/concentrations-1.png)<!-- -->
+![](xTestingODESolver_files/figure-gfm/concentrations%20dynamic%20approxfun%20output-1.png)<!-- -->
 
 ``` r
 plot(CompartmentsConc_corrected$time, CompartmentsConc_corrected$sd1CA, type = "l",
@@ -1389,7 +1271,7 @@ lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$s2CS, col = "g
 legend("topright", legend = c("s2CA", "s2CP", "s2CS"), col = c("blue", "red", "green"), lty = 1)
 ```
 
-![](xTestingODESolver_files/figure-gfm/concentrations-2.png)<!-- -->
+![](xTestingODESolver_files/figure-gfm/concentrations%20dynamic%20approxfun%20output-2.png)<!-- -->
 
 ``` r
 CompartmentsConc_corrected[is.na(CompartmentsConc_corrected)] <- 0
@@ -1538,7 +1420,11 @@ kable(FinalConcentration)
 | 725824800 | s1TA        |  0.000000e+00 |
 | 725824800 | s1TP        |  0.000000e+00 |
 
-\*\*Comparison with Steady State Computation\*
+## Comparison with Steady State
+
+We now look at the difference between the total mass of the Steady State
+calculation versus the mass in the final step of the dynamic
+calculation.
 
 ``` r
 TotalMass <- SolutionSteady %>%
@@ -1556,16 +1442,19 @@ columns_to_sum <- FinalMass[, !names(FinalMass) %in% c("time")]
 
 # Calculate the row-wise sum of the selected columns
 row_sums <- rowSums(columns_to_sum)
-print(row_sums)
+print(paste("the mass of the dynamic calculation is :", row_sums))
 ```
 
-    ## [1] 552822.5
+    ## [1] "the mass of the dynamic calculation is : 552822.474542255"
 
 ``` r
-print(TotalMass)
+print(paste("the mass of the steady state calculation is:", TotalMass))
 ```
 
-    ## [1] 16908044301
+    ## [1] "the mass of the steady state calculation is: 20308099497.544"
+
+Here, we look at the differences in concentrations by creating both
+plots and tables.
 
 ``` r
 # Convert all columns in CompartmentsConc to numeric
@@ -1575,64 +1464,62 @@ CompartmentsConc[] <- lapply(CompartmentsConc, as.numeric)
 Concentration_eq$Concentration <- as.numeric(Concentration_eq$Concentration)
 w1CS_conc <- Concentration_eq$Concentration[Concentration_eq$Abbr == "w1CS"]
 ggplot(CompartmentsConc_corrected, aes(x = time, y = w1CS)) +
-  geom_line(color = "blue") +
-  geom_hline(yintercept = w1CS_conc, linetype = "dashed", color = "red", show.legend = TRUE)
+  geom_line(aes(color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = w1CS_conc, color = "steady"), linetype = "dashed") +
+  labs(title = "Plot of w1CS against Time",
+       x = "Time",
+       y = "w1CS [ng/L]") +
+  theme_minimal() +
+  scale_color_manual(name = "Legend", 
+                     values = c("Approxfun Emission Data" = "pink", "steady" = "red"))
 ```
 
 ![](xTestingODESolver_files/figure-gfm/Concentration%20Plots-1.png)<!-- -->
 
 ``` r
-  labs(title = "Plot of w1CS against Time",
-       x = "Time",
-       y = "w1CS [ng/L]") +
-  theme_minimal()
-```
-
-    ## NULL
-
-``` r
 # Extract w1CA concentration
 w1CA_conc <- Concentration_eq$Concentration[Concentration_eq$Abbr == "w1CA"]
 
+
 # Plot w1CA against time
 ggplot(CompartmentsConc_corrected, aes(x = time, y = w1CA)) +
-  geom_line(color = "blue") +
-  geom_hline(yintercept = w1CA_conc, linetype = "dashed", color = "red", show.legend = TRUE) +
+  geom_line(aes(color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = w1CA_conc, color = "steady"), linetype = "dashed") +
   labs(title = "Plot of w1CA against Time",
        x = "Time",
        y = "w1CA [ng/L]") +
-  theme_minimal()
+  theme_minimal() +
+  scale_color_manual(name = "Legend", values = c("Approxfun Emission Data" = "pink", "steady" = "red"))
 ```
 
 ![](xTestingODESolver_files/figure-gfm/Concentration%20Plots-2.png)<!-- -->
 
 ``` r
-# Extract w2CA concentration
 w2CA_conc <- Concentration_eq$Concentration[Concentration_eq$Abbr == "w2CA"]
-
 # Plot w2CA against time
 ggplot(CompartmentsConc_corrected, aes(x = time, y = w2CA)) +
-  geom_line(color = "blue") +
-  geom_hline(yintercept = w2CA_conc, linetype = "dashed", color = "red", show.legend = TRUE) +
+  geom_line(aes(color ="Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = w2CA_conc, color = "steady"), linetype = "dashed") +
   labs(title = "Plot of w2CA against Time",
        x = "Time [s]",
-       y = "w2CA[ng/L]") +
-  theme_minimal()
+       y = "w2CA [ng/L]") +
+  theme_minimal() +
+  scale_color_manual(name = "Legend", values = c("Approxfun Emission Data" = "pink", "steady" = "red"))
 ```
 
 ![](xTestingODESolver_files/figure-gfm/Concentration%20Plots-3.png)<!-- -->
 
 ``` r
 s1CA_conc <- Concentration_eq$Concentration[Concentration_eq$Abbr == "s1CA"]
-
-# Plot w2CA against time
+# Plot s1CA against time
 ggplot(CompartmentsConc_corrected, aes(x = time, y = s1CA)) +
-  geom_line(color = "blue") +
-  geom_hline(yintercept = s1CA_conc, linetype = "dashed", color = "red", show.legend = TRUE) +
+  geom_line(aes(color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = s1CA_conc, color = "steady"), linetype = "dashed")  +
   labs(title = "Plot of s1CA against Time",
        x = "Time [s]",
-       y = "s1CA[ng/L]") +
-  theme_minimal()
+       y = "s1CA [ng/L]") +
+  theme_minimal() +
+  scale_color_manual(name = "Legend", values = c("Approxfun Emission Data" = "pink", "steady" = "red"))
 ```
 
 ![](xTestingODESolver_files/figure-gfm/Concentration%20Plots-4.png)<!-- -->
@@ -1671,8 +1558,8 @@ kable(DiffSteadyDynamic)
 | w0RA        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | w0RP        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | w2RS        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
-| w2RA        | 3.423660e+01 | 3.034679e+04 |            -3.031255e+04 |
-| w2RP        | 1.514462e-01 | 5.681403e-01 |            -4.166941e-01 |
+| w2RA        | 3.423660e+01 | 3.644925e+04 |            -3.641501e+04 |
+| w2RP        | 1.514462e-01 | 6.823882e-01 |            -5.309420e-01 |
 | sd1RS       | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | sd1RA       | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | sd1RP       | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
@@ -1680,8 +1567,8 @@ kable(DiffSteadyDynamic)
 | sd0RA       | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | sd0RP       | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | sd2RS       | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
-| sd2RA       | 4.333982e+00 | 3.899322e+03 |            -3.894988e+03 |
-| sd2RP       | 9.459782e+00 | 4.375695e+01 |            -3.429717e+01 |
+| sd2RA       | 4.333982e+00 | 4.683441e+03 |            -4.679107e+03 |
+| sd2RP       | 9.459782e+00 | 5.255608e+01 |            -4.309630e+01 |
 | s1RS        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | s1RA        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | s1RP        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
@@ -1697,24 +1584,24 @@ kable(DiffSteadyDynamic)
 | cwCS        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | cwCA        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | cwCP        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
-| w1CS        | 2.628758e+00 | 2.187085e+00 |             4.416735e-01 |
-| w1CA        | 4.010121e+04 | 3.340273e+04 |             6.698482e+03 |
-| w1CP        | 6.225735e+02 | 6.122242e+02 |             1.034927e+01 |
+| w1CS        | 2.628758e+00 | 2.626889e+00 |             1.869500e-03 |
+| w1CA        | 4.010121e+04 | 4.011972e+04 |            -1.850797e+01 |
+| w1CP        | 6.225735e+02 | 7.353369e+02 |            -1.127634e+02 |
 | w0CS        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | w0CA        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | w0CP        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | w2CS        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
-| w2CA        | 3.805756e+01 | 3.372974e+04 |            -3.369168e+04 |
-| w2CP        | 2.636464e-01 | 7.556905e-01 |            -4.920441e-01 |
+| w2CA        | 3.805756e+01 | 4.051249e+04 |            -4.047443e+04 |
+| w2CP        | 2.636464e-01 | 9.076530e-01 |            -6.440066e-01 |
 | sd1CS       | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
-| sd1CA       | 1.716349e+03 | 1.430662e+03 |             2.856873e+02 |
-| sd1CP       | 1.564601e+04 | 1.571740e+04 |            -7.138715e+01 |
+| sd1CA       | 1.716349e+03 | 1.718356e+03 |            -2.006695e+00 |
+| sd1CP       | 1.564601e+04 | 1.887803e+04 |            -3.232017e+03 |
 | sd0CS       | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | sd0CA       | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | sd0CP       | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | sd2CS       | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
-| sd2CA       | 4.818277e+00 | 4.334005e+03 |            -4.329187e+03 |
-| sd2CP       | 1.724002e+01 | 5.820167e+01 |            -4.096165e+01 |
+| sd2CA       | 4.818277e+00 | 5.205535e+03 |            -5.200717e+03 |
+| sd2CP       | 1.724002e+01 | 6.990550e+01 |            -5.266548e+01 |
 | s1CS        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | s1CA        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | s1CP        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
@@ -1731,14 +1618,14 @@ kable(DiffSteadyDynamic)
 | cwAA        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | cwAP        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | w2AS        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
-| w2AA        | 1.759467e+00 | 4.094265e+04 |            -4.094089e+04 |
-| w2AP        | 4.658000e-04 | 2.060504e-01 |            -2.055846e-01 |
+| w2AA        | 1.759467e+00 | 4.917585e+04 |            -4.917409e+04 |
+| w2AP        | 4.658000e-04 | 2.474853e-01 |            -2.470195e-01 |
 | w3AS        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
-| w3AA        | 1.207983e+00 | 3.372429e+04 |            -3.372308e+04 |
-| w3AP        | 7.087000e-04 | 5.382562e-01 |            -5.375475e-01 |
+| w3AA        | 1.207983e+00 | 4.050594e+04 |            -4.050473e+04 |
+| w3AP        | 7.087000e-04 | 6.464947e-01 |            -6.457860e-01 |
 | sd2AS       | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
-| sd2AA       | 3.060778e-01 | 9.594116e+03 |            -9.593810e+03 |
-| sd2AP       | 6.591000e-02 | 5.732491e+01 |            -5.725900e+01 |
+| sd2AA       | 3.060778e-01 | 1.152340e+04 |            -1.152309e+04 |
+| sd2AP       | 6.591000e-02 | 6.885243e+01 |            -6.878652e+01 |
 | s1AS        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | s1AA        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | s1AP        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
@@ -1749,14 +1636,14 @@ kable(DiffSteadyDynamic)
 | cwMA        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | cwMP        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | w2MS        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
-| w2MA        | 2.608064e+00 | 3.372443e+04 |            -3.372182e+04 |
-| w2MP        | 3.566300e-03 | 5.390534e-01 |            -5.354871e-01 |
+| w2MA        | 2.608064e+00 | 4.050610e+04 |            -4.050349e+04 |
+| w2MP        | 3.566300e-03 | 6.474522e-01 |            -6.438859e-01 |
 | w3MS        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
-| w3MA        | 2.125294e+00 | 3.383933e+04 |            -3.383720e+04 |
-| w3MP        | 6.214300e-03 | 1.639664e+00 |            -1.633450e+00 |
+| w3MA        | 2.125294e+00 | 4.064412e+04 |            -4.064199e+04 |
+| w3MP        | 6.214300e-03 | 1.969386e+00 |            -1.963172e+00 |
 | sd2MS       | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
-| sd2MA       | 5.276933e-01 | 8.681408e+03 |            -8.680880e+03 |
-| sd2MP       | 5.732405e-01 | 1.678001e+02 |            -1.672269e+02 |
+| sd2MA       | 5.276933e-01 | 1.042716e+04 |            -1.042663e+04 |
+| sd2MP       | 5.732405e-01 | 2.015433e+02 |            -2.009701e+02 |
 | s1MS        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | s1MA        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | s1MP        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
@@ -1767,14 +1654,14 @@ kable(DiffSteadyDynamic)
 | cwTA        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | cwTP        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | w2TS        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
-| w2TA        | 2.890017e-01 | 3.383889e+04 |            -3.383860e+04 |
-| w2TP        | 1.089000e-04 | 1.611505e+00 |            -1.611396e+00 |
+| w2TA        | 2.890017e-01 | 4.064359e+04 |            -4.064330e+04 |
+| w2TP        | 1.089000e-04 | 1.935564e+00 |            -1.935455e+00 |
 | w3TS        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
-| w3TA        | 3.156676e-01 | 3.648765e+04 |            -3.648733e+04 |
-| w3TP        | 4.007000e-04 | 5.900548e+00 |            -5.900147e+00 |
+| w3TA        | 3.156676e-01 | 4.382499e+04 |            -4.382467e+04 |
+| w3TP        | 4.007000e-04 | 7.087095e+00 |            -7.086694e+00 |
 | sd2TS       | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
-| sd2TA       | 5.597280e-02 | 9.036406e+03 |            -9.036350e+03 |
-| sd2TP       | 2.610690e-02 | 5.785623e+02 |            -5.785362e+02 |
+| sd2TA       | 5.597280e-02 | 1.085354e+04 |            -1.085348e+04 |
+| sd2TP       | 2.610690e-02 | 6.949060e+02 |            -6.948799e+02 |
 | s1TS        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | s1TA        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |
 | s1TP        | 0.000000e+00 | 0.000000e+00 |             0.000000e+00 |

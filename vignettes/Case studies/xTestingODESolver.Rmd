@@ -8,6 +8,7 @@ editor_options:
   markdown: 
     wrap: 72
 ---
+
 ```{r setup, include=FALSE}
 knitr::knit_meta()
 knitr::opts_chunk$set(echo = TRUE)
@@ -16,34 +17,46 @@ projectRoot <- paste(getwd(), "..", "..", sep = "/")
 knitr::opts_knit$set(root.dir = projectRoot) 
 ```
 
+# *Initializing World and Substance*
+
+Depending on the substance you want to analyze, a selection needs to be
+made from the three different"worlds" : Molecular, Paticulate and
+Plastics. Here, we initialize the world for particulates.
+
 ```{r Initialize World}
 source("baseScripts/initWorld_onlyParticulate.R")
 
 
 ```
 
-
-
+Next, we initialize the solver. SimpleBox in R gives the opportunity to
+choose from multiple solvers, but here we choose the Base-R solve.
 
 ```{r SBsteady}
 World$NewSolver("SB1Solve")
 ```
 
-What solving means is that using matrix algebra a set of differential equations is solved:
+What solving means is that using matrix algebra a set of differential
+equations is solved:
 
 `K %*% m + e`
 
 Where:
 
-K is the matrix of rate constants for each process describing the mass transfers to and from and out of a state (e.g. substance in freshwater (w1U) or small heteroagglomerate in natural soil (s1A)).
+K is the matrix of rate constants for each process describing the mass
+transfers to and from and out of a state (e.g. substance in freshwater
+(w1U) or small heteroagglomerate in natural soil (s1A)).
 
 m is the mass in each compartment, e.g. 0 at t=0.
 
 e is the emission to each compartment per unit of time, e.g. 1 t/y.
 
-To solve this set of differential equations we thus need an emission, e.g. 1 ton/year to air. The height of this emission is not
+# *Testing the Solver with real- life emissions*
 
-
+To test this solver, we use data from a case study on GO-Chitosan. The
+emission data is based on Monte Carlo simulations of a DMPFA model. To
+test, we first select emissions from one scenario and towards one
+compartment.
 
 ```{r emission data}
 library(pracma)
@@ -106,6 +119,13 @@ plot(Emissions$year, Emissions$Emission_mean,
 
 ```
 
+# *Solving for Steady State*
+
+We are first going to solve for a steady state output, meaning that we
+will read in a dataframe with constant emissions in kg/s. For this, we
+take the mean of the yearly averages (which is the mean of the 1000 MC
+runs)
+
 ```{r Prep Emission Steady}
 Emissions <- Emissions |>
   mutate(Abr = "w1CS")
@@ -120,14 +140,20 @@ emissions$Emis<- emissions$Emis * 1000 / (365.25 * 24 * 60 * 60) # convert 1 t/y
 
 ```
 
-
-Now we are ready to run the solver, which results in the mass in each compartment.
+Now we are ready to run the solver, which results in the mass in each
+compartment.
 
 ```{r Solution Steady}
 SolutionSteady <- World$Solve(emissions)
 SolutionSteady <- SolutionSteady |>
   filter(Species != "Unbound")
 ```
+
+# *Dynamically Solving with average Emissions*
+
+With these average emissions, we are now going to solve dynamically. As
+such, we divide the average emission again to be kg/s and use the
+deSolve::ODE to run the model.
 
 ```{r ODE Steady}
 SimpleBoxODE = function(t, m, parms) {
@@ -169,6 +195,7 @@ SolutionConstantEmissions <- SBsolve4(tmax = 24*(365.25*24*3600),
 
 ```
 
+## Checking mass and emission output
 
 ```{r mass steady}
 library(dplyr)
@@ -202,28 +229,39 @@ ggplot(SolutionConstantEmissions, aes(x = time, y = emis2w1CS)) +
   theme_minimal()      # Use a minimal theme
 ```
 
+## Comparing Steady and constant
 
 ```{r plots Steady vs Constant Emissions}
 library (ggplot2)
 w1CS_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w1CS"]
 ggplot(SolutionConstantEmissions, aes(x = time, y = w1CS)) +
-  geom_line() +   
-  geom_hline(yintercept = w1CS_value, linetype = "dashed", color = "red")# Add a line for w1CS over time
+  geom_line(aes(color = "Average Emissions")) +
+  geom_hline(aes(yintercept = w1CS_value, color = "Steady"), linetype = "dashed") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue")) +
   labs(title = "Plot of w1CS against Time",
-       x = "Time",
-       y = "w1CS") +   # Add labels for axes and title
-  theme_minimal()  
-  
-w1CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w1CA"]
- ggplot(SolutionConstantEmissions, aes(x = time, y = w1CA)) +
-  geom_line() +   
-  geom_hline(yintercept = w1CA_value, linetype = "dashed", color = "red")# Add a line for w1CS over time
-  labs(title = "Plot of w1CA against Time",
-       x = "Time",
-       y = "w1CA") +   # Add labels for axes and title
-  theme_minimal()   
+       x = "Time [s]",
+       y = "w1CS [kg]",
+       color = "Legend") +  # Adding legend title
+  theme_minimal()
 
+w1CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w1CA"]  
+ggplot(SolutionConstantEmissions, aes(x = time, y = w1CA)) +
+  geom_line(aes(color = "Average Emissions")) +
+  geom_hline(aes(yintercept = w1CA_value, color = "Steady"), linetype = "dashed") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue")) +
+  labs(title = "Plot of w1CA against Time",
+       x = "Time [s]",
+       y = "w1CA [kg]",
+       color = "Legend") +  # Adding legend title
+  theme_minimal()
 ```
+
+# *Testing ODE's ApproxFun*
+
+In this part, we are testing the approxfun from base-R. We will latere
+use this to interpolate between the emission data points. However, first
+we test it on the average emission to ensure it generates the same
+output.
 
 ```{r ODE approxfun}
 tmax <- 25 * (365.25 * 24 * 3600)  # Total number of seconds in 25 years
@@ -280,42 +318,60 @@ SolutionConstantApproxFun <- SBsolve4(tmax = 24*(365.25*24*3600),
 
 ```
 
-```{r Comparison of 3 results}
+## Comparison of the three results so far
 
+```{r Comparison of 3 results}
 w1CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w1CA"]
 w1CS_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w1CS"]
 w2CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w2CA"]
 s1CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "s1CA"]
-print(s1CA_value)
+
+
 ggplot() +
-  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CS)) +
-  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w1CS), linetype = "dashed", color = "blue") +
-  geom_hline(yintercept = w1CS_value, linetype = "dashed", color = "red")# Add a line for w1CS over time
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CS, color = "Average Emissions")) +
+  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w1CS, color = "Approximation Function avg Emissions"), linetype = "dashed") +
+  geom_hline(aes(yintercept = w1CS_value, color = "Steady"), linetype = "dashed") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Approximation Function avg Emissions" = "green")) +
   labs(title = "Plot of w1CS against Time",
-       x = "Time",
-       y = "w1CS") +   # Add labels for axes and title
-  theme_minimal() 
-ggplot() +
-  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CA)) +
-  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w1CA), linetype = "dashed", color = "blue") +
-  geom_hline(yintercept = w1CA_value, linetype = "dashed", color = "red") +
-  labs(title = "Plot of w1CA against Time",
-       x = "Time",
-       y = "w1CA") +
+       x = "Time [s]",
+       y = "w1CS [kg]",
+       color = "Legend") +  # Adding legend title
   theme_minimal()
 
 ggplot() +
-  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w2CA)) +
-  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w2CA), linetype = "dashed", color = "green") +
-  geom_hline(yintercept = w2CA_value, linetype = "dashed", color = "red") +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CA, color = "Average Emissions")) +
+  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w1CA, color = "Approximation Function avg Emissions"), linetype = "dashed") +
+  geom_hline(aes(yintercept = w1CA_value, color = "Steady"), linetype = "dashed") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Approximation Function avg Emissions" = "green")) +
+  labs(title = "Plot of w1CA against Time",
+       x = "Time [s]",
+       y = "w1CA [kg]",
+       color = "Legend") +  # Adding legend title
+  theme_minimal()
+
+ggplot() +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w2CA, color = "Average Emissions")) +
+  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w2CA, color = "Approximation Function avg Emissions"), linetype = "dashed") +
+  geom_hline(aes(yintercept = w2CA_value, color = "Steady"), linetype = "dashed") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Approximation Function avg Emissions" = "green")) +
   labs(title = "Plot of w2CA against Time",
-       x = "Time",
-       y = "w2CA") +
+       x = "Time [s]",
+       y = "w2CA [kg]",
+       color = "Legend") +  # Adding legend title
   theme_minimal()
 
 
 ```
 
+# *Solving for yearly emission data with approxFun*
+
+Here, we will start solving for the actual emission data (one value per
+year). We first create the approxfun which we solve in a list to use as
+input for the ODE Solver. Importantly, the emissions should be converted
+into mass/seconds to ensure proper working of the solver. This is due to
+the fact that the matrix solves per second.
+
+## prepping ApproxFun
 
 ```{r emission prep}
 
@@ -325,7 +381,6 @@ Emissions <- Emissions |>
 Emissions <- Emissions |> 
   mutate(Emission_mean_kg = (Emission_mean* 1000)/(365.25*24*60*60) )
 
-dfapprox<- data.frame(time_s = c(0,Emissions$time_s), emis_kg=c(0,Emissions$Emission_mean_kg))
 SBEmissions <- 
   Emissions |> 
   group_by(Abr) |> 
@@ -373,6 +428,8 @@ curve(w1CS,
 
 
 ```
+
+## Solving for yearly emission data
 
 ```{r original ode with approxfun}
 
@@ -444,32 +501,26 @@ SolutionEmissionData <- as.data.frame(Solution)
 # Same plot of emission as above
 plot(Solution$time,Solution$emis2w1CS)
 
-plot(Solution$time,Solution$w1CS)
-
-plot(Solution$time,Solution$s2CS)
-plot(Solution$time,Solution$s2CA)
-plot(Solution$time,Solution$s2CP)
-
-plot(Solution$time,Solution$aCS)
-plot(Solution$time,Solution$sd1CA)
 
 
 ```
+
+# *Comparison of all mass output together*
 
 ```{r comparison to steady}
 
 
 # Plot for w2CA
 plot_w2CA <- ggplot() +
-  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w2CA, color = "Constant Emissions")) +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w2CA, color = "Average Emissions")) +
   geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w2CA, color = "Constant ApproxFun")) +
-  geom_line(data = SolutionEmissionData, aes(x = time, y = w2CA, color = "SolutionEmissionData")) +
-  geom_hline(yintercept = w2CA_value, linetype = "dashed", color = "red", show.legend = TRUE) +
+  geom_line(data = SolutionEmissionData, aes(x = time, y = w2CA, color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = w2CA_value, color = "Steady"), linetype = "dashed") +
   labs(title = "Plot of w2CA against Time",
        x = "Time (s)",
        y = "w2CA [kg]",
        color = "Data Source") +
-  scale_color_manual(values = c("Constant Emissions" = "black", "Constant ApproxFun" = "blue", "SolutionEmissionData" = "green")) +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Constant ApproxFun" = "green", "Approxfun Emission Data" = "pink")) +
   theme_minimal()
 
 # Display the plot
@@ -477,15 +528,15 @@ print(plot_w2CA)
 
 # Plot for w1CS
 plot_w1CS <- ggplot() +
-  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CS, color = "Constant Emissions")) +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CS, color = "Average Emissions")) +
   geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w1CS,  color = "Constant ApproxFun")) +
-  geom_line(data = SolutionEmissionData, aes(x = time, y = w1CS, color = "SolutionEmissionData")) +
-  geom_hline(yintercept = w1CS_value, linetype = "dashed", color = "red", show.legend = TRUE) +
+  geom_line(data = SolutionEmissionData, aes(x = time, y = w1CS, color = "Approxfun Emission Data")) +
+ geom_hline(aes(yintercept = w1CS_value, color = "Steady"), linetype = "dashed") +
   labs(title = "Plot of w1CS against Time",
        x = "Time (s)",
-       y = "w2CA [kg]",
+       y = "w1CS [kg]",
        color = "Data Source") +
-  scale_color_manual(values = c("Constant Emissions" = "black", "Constant ApproxFun" = "blue", "SolutionEmissionData" = "green")) +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Constant ApproxFun" = "green", "Approxfun Emission Data" = "pink")) +
   theme_minimal()
 
 # Display the plot for w1CS
@@ -493,29 +544,30 @@ print(plot_w1CS)
 
 # Plot for w1CA
 plot_w1CA <- ggplot() +
-  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CA, color = "Constant Emissions")) +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CA, color = "Average Emissions")) +
   geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w1CA,  color = "Constant ApproxFun")) +
-  geom_line(data = SolutionEmissionData, aes(x = time, y = w1CA, color = "SolutionEmissionData")) +
-  geom_hline(yintercept = w1CA_value, linetype = "dashed", color = "red", show.legend = TRUE) +
+  geom_line(data = SolutionEmissionData, aes(x = time, y = w1CA, color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = w1CA_value, color = "Steady"), linetype = "dashed") + 
   labs(title = "Plot of w1CA against Time",
        x = "Time (s)",
        y = "w2CA [kg]",
        color = "Data Source") +
-  scale_color_manual(values = c("Constant Emissions" = "black", "Constant ApproxFun" = "blue", "SolutionEmissionData" = "green")) +
+   scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Constant ApproxFun" = "green", "Approxfun Emission Data" = "pink")) +
   theme_minimal()
+print(plot_w1CA)
+
 s1CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "s1CA"]
-print(s1CA_value)
 
 plot_s1CA <- ggplot() +
-  geom_line(data = SolutionConstantEmissions, aes(x = time, y = s1CA, color = "Constant Emissions")) +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = s1CA, color = "Average Emissions")) +
   geom_line(data = SolutionConstantApproxFun, aes(x = time, y = s1CA,  color = "Constant ApproxFun")) +
-  geom_line(data = SolutionEmissionData, aes(x = time, y = s1CA, color = "SolutionEmissionData")) +
-  geom_hline(yintercept = s1CA_value, linetype = "dashed", color = "red", show.legend = TRUE) +
+  geom_line(data = SolutionEmissionData, aes(x = time, y = s1CA, color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = s1CA_value, color = "Steady"), linetype = "dashed") + 
   labs(title = "Plot of s1CA against Time",
        x = "Time (s)",
        y = "w2CA [kg]",
        color = "Data Source") +
-  scale_color_manual(values = c("Constant Emissions" = "black", "Constant ApproxFun" = "blue", "SolutionEmissionData" = "green")) +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Constant ApproxFun" = "green", "Approxfun Emission Data" = "pink")) +
   theme_minimal()
 
 print(plot_s1CA)
@@ -523,13 +575,12 @@ print(plot_s1CA)
 
 ```
 
-```{r testing of flows}
-kaas <- World$kaas
-w1cs <- kaas |> filter (fromScale == "Continental" & fromSubCompart == "river")
-print(w1cs)
+# *Computation of Concentrations* 
 
+To have a better understanding of the orders of magnitude of the output, we compute the concentrations per compartment. First, we will do so for the Steady State output. Since this output is relatively straightforward, the computation is simple. 
 
-```
+## Steady State concentrations 
+For soil and sediment, we decide to compute the output /kg wet weight (w.w.), as is standard in concentration reporting. This requires some extra computational steps. 
 
 ```{r Concentrations Steady}
 library(knitr)
@@ -611,15 +662,13 @@ Concentration_eq <- Concentration_eq |>
   mutate(across(where(is.numeric), ~ format(., scientific = TRUE)))
 
 #Concentration_eq <- subset(Concentration_eq, select = -old_EqMass)
-Concentration_eq<- Concentration_eq |> rename(Unit = Units_per_SubCompart)
-# Create the table with kable and style it with kableExtra
-# kable(Concentration_eq, format = "markdown", align = "c", caption = "Concentration per Compartment") |>
-#   kable_styling(full_width = T)
-# library(DT)
+
 kable(Concentration_eq)
 ```
 
-```{r concentrations}
+## Dynamic concentrations 
+The output of the ODE solver currently only returns output per compartment abbreviation. As such, we need to ensure that we match the right constants with the right compartments. This requires some additional steps. The principles of calculation are the same as above. We create some visual output to look at the first results for the dynamic concentration. 
+```{r concentrations dynamic approxfun output}
 
 library(dplyr)
 nTIMES <- 25
@@ -632,11 +681,8 @@ signals <- SolutionEmissionData[, 157:311]
 Volume <- World$fetchData("Volume")
 Area <- World$fetchData("Area")
 FRACw <- World$fetchData("FRACw")
-print(FRACw)
 FRACa <- World$fetchData("FRACa")
-print(FRACa)
 Rho <- World$fetchData("rhoMatrix")
-print(Rho)
 
 
 # Define acronyms maps
@@ -784,7 +830,9 @@ kable(FinalConcentration)
 
 ```
 
-**Comparison with Steady State Computation*
+## Comparison with Steady State
+
+We now look at the difference between the total mass of the Steady State calculation versus the mass in the final step of the dynamic calculation. 
 
 ```{r Comparison Mass}
 TotalMass <- SolutionSteady %>%
@@ -802,10 +850,13 @@ columns_to_sum <- FinalMass[, !names(FinalMass) %in% c("time")]
 
 # Calculate the row-wise sum of the selected columns
 row_sums <- rowSums(columns_to_sum)
-print(row_sums)
-print(TotalMass)
+print(paste("the mass of the dynamic calculation is :", row_sums))
+print(paste("the mass of the steady state calculation is:", TotalMass))
 
 ```
+
+Here, we look at the differences in concentrations by creating both plots and tables. 
+
 ```{r Concentration Plots}
 # Convert all columns in CompartmentsConc to numeric
 CompartmentsConc[] <- lapply(CompartmentsConc, as.numeric)
@@ -814,55 +865,50 @@ CompartmentsConc[] <- lapply(CompartmentsConc, as.numeric)
 Concentration_eq$Concentration <- as.numeric(Concentration_eq$Concentration)
 w1CS_conc <- Concentration_eq$Concentration[Concentration_eq$Abbr == "w1CS"]
 ggplot(CompartmentsConc_corrected, aes(x = time, y = w1CS)) +
-  geom_line(color = "blue") +
-  geom_hline(yintercept = w1CS_conc, linetype = "dashed", color = "red", show.legend = TRUE)
+  geom_line(aes(color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = w1CS_conc, color = "steady"), linetype = "dashed") +
   labs(title = "Plot of w1CS against Time",
        x = "Time",
        y = "w1CS [ng/L]") +
-  theme_minimal()
+  theme_minimal() +
+  scale_color_manual(name = "Legend", 
+                     values = c("Approxfun Emission Data" = "pink", "steady" = "red"))
 
 # Extract w1CA concentration
 w1CA_conc <- Concentration_eq$Concentration[Concentration_eq$Abbr == "w1CA"]
 
-# Plot w1CS against time
-ggplot(CompartmentsConc_corrected, aes(x = time, y = w1CS)) +
-  geom_line(aes(color = "dynamic")) +
-  geom_hline(yintercept = w1CS_conc, linetype = "dashed", color = "red", show.legend = TRUE) +
-  labs(title = "Plot of w1CS against Time",
-       x = "Time",
-       y = "w1CS [ng/L]") +
-  theme_minimal() +
-  scale_color_manual(name = "Legend", values = c("dynamic" = "blue", "steady" = "red"))
 
 # Plot w1CA against time
 ggplot(CompartmentsConc_corrected, aes(x = time, y = w1CA)) +
-  geom_line(aes(color = "dynamic")) +
-  geom_hline(yintercept = w1CA_conc, linetype = "dashed", color = "red", show.legend = TRUE) +
+  geom_line(aes(color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = w1CA_conc, color = "steady"), linetype = "dashed") +
   labs(title = "Plot of w1CA against Time",
        x = "Time",
        y = "w1CA [ng/L]") +
   theme_minimal() +
-  scale_color_manual(name = "Legend", values = c("dynamic" = "blue", "steady" = "red"))
+  scale_color_manual(name = "Legend", values = c("Approxfun Emission Data" = "pink", "steady" = "red"))
 
+w2CA_conc <- Concentration_eq$Concentration[Concentration_eq$Abbr == "w2CA"]
 # Plot w2CA against time
 ggplot(CompartmentsConc_corrected, aes(x = time, y = w2CA)) +
-  geom_line(aes(color = "dynamic")) +
-  geom_hline(yintercept = w2CA_conc, linetype = "dashed", color = "red", show.legend = TRUE) +
+  geom_line(aes(color ="Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = w2CA_conc, color = "steady"), linetype = "dashed") +
   labs(title = "Plot of w2CA against Time",
        x = "Time [s]",
        y = "w2CA [ng/L]") +
   theme_minimal() +
-  scale_color_manual(name = "Legend", values = c("dynamic" = "blue", "steady" = "red"))
+  scale_color_manual(name = "Legend", values = c("Approxfun Emission Data" = "pink", "steady" = "red"))
 
+s1CA_conc <- Concentration_eq$Concentration[Concentration_eq$Abbr == "s1CA"]
 # Plot s1CA against time
 ggplot(CompartmentsConc_corrected, aes(x = time, y = s1CA)) +
-  geom_line(aes(color = "dynamic")) +
-  geom_hline(yintercept = s1CA_conc, linetype = "dashed", color = "red", show.legend = TRUE) +
+  geom_line(aes(color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = s1CA_conc, color = "steady"), linetype = "dashed")  +
   labs(title = "Plot of s1CA against Time",
        x = "Time [s]",
        y = "s1CA [ng/L]") +
   theme_minimal() +
-  scale_color_manual(name = "Legend", values = c("dynamic" = "blue", "steady" = "red"))
+  scale_color_manual(name = "Legend", values = c("Approxfun Emission Data" = "pink", "steady" = "red"))
 
 ```
 
