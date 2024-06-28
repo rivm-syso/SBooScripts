@@ -34,8 +34,6 @@ if (is.na(World$fetchData("Pvap25"))) {
   World$SetConst(Pvap25 = 1e-7)
 }
 World$SetConst(DragMethod = "Default")
-World$SetConst(Shape = shape)
-World$SetConst(RadS = particle_size)
 AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 
