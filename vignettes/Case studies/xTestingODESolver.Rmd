@@ -214,8 +214,8 @@ columns_to_sum <- MassConstantemissions[, !names(MassConstantemissions) %in% c("
 
 # Calculate the row-wise sum of the selected columns
 row_sums <- rowSums(columns_to_sum)
-print(row_sums)
-print(TotalMass)
+print(paste("the mass of the calculation with constant emissions is :", row_sums))
+print(paste("the mass of the steady state calculation is:", TotalMass))
 
 ```
 
@@ -412,13 +412,6 @@ emission_values <- w1CS(timesemisvalue)
 area_under_curve <- trapz(timesemisvalue, emission_values)
 
 # Print the area under the curve
-print(paste("Area under the curve:", area_under_curve))
-
-emission_year1 <- Emissions %>%
-  filter(time_s == 31557600*2) %>%
-  pull(Emission_mean_kg)
-print(emission_year1)
-
 
 plot(time_s,
      emis_kg)
@@ -450,8 +443,7 @@ SimpleBoxODE = function(t, m, parms) {
   })
 }
 
-# print(SBNames)
-
+=
 #Function to Solve
 SBsolve4 <- function( tmax = 1e10, nTIMES = 100, Engine, funlist) {
 
@@ -575,12 +567,18 @@ print(plot_s1CA)
 
 ```
 
-# *Computation of Concentrations* 
+# *Computation of Concentrations*
 
-To have a better understanding of the orders of magnitude of the output, we compute the concentrations per compartment. First, we will do so for the Steady State output. Since this output is relatively straightforward, the computation is simple. 
+To have a better understanding of the orders of magnitude of the output,
+we compute the concentrations per compartment. First, we will do so for
+the Steady State output. Since this output is relatively
+straightforward, the computation is simple.
 
-## Steady State concentrations 
-For soil and sediment, we decide to compute the output /kg wet weight (w.w.), as is standard in concentration reporting. This requires some extra computational steps. 
+## Steady State concentrations
+
+For soil and sediment, we decide to compute the output /kg wet weight
+(w.w.), as is standard in concentration reporting. This requires some
+extra computational steps.
 
 ```{r Concentrations Steady}
 library(knitr)
@@ -666,8 +664,15 @@ Concentration_eq <- Concentration_eq |>
 kable(Concentration_eq)
 ```
 
-## Dynamic concentrations 
-The output of the ODE solver currently only returns output per compartment abbreviation. As such, we need to ensure that we match the right constants with the right compartments. This requires some additional steps. The principles of calculation are the same as above. We create some visual output to look at the first results for the dynamic concentration. 
+## Dynamic concentrations
+
+The output of the ODE solver currently only returns output per
+compartment abbreviation. As such, we need to ensure that we match the
+right constants with the right compartments. This requires some
+additional steps. The principles of calculation are the same as above.
+We create some visual output to look at the first results for the
+dynamic concentration.
+
 ```{r concentrations dynamic approxfun output}
 
 library(dplyr)
@@ -699,8 +704,7 @@ Volume <- Volume |> mutate(compartment = paste0(acronym_map[SubCompart], acronym
 FRACw <- FRACw |> mutate(compartment = paste0(acronym_map[SubCompart], acronym_map2[Scale]))
 FRACa <- FRACa |> mutate(compartment = paste0(acronym_map[SubCompart], acronym_map2[Scale]))
 Rho <- Rho |> mutate(compartment = paste0(acronym_map[SubCompart]))
-print(FRACa)
-print(Rho)
+
 CompartmentsConc <- compartments
 # List of columns in CompartmentsConc that need transformation
 columns_to_transform <- setdiff(names(CompartmentsConc), "time")
@@ -719,7 +723,6 @@ for (col in columns_to_transform) {
 ## Extract soil and sediment columns
 CompartmentsConc_soil_names <- grep("^s[123]", names(CompartmentsConc), value = TRUE)
 CompartmentsConc_sediment_names <- grep("^sd[0123]", names(CompartmentsConc), value = TRUE)
-print(CompartmentsConc_sediment_names)
 CompartmentsConc_soil <- CompartmentsConc[, CompartmentsConc_soil_names]
 CompartmentsConc_sediment <- CompartmentsConc[, CompartmentsConc_sediment_names]
 
@@ -754,11 +757,8 @@ compartment_prefixes_combined <- cbind(compartment_prefixes_s, compartment_prefi
 
 # Get corresponding FRACw, FRACa, and Rho values for combined soil and sediment
 FRACw_values_combined <- FRACw$FRACw[match(compartment_prefixes_combined_scale, FRACw$compartment)]
-print(FRACw_values_combined)
 FRACa_values_combined <- FRACa$FRACa[match(compartment_prefixes_combined_scale, FRACa$compartment)]
-print(FRACa_values_combined)
 Rho_values_combined <- Rho$rhoMatrix[match(compartment_prefixes_combined, Rho$compartment)]
-print(Rho_values_combined)
 
 # Apply the function to adjust combined soil and sediment concentrations
 CompartmentsConc_combined_adjusted <- mapply(
@@ -772,7 +772,6 @@ CompartmentsConc_combined_adjusted <- mapply(
 
 # Assign column names to adjusted data
 colnames(CompartmentsConc_combined_adjusted) <- colnames(CompartmentsConc_combined)
-print(CompartmentsConc_combined_adjusted)
 
 
 CompartmentsConc_corrected <- CompartmentsConc
@@ -832,7 +831,9 @@ kable(FinalConcentration)
 
 ## Comparison with Steady State
 
-We now look at the difference between the total mass of the Steady State calculation versus the mass in the final step of the dynamic calculation. 
+We now look at the difference between the total mass of the Steady State
+calculation versus the mass in the final step of the dynamic
+calculation.
 
 ```{r Comparison Mass}
 TotalMass <- SolutionSteady %>%
@@ -855,7 +856,8 @@ print(paste("the mass of the steady state calculation is:", TotalMass))
 
 ```
 
-Here, we look at the differences in concentrations by creating both plots and tables. 
+Here, we look at the differences in concentrations by creating both
+plots and tables.
 
 ```{r Concentration Plots}
 # Convert all columns in CompartmentsConc to numeric
