@@ -111,7 +111,7 @@ Emissions <- Emissions |>
   mutate(Abr = "w1CS")
 Emissions_avg <- Emissions[-nrow(Emissions), ]
 
-average_emission <- mean(Emissions_avg$Emission_mean, na.rm = TRUE)
+average_emission <- mean(Emissions_avg$Emission_mean[7:23], na.rm = TRUE)
 print(average_emission)
 emissions <- data.frame(Abbr = "w1CS", 
                         Emis = average_emission)
