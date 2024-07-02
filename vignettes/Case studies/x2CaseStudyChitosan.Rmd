@@ -11,8 +11,8 @@ editor_options:
 knitr::knit_meta()
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(warning = FALSE)
-# projectRoot <- paste(getwd(), "..", "..", sep = "/")
-# knitr::opts_knit$set(root.dir = projectRoot) 
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) 
 ```
 
 ## Initiation
@@ -122,8 +122,6 @@ World$mutateVars(dfs)
 
 World$UpdateKaas(mergeExisting = F)
 World$fetchData("alpha")
-
-
 ```
 
 ## NewSolver
@@ -169,7 +167,7 @@ Here, we define the emissions for a Steady State Calculation, based on averages 
 
 ```{r constant emission}
 emissions <- data.frame(Abbr = c("aCS", "s2CS", "w1CS"), 
-                        Emis = c(0.000047, 43, 150))
+                        Emis = c(0.000047, 150, 43))
 emissions$Emis<- emissions$Emis * 1000 / (365.25 * 24 * 60 * 60)
 
 
@@ -209,7 +207,6 @@ ggplot(MassFractions, aes(x = Scale, y = MassFraction, fill = Species)) +
   theme_minimal()
 
 ```
-
 
 We are also interested in concentrations per compartment. For this, we need to ensure that we convert the Equilibrium Mass into the Equilibrium concentration, which we will do below. We need to adjust the concentrations to end up in respective units. We convert concentrations in soil and sediment to ng/kg wet weight. Concentrations in water are converted in ng/L. In air, concentrations are in ng/kg air. The output is in the form of a table, with both the Equilibrium Mass and the concentration in the compartment per species.
 
@@ -308,7 +305,6 @@ kable(Concentration_eq)
 
 *This part is still Work In Progress and in need of additional development.*
 
-
 ### Adjusting Parameters to Match considered Scale
 
 In this case study we are considering emission data only for Europe. By default the 'World' is represented by a nested regional scale, which is not relevant for the current assessment using emissions data only for Europe. Here we use the option to allocate part of the emissions to the regional scale based on the fraction of surface area in order to mimic not having a nested scale. In future one would be interested for instance in including a local or national scale as well. One could adjust the regional scale for this purpose.
@@ -378,6 +374,8 @@ Emissions <-
 Data from an DPMFA model should be prepared to fit the SBoo world. For instance the time unit should be correct, the mass unit is not as important as this will be the same in the output then, but for good measure we use kg. This is the quick and dirty way, a more elegant way is till in progress as mentioned above.
 
 We define the compartments of the emission based on the DMPFA model.
+
+*NOTE* all concentrations need to be in mass unit/s in order for the solver to work. This is due to the fact that the matrix operates in seconds
 
 ```{r Emissions, include=FALSE}
 # TODO: solve for every RUN
@@ -471,7 +469,7 @@ head(SBEmissions2)
 
 ```
 
-### make time dependant emission functions
+### make time dependent emission functions
 
 ```{r approxfuns, include=FALSE}
 SBEmissions3 <- 
@@ -555,20 +553,10 @@ SBsolve4 <- function( tmax = 1e10, nTIMES = 100, Engine, funlist) {
   
 }
 
-# Can also test with xlsx engine
-# read in K matrix from xlsx:
-# K.Matrix <- readxl::read_xlsx("vignettes/Development/Quality control/SBExcel/SimpleBox4plastics 4.03_GO-Chitosan.xlsx", 
-#                               sheet = "engine",
-#                               range = "D8:FB163") |> as.data.frame()
-# 
-# colnames(K.Matrix) <- readxl::read_xlsx("vignettes/Development/Quality control/SBExcel/SimpleBox4plastics 4.03_GO-Chitosan.xlsx", 
-#                               sheet = "engine",
-#                               range = "D3:FB3",
-#                               col_names = FALSE) |> slice(1) |> as.character()
-# 
+
 
 # Solving
-Solution <- SBsolve4(tmax = 25*(365.25*24*3600),
+Solution <- SBsolve4(tmax = 24*(365.25*24*3600),
 nTIMES = 130,
 Engine = World$exportEngineR(),
 funlist = funlist)
@@ -696,7 +684,7 @@ plot_dataframe <- function(df, title) {
     geom_line() +
     labs(title = title,
          x = "Time",
-         y = "Value")
+         y = "Value [kg]")
 }
 
 # Named list of dataframes
@@ -725,7 +713,7 @@ ggplot(w2C, aes(x = time)) +
   geom_line(aes(y = w2CP, color = "w2CP")) +
   labs(title = "Plot of w2CA, w2CS, and w2CP over time",
        x = "Time",
-       y = "Values",
+       y = "Kg of Substance",
        color = "Legend") +
   theme_minimal()
 s2C <- C[c("s2CA", "s2CS", "s2CP", "time")]
@@ -736,13 +724,15 @@ ggplot(s2C, aes(x = time)) +
   geom_line(aes(y = s2CP, color = "s2CP")) +
   labs(title = "Plot of s2CA, s2CS, and s2CP over time",
        x = "Time",
-       y = "Values",
+       y = "Kg of Substance",
        color = "Legend") +
   theme_minimal()
 
 ```
 
-From mass to concentration In this chunk we will convert the mass output into concentration output by calculating the respective volumes and calculating by this value.
+## From mass to concentration'
+
+In this chunk we will convert the mass output into concentration output by calculating the respective volumes and calculating by this value.
 
 ```{r mass to concentration, include=FALSE}
 # Fetch necessary data
@@ -783,9 +773,8 @@ for (col in columns_to_transform) {
   }
 }
 
-## Extract soil and sediment columns
 CompartmentsConc_soil_names <- grep("^s[123]", names(CompartmentsConc), value = TRUE)
-CompartmentsConc_sediment_names <- grep("^sd[123]", names(CompartmentsConc), value = TRUE)
+CompartmentsConc_sediment_names <- grep("^sd[0123]", names(CompartmentsConc), value = TRUE)
 print(CompartmentsConc_sediment_names)
 CompartmentsConc_soil <- CompartmentsConc[, CompartmentsConc_soil_names]
 CompartmentsConc_sediment <- CompartmentsConc[, CompartmentsConc_sediment_names]
@@ -793,6 +782,15 @@ CompartmentsConc_sediment <- CompartmentsConc[, CompartmentsConc_sediment_names]
 
 # Combine soil and sediment columns
 CompartmentsConc_combined <- cbind(CompartmentsConc_soil, CompartmentsConc_sediment)
+
+
+# Identify the columns that are not in the excluded list
+included_names <- setdiff(names(CompartmentsConc), names(CompartmentsConc_combined))
+included_names <- included_names[!grepl("time", included_names, ignore.case = TRUE)]
+print(included_names)
+
+# Multiply the included columns by 1000
+CompartmentsConc[included_names] <- CompartmentsConc[included_names] * 1000
 
 # Get RhoWater value for river compartment
 RhoWater_value <- Rho$rhoMatrix[Rho$SubCompart == "river"]
@@ -803,9 +801,12 @@ f_adjust_concentration <- function(CompConc, Fracw, Fraca, RHOsolid) {
 }
 
 # Get compartment prefixes for combined soil and sediment
-compartment_prefixes_combined_scale <- substr(names(CompartmentsConc_combined), 1, 3)
-compartment_prefixes_combined <- substr(names(CompartmentsConc_combined), 1, 2)
-
+compartment_prefixes_scale_sd <- substr(names(CompartmentsConc_sediment), 1, 4)
+compartment_prefixes_scale_s <- substr(names(CompartmentsConc_soil), 1, 3)
+compartment_prefixes_combined_scale <- cbind(compartment_prefixes_scale_s, compartment_prefixes_scale_sd)
+compartment_prefixes_sd <- substr(names(CompartmentsConc_sediment), 1, 3)
+compartment_prefixes_s <- substr(names(CompartmentsConc_soil),1, 2)
+compartment_prefixes_combined <- cbind(compartment_prefixes_s, compartment_prefixes_sd)
 # Get corresponding FRACw, FRACa, and Rho values for combined soil and sediment
 FRACw_values_combined <- FRACw$FRACw[match(compartment_prefixes_combined_scale, FRACw$compartment)]
 FRACa_values_combined <- FRACa$FRACa[match(compartment_prefixes_combined_scale, FRACa$compartment)]
@@ -832,7 +833,7 @@ CompartmentsConc_corrected <- CompartmentsConc
 CompartmentsConc_corrected[, names(CompartmentsConc_combined_adjusted)] <- CompartmentsConc_combined_adjusted
 
 plot(CompartmentsConc_corrected$time, CompartmentsConc_corrected$w1CA, type = "l",
-     xlab = "Time", ylab = "Concentration [g/L",
+     xlab = "Time", ylab = "Concentration [g/L]",
      main = "Freshwater concentrations over time",
      col = "blue") # Set color for w1CA
 
@@ -856,10 +857,54 @@ lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$s2CS, col = "g
 # Add a legend to distinguish the lines
 legend("topright", legend = c("s2CA", "s2CP", "s2CS"), col = c("blue", "red", "green"), lty = 1)
 
+CompartmentsConc_corrected[is.na(CompartmentsConc_corrected)] <- 0
+CompartmentsConc_corrected <- CompartmentsConc_corrected |>
+  mutate(across(where(is.numeric), ~ format(., scientific = TRUE)))
+CompartmentsConc_corrected  <- CompartmentsConc_corrected |>
+  mutate(row_number = row_number())
+FinalConcentration <- CompartmentsConc_corrected |>
+  filter(row_number == 129) |>
+  select(-row_number)
+FinalConcentration <- FinalConcentration %>%
+  pivot_longer(
+    cols = -time,
+    names_to = "Compartment",
+    values_to = "Concentration"
+  )
+FinalConcentration <- FinalConcentration |> 
+  mutate(Concentration = replace_na(Concentration, 0))
+kable(FinalConcentration)
 
 ```
 
-Plotting Of Concentrations Here we append all concentrations per compartment for species A, S and P. Subsequently, we plot these results
+Here we compare the output of the last step of the dynamic computation to the output of steady state.
+
+```{r Comparing to Steady state, include = FALSE}
+##convert to ng
+FinalConcentration <- FinalConcentration %>%
+  mutate(across(where(is.numeric), ~ . * 1e9))
+Concentration_eq <- Concentration_eq |>
+  mutate(Concentration = as.numeric(format(Concentration, scientific = FALSE)))
+FinalConcentration <- FinalConcentration |>
+  mutate(Concentration = as.numeric(format(Concentration, scientific = FALSE)))
+
+DiffSteadyDynamic <- FinalConcentration |>
+  left_join(Concentration_eq, by = c("Compartment" = "Abbr")) |>
+  # Rename concentration.x and concentration.y
+  mutate(ConcDynamic = Concentration.x,
+         ConcSteady = Concentration.y) |>
+  # Calculate concentration difference
+  mutate(concentration_difference = ConcDynamic - ConcSteady) |>
+  # Select relevant columns
+  select(Compartment, ConcDynamic, ConcSteady, concentration_difference)
+kable(DiffSteadyDynamic)
+
+
+```
+
+### Plotting Of Concentrations
+
+Here we append all concentrations per compartment for species A, S and P. Subsequently, we plot these results
 
 ```{r Concentrations Plotting, include=FALSE}
 summed_columns <- list()
@@ -951,7 +996,7 @@ df_plot <- df_long %>%
   mutate(Value = ifelse(Compartment == "sd2C" & is.na(Value), 0, Value),
          Value = ifelse(Compartment == "aC", Value * 1e9, Value))
 
-# PlottiNG
+# Plotting
 ggplot(df_plot, aes(x = time, y = Value)) +
   facet_wrap(~ Compartment, scales = "free_y", nrow = 2, labeller = as_labeller(custom_labeller)) +
   geom_line() +

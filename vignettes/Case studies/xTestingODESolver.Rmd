@@ -1,48 +1,62 @@
+---
+title: "ODE solver set up"
+author: " Valerie de Rijk"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
 
 ```{r setup, include=FALSE}
-knitr::opts_knit$set(root.dir = '/home/rijkdv/git_folder/SBooScripts')
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) 
 ```
+
+# *Initializing World and Substance*
+
+Depending on the substance you want to analyze, a selection needs to be
+made from the three different"worlds" : Molecular, Paticulate and
+Plastics. Here, we initialize the world for particulates.
 
 ```{r Initialize World}
-substance <-  "GO-Chitosan"
 source("baseScripts/initWorld_onlyParticulate.R")
 
+
 ```
 
-
-
+Next, we initialize the solver. SimpleBox in R gives the opportunity to
+choose from multiple solvers, but here we choose the Base-R solve.
 
 ```{r SBsteady}
-World$NewSolver("SBsteady")
+World$NewSolver("SB1Solve")
 ```
 
-What solving means is that using matrix algebra a set of differential equations is solved:
+What solving means is that using matrix algebra a set of differential
+equations is solved:
 
 `K %*% m + e`
 
 Where:
 
-K is the matrix of rate constants for each process describing the mass transfers to and from and out of a state (e.g. substance in freshwater (w1U) or small heteroagglomerate in natural soil (s1A)).
+K is the matrix of rate constants for each process describing the mass
+transfers to and from and out of a state (e.g. substance in freshwater
+(w1U) or small heteroagglomerate in natural soil (s1A)).
 
 m is the mass in each compartment, e.g. 0 at t=0.
 
 e is the emission to each compartment per unit of time, e.g. 1 t/y.
 
-To solve this set of differential equations we thus need an emission, e.g. 1 ton/year to air. The height of this emission is not
+# *Testing the Solver with real- life emissions*
 
-```{r constant emission}
-emissions <- data.frame(Abbr = "aCS", Emis = 1000/(365.25*24*60*60)) # convert 1 t/y to si units: kg/s
-
-# TODO: explain what is the reason for this Abbr? Why is it not a relational table defining scale, compartment and species as for all other data?
-```
-
-Now we are ready to run the solver, which results in the mass in each compartment.
-
-```{r}
-World$Solve(emissions)
-```
-
-
+To test this solver, we use data from a case study on GO-Chitosan. The
+emission data is based on Monte Carlo simulations of a DMPFA model. To
+test, we first select emissions from one scenario and towards one
+compartment.
 
 ```{r emission data}
 file_paths <- 
@@ -97,7 +111,6 @@ Emissions <- Emissions |>
   select(everything())
 
 
-
 plot(Emissions$year, Emissions$Emission_mean, 
      type = "l",  # "l" for line plot, or use "p" for points
      xlab = "Time", ylab = "Emission_mean_tonnes",
@@ -105,22 +118,271 @@ plot(Emissions$year, Emissions$Emission_mean,
 
 ```
 
+# *Solving for Steady State*
 
-```{r emission prep}
+We are first going to solve for a steady state output, meaning that we
+will read in a dataframe with constant emissions in kg/s. For this, we
+take the mean of the yearly averages (which is the mean of the 1000 MC
+runs)
 
+```{r Prep Emission Steady}
 Emissions <- Emissions |>
   mutate(Abr = "w1CS")
+Emissions_avg <- Emissions[-nrow(Emissions), ]
+
+average_emission <- mean(Emissions_avg$Emission_mean[7:23], na.rm = TRUE)
+print(average_emission)
+emissions <- data.frame(Abbr = "w1CS", 
+                        Emis = average_emission)
+emissions$Emis<- emissions$Emis * 1000 / (365.25 * 24 * 60 * 60) # convert 1 t/y to si units: kg/s
+
+
+```
+
+Now we are ready to run the solver, which results in the mass in each
+compartment. We filter for unbound species, which are 0 since they are only relevant when running the model for molecules. 
+
+```{r Solution Steady}
+SolutionSteady <- World$Solve(emissions)
+SolutionSteady <- SolutionSteady |>
+  filter(Species != "Unbound")
+```
+
+# *Dynamically Solving with average Emissions*
+
+With these average emissions, we are now going to solve dynamically. As
+such, we divide the average emission again to be kg/s and use the
+deSolve::ODE to run the model.
+
+```{r ODE Steady}
+SimpleBoxODE = function(t, m, parms) {
+
+  with(as.list(c(parms, m)), {
+    e <- c(rep(0, length(SBNames)))
+    for (name in names(emis)) {
+      e[grep(name, SBNames)] <- emis[[name]] #* (t[2] -t [1])
+    }
+    dm <- K%*% m + e
+    res <- c(dm)
+    list(res, signal = e)
+  })
+}
+
+SBsolve4 <- function( tmax = 1e10, nTIMES = 100, Engine) {
+
+  SB.K = Engine
+  SBNames = colnames(Engine)
+  SB.m0 <- rep(0, length(SBNames))
+  SBtime <- seq(0,tmax,length.out = nTIMES)
+  emis <- data.frame(w1CS = (average_emission*1000)/(365.25*24*3600))
+
+
+  out <- deSolve::ode(
+    y = as.numeric(SB.m0),
+    times = SBtime ,
+    func = SimpleBoxODE,
+    parms = list(K = SB.K, SBNames=SBNames, emis= emis),
+    rtol = 1e-10, atol = 1e-2)
+  #if(as.character(class(deS)[1])!="data.frame") return (list(errorstate="error", deS))
+  colnames(out)[1:length(SBNames)+1] <- SBNames
+  colnames(out)[grep("signal",colnames(out))] <- paste("emis",SBNames,sep = "2")
+  as.data.frame(out) }
+
+SolutionConstantEmissions <- SBsolve4(tmax = 24*(365.25*24*3600),
+  nTIMES = 25,
+  Engine = World$exportEngineR())
+
+```
+
+## Checking mass and emission output
+
+```{r mass steady}
+library(dplyr)
+TotalMass <- SolutionSteady |>
+  summarise(TotalMass = sum(EqMass, na.rm = TRUE)) %>%
+  pull(TotalMass)
+
+nTIMES = 24
+MassConstantemissions <- SolutionConstantEmissions |>
+  mutate(row_number = row_number())
+MassConstantemissions <- MassConstantemissions |>
+  filter(row_number == (nTIMES - 1)) |>
+  select(-row_number)
+
+columns_to_sum <- MassConstantemissions[, !names(MassConstantemissions) %in% c("time")]
+
+# Calculate the row-wise sum of the selected columns
+row_sums <- rowSums(columns_to_sum)
+print(paste("the mass of the calculation with constant emissions is :", row_sums))
+print(paste("the mass of the steady state calculation is:", TotalMass))
+
+```
+
+```{r Emission Check}
+ggplot(SolutionConstantEmissions, aes(x = time, y = emis2w1CS)) +
+  geom_line() +  
+  #geom_hline(yintercept = 43*1000, linetype = "dashed", color = "red") +# Add a line for w1Cs2emis over time
+  labs(title = "Plot of w1Cs2emis against Time",
+       x = "Time",
+       y = "w1Cs2emis") +   # Add labels for axes and title
+  theme_minimal()      # Use a minimal theme
+```
+
+## Comparing Steady and constant
+In these plots we compare the output of two compartments for both deterministic Steady State calculation and a dynamic calculation with average emissions. 
+
+```{r plots Steady vs Constant Emissions}
+library (ggplot2)
+w1CS_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w1CS"]
+ggplot(SolutionConstantEmissions, aes(x = time, y = w1CS)) +
+  geom_line(aes(color = "Average Emissions")) +
+  geom_hline(aes(yintercept = w1CS_value, color = "Steady"), linetype = "dashed") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue")) +
+  labs(title = "Plot of w1CS against Time",
+       x = "Time [s]",
+       y = "w1CS [kg]",
+       color = "Legend") +  # Adding legend title
+  theme_minimal()
+
+w1CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w1CA"]  
+ggplot(SolutionConstantEmissions, aes(x = time, y = w1CA)) +
+  geom_line(aes(color = "Average Emissions")) +
+  geom_hline(aes(yintercept = w1CA_value, color = "Steady"), linetype = "dashed") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue")) +
+  labs(title = "Plot of w1CA against Time",
+       x = "Time [s]",
+       y = "w1CA [kg]",
+       color = "Legend") +  # Adding legend title
+  theme_minimal()
+```
+
+# *Testing ODE's ApproxFun*
+
+In this part, we are testing the approxfun from base-R. We will later
+use this to interpolate between the emission data points. However, first
+we test it on the average emission to ensure it generates the same
+output.
+
+```{r ODE approxfun}
+tmax <- 25 * (365.25 * 24 * 3600)  # Total number of seconds in 25 years
+#generating approxfun for constant emissions
+# Calculate emissions (constant rate)
+emissions <- (average_emission * 1000) / ( 365.25 * 24 * 3600)  # Emissions rate in kg/second
+times <- seq(0, tmax, length.out = 1000)
+# Generate time points (assuming you want to interpolate over some interval)
+emis_values <- rep(emissions, length(times))
+# Create approxfun
+emislist <- list(approxfun(times, emis_values))
+emis_fun <- emislist[["w1CS"]]
+names(emislist) <- "w1CS"
+
+
+
+
+SimpleBoxODE = function(t, m, parms) {
+
+  with(as.list(c(parms, m)), {
+    e <- c(rep(0, length(SBNames)))
+    for (name in names(emislist)) {
+      e[grep(name, SBNames)] <- emislist[[name]](t) 
+    }
+    dm <- K%*% m + e
+    res <- c(dm)
+    list(res, signal = e)
+  })
+}
+
+SBsolve4 <- function( tmax = 1e10, nTIMES = 100, Engine, emislist) {
+
+  SB.K = Engine
+  SBNames = colnames(Engine)
+  SB.m0 <- rep(0, length(SBNames))
+  SBtime <- seq(0,tmax,length.out = nTIMES)
+
+
+  out <- deSolve::ode(
+    y = as.numeric(SB.m0),
+    times = SBtime ,
+    func = SimpleBoxODE,
+    parms = list(K = SB.K, SBNames=SBNames, emislist= emislist),
+    rtol = 1e-10, atol = 1e-2)
+  #if(as.character(class(deS)[1])!="data.frame") return (list(errorstate="error", deS))
+  colnames(out)[1:length(SBNames)+1] <- SBNames
+  colnames(out)[grep("signal",colnames(out))] <- paste("emis",SBNames,sep = "2")
+  as.data.frame(out) }
+
+SolutionConstantApproxFun <- SBsolve4(tmax = 24*(365.25*24*3600),
+  nTIMES = 25,
+  Engine = World$exportEngineR(), 
+  emislist = emislist)
+
+```
+
+## Comparison of the three results so far
+
+```{r Comparison of 3 results}
+w1CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w1CA"]
+w1CS_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w1CS"]
+w2CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "w2CA"]
+s1CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "s1CA"]
+
+
+ggplot() +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CS, color = "Average Emissions")) +
+  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w1CS, color = "Approximation Function avg Emissions"), linetype = "dashed") +
+  geom_hline(aes(yintercept = w1CS_value, color = "Steady"), linetype = "dashed") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Approximation Function avg Emissions" = "green")) +
+  labs(title = "Plot of w1CS against Time",
+       x = "Time [s]",
+       y = "w1CS [kg]",
+       color = "Legend") +  # Adding legend title
+  theme_minimal()
+
+ggplot() +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CA, color = "Average Emissions")) +
+  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w1CA, color = "Approximation Function avg Emissions"), linetype = "dashed") +
+  geom_hline(aes(yintercept = w1CA_value, color = "Steady"), linetype = "dashed") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Approximation Function avg Emissions" = "green")) +
+  labs(title = "Plot of w1CA against Time",
+       x = "Time [s]",
+       y = "w1CA [kg]",
+       color = "Legend") +  # Adding legend title
+  theme_minimal()
+
+ggplot() +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w2CA, color = "Average Emissions")) +
+  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w2CA, color = "Approximation Function avg Emissions"), linetype = "dashed") +
+  geom_hline(aes(yintercept = w2CA_value, color = "Steady"), linetype = "dashed") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Approximation Function avg Emissions" = "green")) +
+  labs(title = "Plot of w2CA against Time",
+       x = "Time [s]",
+       y = "w2CA [kg]",
+       color = "Legend") +  # Adding legend title
+  theme_minimal()
+
+
+```
+
+# *Solving for yearly emission data with approxFun*
+
+Here, we will start solving for the actual emission data (one value per
+year). We first create the approxfun which we solve in a list to use as
+input for the ODE Solver. Importantly, the emissions should be converted
+into mass/seconds to ensure proper working of the solver. This is due to
+the fact that the matrix solves per second.
+
+## prepping ApproxFun
+
+```{r emission prep}
 
 Emissions <- Emissions |>
   mutate(time_s = year*(365.25*24*60*60)+(365.25*24*60*60))
 
 Emissions <- Emissions |> 
-  mutate(Emission_mean_kg = Emission_mean* 1000)
-
+  mutate(Emission_mean_kg = (Emission_mean* 1000)/(365.25*24*60*60) )
 
 SBEmissions <- 
   Emissions |> 
-  mutate(time_s = year*(365.25*24*60*60)+(365.25*24*60*60)) |> ungroup() |> 
   group_by(Abr) |> 
   summarise(n=n(),
             EmisFun = list(
@@ -136,94 +398,534 @@ names(funlist) <- "w1CS"
 w1CS <- funlist[["w1CS"]]
 
 
-times <- seq(0, 25*365.25*24*3600, by = 10000)
+times <- seq(0, 25*365.25*24*3600, by = 1000)
 
 
 time <- Emissions$year
 time_s <-  c(0, time*(365.25*24*60*60)+(365.25*24*60*60))
 emis_kg = c(0,(Emissions |> pull(Emission_mean_kg)))
 
-
-plot(time_s,
-     emis_kg)
-curve(w1CS,
-      add = TRUE)
-
+#after 1
+timesemisvalue <- seq(31557600, 31557600*2, by = 1000000)
+# Calculate the area under the curve using numerical integration
+emission_values <- w1CS(timesemisvalue)
 
 
-```
-
-
-```{r Events}
-
-events <- data.frame(
-  var = "w1CS",
-  time = Emissions$time_s,
-  value = Emissions$Emission_mean_kg,
-  method = "add"
-)
 
 
 ```
 
-```{r}
+## Solving for yearly emission data
 
+```{r original ode with approxfun}
 
-# Define the ODE function without using funlist
-SimpleBoxODE <- function(t, m, parms) {
+##ODE
+
+SimpleBoxODE = function(t, m, parms) {
+
   with(as.list(c(parms, m)), {
-    # Emission values for each compartment
     e <- c(rep(0, length(SBNames)))
-    
-    # Add events directly to the respective compartment
-    if (!is.null(events) && any(events$time == t)) {
-      event_idx <- which(events$time == t)
-      for (idx in event_idx) {
-        name <- events$var[idx]
-        e[grep(name, SBNames)] <- events$value[idx]
-      }
+
+    for (name in names(funlist)) {
+      e[grep(name, SBNames)] <- funlist[[name]](t)
     }
-    
-    dm <- K %*% m + e
+
+    dm <- K%*% m + e
     res <- c(dm)
     list(res, signal = e)
   })
 }
 
-# Function to solve ODE with events
-SBsolve4 <- function(tmax = 1e10, nTIMES = 100, Engine, events) {
-  SB.K <- Engine
-  SBNames <- colnames(Engine)
+
+#Function to Solve
+SBsolve4 <- function( tmax = 1e10, nTIMES = 100, Engine, funlist) {
+
+  SB.K = Engine
+  SBNames = colnames(Engine)
   SB.m0 <- rep(0, length(SBNames))
-  SBtime <- seq(0, tmax, length.out = nTIMES)
-  
+  SBtime <- seq(0,tmax,length.out = nTIMES)
+
+
   out <- deSolve::ode(
     y = as.numeric(SB.m0),
-    times = SBtime,
+    times = SBtime ,
     func = SimpleBoxODE,
-    parms = list(K = SB.K, SBNames = SBNames, events = events),
-    rtol = 1e-10, atol = 1e-2
-  )
-  
-  colnames(out)[1:length(SBNames) + 1] <- SBNames
+    parms = list(K = SB.K, SBNames=SBNames, funlist=funlist),
+    rtol = 1e-10, atol = 1e-2)
+  #if(as.character(class(deS)[1])!="data.frame") return (list(errorstate="error", deS))
+  colnames(out)[1:length(SBNames)+1] <- SBNames
+  colnames(out)[grep("signal",colnames(out))] <- paste("emis",SBNames,sep = "2")
   as.data.frame(out)
+
 }
 
+# Can also test with xlsx engine
+# read in K matrix from xlsx:
+# K.Matrix <- readxl::read_xlsx("vignettes/Development/Quality control/SBExcel/SimpleBox4plastics 4.03_GO-Chitosan.xlsx",
+#                               sheet = "engine",
+#                               range = "D8:FB163") |> as.data.frame()
+#
+# colnames(K.Matrix) <- readxl::read_xlsx("vignettes/Development/Quality control/SBExcel/SimpleBox4plastics 4.03_GO-Chitosan.xlsx",
+#                               sheet = "engine",
+#                               range = "D3:FB3",
+#                               col_names = FALSE) |> slice(1) |> as.character()
+#
+# Solving
+Solution <- SBsolve4(tmax = 24*(365.25*24*3600),
+nTIMES = 25,
+Engine = World$exportEngineR(),
+funlist = funlist)
 
-# Example engine matrix
-SBEngine <- World$exportEngineR()  # Example engine matrix
+# Solution <- SBsolve4(tmax = 25*(365.25*24*3600),
+#                      nTIMES = 130,
+#                      Engine = as.matrix(K.Matrix),
+#                      funlist = funlist)
 
-# Solve the ODE
-results <- SBsolve4(tmax = (365.25*24*60*60)+(365.25*24*60*60*24), nTIMES = 25, Engine = SBEngine, events = events)
+SolutionEmissionData <- as.data.frame(Solution)
 
-print(head(results))
-print(head(events))
+# Same plot of emission as above
+plot(Solution$time,Solution$emis2w1CS)
 
-# Plot the results
-plot(results$time, results$w1CS, type = "l", xlab = "Time (seconds)", ylab = "Emission (kg)")
-points(events$time, events$value, col = "red")
 
-#data is not right
+
+```
+
+# *Comparison of all mass output together*
+
+```{r comparison to steady}
+
+
+# Plot for w2CA
+plot_w2CA <- ggplot() +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w2CA, color = "Average Emissions")) +
+  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w2CA, color = "Constant ApproxFun")) +
+  geom_line(data = SolutionEmissionData, aes(x = time, y = w2CA, color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = w2CA_value, color = "Steady"), linetype = "dashed") +
+  labs(title = "Plot of w2CA against Time",
+       x = "Time (s)",
+       y = "w2CA [kg]",
+       color = "Data Source") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Constant ApproxFun" = "green", "Approxfun Emission Data" = "pink")) +
+  theme_minimal()
+
+# Display the plot
+print(plot_w2CA)
+
+# Plot for w1CS
+plot_w1CS <- ggplot() +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CS, color = "Average Emissions")) +
+  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w1CS,  color = "Constant ApproxFun")) +
+  geom_line(data = SolutionEmissionData, aes(x = time, y = w1CS, color = "Approxfun Emission Data")) +
+ geom_hline(aes(yintercept = w1CS_value, color = "Steady"), linetype = "dashed") +
+  labs(title = "Plot of w1CS against Time",
+       x = "Time (s)",
+       y = "w1CS [kg]",
+       color = "Data Source") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Constant ApproxFun" = "green", "Approxfun Emission Data" = "pink")) +
+  theme_minimal()
+
+# Display the plot for w1CS
+print(plot_w1CS)
+
+# Plot for w1CA
+plot_w1CA <- ggplot() +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = w1CA, color = "Average Emissions")) +
+  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = w1CA,  color = "Constant ApproxFun")) +
+  geom_line(data = SolutionEmissionData, aes(x = time, y = w1CA, color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = w1CA_value, color = "Steady"), linetype = "dashed") + 
+  labs(title = "Plot of w1CA against Time",
+       x = "Time (s)",
+       y = "w2CA [kg]",
+       color = "Data Source") +
+   scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Constant ApproxFun" = "green", "Approxfun Emission Data" = "pink")) +
+  theme_minimal()
+print(plot_w1CA)
+
+s1CA_value <- SolutionSteady$EqMass[SolutionSteady$Abbr == "s1CA"]
+
+plot_s1CA <- ggplot() +
+  geom_line(data = SolutionConstantEmissions, aes(x = time, y = s1CA, color = "Average Emissions")) +
+  geom_line(data = SolutionConstantApproxFun, aes(x = time, y = s1CA,  color = "Constant ApproxFun")) +
+  geom_line(data = SolutionEmissionData, aes(x = time, y = s1CA, color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = s1CA_value, color = "Steady"), linetype = "dashed") + 
+  labs(title = "Plot of s1CA against Time",
+       x = "Time (s)",
+       y = "s1CA [kg]",
+       color = "Data Source") +
+  scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Constant ApproxFun" = "green", "Approxfun Emission Data" = "pink")) +
+  theme_minimal()
+
+print(plot_s1CA)
+
+
+```
+
+# *Computation of Concentrations*
+
+To have a better understanding of the orders of magnitude of the output,
+we compute the concentrations per compartment. First, we will do so for
+the Steady State output. Since this output is relatively
+straightforward, the computation is simple.
+
+## Steady State concentrations
+
+For soil and sediment, we decide to compute the output /kg wet weight
+(w.w.), as is standard in concentration reporting. This requires some
+extra computational steps.
+
+```{r Concentrations Steady}
+library(knitr)
+Volume <- World$fetchData("Volume")
+Area <- World$fetchData("Area")
+FRACw <- World$fetchData("FRACw")
+FRACa <- World$fetchData("FRACa")
+Fractrial <- FRACa$FRACa[FRACa$SubCompart =="air" & FRACa$Scale =="Arctic" ]
+Rho <- World$fetchData("rhoMatrix")
+Concentration_eq <- merge(SolutionSteady, Volume, by = c("SubCompart", "Scale"))
+Concentration_eq$Concentration <- Concentration_eq$EqMass / Concentration_eq$Volume
+RhoWater_value <- Rho$rhoMatrix[Rho$SubCompart == "river"]
+
+f_adjust_concentration <- function(Concentration, FRACw, FRACa, SubCompart, Scale, Rho, RhoWater_value) {
+  # Fetch Fracw based on SubCompart and Scale
+  Fracw <- FRACw$FRACw[FRACw$SubCompart == SubCompart & FRACw$Scale == Scale]
+  
+  # Fetch Fraca based on SubCompart and Scale
+  Fraca <- FRACa$FRACa[FRACa$SubCompart == SubCompart & FRACa$Scale == Scale]
+  
+  # Fetch RHOsolid based on SubCompart
+  RHOsolid <- Rho$rhoMatrix[Rho$SubCompart == SubCompart]
+  
+  # Check if any of Fracw, Fraca, or RHOsolid are N
+  
+  Concentration * 1000 / (Fracw * RhoWater_value + (1 - Fracw - Fraca) * RHOsolid)
+}
+
+subcomparts <- c("agriculturalsoil", "naturalsoil", "othersoil", "freshwatersediment", "marinesediment")
+
+filtered_data <- Concentration_eq[Concentration_eq$SubCompart %in% subcomparts, ]
+
+# Apply the adjustment function to the filtered data
+adjusted_concentrations <- apply(filtered_data, 1, function(row) {
+  f_adjust_concentration(
+    Concentration = as.numeric(row["Concentration"]),
+    FRACw = subset(FRACw, SubCompart == row["SubCompart"] & Scale == row["Scale"]),
+    FRACa = subset(FRACa, SubCompart == row["SubCompart"] & Scale == row["Scale"]),
+    Rho = subset(Rho, SubCompart == row["SubCompart"]),
+    RhoWater_value = 998,  # Replace with your actual RhoWater_value
+    SubCompart = row["SubCompart"],
+    Scale = row["Scale"]
+  )
+})
+# Update Concentration_eq with adjusted concentrations
+Concentration_eq[Concentration_eq$SubCompart %in% subcomparts, "Concentration"] <- adjusted_concentrations
+
+#Define the units
+subcompart <- c("agriculturalsoil", "naturalsoil", "othersoil", "freshwatersediment", "marinesediment",  "lakesediment", "air", "deepocean", "lake" , "river", "sea", "cloudwater")
+units <- c("g/kg w", "g/kg w", "g/kg w", "g/kg w", "g/kg w", "g/kg w",
+           "kg/kg", "kg/L", "kg/L", "kg/L", "kg/L", "kg/L", "kg/L")
+
+# Combine into a named list
+subcompart_units <- setNames(units, subcompart)
+
+
+Concentration_eq <- Concentration_eq |>
+  mutate(Units_per_SubCompart = subcompart_units[SubCompart])
+
+convert_units <- function(concentration, unit) {
+  if (unit == "g/kg w") {
+    return(concentration * 1e9)
+  } else if (unit == "kg/kg") {
+    return(concentration * 1e12)
+  } else if (unit == "kg/L") {
+    return(concentration * 1e12)
+  } else {
+    return(concentration)
+  }
+}
+
+# Convert concentrations to ng/kg or ng/L and update units
+Concentration_eq <- Concentration_eq |>
+  mutate(
+         Concentration = mapply(convert_units, Concentration, Units_per_SubCompart),
+         Units_per_SubCompart = ifelse(Units_per_SubCompart == "g/kg w", "ng/kg w", 
+                                       ifelse(Units_per_SubCompart == "kg/kg", "ng/kg", "ng/L")))
+Concentration_eq <- Concentration_eq |>
+  mutate(across(where(is.numeric), ~ format(., scientific = TRUE)))
+
+#Concentration_eq <- subset(Concentration_eq, select = -old_EqMass)
+
+kable(Concentration_eq)
+```
+
+## Dynamic concentrations
+
+The output of the ODE solver currently only returns output per
+compartment abbreviation. As such, we need to ensure that we match the
+right constants with the right compartments. This requires some
+additional steps. The principles of calculation are the same as above.
+We create some visual output to look at the first results for the
+dynamic concentration.
+
+```{r concentrations dynamic approxfun output}
+
+library(dplyr)
+nTIMES <- 25
+#seperate signals and matrix
+#compartments
+compartments <- SolutionEmissionData[, 1:156]
+compartments <- compartments |> select(-matches("U$"))
+signals <- SolutionEmissionData[, 157:311]
+# Fetch necessary data
+Volume <- World$fetchData("Volume")
+Area <- World$fetchData("Area")
+FRACw <- World$fetchData("FRACw")
+FRACa <- World$fetchData("FRACa")
+Rho <- World$fetchData("rhoMatrix")
+
+
+# Define acronyms maps
+acronym_map <- c(
+  "marinesediment" = "sd2", "freshwatersediment" = "sd1", "lakesediment" = "sd0",
+  "agriculturalsoil" = "s2", "naturalsoil" = "s1", "othersoil" = "s3",
+  "air" = "a", "deepocean" = "w3", "sea" = "w2", "river" = "w1", "lake" = "w0", "cloudwater" = "cw"
+)
+acronym_map2 <- c("Arctic" = "A", "Moderate" = "M", "Tropic" = "T", "Continental" = "C", "Regional" = "R")
+acronym_map3 <- c("Dissolved" = "D", "Gas" = "G", "Large" = "P", "Small" = "A", "Solid" = "S", "Unbound" = "U")
+
+# Add compartment column to data
+Volume <- Volume |> mutate(compartment = paste0(acronym_map[SubCompart], acronym_map2[Scale]))
+FRACw <- FRACw |> mutate(compartment = paste0(acronym_map[SubCompart], acronym_map2[Scale]))
+FRACa <- FRACa |> mutate(compartment = paste0(acronym_map[SubCompart], acronym_map2[Scale]))
+Rho <- Rho |> mutate(compartment = paste0(acronym_map[SubCompart]))
+
+CompartmentsConc <- compartments
+# List of columns in CompartmentsConc that need transformation
+columns_to_transform <- setdiff(names(CompartmentsConc), "time")
+
+# Calculate concentrations by dividing by the corresponding volume
+for (col in columns_to_transform) {
+  compartment <- substr(col, 1, nchar(col) - 1)
+  volume <- Volume$Volume[Volume$compartment == compartment]
+  if (length(volume) == 1) {
+    CompartmentsConc[[col]] <- CompartmentsConc[[col]] / volume
+  } else {
+    warning(paste("Volume not found for compartment", compartment))
+  }
+}
+
+## Extract soil and sediment columns
+CompartmentsConc_soil_names <- grep("^s[123]", names(CompartmentsConc), value = TRUE)
+CompartmentsConc_sediment_names <- grep("^sd[0123]", names(CompartmentsConc), value = TRUE)
+CompartmentsConc_soil <- CompartmentsConc[, CompartmentsConc_soil_names]
+CompartmentsConc_sediment <- CompartmentsConc[, CompartmentsConc_sediment_names]
+
+
+# Combine soil and sediment columns
+CompartmentsConc_combined <- cbind(CompartmentsConc_soil, CompartmentsConc_sediment)
+
+
+# Identify the columns that are not in the excluded list
+included_names <- setdiff(names(CompartmentsConc), names(CompartmentsConc_combined))
+included_names <- included_names[!grepl("time", included_names, ignore.case = TRUE)]
+print(included_names)
+
+# Multiply the included columns by 1000
+CompartmentsConc[included_names] <- CompartmentsConc[included_names] * 1000
+
+# Get RhoWater value for river compartment
+RhoWater_value <- Rho$rhoMatrix[Rho$SubCompart == "river"]
+
+# Define function to adjust concentrations
+f_adjust_concentration <- function(CompConc, Fracw, Fraca, RHOsolid) {
+  CompConc * 1000 / (Fracw * RhoWater_value + (1 - Fracw - Fraca) * RHOsolid)
+}
+
+# Get compartment prefixes for combined soil and sediment
+compartment_prefixes_scale_sd <- substr(names(CompartmentsConc_sediment), 1, 4)
+compartment_prefixes_scale_s <- substr(names(CompartmentsConc_soil), 1, 3)
+compartment_prefixes_combined_scale <- cbind(compartment_prefixes_scale_s, compartment_prefixes_scale_sd)
+compartment_prefixes_sd <- substr(names(CompartmentsConc_sediment), 1, 3)
+compartment_prefixes_s <- substr(names(CompartmentsConc_soil),1, 2)
+compartment_prefixes_combined <- cbind(compartment_prefixes_s, compartment_prefixes_sd)
+
+# Get corresponding FRACw, FRACa, and Rho values for combined soil and sediment
+FRACw_values_combined <- FRACw$FRACw[match(compartment_prefixes_combined_scale, FRACw$compartment)]
+FRACa_values_combined <- FRACa$FRACa[match(compartment_prefixes_combined_scale, FRACa$compartment)]
+Rho_values_combined <- Rho$rhoMatrix[match(compartment_prefixes_combined, Rho$compartment)]
+
+# Apply the function to adjust combined soil and sediment concentrations
+CompartmentsConc_combined_adjusted <- mapply(
+  f_adjust_concentration,
+  CompartmentsConc_combined,
+  Fracw = FRACw_values_combined,
+  Fraca = FRACa_values_combined,
+  RHOsolid = Rho_values_combined,
+  SIMPLIFY = FALSE
+) |> as.data.frame()
+
+# Assign column names to adjusted data
+colnames(CompartmentsConc_combined_adjusted) <- colnames(CompartmentsConc_combined)
+
+
+CompartmentsConc_corrected <- CompartmentsConc
+
+# Overwrite the original soil and sediment columns with the adjusted values
+CompartmentsConc_corrected[, names(CompartmentsConc_combined_adjusted)] <- CompartmentsConc_combined_adjusted
+
+
+plot(CompartmentsConc_corrected$time, CompartmentsConc_corrected$w1CA, type = "l",
+     xlab = "Time", ylab = "Concentration [g/L]",
+     main = "Freshwater concentrations over time",
+     col = "blue") # Set color for w1CA
+
+# Add the line for w1CP to the same plot
+lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$w1CP, col = "red") 
+lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$w1CS, col = "green")
+
+# Add a legend to distinguish the lines
+legend("topright", legend = c("W1CA", "W1CP", "W1CS"), col = c("blue", "red", "green"), lty = 1)
+
+
+plot(CompartmentsConc_corrected$time, CompartmentsConc_corrected$sd1CA, type = "l",
+     xlab = "Time", ylab = "Concentration [g/kg w.w.]",
+     main = "Soil concentrations over time",
+     col = "blue") # Set color for w1CA
+
+# Add the line for w1CP to the same plot
+lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$s2CP, col = "red") 
+lines(CompartmentsConc_corrected$time, CompartmentsConc_corrected$s2CS, col = "green")
+
+# Add a legend to distinguish the lines
+legend("topright", legend = c("s2CA", "s2CP", "s2CS"), col = c("blue", "red", "green"), lty = 1)
+
+CompartmentsConc_corrected[is.na(CompartmentsConc_corrected)] <- 0
+CompartmentsConc_corrected[, -which(names(CompartmentsConc_corrected) == "time")] <- 
+  CompartmentsConc_corrected[, -which(names(CompartmentsConc_corrected) == "time")] * 1e9
+
+# CompartmentsConc_corrected <- CompartmentsConc_corrected |>
+#   mutate(across(where(is.numeric), ~ format(., scientific = TRUE)))
+CompartmentsConc_corrected  <- CompartmentsConc_corrected |>
+  mutate(row_number = row_number())
+FinalConcentration <- CompartmentsConc_corrected |>
+  filter(row_number == (nTIMES - 1)) |>
+  select(-row_number)
+FinalConcentration <- FinalConcentration %>%
+  pivot_longer(
+    cols = -time,
+    names_to = "Compartment",
+    values_to = "Concentration"
+  )
+
+FinalConcentration <- FinalConcentration |> 
+  mutate(Concentration = replace_na(Concentration, 0))
+kable(FinalConcentration)
+
+```
+
+## Comparison with Steady State
+
+We now look at the difference between the total mass of the Steady State
+calculation versus the mass in the final step of the dynamic
+calculation.
+
+```{r Comparison Mass}
+TotalMass <- SolutionSteady %>%
+  summarise(TotalMass = sum(EqMass, na.rm = TRUE)) %>%
+  pull(TotalMass)
+
+
+FinalMass <- Solution |>
+  mutate(row_number = row_number())
+FinalMass <- FinalMass |>
+  filter(row_number == (nTIMES - 1)) |>
+  select(-row_number)
+
+columns_to_sum <- FinalMass[, !names(FinalMass) %in% c("time")]
+
+# Calculate the row-wise sum of the selected columns
+row_sums <- rowSums(columns_to_sum)
+print(paste("the mass of the dynamic calculation is :", row_sums))
+print(paste("the mass of the steady state calculation is:", TotalMass))
+
+```
+
+Here, we look at the differences in concentrations by creating both
+plots and tables.
+
+```{r Concentration Plots}
+# Convert all columns in CompartmentsConc to numeric
+CompartmentsConc[] <- lapply(CompartmentsConc, as.numeric)
+
+# Convert the Concentration column to numeric
+Concentration_eq$Concentration <- as.numeric(Concentration_eq$Concentration)
+w1CS_conc <- Concentration_eq$Concentration[Concentration_eq$Abbr == "w1CS"]
+ggplot(CompartmentsConc_corrected, aes(x = time, y = w1CS)) +
+  geom_line(aes(color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = w1CS_conc, color = "steady"), linetype = "dashed") +
+  labs(title = "Plot of w1CS against Time",
+       x = "Time",
+       y = "w1CS [ng/L]") +
+  theme_minimal() +
+  scale_color_manual(name = "Legend", 
+                     values = c("Approxfun Emission Data" = "pink", "steady" = "red"))
+
+# Extract w1CA concentration
+w1CA_conc <- Concentration_eq$Concentration[Concentration_eq$Abbr == "w1CA"]
+
+
+# Plot w1CA against time
+ggplot(CompartmentsConc_corrected, aes(x = time, y = w1CA)) +
+  geom_line(aes(color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = w1CA_conc, color = "steady"), linetype = "dashed") +
+  labs(title = "Plot of w1CA against Time",
+       x = "Time",
+       y = "w1CA [ng/L]") +
+  theme_minimal() +
+  scale_color_manual(name = "Legend", values = c("Approxfun Emission Data" = "pink", "steady" = "red"))
+
+w2CA_conc <- Concentration_eq$Concentration[Concentration_eq$Abbr == "w2CA"]
+# Plot w2CA against time
+ggplot(CompartmentsConc_corrected, aes(x = time, y = w2CA)) +
+  geom_line(aes(color ="Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = w2CA_conc, color = "steady"), linetype = "dashed") +
+  labs(title = "Plot of w2CA against Time",
+       x = "Time [s]",
+       y = "w2CA [ng/L]") +
+  theme_minimal() +
+  scale_color_manual(name = "Legend", values = c("Approxfun Emission Data" = "pink", "steady" = "red"))
+
+s1CA_conc <- Concentration_eq$Concentration[Concentration_eq$Abbr == "s1CA"]
+# Plot s1CA against time
+ggplot(CompartmentsConc_corrected, aes(x = time, y = s1CA)) +
+  geom_line(aes(color = "Approxfun Emission Data")) +
+  geom_hline(aes(yintercept = s1CA_conc, color = "steady"), linetype = "dashed")  +
+  labs(title = "Plot of s1CA against Time",
+       x = "Time [s]",
+       y = "s1CA [ng/L]") +
+  theme_minimal() +
+  scale_color_manual(name = "Legend", values = c("Approxfun Emission Data" = "pink", "steady" = "red"))
+
+```
+
+The concentration in certain compartments is less for dynamic calculations due to the fact that a steady state is not yet reached in some compartments, as is examplified in the table below. 
+```{r Comparison Steady Concentration}
+
+Concentration_eq <- Concentration_eq |>
+  mutate(Concentration = as.numeric(format(Concentration, scientific = FALSE)))
+FinalConcentration <- FinalConcentration |>
+  mutate(Concentration = as.numeric(format(Concentration, scientific = FALSE)))
+
+
+DiffSteadyDynamic <- FinalConcentration |>
+  left_join(Concentration_eq, by = c("Compartment" = "Abbr")) |>
+  # Rename concentration.x and concentration.y
+  mutate(ConcDynamic = Concentration.x,
+         ConcSteady = Concentration.y) |>
+  # Calculate concentration difference
+  mutate(concentration_difference = ConcDynamic - ConcSteady) |>
+  # Select relevant columns
+  select(Compartment, ConcDynamic, ConcSteady, concentration_difference)
+kable(DiffSteadyDynamic)
 
 
 ```
