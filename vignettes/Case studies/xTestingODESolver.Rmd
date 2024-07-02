@@ -59,7 +59,6 @@ test, we first select emissions from one scenario and towards one
 compartment.
 
 ```{r emission data}
-library(pracma)
 file_paths <- 
   list.files("data/emissions",recursive = TRUE)
 Emissions <-
@@ -141,7 +140,7 @@ emissions$Emis<- emissions$Emis * 1000 / (365.25 * 24 * 60 * 60) # convert 1 t/y
 ```
 
 Now we are ready to run the solver, which results in the mass in each
-compartment.
+compartment. We filter for unbound species, which are 0 since they are only relevant when running the model for molecules. 
 
 ```{r Solution Steady}
 SolutionSteady <- World$Solve(emissions)
@@ -230,6 +229,7 @@ ggplot(SolutionConstantEmissions, aes(x = time, y = emis2w1CS)) +
 ```
 
 ## Comparing Steady and constant
+In these plots we compare the output of two compartments for both deterministic Steady State calculation and a dynamic calculation with average emissions. 
 
 ```{r plots Steady vs Constant Emissions}
 library (ggplot2)
@@ -258,14 +258,14 @@ ggplot(SolutionConstantEmissions, aes(x = time, y = w1CA)) +
 
 # *Testing ODE's ApproxFun*
 
-In this part, we are testing the approxfun from base-R. We will latere
+In this part, we are testing the approxfun from base-R. We will later
 use this to interpolate between the emission data points. However, first
 we test it on the average emission to ensure it generates the same
 output.
 
 ```{r ODE approxfun}
 tmax <- 25 * (365.25 * 24 * 3600)  # Total number of seconds in 25 years
-
+#generating approxfun for constant emissions
 # Calculate emissions (constant rate)
 emissions <- (average_emission * 1000) / ( 365.25 * 24 * 3600)  # Emissions rate in kg/second
 times <- seq(0, tmax, length.out = 1000)
@@ -409,14 +409,7 @@ emis_kg = c(0,(Emissions |> pull(Emission_mean_kg)))
 timesemisvalue <- seq(31557600, 31557600*2, by = 1000000)
 # Calculate the area under the curve using numerical integration
 emission_values <- w1CS(timesemisvalue)
-area_under_curve <- trapz(timesemisvalue, emission_values)
 
-# Print the area under the curve
-
-plot(time_s,
-     emis_kg)
-curve(w1CS,
-      add = TRUE)
 
 
 
@@ -443,7 +436,7 @@ SimpleBoxODE = function(t, m, parms) {
   })
 }
 
-=
+
 #Function to Solve
 SBsolve4 <- function( tmax = 1e10, nTIMES = 100, Engine, funlist) {
 
@@ -557,7 +550,7 @@ plot_s1CA <- ggplot() +
   geom_hline(aes(yintercept = s1CA_value, color = "Steady"), linetype = "dashed") + 
   labs(title = "Plot of s1CA against Time",
        x = "Time (s)",
-       y = "w2CA [kg]",
+       y = "s1CA [kg]",
        color = "Data Source") +
   scale_color_manual(values = c("Steady" = "red", "Average Emissions" = "blue", "Constant ApproxFun" = "green", "Approxfun Emission Data" = "pink")) +
   theme_minimal()
@@ -914,6 +907,7 @@ ggplot(CompartmentsConc_corrected, aes(x = time, y = s1CA)) +
 
 ```
 
+The concentration in certain compartments is less for dynamic calculations due to the fact that a steady state is not yet reached in some compartments, as is examplified in the table below. 
 ```{r Comparison Steady Concentration}
 
 Concentration_eq <- Concentration_eq |>
