@@ -996,7 +996,7 @@ df_plot <- df_long %>%
   mutate(Value = ifelse(Compartment == "sd2C" & is.na(Value), 0, Value),
          Value = ifelse(Compartment == "aC", Value * 1e9, Value))
 
-# Plottinf
+# Plotting
 ggplot(df_plot, aes(x = time, y = Value)) +
   facet_wrap(~ Compartment, scales = "free_y", nrow = 2, labeller = as_labeller(custom_labeller)) +
   geom_line() +
