@@ -1,11 +1,32 @@
+---
+title: "Testing Mass Balance"
+author: "Valerie de Rijk"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) 
+```
+
+## Initiation
+
+We assume you have the input data for a substance or material of interest and all the data describing the SimpleBox world to be created ready and thus can run the initWorld script.
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
 library(dplyr)
-
 source("baseScripts/initWorld_onlyParticulate.R")
+World$NewSolver("SB1Solve")
 
+```
 
-
-World$NewSolver("SBsteady")
-
+```{r solver}
 
 file_paths <- 
   list.files("data/emissions",recursive = TRUE)
@@ -73,12 +94,17 @@ print(average_emission)
 emissions <- data.frame(Abbr = "w1CS", 
                         Emis = average_emission)
 emissions$Emis<- emissions$Emis * 1000 / (365.25 * 24 * 60 * 60) # convert 1 t/y to si units: kg/s
+```
 
-
+```{r Solving}
 SolutionSteady <- World$Solve(emissions)
 SolutionSteady <- SolutionSteady |>
   filter(Species != "Unbound")
 
+```
+
+
+```{r Mass Balance Check}
 unique_combinations <- SolutionSteady |>
   select(Scale, SubCompart, Species) |>
   distinct()
@@ -163,4 +189,5 @@ max_row_index <- which.max(massbalance_difference$difference)
 max_row <- massbalance_difference[max_row_index, ]
 
 # Print the row with the largest EqMass value
-print(max_row)      
+print(max_row)   
+```

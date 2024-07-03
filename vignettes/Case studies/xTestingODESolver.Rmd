@@ -194,30 +194,6 @@ SolutionConstantEmissions <- SBsolve4(tmax = 24*(365.25*24*3600),
 
 ```
 
-## Checking mass and emission output
-
-```{r mass steady}
-library(dplyr)
-TotalMass <- SolutionSteady |>
-  summarise(TotalMass = sum(EqMass, na.rm = TRUE)) %>%
-  pull(TotalMass)
-
-nTIMES = 24
-MassConstantemissions <- SolutionConstantEmissions |>
-  mutate(row_number = row_number())
-MassConstantemissions <- MassConstantemissions |>
-  filter(row_number == (nTIMES - 1)) |>
-  select(-row_number)
-
-columns_to_sum <- MassConstantemissions[, !names(MassConstantemissions) %in% c("time")]
-
-# Calculate the row-wise sum of the selected columns
-row_sums <- rowSums(columns_to_sum)
-print(paste("the mass of the calculation with constant emissions is :", row_sums))
-print(paste("the mass of the steady state calculation is:", TotalMass))
-
-```
-
 ```{r Emission Check}
 ggplot(SolutionConstantEmissions, aes(x = time, y = emis2w1CS)) +
   geom_line() +  
@@ -824,30 +800,6 @@ kable(FinalConcentration)
 
 ## Comparison with Steady State
 
-We now look at the difference between the total mass of the Steady State
-calculation versus the mass in the final step of the dynamic
-calculation.
-
-```{r Comparison Mass}
-TotalMass <- SolutionSteady %>%
-  summarise(TotalMass = sum(EqMass, na.rm = TRUE)) %>%
-  pull(TotalMass)
-
-
-FinalMass <- Solution |>
-  mutate(row_number = row_number())
-FinalMass <- FinalMass |>
-  filter(row_number == (nTIMES - 1)) |>
-  select(-row_number)
-
-columns_to_sum <- FinalMass[, !names(FinalMass) %in% c("time")]
-
-# Calculate the row-wise sum of the selected columns
-row_sums <- rowSums(columns_to_sum)
-print(paste("the mass of the dynamic calculation is :", row_sums))
-print(paste("the mass of the steady state calculation is:", TotalMass))
-
-```
 
 Here, we look at the differences in concentrations by creating both
 plots and tables.
