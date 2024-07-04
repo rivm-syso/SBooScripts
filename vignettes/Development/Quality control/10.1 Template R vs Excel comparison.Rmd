@@ -216,7 +216,7 @@ exclusions in k_Degradation.*
 
 
 kaas2 <- kaas |>  
-  filter(from != to) |> #filtering the diagonals ou
+  filter(from != to) |> #filtering the diagonals out
   group_by(from, to) %>% summarize(k = sum(k)) #R version sometimes has multiple k's per fromto box; excel only has the summed k's per box
 
 kaas2$fromto <- paste(sep = "_", kaas2$from, kaas2$to)
@@ -311,6 +311,39 @@ kaas |> filter(fromScale == "Tropic"&
 
 
 ```
+
+# Investigating a difference in the diagonal of aR (date 20240628)
+There still seems to be a difference in a process to do with the aR compartment; specifically from aR to aC.
+
+```{r}
+#What processes take place from aR to aC?
+kaas %>% filter(from == "aR" & to == "aC")
+#it is k_Advection; debugging...
+
+#k.aR.aC is 9.42E-06 in Excel version, 9.41E-06 in R
+
+World$moduleList[["k_Advection"]]$execute(debugAt = list())
+#Function only requires "flow" and "Volume". How does it know for which compartment to calculate??
+
+World$fetchData("Volume") #different from Excel (2.2957E+14 in Excel)
+World$fetchData("Area") #also different from Excel (2.2957E+11 in Excel)
+
+kex = World$NewCalcVariable("Area")
+kex$execute(debugAt = list(ScaleName = "Regional"))
+#AreaLand and AreaSea don't match... seem calculated instead of input (as in Excel)
+kex = World$NewCalcVariable("AreaLand")$execute(debugAt = list(ScaleName = "Regional"))
+kex$execute(debugAt = list(ScaleName = "Regional"))
+
+
+
+
+```
+
+TotalArea input in ScaleSheet.xlsx for Regional does not match that in Excel; rounding error. Should be 2.2957E11 instead of 2.30E11
+k.aR.aC in excel does match R k_Adevction for regional if area in excel is changed to match R input
+So no fault of the formules in R, but due to different inputs. 
+
+As the implementation of the total area differs between R and Excel. Due to the nesting in R, I am unsure how exactly to address this; should the TotalAreas of continental and moderate zones also be changed when changing that of Regional?
 
 ## *water*
 
