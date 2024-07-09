@@ -399,6 +399,49 @@ Substances <- read.csv("data/Substances.csv")
 subst <- Substances |>
   filter(Substance == substance)
 
+# k_volatalisation = 0 in R. 
+# Kscompw = inf
+# Kp = inf
+# Ksw.alt = inf
+
+```
+
+```{r infinite values ksw}
+# Debug
+World$NewCalcVariable("Ksw.alt")
+World$CalcVar("Ksw.alt")
+ 
+World$moduleList[["Ksw.alt"]]$execute(debugAt = list())
+World$moduleList[["v_Kscompw"]]$execute()
+
+# One of the reasons for Ksw.alt to return inf is if Kow is very large, bc in the
+# exponential function this number grow quickly. Test below: 
+
+World$SetConst("Kow" = 600)
+
+World$UpdateKaas()
+
+# Now check the values for ksw and ksw.alt
+World$fetchData("Ksw.alt") # still inf
+
+# Change Kow back to original value
+World$SetConst("Kow" = subst$Kow)
+
+# manually calculate ksw to see what the problem is
+Kow <- World$fetchData("Kow")
+pKa <- World$fetchData("pKa")
+RHOsolid <- World$fetchData("rhoMatrix") |>
+  filter(SubCompart == "naturalsoil") 
+RHOsolid <- RHOsolid$rhoMatrix
+CorgStandard <- World$fetchData("CorgStandard")
+
+# The 10^(pKa^0.65*(Kow/(1+Kow)^0.14)) part is the problem, the number becomes too large for R to calculate. 
+10^(pKa^0.65*(Kow/(1+Kow)^0.14)) * CorgStandard * RHOsolid / 1000
+
+# Possible solution: working with logarithmic numbers? 
+
+# Other solution: use a package that can handle calculating large numbers, like Rmpfr or Brobdingnag.
+
 ```
 
 ``` {r comparison of steady state emissions}
