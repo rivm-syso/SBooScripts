@@ -408,18 +408,18 @@ subst <- Substances |>
 
 ```{r infinite values ksw}
 # Debug
-World$NewCalcVariable("Ksw.alt")
-World$CalcVar("Ksw.alt")
- 
-World$moduleList[["Ksw.alt"]]$execute(debugAt = list())
-World$moduleList[["v_Kscompw"]]$execute()
+# World$NewCalcVariable("Ksw.alt")
+# World$CalcVar("Ksw.alt")
+#  
+# World$moduleList[["Ksw.alt"]]$execute(debugAt = list())
+# World$moduleList[["v_Kscompw"]]$execute()
 
 # One of the reasons for Ksw.alt to return inf is if Kow is very large, bc in the
 # exponential function this number grow quickly. Test below: 
 
-World$SetConst("Kow" = 600)
+#World$SetConst("Kow" = 600)
 
-World$UpdateKaas()
+#World$UpdateKaas()
 
 # Now check the values for ksw and ksw.alt
 World$fetchData("Ksw.alt") # still inf
@@ -438,11 +438,114 @@ CorgStandard <- World$fetchData("CorgStandard")
 # The 10^(pKa^0.65*(Kow/(1+Kow)^0.14)) part is the problem, the number becomes too large for R to calculate. 
 10^(pKa^0.65*(Kow/(1+Kow)^0.14)) * CorgStandard * RHOsolid / 1000
 
-# Possible solution: working with logarithmic numbers? 
-
-# Other solution: use a package that can handle calculating large numbers, like Rmpfr or Brobdingnag.
+# Parentheses were in the wrong place, causing the large numbers. Fixed.
 
 ```
+
+```{r resuspension}
+# There are large relative differences in resuspension rates between R and Excel. 
+
+World$NewCalcVariable("k_Resuspension")
+World$CalcVar("k_Resuspension")
+
+World$moduleList[["k_Resuspension"]]$execute(debugAt = list())
+
+World$NewCalcVariable("f_SetVelWater")
+World$CalcVar("f_SetVelWater")
+
+World$moduleList[["f_SetVelWater"]]$execute(debugAt = list())
+
+# setvelwater formula
+2*(radius^2*(rhoParticle-rhoWater)*GN) / (9*DynViscWaterStandard)
+
+# sedimentation
+2*((3*10^-6)^2*(2500-998)*9.80665)/(9*0.001002) # = 2.94*10^-5
+
+#resuspension
+SettlingVelocitySPM <- 2.5/(24*3600)
+FRACs <- 0.2
+to.SUSP <- 0.005#0.015
+from.RhoCP <- 2500
+  
+GROSSEDrate <- SettlingVelocitySPM*to.SUSP/(FRACs*from.RhoCP)
+print(GROSSEDrate)
+
+NETsedrate <- World$fetchData("NETsedrate") |>
+  filter(Scale == "Arctic")
+to.NETsedrate <- NETsedrate$NETsedrate
+print(to.NETsedrate)
+
+RESUSflow <- max(0, GROSSEDrate - to.NETsedrate)
+print(RESUSflow)
+
+VertDistance <- World$fetchData("VertDistance") |>
+  filter(Scale == "Arctic") |>
+  filter(SubCompart == "marinesediment")
+
+VertDistance <- VertDistance$VertDistance
+des <- 0.000000000281561383019
+
+# des (desorption flux) was not included in the k_resuspension function, which caused the difference in k value. Below is the formula that does yield the same outcome as excel. Where is the desorption flux in R?
+(RESUSflow + des)/ VertDistance
+
+# k_Resuspension+k_Desorption should be equal to k resuspension in excel: 
+res <- kaas |>
+  filter(process == "k_Resuspension") |>
+  filter(fromScale == "Arctic")
+res <- res$k
+
+des <- kaas |>
+  filter(process == "k_Desorption") |>
+  filter(fromScale == "Arctic")
+des <- des$k
+
+total_res <- res+des
+# Not the same as in excel, bc desorption is different.
+
+# debug desorption
+
+World$moduleList[["k_Desorption"]]$execute(debugAt = list())
+
+# ksdcompw is different, check why
+World$fetchData("Ksdcompw")
+World$fetchData("Kscompw")
+
+World$moduleList[["Kp"]]$execute(debugAt = list())
+
+kp <- World$fetchData("Kp")
+
+```
+
+```{r}
+# Check differences air -> water
+airwater <- kaas |>
+  filter(fromSubCompart == "air") |>
+  filter(toSubCompart == "sea")
+
+# The k's are adsorption and deposition, check difference with excel
+ads <- airwater |>
+  filter(process == "k_Adsorption" & fromScale == "Continental")
+ads <- ads$k
+
+dep <- airwater |>
+  filter(process == "k_Deposition" & fromScale == "Continental")
+dep <- dep$k
+
+# The variables used to calculate air > water in excel are: MeanDep, GASABS.a.w, AREAFRAC.w2C and HEIGHT.aC.
+
+World$moduleList[["k_Deposition"]]$execute(debugAt = list())
+
+# DRYDEP calculation: 
+
+# AEROSOLdeprate is same as in excel
+# FRinaerw and FRinaers are also the same as in excel
+# Formula is also the same
+
+# 
+
+
+
+``` 
 
 ``` {r comparison of steady state emissions}
 
