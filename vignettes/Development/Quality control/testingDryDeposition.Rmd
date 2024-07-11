@@ -143,16 +143,6 @@ kaas <-
                        (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(to, c("sd2"="sd","s1"="s")), to))
 
 
-# kaas <-
-#   kaas |>
-#   mutate(from =
-#                    ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") &
-#                             (fromSubCompart == "lakesediment" | fromSubCompart == "freshwatersediment" | fromSubCompart ==  "agriculturalsoil" | fromSubCompart == "othersoil"),
-#                           str_replace_all(from, c("sd2"="sd","s1"="s", "sd0"="sd", "sd1"="sd", "s2"="s", "s1"="s")),
-#                           from)) |>
-#   mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") &
-#                        (toSubCompart == "lakesediment" | toSubCompart == "freshwatersediment" | toSubCompart ==  "agriculturalsoil" | toSubCompart == "othersoil"), str_replace_all(to, c("sd2"="sd","s1"="s", "sd0"="sd", "sd1"="sd", "s2"="s", "s1"="s")), to))
-#   
 
 diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] #all the diagonals in excel are negative values -> sums of all the "froms" of that compartment
 
@@ -168,7 +158,8 @@ filtered_excel <- filtered_excel[!endsWith(filtered_excel$from, "G"), ]
 
 diagonal_R <-aggregate(k ~ from, data = kaas, FUN = sum) 
 print(diagonal_R$from)
-filtered_R <- diagonal_R[!endsWith(diagonal_R$from, "U"), ]
+filtered_R <- diagonal_R[!endsWith(diagonal_R$from, "U"), ]2
+
 #diagonal_R <- filtered_R
       
 ```
@@ -266,5 +257,7 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
   geom_point() +
   scale_color_gradient(low = "green", high = "red") 
 #If you want to inspect per process instead of fromto box: look at the original kaas dataframe
+kaas |> filter(from == "aAS")
+
 
 ```

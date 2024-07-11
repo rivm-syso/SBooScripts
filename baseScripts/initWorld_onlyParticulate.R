@@ -8,13 +8,12 @@ source("baseScripts/fakeLib.R")
 if (!exists("substance")) {
   substance <- "nAg_10nm"
 }
-
 #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
 ClassicStateModule <- ClassicNanoWorld$new("data", substance)
 
 #with this data we create an instance of the central "core" object,
 World <- SBcore$new(ClassicStateModule)
-
+World$SetConst(Test = "TRUE")
 # We are interested in the particulate species only, so no need to filter like in the Molecular initWorld
 
 # To proceed with testing we set
