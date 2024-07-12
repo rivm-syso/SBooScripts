@@ -20,7 +20,10 @@ knitr::opts_knit$set(root.dir = projectRoot)
 
 
 ```{r solver}
-
+library(dplyr)
+library(readr)
+library(tidyr)
+library(stringr)
 file_paths <- 
   list.files("data/emissions",recursive = TRUE)
 Emissions <-
@@ -425,7 +428,7 @@ kaas_aggregated <- kaas_filtered_ZnII_SB1Solve |>
   mutate(k = if_else(process == "k_Advection", sum(k), k)) |>
   filter(!duplicated(process))
 
-kaas_aggregated <- kaas_aggregated %>%
+kaas_aggregated <- kaas_aggregated |>
     mutate(k = if_else(process == "k_Degradation", -abs(k), k))
 
 
@@ -465,9 +468,9 @@ process_substance <- function(data, substance_name) {
   # Make the ones with the specified from columns negative
   # Aggregate k values for k_Advection
   k_Advection_sum <- sum(filtered_data$k[filtered_data$process == "k_Advection"])
-  filtered_data <- filtered_data %>%
-    group_by(process) %>%
-    mutate(k = if_else(process == "k_Advection", k_Advection_sum, k)) %>%
+  filtered_data <- filtered_data |>
+    group_by(process) |>
+    mutate(k = if_else(process == "k_Advection", k_Advection_sum, k)) |>
     filter(!duplicated(process))  # Remove duplicates after aggregation
   
   # Ensure k_Degradation remains negative
@@ -513,5 +516,9 @@ for (substance in unique_substances) {
   process_substance(kaas_filtered_all, substance)
 }
 
+
+```
+
+``` {r uncertainty}
 
 ```
