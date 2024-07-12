@@ -47,15 +47,15 @@ ProcessNanoFunctions[!ProcessNanoFunctions %in% unique(World$kaas$process)]
 
 unique(World$kaas$process)
 World$fetchData("AEROresist")
-World$fetchData("rad_species")
+World$fetchData("rho_species")
 World$fetchData("RadS")
 World$fetchData("RadCOL")
 World$fetchData("RadCP")
 #World$moduleList[["k_DryDeposition"]]$execute()
-#World$moduleList[["k_DryDeposition"]]$execute(debugAt = list())
+# World$moduleList[["k_DryDeposition"]]$execute(debugAt = list())
 #df$execute(debugAt = list(Scale = "Regional", SubCompart = "lake"))
-World$fetchData("FricVel")
-World$fetchData("SettlingVelocity")
+World$fetchData("Area")
+World$fetchData("NumConcAcc")
 World$fetchData("gamma.surf")
 ```
 
@@ -158,7 +158,7 @@ filtered_excel <- filtered_excel[!endsWith(filtered_excel$from, "G"), ]
 
 diagonal_R <-aggregate(k ~ from, data = kaas, FUN = sum) 
 print(diagonal_R$from)
-filtered_R <- diagonal_R[!endsWith(diagonal_R$from, "U"), ]2
+filtered_R <- diagonal_R[!endsWith(diagonal_R$from, "U"), ]
 
 #diagonal_R <- filtered_R
       
@@ -257,7 +257,7 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
   geom_point() +
   scale_color_gradient(low = "green", high = "red") 
 #If you want to inspect per process instead of fromto box: look at the original kaas dataframe
-kaas |> filter(from == "aAS")
+kaas |> filter(from == "w2CA")
 
 
 ```
