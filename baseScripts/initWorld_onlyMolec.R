@@ -29,9 +29,11 @@ if (World$fetchData("ChemClass")==("")) {
   warning("ChemClass is needed but missing, setting to neutral")
   World$SetConst(ChemClass = "neutral")
 }
-World$SetConst(DragMethod = "Stokes")
+World$SetConst(DragMethod = "Original")
 AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
+
+World$SetConst(Test = "FALSE")
 
 #Which are Molecular? Create those as module NB the k_ is missing in the processlist
 Processes4SpeciesTp <- read.csv("data/Processes4SpeciesTp.csv")
