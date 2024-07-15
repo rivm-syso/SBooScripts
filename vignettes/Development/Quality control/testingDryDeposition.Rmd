@@ -46,17 +46,27 @@ ProcessNanoFunctions <- c("k_Advection", "k_Burial",
 ProcessNanoFunctions[!ProcessNanoFunctions %in% unique(World$kaas$process)]
 
 unique(World$kaas$process)
-World$fetchData("AEROresist")
-World$fetchData("rho_species")
-World$fetchData("RadS")
-World$fetchData("RadCOL")
-World$fetchData("RadCP")
-#World$moduleList[["k_DryDeposition"]]$execute()
-# World$moduleList[["k_DryDeposition"]]$execute(debugAt = list())
-#df$execute(debugAt = list(Scale = "Regional", SubCompart = "lake"))
-World$fetchData("Area")
-World$fetchData("NumConcAcc")
-World$fetchData("gamma.surf")
+
+# Volume <- data.frame(
+#   Scale = "Continental", 
+#   SubCompart = "sea", 
+#   Volume = 7.42682E+14 
+# 
+# )
+# ToPaste <- lapply(list(FRAC, Volume), function(x) {
+#   varName <- names(x)[!names(x) %in% The3D]
+#   stopifnot(length(varName)==1)
+#   # one line with 2 disadvantages of tidyverse..:
+#   as.data.frame(pivot_longer(data = x, cols = all_of(varName), names_to = "varName", values_to = "Waarde"))
+# })
+# 
+# dfs <- do.call(bind_rows, ToPaste)
+# 
+# World$mutateVars(dfs)
+World$UpdateKaas(mergeExisting = FALSE)
+World$fetchData("landFRAC")
+World$fetchData("Volume")
+World$fetchData("FricVel")
 ```
 
 
@@ -257,7 +267,13 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
   geom_point() +
   scale_color_gradient(low = "green", high = "red") 
 #If you want to inspect per process instead of fromto box: look at the original kaas dataframe
-kaas |> filter(from == "w2CA")
+kaas |> filter(from == "aMS")
 
-
+World$fetchData("Runoff")
+World$fetchData("RainOnFreshwater")
+World$fetchData("RAINrate")
+World$fetchData("FRACrun")
+World$fetchData("Area")
+World$fetchData("landFRAC")
+World$fetchData("NETsedrate")
 ```

@@ -13,7 +13,6 @@ ClassicStateModule <- ClassicNanoWorld$new("data", substance)
 
 #with this data we create an instance of the central "core" object,
 World <- SBcore$new(ClassicStateModule)
-World$SetConst(Test = "TRUE")
 # We are interested in the particulate species only, so no need to filter like in the Molecular initWorld
 
 # To proceed with testing we set
@@ -44,12 +43,11 @@ sapply(paste("k", ParProcesses, sep = "_"), World$NewProcess)
 #add all flows, they are all part of "Advection"
 FluxDefFunctions <- names(AllF) %>% startsWith("x_")
 sapply(names(AllF)[FluxDefFunctions], World$NewFlow)
-
+World$SetConst(Test = "TRUE")
 #derive needed variables
 World$VarsFromprocesses()
 
 World$SetConst(Ksw = 47500) #default, not used for particle behavior
-
 
 #World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
 
