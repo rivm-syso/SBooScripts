@@ -1,6 +1,6 @@
 ---
 title: "Model output"
-author: "Joris Quik, Jaap Slootweg, ..."
+author: "Joris Quik, Jaap Slootweg, Anne Hids"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
@@ -50,21 +50,13 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "1-HYDROXYANTHRAQUINONE", # acid
                           "1-Hexadecanamine, N,N-dimethyl-", # base
                           "1-Chloro-2-nitro-propane", # neutral
-                          "Sb(III)", # metal
-                          "nTiO2_10nm", # nanoparticle (class particle)
-                          "microplastic") # microplastic (class particle)
-substance <- Potential_substances[1]
+                          "Sb(III)" # metal
+                          ) 
+              
+substance <- Potential_substances[3]
 source("baseScripts/initWorld_onlyMolec.R")
-#source("baseScripts/initworld_onlyMolec.R")
 
 length(unique(World$kaas$process))
-
-# ProcessNanoFunctions <- c("k_Advection", "k_Burial",
-#                          "k_HeteroAgglomeration.a", "k_HeteroAgglomeration.wsd",
-#                          "k_CWscavenging", "k_Degradation", 
-#                          "k_DryDeposition", "k_Erosion", "k_Escape", 
-#                          "k_Leaching", "k_Resuspension", "k_Runoff", "k_Sedimentation", 
-#                         "k_WetDeposition")
 
 ProcessMolFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
                           "k_Degradation", "k_Deposition", "k_Desorption",
@@ -72,27 +64,9 @@ ProcessMolFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
                          "k_Leaching", "k_Resuspension", "k_Runoff", "k_Sedimentation", 
                          "k_Volatilisation")
 
-
-# ProcessNanoFunctions[!ProcessNanoFunctions %in% unique(World$kaas$process)]
 ProcessMolFunctions[!ProcessMolFunctions %in% unique(World$kaas$process)]
 
 unique(World$kaas$process)
-# World$kaas
-# World$moduleList[["k_Deposition"]]
-# World$moduleList[["k_Deposition"]]$execute(debugAt = list())
-
-
-
-# World$moduleList[["k_DryDeposition"]]$execute(debugAt = list())
-# 
-# World$fetchData("rad_species")
-# World$fetchData("SettlingVelocity")
-# 
-# World$NewCalcVariable("SettlingVelocity")
-# World$CalcVar("SettlingVelocity")
-# 
-# World$moduleList[["SettlingVelocity"]]$execute(debugAt = list())
-# World$moduleList[["SettlingVelocity"]]$execute()
 
 ```
 
@@ -101,7 +75,7 @@ unique(World$kaas$process)
 library(openxlsx)
 library(tidyverse)
 #read in K matrix from excel
-SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.01_20230824_",substance,".xlsm") #molecular version for now
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.04_20240711_",substance,".xlsm") 
 
 SBexcel.K <- read.xlsx(SBExcelName,
                   colNames = FALSE,
@@ -111,9 +85,6 @@ SBexcel.Names <- read.xlsx(SBExcelName,
                   namedRegion = "box_names")
 
 colnames(SBexcel.K) <- SBexcel.Names
-
-#long format version of Excel K matrix
-# colnames(SBexcel.K) <- c("aR",	"w0R",	"w1R",	"w2R",	"sd1R", "sd2R",	"s1R",	"s2R",	"s3R",	"aC",	"w0C",	"w1C",	"w2C",	"sd1C",	"sd2C",	"s1C",	"s2C",	"s3C",	"aM",	"w2M",	"w3M",	"sdM",	"sM",	"aA",	"w2A",	"w3A",	"sdA",	"sA",	"aT",	"w2T",	"w3T",	"sdT",	"sT")
 SBexcel.K$to <-  as.character(SBexcel.Names)
 
 SBexcel.K <- pivot_longer(SBexcel.K, cols =  as.character(SBexcel.Names), values_to = "k", names_to = "from")
@@ -129,7 +100,7 @@ unique(kaas$fromSubCompart)
 #Note: this map creates the wrong acronym for soil and sediment at global scale, this is fixed afterwards
 accronym_map <- c("marinesediment" = "sd2",
                 "freshwatersediment" = "sd1",
-                "lakesediment" = "sd0", #SB Excel does not have this compartment. To do: can we turn this off (exclude this compartment) for testing?
+                "lakesediment" = "sd0", 
                 "agriculturalsoil" = "s2",
                 "naturalsoil" = "s1",
                 "othersoil" = "s3",
@@ -145,16 +116,10 @@ accronym_map2 <- c("Arctic" = "A",
                    "Continental" = "C",
                    "Regional" = "R")
 
-# kaas |> filter(fromScale == "Tropic" & process == "k_Degradation") |> print(n=50)
-
 kaas <- kaas |> mutate(from =  paste0(accronym_map[fromSubCompart], 
                             accronym_map2[fromScale]),
                to = paste0(accronym_map[toSubCompart], 
                            accronym_map2[toScale]))
-
-# kaas$from <- paste0(accronym_map[kaas$fromSubCompart], accronym_map2[kaas$fromScale])
-
-# kaas$to <- paste0(accronym_map[kaas$toSubCompart], accronym_map2[kaas$toScale])
 
 # Issue that compartments sediment and soil at global scale in excel have sd and s as acronyms instead of sd2 and s1
 kaas <- 
@@ -212,9 +177,6 @@ exclusions in k_Degradation.*
 ```{r rate_constants}
 #Dataframe of all other boxes
 
-# kaas |> filter(to != from)
-
-
 kaas2 <- kaas |>  
   filter(from != to) |> #filtering the diagonals ou
   group_by(from, to) %>% summarize(k = sum(k)) #R version sometimes has multiple k's per fromto box; excel only has the summed k's per box
@@ -260,119 +222,149 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
 
 ```
 
-## *air*
+```{r get differences larger than 1 percentile}
 
-*Some testing needed to see why K's from air are so different from those
-in Excel.*
+large_differences <- mergedkaas |>
+  filter(relDif > 0.001) 
 
-1.  *The Fringas in excel had an error, was using variables from
-    Moderate scale, fix in Excel.*
+# print("Differences in k's between R and Excel larger thans 1 percentile")
+# 
+# knitr::kable(large_differences_before, format="markdown")
+# 
+# large_differences_before <- large_differences_before |>
+#   select(from, to, k_R, k_Excel)
 
-2.  *k_Escape was being converted to seconds twice! Units conversion is
-    enough, no need to cope with such conversions in process algorithms.
-    All calculation data should be in SI units.*
+```
 
-3.  *k_Adsorption was using Area which should have been to.Area*
+```{r s/w > a}
+# Get processes involved 
 
-*Checked: k_Degradation, k_Escape, k_Advection, Deposition and
-adsorption.*
+toair <- kaas |>
+  filter(toSubCompart == "air") |>
+  filter(fromSubCompart != "air")
 
-```{r testing_aA, eval=FALSE, include=FALSE}
+# process to look at is volatilisation
 
-kaas |> filter(from == "aT")
-World$moduleList[["k_Degradation"]]$execute(debugAt = list(ScaleName="Arctic",SubCompartName = "air"))
+# Kaw differs between R and Excel
 
-World$fetchData("SubCompartName")
+# The value for the variable R is more accurate in R than in excel (8.314462618 in R, 8.314 in Excel)
+# Changing this with the test variable did not solve the issue
 
-test <- World$NewCalcVariable("FRingas")
-test$execute(debugAt = list())
+# Sol25 is the same
+# MW is the same
+# t25 is the same
 
-World$CalcVar("FRingas")
+# So pvap25 must be different, as it is the only remaining variable. 
 
-CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
+# For the acid 1-HYDROXYANTHRAQUINONE, the pvap value from the substance csv was rounded to 2 decimals. In excel this number has much more decimals, causing the difference in kaw, kacompw and eventually volatilisation. 
 
-World$moduleList[["k_Adsorption"]]$execute(debugAt = list(ScaleName="Arctic"))
+# This should still be fixed in the substances csv.
 
-World$moduleList[["k_Adsorption"]]$FromAndTo
-World$moduleList[["k_Adsorption"]]$execute()
+```
 
-World$moduleList[["k_Deposition"]]$execute(debugAt = list(ScaleName="Tropic"))
-World$moduleList[["k_Adsorption"]]$FromAndTo
-World$moduleList[["k_Adsorption"]]$execute()
+```{r diff aR/aC > s2/s3 KEEP FOR FINAL VERSION!!!}
 
-World$fetchData("Area")
-World$fetchData("FRACsea")
+# Get the kaas from soil to air and see what processes are involved
+airsoil <- kaas |>
+  filter(fromScale == "Regional") |>
+  filter(toSubCompart == "agriculturalsoil" | fromSubCompart == "othersoil") |>
+  filter(fromSubCompart == "air")
 
-#something with k_other:
-
-kaas |> filter(fromScale == "Tropic"&
-               fromSpecies == "Unbound"&
-                 fromSubCompart == "air")
+# To calculate the Gasabs from air to soil, FRorig_spw for natural soil (and freshwater) was used also for other and agricultural soil (and seawater) 
+# in excel. 
+# In R however, the gasabs is calculated using the FRorig_spw for each specific soil type. By using the 'Test' variable, it was
+# possible to temporarly change the FRorig_spw and FRorig in R to the value used in Excel. This fixed the large relative difference for this
+# flux between excel and R. Conclusion: GASABS (used to calculate k_Adsorption) in R is calculated specifically for each 
+# subcompartment, while in excel this variable is only calculated once for soil and once for water.  
 
 
 ```
 
-## *water*
+```{r sedimentation to water KEEP FOR FINAL VERSION}
+resus <- kaas |>
+  filter(from == "sd2R") |>
+  filter(to == "w2R") 
 
-*Issue w0R was linked to Excel error using sea water instead of
-freshwater to sea water flow to calculate w0 to w1 water flow.*
+# The processes involved are resuspension and desorption.
 
-Several K's exist in R that are not read out as such from excel.
-reasons:
+# Get the vertical distance of marinesediment at continental scale
+VD <- World$fetchData("VertDistance") |>
+  filter(Scale == "Continental") |>
+  filter(SubCompart == "marinesediment")
 
-1.  There is in the reference excel no lake sediment (sd0) at regional
-    and continental scale
+# Multiply the kaas by VD to be able to compare them to excel
+resus <- resus |>
+  mutate(mult_kaas = k*VD$VertDistance)
 
-2.  There are 0's in the k's such as for certain advective flows in
-    excel.
+# Desorption is more or less the same in excel as in R, there is a larger difference in resuspension. 
 
-```{r}
-kaas2$fromto[!kaas2$fromto %in% SBexcel.K$fromto] # more k's in SBoo than in SBxl
+# There was a mistake in Excel: Netsedrate for continental seawater was set to 0, while this should have been 2.74*10^-11
+
+
+# The Kacompw differs slightly from the kacompw in excel
 ```
 
-```{r test_w1R, eval=FALSE, include=FALSE}
-kaas |> filter(from == "aT")
-kaas2$fromto[!kaas2$fromto %in% SBexcel.K$fromto] # more k's in SBoo than in SBxl
+```{r Advection regional sea to continental sea}
 
-as_tibble(World$kaas) |> filter(fromSubCompart == "deepocean")
+#AdvAir$execute(debugAt = list(toScale = "Continental"))
+World$moduleList[["CORRsoil"]]$execute(debugAt = list())
+```
 
-kaas |> filter(fromSubCompart == "deepocean")
-World$moduleList[["k_Degradation"]]$execute(debugAt = list(ScaleName="Arctic",SubCompartName = "air"))
+```{r water to sediment KEEP FOR FINAL VERSION}
+# Get kaas from water to sediment
 
-World$fetchData("NETsedrate")
+w2s <- kaas |>
+  filter(from == "w1C") |>
+  filter(to == "sd1C")
 
-test <- World$NewCalcVariable("FRingas")
-test$execute(debugAt = list())
+# Get the vertical distance of marinesediment at continental scale
+VD <- World$fetchData("VertDistance") |>
+  filter(Scale == "Continental") |>
+  filter(SubCompart == "freshwatersediment")
 
-World$CalcVar("FRingas")
+# Multiply the kaas by VD to be able to compare them to excel
+w2s <- w2s |>
+  mutate(mult_kaas = k*VD$VertDistance)
 
-CalcVariable <- World$NewCalcVariable("Volume")
-  World$CalcVar("Volume")
-CalcVariable$execute()
-
-CalcVariable$execute(debugAt = list(SubCompartName = "sea"))
-
-World$moduleList[["k_Resuspension"]]$execute(debugAt = list(ScaleName = "Regional"))
-World$moduleList[["k_Adsorption"]]$FromAndTo
-World$moduleList[["k_Adsorption"]]$execute()
-
-World$fetchData("AreaLand")
-World$fetchData("Volume")
-World$fetchData("Area")
-World$fetchData("landFRAC")
-World$fetchData("AreaSea")
-World$fetchData("TotalArea")
-World$fetchData("FRACsea")
-
+# The reason that the k's from w to sd are not the same in R as in excel is that the settling velocities are different, 
+# because of a difference in calculation. In excel, the settling velocity is calculated as 2.5/(24*3600). In R, the 
+# settling velocity is calculated using a function. 
 
 ```
 
-## Soil
+``` {r comparison of steady state emissions}
 
-```{r test_sM}
+library(stringi)
 
-kaas |> filter(from == "sM")
-World$fetchData("Kscompw")
-World$fetchData("Runoff")
+World$NewSolver("SBsteady")
+
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000) ) # convert 1 t/y to si units: kg/s
+
+MW <- World$fetchData("MW")
+
+emissions <- emissions |>
+  mutate(Emis = Emis*1000/(MW*365.25*24*60*60))
+
+SSsolve.R <- World$Solve(emissions)
+
+SSsolve.excel <- read.xlsx(SBExcelName,
+                             sheet=11,
+                             colNames=TRUE,
+                             rows=c(44,45))
+
+SSsolve.excel <- SSsolve.excel |>
+  select(-c(STEADY.STATE, X2)) |>
+  pivot_longer(names_to = "Abbr", values_to = "EqMass", cols = everything()) 
+
+SSsolve.R <- SSsolve.R |> mutate(Abbr =  paste0(accronym_map[SubCompart], 
+                            accronym_map2[Scale]))
+
+merged_SS_before <- merge(SSsolve.R, SSsolve.excel, by="Abbr", suffixes = c(".R", ".Excel")) |>
+  mutate(absdiff = EqMass.R-EqMass.Excel) |>
+  mutate(reldiff = absdiff/EqMass.R)
+
+print("Difference in emissions between R and Excel")
+
+knitr::kable(merged_SS, format="markdown")
 
 ```
