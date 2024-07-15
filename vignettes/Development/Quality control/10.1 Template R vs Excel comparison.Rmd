@@ -50,7 +50,8 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "1-HYDROXYANTHRAQUINONE", # acid
                           "1-Hexadecanamine, N,N-dimethyl-", # base
                           "1-Chloro-2-nitro-propane", # neutral
-                          "Sb(III)") # metal
+                          "Sb(III)" # metal
+                          ) 
               
 substance <- Potential_substances[3]
 source("baseScripts/initWorld_onlyMolec.R")
@@ -74,7 +75,7 @@ unique(World$kaas$process)
 library(openxlsx)
 library(tidyverse)
 #read in K matrix from excel
-SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.04_20240405_molec_test_",substance,".xlsm") 
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.04_20240711_",substance,".xlsm") 
 
 SBexcel.K <- read.xlsx(SBExcelName,
                   colNames = FALSE,
@@ -221,10 +222,9 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
 
 ```
 
+```{r get differences larger than 1 percentile}
 
-``` {r sedrates before}
-
-large_differences_before <- mergedkaas |>
+large_differences <- mergedkaas |>
   filter(relDif > 0.001) 
 
 # print("Differences in k's between R and Excel larger thans 1 percentile")
@@ -234,318 +234,103 @@ large_differences_before <- mergedkaas |>
 # large_differences_before <- large_differences_before |>
 #   select(from, to, k_R, k_Excel)
 
-# Differences larger than 1 percentile all have to do with sedimentation/resuspension. 
+```
 
-difference <- kaas |> filter(from == "w1C")
+```{r s/w > a}
+# Get processes involved 
+
+toair <- kaas |>
+  filter(toSubCompart == "air") |>
+  filter(fromSubCompart != "air")
+
+# process to look at is volatilisation
+
+# Kaw differs between R and Excel
+
+# The value for the variable R is more accurate in R than in excel (8.314462618 in R, 8.314 in Excel)
+# Changing this with the test variable did not solve the issue
+
+# Sol25 is the same
+# MW is the same
+# t25 is the same
+
+# So pvap25 must be different, as it is the only remaining variable. 
+
+# For the acid 1-HYDROXYANTHRAQUINONE, the pvap value from the substance csv was rounded to 2 decimals. In excel this number has much more decimals, causing the difference in kaw, kacompw and eventually volatilisation. 
+
+# This should still be fixed in the substances csv.
+
+```
+
+```{r diff aR/aC > s2/s3 KEEP FOR FINAL VERSION!!!}
+
+# Get the kaas from soil to air and see what processes are involved
+airsoil <- kaas |>
+  filter(fromScale == "Regional") |>
+  filter(toSubCompart == "agriculturalsoil" | fromSubCompart == "othersoil") |>
+  filter(fromSubCompart == "air")
+
+# To calculate the Gasabs from air to soil, FRorig_spw for natural soil (and freshwater) was used also for other and agricultural soil (and seawater) 
+# in excel. 
+# In R however, the gasabs is calculated using the FRorig_spw for each specific soil type. By using the 'Test' variable, it was
+# possible to temporarly change the FRorig_spw and FRorig in R to the value used in Excel. This fixed the large relative difference for this
+# flux between excel and R. Conclusion: GASABS (used to calculate k_Adsorption) in R is calculated specifically for each 
+# subcompartment, while in excel this variable is only calculated once for soil and once for water.  
 
 
-SBexcel.sed_ads <- read.xlsx(SBExcelName,
-                             sheet=9,
-                             colNames=FALSE,
-                             cols=c(7,12),
-                             rows=c(148))
+```
 
-################# Check difference in sedimentation rate #######################  
+```{r sedimentation to water KEEP FOR FINAL VERSION}
+resus <- kaas |>
+  filter(from == "sd2R") |>
+  filter(to == "w2R") 
 
-# Chosen k is from sea to marine sediment
+# The processes involved are resuspension and desorption.
 
-sed_sea.R <- kaas |>
-  filter(process == "k_Sedimentation") |>
-  filter(fromScale == "Continental") |>
-  filter(fromSubCompart == "sea") |>
-  filter(toSubCompart == "marinesediment")
-
-sed_sea.excel <- read.xlsx(SBExcelName,
-                             sheet=9,
-                             colNames=FALSE,
-                             cols=c(7,12),
-                             rows=148)
-
-print(diff_sed <- sed_sea.excel$X2 - sed_sea.R$k)
-
-# There is a difference between R and Excel of 1.47*10^-9
-
-# Check if there is a difference between the settling velocities 
-setvel.R <- World$fetchData("SettlVelocitywater") |>
-  filter(Scale == "Continental")
-
-setvel.excel <- read.xlsx(SBExcelName,
-                             sheet=9,
-                             colNames=FALSE,
-                             cols=c(7,10),
-                             rows=163)
-
-print(diff_set <- setvel.excel$X2 - setvel.R$SettlVelocitywater) 
-
-# There is a difference between the setting velocities of 3.5*10^-8 
-
-# Check if there is a difference between the fractions in water
-frinw.R <- World$fetchData("FRinw") |>
+# Get the vertical distance of marinesediment at continental scale
+VD <- World$fetchData("VertDistance") |>
   filter(Scale == "Continental") |>
-  filter(SubCompart == "sea")
-
-frinw.excel <- read.xlsx(SBExcelName,
-                             sheet=9,
-                             colNames=FALSE,
-                             cols=c(7,12),
-                             rows=84)
-
-print(diff_frinw <- frinw.excel$X2-frinw.R$FRinw)
-
-# No difference in fraction in water between excel and R. 
-
-# Adsorption comparison
-ads.R <- kaas |>
-  filter(process == "k_Adsorption") |>
-  filter(fromScale == "Continental") |>
-  filter(fromSubCompart == "sea")
-
-ads.excel <- read.xlsx(SBExcelName,
-                             sheet=9,
-                             colNames=FALSE,
-                             cols=c(7,12),
-                             rows=164)
-
-print(diff_ads <- ads.excel$X2-ads.R$k)
-
-# Difference is 5.14*10^-11
-
-kwsd.R <- World$fetchData("kwsd") |>
-  filter(SubCompart == "sea" | SubCompart == "marinesediment")
-
-```
-
-```{r soil to water check}
-
-s2w <- kaas |>
-  filter(fromSubCompart == "naturalsoil") |>
-  filter(toSubCompart == "sea")
-
-# Diff is in k_runoff or k_erosion
-
-# First check erosion
-erosion.excel <- read.xlsx(SBExcelName,
-                             sheet=10,
-                             colNames=FALSE,
-                             cols=c(7,12),
-                             rows=116)
-
-erosion.R <- s2w |>
-  filter(process == "k_Erosion" & from == "sM")
-
-print((erosion.R$k-erosion.excel$X2))
-
-# There is a difference, check the variables that are used to calculate k_erosion
-
-erosion_vars.excel <- read.xlsx(SBExcelName,
-                             sheet=10,
-                             colNames=FALSE,
-                             cols=c(7,12),
-                             rows=c(68,117:119))
-
-FracRunoff.R <- World$fetchData("FRACrun")
-
-FracRunoff.E <- erosion_vars.excel |>
-  filter(X1 == "FRACrun.sM")
-
-FracRunoff.diff <- FracRunoff.E$X2-FracRunoff.R
-
-print(FracRunoff.diff)
-
-# No difference in FracRun
-
-kscompw.R <- World$fetchData("Kscompw") |>
-  filter(Scale == "Moderate")
-
-kscompw.E <- erosion_vars.excel|>
-  filter(X1 == "Kslw.M")
-
-kscompw.diff <- kscompw.R$Kscompw-kscompw.E$X2
-
-print(kscompw.diff)
-
-## Difference in kscompw is very large, but formula is the same. Check the values used:
-ks_vals.Excel <- read.xlsx(SBExcelName,
-                             sheet=10,
-                             colNames=FALSE,
-                             cols=c(7,12),
-                             rows=c(49,71))
-
-kaw.E <- ks_vals.Excel |>
-  filter(X1 == "Kaw.M")
-
-kaw.R <- World$fetchData("Kacompw") |>
-  filter(Scale == "Moderate")
-
-print(kaw.E$X2-kaw.R$Kacompw)
-
-# Small difference, not the cause of the diff in k_erosion
-
-# Check the diff in kp
-
-kp.E <- ks_vals.Excel |>
-  filter(X1 == "Kp.sM")
-
-kp.R <- World$fetchData("Kp")
-
-# World$SetConst("Kaw25" = NA)
-# 
-# World$UpdateKaas()
-# 
-# World$fetchData("Kp.soil")
-
-Substances <- read.csv("data/Substances.csv")
-
-subst <- Substances |>
-  filter(Substance == substance)
-
-# k_volatalisation = 0 in R. 
-# Kscompw = inf
-# Kp = inf
-# Ksw.alt = inf
-
-```
-
-```{r infinite values ksw}
-# Debug
-# World$NewCalcVariable("Ksw.alt")
-# World$CalcVar("Ksw.alt")
-#  
-# World$moduleList[["Ksw.alt"]]$execute(debugAt = list())
-# World$moduleList[["v_Kscompw"]]$execute()
-
-# One of the reasons for Ksw.alt to return inf is if Kow is very large, bc in the
-# exponential function this number grow quickly. Test below: 
-
-#World$SetConst("Kow" = 600)
-
-#World$UpdateKaas()
-
-# Now check the values for ksw and ksw.alt
-World$fetchData("Ksw.alt") # still inf
-
-# Change Kow back to original value
-World$SetConst("Kow" = subst$Kow)
-
-# manually calculate ksw to see what the problem is
-Kow <- World$fetchData("Kow")
-pKa <- World$fetchData("pKa")
-RHOsolid <- World$fetchData("rhoMatrix") |>
-  filter(SubCompart == "naturalsoil") 
-RHOsolid <- RHOsolid$rhoMatrix
-CorgStandard <- World$fetchData("CorgStandard")
-
-# The 10^(pKa^0.65*(Kow/(1+Kow)^0.14)) part is the problem, the number becomes too large for R to calculate. 
-10^(pKa^0.65*(Kow/(1+Kow)^0.14)) * CorgStandard * RHOsolid / 1000
-
-# Parentheses were in the wrong place, causing the large numbers. Fixed.
-
-```
-
-```{r resuspension}
-# There are large relative differences in resuspension rates between R and Excel. 
-
-World$NewCalcVariable("k_Resuspension")
-World$CalcVar("k_Resuspension")
-
-World$moduleList[["k_Resuspension"]]$execute(debugAt = list())
-
-World$NewCalcVariable("f_SetVelWater")
-World$CalcVar("f_SetVelWater")
-
-World$moduleList[["f_SetVelWater"]]$execute(debugAt = list())
-
-# setvelwater formula
-2*(radius^2*(rhoParticle-rhoWater)*GN) / (9*DynViscWaterStandard)
-
-# sedimentation
-2*((3*10^-6)^2*(2500-998)*9.80665)/(9*0.001002) # = 2.94*10^-5
-
-#resuspension
-SettlingVelocitySPM <- 2.5/(24*3600)
-FRACs <- 0.2
-to.SUSP <- 0.005#0.015
-from.RhoCP <- 2500
-  
-GROSSEDrate <- SettlingVelocitySPM*to.SUSP/(FRACs*from.RhoCP)
-print(GROSSEDrate)
-
-NETsedrate <- World$fetchData("NETsedrate") |>
-  filter(Scale == "Arctic")
-to.NETsedrate <- NETsedrate$NETsedrate
-print(to.NETsedrate)
-
-RESUSflow <- max(0, GROSSEDrate - to.NETsedrate)
-print(RESUSflow)
-
-VertDistance <- World$fetchData("VertDistance") |>
-  filter(Scale == "Arctic") |>
   filter(SubCompart == "marinesediment")
 
-VertDistance <- VertDistance$VertDistance
-des <- 0.000000000281561383019
+# Multiply the kaas by VD to be able to compare them to excel
+resus <- resus |>
+  mutate(mult_kaas = k*VD$VertDistance)
 
-# des (desorption flux) was not included in the k_resuspension function, which caused the difference in k value. Below is the formula that does yield the same outcome as excel. Where is the desorption flux in R?
-(RESUSflow + des)/ VertDistance
+# Desorption is more or less the same in excel as in R, there is a larger difference in resuspension. 
 
-# k_Resuspension+k_Desorption should be equal to k resuspension in excel: 
-res <- kaas |>
-  filter(process == "k_Resuspension") |>
-  filter(fromScale == "Arctic")
-res <- res$k
+# There was a mistake in Excel: Netsedrate for continental seawater was set to 0, while this should have been 2.74*10^-11
 
-des <- kaas |>
-  filter(process == "k_Desorption") |>
-  filter(fromScale == "Arctic")
-des <- des$k
 
-total_res <- res+des
-# Not the same as in excel, bc desorption is different.
-
-# debug desorption
-
-World$moduleList[["k_Desorption"]]$execute(debugAt = list())
-
-# ksdcompw is different, check why
-World$fetchData("Ksdcompw")
-World$fetchData("Kscompw")
-
-World$moduleList[["Kp"]]$execute(debugAt = list())
-
-kp <- World$fetchData("Kp")
-
+# The Kacompw differs slightly from the kacompw in excel
 ```
 
-```{r}
-# Check differences air -> water
-airwater <- kaas |>
-  filter(fromSubCompart == "air") |>
-  filter(toSubCompart == "sea")
+```{r Advection regional sea to continental sea}
 
-# The k's are adsorption and deposition, check difference with excel
-ads <- airwater |>
-  filter(process == "k_Adsorption" & fromScale == "Continental")
-ads <- ads$k
+#AdvAir$execute(debugAt = list(toScale = "Continental"))
+World$moduleList[["CORRsoil"]]$execute(debugAt = list())
+```
 
-dep <- airwater |>
-  filter(process == "k_Deposition" & fromScale == "Continental")
-dep <- dep$k
+```{r water to sediment KEEP FOR FINAL VERSION}
+# Get kaas from water to sediment
 
-# The variables used to calculate air > water in excel are: MeanDep, GASABS.a.w, AREAFRAC.w2C and HEIGHT.aC.
+w2s <- kaas |>
+  filter(from == "w1C") |>
+  filter(to == "sd1C")
 
-World$moduleList[["k_Deposition"]]$execute(debugAt = list())
+# Get the vertical distance of marinesediment at continental scale
+VD <- World$fetchData("VertDistance") |>
+  filter(Scale == "Continental") |>
+  filter(SubCompart == "freshwatersediment")
 
-# DRYDEP calculation: 
+# Multiply the kaas by VD to be able to compare them to excel
+w2s <- w2s |>
+  mutate(mult_kaas = k*VD$VertDistance)
 
-# AEROSOLdeprate is same as in excel
-# FRinaerw and FRinaers are also the same as in excel
-# Formula is also the same
+# The reason that the k's from w to sd are not the same in R as in excel is that the settling velocities are different, 
+# because of a difference in calculation. In excel, the settling velocity is calculated as 2.5/(24*3600). In R, the 
+# settling velocity is calculated using a function. 
 
-# 
-
-
-
-``` 
+```
 
 ``` {r comparison of steady state emissions}
 
@@ -583,309 +368,3 @@ print("Difference in emissions between R and Excel")
 knitr::kable(merged_SS, format="markdown")
 
 ```
-
-## Perform the same test, but with the setvel in excel altered to the setvel in R
-
-``` {r}
-
-source("baseScripts/initWorld_onlyMolec.R")
-
-#read in K matrix from excel
-SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.04_20240405_molec_test_sv_",substance,".xlsm") 
-
-SBexcel.K <- read.xlsx(SBExcelName,
-                  colNames = FALSE,
-                  namedRegion = "K")
-SBexcel.Names <- read.xlsx(SBExcelName,
-                  colNames = FALSE,
-                  namedRegion = "box_names")
-
-colnames(SBexcel.K) <- SBexcel.Names
-
-SBexcel.K$to <-  as.character(SBexcel.Names)
-
-SBexcel.K <- pivot_longer(SBexcel.K, cols =  as.character(SBexcel.Names), values_to = "k", names_to = "from")
-
-length(SBexcel.K$k)
-
-#adding "from" and "to" acronyms to the R K matrix
-kaas <- as_tibble(World$kaas)
-unique(kaas$fromScale)
-unique(kaas$fromSubCompart)
-
-#R version does not us the acronyms of the excel version, set-up to convert them
-#Note: this map creates the wrong acronym for soil and sediment at global scale, this is fixed afterwards
-accronym_map <- c("marinesediment" = "sd2",
-                "freshwatersediment" = "sd1",
-                "lakesediment" = "sd0", 
-                "agriculturalsoil" = "s2",
-                "naturalsoil" = "s1",
-                "othersoil" = "s3",
-                "air" = "a",
-                "deepocean" = "w3",
-                "sea" = "w2",
-                "river" = "w1",
-                "lake" = "w0")
-
-accronym_map2 <- c("Arctic" = "A",
-                   "Moderate" = "M",
-                   "Tropic" = "T",
-                   "Continental" = "C",
-                   "Regional" = "R")
-
-kaas <- kaas |> mutate(from =  paste0(accronym_map[fromSubCompart], 
-                            accronym_map2[fromScale]),
-               to = paste0(accronym_map[toSubCompart], 
-                           accronym_map2[toScale]))
-
-# Issue that compartments sediment and soil at global scale in excel have sd and s as acronyms instead of sd2 and s1
-kaas <- 
-  kaas |> 
-  mutate(from = 
-                   ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") & 
-                            (fromSubCompart == "marinesediment" | fromSubCompart == "naturalsoil"), 
-                          str_replace_all(from, c("sd2"="sd","s1"="s")), 
-                          from)) |> 
-  mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") & 
-                       (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(to, c("sd2"="sd","s1"="s")), to))
-
-  
-
-diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] #all the diagonals in excel are negative values -> sums of all the "froms" of that compartment
-
-diagonal_R <- 
-  aggregate(k ~ from, data = kaas, FUN = sum)
-
-#Check for any differences in what compartments there are between versions
-diagonal_R$from[!diagonal_R$from %in% diagonal_excel$from] # "sd0C" "sd0R" were added in sboo v1
-diagonal_excel$from[!diagonal_excel$from %in% diagonal_R$from] #all excel diagonals are in those of R
-
-ifelse( (length(diagonal_R$k)-2)==length(diagonal_excel$k) ,
-       print("ok"), stop("too many compartment combo's")) 
-
-#Single dataframe with both the R and excel diagonals
-merged_diagonal <- merge(diagonal_R, diagonal_excel, by = "from", suffixes = c("_R", "_Excel")) 
-merged_diagonal$k_Excel <- -merged_diagonal$k_Excel #Turning the "negative" values from the Excel matrix into positive ones
-merged_diagonal$diff <- merged_diagonal$k_R - merged_diagonal$k_Excel 
-
-#Plot of differences of the diagonals per compartment
-ggplot(merged_diagonal, aes(x = from, y = diff)) +
-  geom_boxplot()
-
-kaas2 <- kaas |>  
-  filter(from != to) |> #filtering the diagonals ou
-  group_by(from, to) %>% summarize(k = sum(k)) #R version sometimes has multiple k's per fromto box; excel only has the summed k's per box
-
-kaas2$fromto <- paste(sep = "_", kaas2$from, kaas2$to)
-
-SBexcel.K <- filter(SBexcel.K, k != 0 & SBexcel.K$from != SBexcel.K$to)
-SBexcel.K$fromto <- paste(sep = "_", SBexcel.K$from, SBexcel.K$to)
-
-SBexcel.K$fromto[!SBexcel.K$fromto %in% kaas2$fromto] # No xlsx missing
-
-
-kaas2$fromto[!kaas2$fromto %in% SBexcel.K$fromto] # more k's in SBoo than in SBxl
-
-mergedkaas <- merge(kaas2, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
-
-mergedkaas$diff <- mergedkaas$k_R - mergedkaas$k_Excel #compare R k to Excel K
-
-mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)
-
-#Column "diff" in df "mergedkaas" shows the difference between the R k output and the k's in Excel. 
-
-#Visualize the diff per process in boxplots: which compartments (fromto boxes) have the largest differences between R and the excel model?
-
-#Diff per "from" compartment
-ggplot(mergedkaas, aes (x = from, y = diff)) +
-  geom_boxplot()
-
-#Diff per "to" compartment
-ggplot(mergedkaas, aes (x = to, y = diff)) +
-  geom_boxplot()
-
-# "To" and "from" in one plot
-ggplot(mergedkaas, aes(x = to, y = from, color = abs(diff))) + 
-  geom_point() +
-  scale_color_gradient(low = "green", high = "red", trans = "log10") 
-
-
-ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) + 
-  geom_point() +
-  scale_color_gradient(low = "green", high = "red") 
-#If you want to inspect per process instead of fromto box: look at the original kaas dataframe
-
-
-```
-
-## Difference in sedimentation and resuspension rates
-For substances without a class and acids, the largest relative differences between
-k's are related to sedimentation and resuspension. Upon further investigation, it 
-was found that the settling velocities in Excel and R were not exactly the same
-due to Stokes' law being used in R but not in Excel. However, changing the settling
-velocity in Excel to the value used in R only made a minor difference in the k values. 
-
-``` {r sedrates after}
-
-large_differences_after <- mergedkaas |>
-  filter(relDif > 0.001)
-
-# print("Differences in k's between R and Excel larger thans 1 percentile")
-# 
-# knitr::kable(large_differences_after, format="markdown")
-# 
-# large_differences_after <- large_differences_after |>
-#   select(from, to, k_R, k_Excel)
-
-# Differences larger than 1 percentile all have to do with sedimentation/resuspension. 
-
-difference <- kaas |> filter(from == "w1C")
-
-
-SBexcel.sed_ads <- read.xlsx(SBExcelName,
-                             sheet=9,
-                             colNames=FALSE,
-                             cols=c(7,12),
-                             rows=c(148))
-
-################# Check difference in sedimentation rate #######################  
-
-# Chosen k is from sea to marine sediment
-
-sed_sea.R <- kaas |>
-  filter(process == "k_Sedimentation") |>
-  filter(fromScale == "Continental") |>
-  filter(fromSubCompart == "sea") |>
-  filter(toSubCompart == "marinesediment")
-
-sed_sea.excel <- read.xlsx(SBExcelName,
-                             sheet=9,
-                             colNames=FALSE,
-                             cols=c(7,12),
-                             rows=148)
-
-print(diff_sed <- sed_sea.excel$X2 - sed_sea.R$k)
-
-# There is a difference between R and Excel of 1.47*10^-9
-
-# Check if there is a difference between the settling velocities 
-setvel.R <- World$fetchData("SettlVelocitywater") |>
-  filter(Scale == "Continental")
-
-setvel.excel <- read.xlsx(SBExcelName,
-                             sheet=9,
-                             colNames=FALSE,
-                             cols=c(7,10),
-                             rows=163)
-
-print(diff_set <- setvel.excel$X2 - setvel.R$SettlVelocitywater) 
-
-# There is a difference between the setting velocities of 3.5*10^-8 
-
-# Check if there is a difference between the fractions in water
-frinw.R <- World$fetchData("FRinw") |>
-  filter(Scale == "Continental") |>
-  filter(SubCompart == "sea")
-
-frinw.excel <- read.xlsx(SBExcelName,
-                             sheet=9,
-                             colNames=FALSE,
-                             cols=c(7,12),
-                             rows=84)
-
-print(diff_frinw <- frinw.excel$X2-frinw.R$FRinw)
-
-# No difference in fraction in water between excel and R. 
-
-# Adsorption comparison
-ads.R <- kaas |>
-  filter(process == "k_Adsorption") |>
-  filter(fromScale == "Continental") |>
-  filter(fromSubCompart == "sea")
-
-ads.excel <- read.xlsx(SBExcelName,
-                             sheet=9,
-                             colNames=FALSE,
-                             cols=c(7,12),
-                             rows=164)
-
-print(diff_ads <- ads.excel$X2-ads.R$k)
-
-# Difference is 5.14*10^-11
-
-kwsd.R <- World$fetchData("kwsd") |>
-  filter(SubCompart == "sea" | SubCompart == "marinesediment")
-
-```
-
-``` {r comparison of steady state emissions}
-
-library(stringi)
-
-World$NewSolver("SBsteady")
-
-emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000) ) # convert 1 t/y to si units: kg/s
-
-MW <- World$fetchData("MW")
-
-emissions <- emissions |>
-  mutate(Emis = Emis*1000/(MW*365.25*24*60*60))
-
-SSsolve.R <- World$Solve(emissions)
-
-SSsolve.excel <- read.xlsx(SBExcelName,
-                             sheet=11,
-                             colNames=TRUE,
-                             rows=c(44,45))
-
-SSsolve.excel <- SSsolve.excel |>
-  select(-c(STEADY.STATE, X2)) |>
-  pivot_longer(names_to = "Abbr", values_to = "EqMass", cols = everything()) 
-
-SSsolve.R <- SSsolve.R |> mutate(Abbr =  paste0(accronym_map[SubCompart], 
-                            accronym_map2[Scale]))
-
-merged_SS_after <- merge(SSsolve.R, SSsolve.excel, by="Abbr", suffixes = c(".R", ".Excel")) |>
-  mutate(absdiff = EqMass.R-EqMass.Excel) |>
-  mutate(reldiff = absdiff/EqMass.R)
-
-print("Difference in emissions between R and Excel")
-
-knitr::kable(merged_SS, format="markdown")
-
-```
-
-``` {r comparison of relative differences k's}
-
-merged_diffs_k <- merge(large_differences_before, large_differences_after, by= c("from", "to"), suffixes=c(".Before", ".After")) |>
-  select(-k_R.After) |>
-  rename(k_R = k_R.Before) |>
-  mutate(abs_diff_before = k_R-k_Excel.Before) |>
-  mutate(abs_diff_after = k_R-k_Excel.After) |>
-  mutate(relDif_before = abs_diff_before/k_R) |>
-  mutate(relDif_after = abs_diff_after/k_R) |>
-  mutate(relDif_change = relDif_after-relDif_before)
-
-print("Change in relative differences before and after changing excel values (k's)")
-
-knitr::kable(merged_diffs_k, format="markdown")
-
-``` 
-
-``` {r comparison of relative differences emissions}
-
-merged_diffs_emis <- merge(merged_SS_before, merged_SS_after, by= c("Abbr", "Scale", "SubCompart", "Species"), suffixes=c(".Before", ".After")) |>
-  select(-EqMass.R.After) |>
-  rename(EqMass.R =EqMass.R.Before) |>
-  mutate(abs_diff_before = EqMass.R-EqMass.Excel.Before) |>
-  mutate(abs_diff_after = EqMass.R-EqMass.Excel.After) |>
-  mutate(relDif_before = abs_diff_before/EqMass.R) |>
-  mutate(relDif_after = abs_diff_after/EqMass.R) |>
-  mutate(relDif_change = relDif_after-relDif_before)
-
-print("Change in relative differences before and after changing excel values (k's)")
-
-knitr::kable(merged_diffs_emis, format="markdown")
-
-```
-
