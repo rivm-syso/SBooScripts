@@ -8,13 +8,11 @@ source("baseScripts/fakeLib.R")
 if (!exists("substance")) {
   substance <- "nAg_10nm"
 }
-
 #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
 ClassicStateModule <- ClassicNanoWorld$new("data", substance)
 
 #with this data we create an instance of the central "core" object,
 World <- SBcore$new(ClassicStateModule)
-
 # We are interested in the particulate species only, so no need to filter like in the Molecular initWorld
 
 # To proceed with testing we set
@@ -45,12 +43,11 @@ sapply(paste("k", ParProcesses, sep = "_"), World$NewProcess)
 #add all flows, they are all part of "Advection"
 FluxDefFunctions <- names(AllF) %>% startsWith("x_")
 sapply(names(AllF)[FluxDefFunctions], World$NewFlow)
-
+World$SetConst(Test = "TRUE")
 #derive needed variables
 World$VarsFromprocesses()
 
 World$SetConst(Ksw = 47500) #default, not used for particle behavior
-
 
 #World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
 
