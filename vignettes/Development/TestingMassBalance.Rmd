@@ -67,8 +67,7 @@ Emissions <-
            case_when(str_detect(file_name, "(?i)EU") ~ "EU_average",
                      str_detect(file_name, "(?i)Ireland") ~ "EU_STsoil",
                      str_detect(file_name, "(?i)Switzerland") ~ "EU_noSTsoil",
-                     TRUE ~ "Other"),
-         Substance = "GO-Chitosan",
+                     TRUE ~ "Other")
   )
 
 Emissions <- Emissions |>
@@ -520,5 +519,219 @@ for (substance in unique_substances) {
 ```
 
 ``` {r uncertainty}
+#create loop to test uncertainty 
+World$fetchData("Pvap25")
+log_seq <- seq(from = log10(1e-20), to = log10(1e-5), length.out = 10)
+
+# Convert the log scale sequence back to the original scale
+Pvap25_range <- 10^log_seq
+
+# Print the sequence
+print(Pvap25_range)
+#Generation of matrix 
+result_engine <- list()
+result_sedimentation <- list()
+
+
+#function for getting engines
+run_particle_simulation <- function(Pvap25_range, emissions) {
+  # Function to run simulation for a single particle size
+  run_simulation <- function(vap) {
+    print(paste("Running simulation for vap pressure:", vap))
+    World$SetConst(Pvap25 = vap)
+    World$UpdateKaas(mergeExisting = FALSE)
+    World$NewSolver("SBsteady")
+    World$Solve(emissions)
+    Engine <- World$exportEngineR()
+    
+    result <- list(
+      engine_result = Engine
+    )
+    
+    return(result)
+  }
+  
+  # Use lapply to iterate over particle sizes
+  results <- suppressWarnings(lapply(Pvap25_range, run_simulation))
+  
+  # Split results into separate lists for engine and sedimentation
+  result_engine <- lapply(results, function(res) res$engine_result)
+  
+  # Return results as a list
+  return(list(
+    engine_results = result_engine))
+}
+
+# Call the function
+simulation_results <- run_particle_simulation(Pvap25_range, emissions)
+engine_results <- simulation_results$engine_results
+
+```
+
+```{r different vapor pressure mass balance check }
+# Initialize lists and data frames
+mass_balance_results <- list()
+total_abs_differences <- data.frame(VaporPressure = numeric(), TotalAbsDifference = numeric(), stringsAsFactors = FALSE)
+top_rows_list <- list()
+total_mass_difference_list <- list()
+kaas_filtered_list <- list()
+
+  # Replace with actual emissions data or parameters
+
+# Fetch Pvap25 data from World
+World$fetchData("Pvap25")
+
+# Generate a log scale sequence for vapor pressures
+log_seq <- seq(from = log10(1e-20), to = log10(1e-5), length.out = 10)
+
+# Convert the log scale sequence back to the original scale
+Pvap25_range <- 10^log_seq
+
+# Print the sequence to verify
+print(Pvap25_range)
+
+# Loop over vapor pressures
+for (vap in Pvap25_range) {
+  cat("Processing mass balance for vapor pressure:", vap, "\n")
+
+  # Set the constant vapor pressure
+  World$SetConst(Pvap25 = vap)
+  World$UpdateKaas(mergeExisting = FALSE)
+  World$NewSolver("SBsteady")
+  World$Solve(emissions)
+  SolutionSteady <-World$Solve(emissions)
+  SolutionSteady2 <- as.data.frame(SolutionSteady)
+  
+
+  # Create unique combinations
+  unique_combinations <- SolutionSteady2 |>
+    select(Scale, SubCompart, Species) |>
+    distinct()
+
+  # Create emission rows
+  emission_rows <- unique_combinations |>
+    mutate(
+      Value = "emission",
+      EqMass = if_else(Scale == "Continental" & SubCompart == "river" & Species == "Solid", emissions$Emis, 0)
+    )
+
+  # Adding "from" and "to" acronyms to the R K matrix
+  kaas <- as_tibble(World$kaas)
+  kaas <- kaas |>
+    left_join(SolutionSteady, by = c("fromScale" = "Scale", "fromSubCompart" = "SubCompart", "fromSpecies" = "Species"))
+
+  # Multiply k by the corresponding EqMass
+  kaas <- kaas |>
+    mutate(k = k * EqMass)
+  kaas <- kaas |>
+    mutate(k = if_else(fromSubCompart == toSubCompart &
+                         fromScale == toScale &
+                         fromSpecies == toSpecies,
+                       -abs(k),
+                       k))
+
+  # Save kaas rows for certain subcompartments 
+  kaas_filtered <- kaas |>
+    filter((fromScale == "Tropic" & fromSubCompart == "deepocean" & fromSpecies == "Unbound") |
+           (toScale == "Tropic" & toSubCompart == "deepocean" & toSpecies == "Unbound"))
+
+  # Aggregate k values based on toScale, toSubCompart, and toSpecies
+  aggregated_to <- kaas |>
+    group_by(toScale, toSubCompart, toSpecies) |>
+    summarise(k_sum_to = sum(k)) |>
+    ungroup()
+
+  # Aggregate k values based on fromScale, fromSubCompart, and fromSpecies
+  aggregated_from <- kaas |>
+    filter(k >= 0) |>
+    group_by(fromScale, fromSubCompart, fromSpecies) |>
+    summarise(k_sum_from = sum(k)) |>
+    ungroup()
+
+  new_rows_from <- aggregated_from |>
+    mutate(
+      Value = "transportfrom",
+      Scale = fromScale,
+      SubCompart = fromSubCompart,
+      Species = fromSpecies,
+      EqMass = k_sum_from
+    ) |>
+    select(Value, Scale, SubCompart, Species, EqMass)
+
+  new_rows_to <- aggregated_to |>
+    mutate(
+      Value = "transportto",
+      Scale = toScale,
+      SubCompart = toSubCompart,
+      Species = toSpecies,
+      EqMass = k_sum_to
+    ) |>
+    select(Value, Scale, SubCompart, Species, EqMass)
+
+  # Combine SolutionSteady with new rows
+  massbalancecheck <- bind_rows(new_rows_from, new_rows_to, emission_rows)
+
+  massbalancecheck_sorted <- massbalancecheck |>
+    arrange(Scale, SubCompart, Species)
+
+  # Check differences
+  massbalance_difference <- massbalancecheck_sorted |>
+    pivot_wider(names_from = Value, values_from = EqMass) |>
+    mutate(difference = transportto + emission - transportfrom) |>
+    select(Scale, SubCompart, Species, difference)
+
+  total_abs_difference <- sum(abs(massbalance_difference$difference), na.rm = TRUE)
+  total_mass_difference <- sum(massbalance_difference$difference, na.rm = TRUE)
+
+  # Add columns for vapor pressure
+  massbalance_difference$VaporPressure <- vap
+  kaas_filtered$VaporPressure <- vap
+
+  # Print largest differences
+  top_5_rows <- massbalance_difference |>
+    arrange(desc(abs(difference))) |>
+    head(5)
+
+  # Append the results to the lists
+  key <- as.character(vap)
+  mass_balance_results[[key]] <- massbalance_difference
+  total_abs_differences <- rbind(total_abs_differences, data.frame(VaporPressure = vap, TotalAbsDifference = total_abs_difference))
+  top_rows_list[[key]] <- top_5_rows
+  total_mass_difference_list[[key]] <- total_mass_difference
+  kaas_filtered_list[[key]] <- kaas_filtered
+
+}  # End of vapor pressure loop
+
+# Combine all mass balance results into a single dataframe
+massbalance_difference_all <- do.call(rbind, mass_balance_results)
+top_rows_all <- do.call(rbind, top_rows_list)
+kaas_filtered_all <- do.call(rbind, kaas_filtered_list)
+
+# Print the combined results (optional)
+print(massbalance_difference_all)
+print(top_rows_all)
+
+library(ggplot2)
+ggplot(total_abs_differences, aes(x = as.factor(VaporPressure), y = TotalAbsDifference)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Total Absolute Differences by Vapor Pressure", x = "Vapor Pressure", y = "Total Absolute Difference [kg]") +
+  theme_minimal()
+
+# Plotting the mass balance differences
+ggplot(massbalance_difference_all, aes(x = interaction(Scale, SubCompart, Species), y = difference, fill = as.factor(VaporPressure))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Mass Balance Differences by Scale, SubCompart, and Species", x = "Combination (Scale, SubCompart, Species)", y = "Difference Mass Balance [kg]") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal()
+
+top_rows_all$VaporPressure <- factor(top_rows_all$VaporPressure, levels = unique(top_rows_all$VaporPressure))
+
+# Plotting the top differences as grouped bars with facets for vapor pressures
+ggplot(top_rows_all, aes(x = interaction(SubCompart, Scale, Species), y = difference, fill = as.factor(VaporPressure))) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.4) +
+  labs(title = "Top Differences by Compartment, Scale, and Species", x = "Combination (Compartment, Scale, Species)", y = "Difference Mass Balance [kg]", fill = "Vapor Pressure") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  facet_wrap(~ VaporPressure, scales = "free", ncol = 2)
 
 ```
