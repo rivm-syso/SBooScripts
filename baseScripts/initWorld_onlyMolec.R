@@ -3,27 +3,21 @@
 #script to faking the future library(SBoo)
 source("baseScripts/fakeLib.R")
 
-#to run the script with another selection of substance / excel reference,
-#set the variables substance and excelReference before sourcing this script, like substance = "nAg_10nm"
-if (!exists("substance")) {
-  substance <- "default substance"
-}
-
 #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
-ClassicStateModule <- ClassicNanoWorld$new("data", substance)
+ClassicStateModule <- ClassicNanoWorld$new("data") #by default Substance = "default substance"
 
 #with this data we create an instance of the central "core" object,
 World <- SBcore$new(ClassicStateModule)
 
-# We are interested in the Molecular species only
-World$filterStates(SpeciesName = "Molecular")
-
-# To proceed with testing we set
-
+# To proceed with testing we set pKa
 if (is.na(World$fetchData("pKa"))) {
   warning("pKa is needed but missing, setting pKa=7")
   World$SetConst(pKa = 7)
 }
+
+# if substance is set; pKa and other substance properties will be set according the table, see
+World$substance <- "(4-Chloro-2-methylphenoxy)acetic acid compd. with N-Methylmethanamine (1:1)"
+World$fetchData("pKa")
 
 if (World$fetchData("ChemClass")==("")) {
   warning("ChemClass is needed but missing, setting to neutral")
