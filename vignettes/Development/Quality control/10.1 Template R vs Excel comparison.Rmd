@@ -68,40 +68,40 @@ ProcessMolFunctions[!ProcessMolFunctions %in% unique(World$kaas$process)]
 
 ```
 
-```{r Change NETsedrate for test}
-
-NETsedrate <- c(8.62268518546068*10^-11, 8.68610476915272*10^-11,                 # River
-          8.62268518546068*10^-11, 8.68610476915272*10^-11,                       # Lake
-          2.74*10^-11, 2.74287972475951*10^-11,                                   # Sea
-          6.34195839675285*10^-14, 8.95180294396847*10^-14, 6.34195839675295*10^-14) # Deepocean
-
-NETsedrate <- format(NETsedrate, scientific = F)
-
-Scale <- c("Continental", "Regional", 
-            "Continental", "Regional",
-            "Continental", "Regional", 
-            "Arctic", "Moderate", "Tropic")
-
-SubCompart <- c("river", "river", 
-           "lake", "lake",
-           "sea", "sea",
-           "deepocean", "deepocean", "deepocean")
-
-df <- data.frame(cbind(Scale, SubCompart, NETsedrate))
-
-ToPaste <- lapply(list(df), function(x) {
-  varName <- names(x)[!names(x) %in% The3D]
-  stopifnot(length(varName)==1)
-  # one line with 2 disadvantages of tidyverse..:
-  as.data.frame(pivot_longer(data = x, cols = all_of(varName), names_to = "varName", values_to = "Waarde"))
-})
-#and one advantage: bind_rows handles missing columns
-dfs <- do.call(bind_rows, ToPaste)
-
-World$mutateVars(dfs)
-World$fetchData("NETsedrate")
-# World$UpdateKaas() # Doesn't work??
-```
+# ```{r Change NETsedrate for test}
+# 
+# NETsedrate <- c(8.62268518546068*10^-11, 8.68610476915272*10^-11,                 # River
+#           8.62268518546068*10^-11, 8.68610476915272*10^-11,                       # Lake
+#           2.74*10^-11, 2.74287972475951*10^-11,                                   # Sea
+#           6.34195839675285*10^-14, 8.95180294396847*10^-14, 6.34195839675295*10^-14) # Deepocean
+# 
+# NETsedrate <- format(NETsedrate, scientific = F)
+# 
+# Scale <- c("Continental", "Regional", 
+#             "Continental", "Regional",
+#             "Continental", "Regional", 
+#             "Arctic", "Moderate", "Tropic")
+# 
+# SubCompart <- c("river", "river", 
+#            "lake", "lake",
+#            "sea", "sea",
+#            "deepocean", "deepocean", "deepocean")
+# 
+# df <- data.frame(cbind(Scale, SubCompart, NETsedrate))
+# 
+# ToPaste <- lapply(list(df), function(x) {
+#   varName <- names(x)[!names(x) %in% The3D]
+#   stopifnot(length(varName)==1)
+#   # one line with 2 disadvantages of tidyverse..:
+#   as.data.frame(pivot_longer(data = x, cols = all_of(varName), names_to = "varName", values_to = "Waarde"))
+# })
+# #and one advantage: bind_rows handles missing columns
+# dfs <- do.call(bind_rows, ToPaste)
+# 
+# World$mutateVars(dfs)
+# World$fetchData("NETsedrate")
+# # World$UpdateKaas() # Doesn't work??
+# ```
 
 ```{r data xlsx and R}
 #Comparing K's from R model to K's from excel model
@@ -179,16 +179,20 @@ diagonal_R <-
 diagonal_R$from[!diagonal_R$from %in% diagonal_excel$from] # "sd0C" "sd0R" were added in sboo v1
 diagonal_excel$from[!diagonal_excel$from %in% diagonal_R$from] #all excel diagonals are in those of R
 
-ifelse( (length(diagonal_R$k)-2)==length(diagonal_excel$k) ,
-       print("ok"), stop("too many compartment combo's")) 
+# ifelse( (length(diagonal_R$k)-2)==length(diagonal_excel$k) ,
+#        print("ok"), stop("too many compartment combo's")) 
 
 #Single dataframe with both the R and excel diagonals
 merged_diagonal <- merge(diagonal_R, diagonal_excel, by = "from", suffixes = c("_R", "_Excel")) 
 merged_diagonal$k_Excel <- -merged_diagonal$k_Excel #Turning the "negative" values from the Excel matrix into positive ones
 merged_diagonal$diff <- merged_diagonal$k_R - merged_diagonal$k_Excel 
+merged_diagonal$reldif <- merged_diagonal$diff/merged_diagonal$k_R
 
 #Plot of differences of the diagonals per compartment
 ggplot(merged_diagonal, aes(x = from, y = diff)) +
+  geom_boxplot()
+
+ggplot(merged_diagonal, aes(x = from, y = reldif)) +
   geom_boxplot()
 
 ```
@@ -260,6 +264,35 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
 large_differences <- mergedkaas |>
   mutate(relDif = abs(relDif)) |>
   filter(relDif > 0.0001) 
+
+```
+
+```{r Lake removal}
+# The relative difference in lake removal rate is caused by lake sedimentation
+# being included in R but not in excel.
+
+# To make an accurate comparison between R and excel, the lake compartment will 
+# be excluded from the emission figure.
+
+#World$moduleList[["k_Degradation"]]$execute(debugAt = list())
+
+```
+
+```{r Sea removal}
+
+remsea <- kaas |>
+  filter(from == "w2A")
+
+remdeepsea <- kaas |>
+  filter(from == "w3A")
+
+```
+
+``` {r to lake}
+
+tolake <- kaas |>
+  filter(toScale == "Regional") |>
+  filter(toSubCompart == "lake")
 
 ```
 
@@ -422,7 +455,7 @@ tolake <- tolake |>
 
 # k_Adsorption is exactly the same in R as in Excel, k_Deposition is slightly different
 
-World$moduleList[["Kaerw"]]$execute(debugAt = list())
+#World$moduleList[["Kaerw"]]$execute(debugAt = list())
 
 ```
 
@@ -451,11 +484,16 @@ SSsolve.excel <- SSsolve.excel |>
   pivot_longer(names_to = "Abbr", values_to = "EqMass", cols = everything()) 
 
 SSsolve.R <- SSsolve.R |> mutate(Abbr =  paste0(accronym_map[SubCompart], 
-                            accronym_map2[Scale]))
+                            accronym_map2[Scale])) |>
+  mutate(SubCompart = str_replace(SubCompart, "lakesediment", "lake")) |>
+  mutate(Abbr = str_replace(Abbr, "sd0R", "w0R")) |>
+  mutate(Abbr = str_replace(Abbr, "sd0C", "w0C")) |>
+  group_by(Scale, SubCompart, Species, Abbr) |>
+  summarise(EqMass = sum(EqMass))
 
 merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by="Abbr", suffixes = c(".R", ".Excel")) |>
   mutate(absdiff = EqMass.R-EqMass.Excel) |>
-  mutate(reldiff = abs(absdiff/EqMass.R))
+  mutate(reldiff = absdiff/EqMass.R)
 
 print("Difference in emissions between R and Excel")
 
@@ -465,7 +503,23 @@ knitr::kable(merged_SS_SB1, format="markdown")
 ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
   geom_boxplot() +
   ggtitle(paste0("Relative differences between steady state masses in excel and R (SB1solve) - ", substance)) +
-  geom_hline(yintercept = 0.001, color="red")
+  geom_hline(yintercept = 0.001, color="red") +
+  geom_hline(yintercept = -0.001, color="red") 
+
+sum(merged_SS_SB1$absdiff)
+
+sum(merged_SS_SB1$EqMass.R)
+
+sum(merged_SS_SB1$EqMass.Excel)
+
+lakenames <- data.frame(SubCompart = c("lakesediment", "lakesediment"), Scale = c("Regional", "Continental"), Abbr = c("sd0R", "sd0C"), Species = c("Unbound", "Unbound"))
+
+names <- SSsolve.R |>
+  select(SubCompart, Scale, Abbr, Species) 
+
+names <- rbind(names, lakenames)
+
+
 ```
 
 ``` {r comparison of steady state emissions using SBsteady}
@@ -484,11 +538,16 @@ SSsolve.excel <- SSsolve.excel |>
   pivot_longer(names_to = "Abbr", values_to = "EqMass", cols = everything()) 
 
 SSsolve.R <- SSsolve.R |> mutate(Abbr =  paste0(accronym_map[SubCompart], 
-                            accronym_map2[Scale]))
+                            accronym_map2[Scale])) |>
+  mutate(SubCompart = str_replace(SubCompart, "lakesediment", "lake")) |>
+  mutate(Abbr = str_replace(Abbr, "sd0R", "w0R")) |>
+  mutate(Abbr = str_replace(Abbr, "sd0C", "w0C")) |>
+  group_by(Scale, SubCompart, Species, Abbr) |>
+  summarise(EqMass = sum(EqMass))
 
 merged_SS_steady <- merge(SSsolve.R, SSsolve.excel, by="Abbr", suffixes = c(".R", ".Excel")) |>
   mutate(absdiff = EqMass.R-EqMass.Excel) |>
-  mutate(reldiff =abs(absdiff/EqMass.R))
+  mutate(reldiff =absdiff/EqMass.R)
 
 print("Difference in emissions between R and Excel")
 
@@ -498,5 +557,62 @@ knitr::kable(merged_SS_steady, format="markdown")
 ggplot(merged_SS_steady, aes (x = Abbr, y = reldiff)) +
   geom_boxplot() +
   ggtitle(paste0("Relative differences between steady state masses in excel and R (SBsteady) - ", substance)) +
-  geom_hline(yintercept = 0.001, color="red")
+  geom_hline(yintercept = 0.001, color="red") +
+  geom_hline(yintercept = -0.001, color="red")
+
+sum(merged_SS_steady$absdiff)
+
+sum(merged_SS_steady$EqMass.R)
+
+sum(merged_SS_steady$EqMass.Excel)
+```
+
+```{r New SS solver}
+Engine <- as.matrix(World$exportEngineR())
+
+Emissions <- data.frame(rownames(Engine)) |>
+  rename(Abbr = rownames.Engine.) |>
+  left_join(emissions, by = "Abbr") |>
+  mutate(Emis = replace_na(Emis, 0))
+  
+emis <- as.numeric(Emissions$Emis)
+
+Engine_inv <- solve(Engine)
+
+neg_emis <- -emis
+
+result <- data.frame(Engine_inv %*% neg_emis) 
+
+SSsolve.R <- result |>
+  rename(EqMass = Engine_inv.....neg_emis) |>
+  rownames_to_column(var = "Abbr") |>
+  mutate(Abbr = str_sub(Abbr, 1, -2)) |>
+  left_join(names, by = "Abbr")|>
+  mutate(SubCompart = str_replace(SubCompart, "lakesediment", "lake")) |>
+  mutate(Abbr = str_replace(Abbr, "sd0R", "w0R")) |>
+  mutate(Abbr = str_replace(Abbr, "sd0C", "w0C")) |>
+  group_by(Scale, SubCompart, Species, Abbr) |>
+  summarise(EqMass = sum(EqMass))
+
+merged_SS_new_solver <- merge(SSsolve.R, SSsolve.excel, by="Abbr", suffixes = c(".R", ".Excel")) |>
+  mutate(absdiff = EqMass.R-EqMass.Excel) |>
+  mutate(reldiff =absdiff/EqMass.R)
+
+print("Difference in emissions between R and Excel")
+
+knitr::kable(merged_SS_new_solver, format="markdown")
+
+#Diff per "to" compartment
+ggplot(merged_SS_new_solver, aes (x = Abbr, y = reldiff)) +
+  geom_boxplot() +
+  ggtitle(paste0("Relative differences between steady state masses in excel and R (new solver) - ", substance)) +
+  geom_hline(yintercept = 0.001, color="red") +
+  geom_hline(yintercept = -0.001, color="red")
+
+sum(merged_SS_new_solver$absdiff)
+
+sum(merged_SS_new_solver$EqMass.R)
+
+sum(merged_SS_new_solver$EqMass.Excel)
+
 ```
