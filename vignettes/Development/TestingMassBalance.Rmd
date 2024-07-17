@@ -106,7 +106,7 @@ substances <- c(
                           "1-HYDROXYANTHRAQUINONE", # acid
                           "1-Hexadecanamine, N,N-dimethyl-", # base
                           "1-Chloro-2-nitro-propane", 
-                          "Zn(II)", 
+                           "Zn(II)", 
                           "Be(II)", 
                           "FUMARIC ACID", 
                           "Closantel"
@@ -842,7 +842,7 @@ substances <- c(
                           "1-HYDROXYANTHRAQUINONE", # acid
                           "1-Hexadecanamine, N,N-dimethyl-", # base
                           "1-Chloro-2-nitro-propane", 
-                          "Zn(II)", 
+                          # "Zn(II)", 
                           "Be(II)", 
                           "FUMARIC ACID", 
                           "Closantel"
