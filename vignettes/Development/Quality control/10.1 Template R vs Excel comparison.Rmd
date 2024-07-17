@@ -66,8 +66,41 @@ ProcessMolFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
 
 ProcessMolFunctions[!ProcessMolFunctions %in% unique(World$kaas$process)]
 
-unique(World$kaas$process)
+```
 
+```{r Change NETsedrate for test}
+
+NETsedrate <- c(8.62268518546068*10^-11, 8.68610476915272*10^-11,                 # River
+          8.62268518546068*10^-11, 8.68610476915272*10^-11,                       # Lake
+          2.74*10^-11, 2.74287972475951*10^-11,                                   # Sea
+          6.34195839675285*10^-14, 8.95180294396847*10^-14, 6.34195839675295*10^-14) # Deepocean
+
+NETsedrate <- format(NETsedrate, scientific = F)
+
+Scale <- c("Continental", "Regional", 
+            "Continental", "Regional",
+            "Continental", "Regional", 
+            "Arctic", "Moderate", "Tropic")
+
+SubCompart <- c("river", "river", 
+           "lake", "lake",
+           "sea", "sea",
+           "deepocean", "deepocean", "deepocean")
+
+df <- data.frame(cbind(Scale, SubCompart, NETsedrate))
+
+ToPaste <- lapply(list(df), function(x) {
+  varName <- names(x)[!names(x) %in% The3D]
+  stopifnot(length(varName)==1)
+  # one line with 2 disadvantages of tidyverse..:
+  as.data.frame(pivot_longer(data = x, cols = all_of(varName), names_to = "varName", values_to = "Waarde"))
+})
+#and one advantage: bind_rows handles missing columns
+dfs <- do.call(bind_rows, ToPaste)
+
+World$mutateVars(dfs)
+World$fetchData("NETsedrate")
+# World$UpdateKaas() # Doesn't work??
 ```
 
 ```{r data xlsx and R}
@@ -75,7 +108,7 @@ unique(World$kaas$process)
 library(openxlsx)
 library(tidyverse)
 #read in K matrix from excel
-SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.04_20240711_",substance,".xlsm") 
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.04_20240716_",substance,".xlsm") 
 
 SBexcel.K <- read.xlsx(SBExcelName,
                   colNames = FALSE,
@@ -222,17 +255,41 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
 
 ```
 
-```{r get differences larger than 1 percentile}
+```{r get differences larger than 0.1 percentile}
 
 large_differences <- mergedkaas |>
-  filter(relDif > 0.001) 
+  mutate(relDif = abs(relDif)) |>
+  filter(relDif > 0.0001) 
 
-# print("Differences in k's between R and Excel larger thans 1 percentile")
+```
+
+```{r soil to air}
+# Get the kaas
+
+toair <- kaas |>
+  filter(fromSubCompart == "naturalsoil") |>
+  filter(toSubCompart == "air")
+
+# The only process involved is volatilisation
+# The last time, a difference in pvap was the problem
+
+Substances <- read.csv("data/substances.csv")
+
+sub <- Substances |>
+  filter(Substance == substance)
+
+# World$moduleList[["MTC_2a"]]$execute(debugAt = list())
 # 
-# knitr::kable(large_differences_before, format="markdown")
+# # Problem might be a difference in KdegDorC
 # 
-# large_differences_before <- large_differences_before |>
-#   select(from, to, k_R, k_Excel)
+# kdeg <- World$fetchData("KdegDorC")
+# 
+# kdeg <- format(kdeg$KdegDorC, scientific = F)
+
+# The difference in volatilisation rates comes from a difference in kdeg values. 
+# The difference is that these values are more accurate in excel than in R. 
+# A quick test with changing the kdeg value in excel to the value used in R revealed
+# that this solved the problem. I don't think this needs a permanent solution. 
 
 ```
 
@@ -258,8 +315,7 @@ toair <- kaas |>
 
 # For the acid 1-HYDROXYANTHRAQUINONE, the pvap value from the substance csv was rounded to 2 decimals. In excel this number has much more decimals, causing the difference in kaw, kacompw and eventually volatilisation. 
 
-# This should still be fixed in the substances csv.
-
+# Changed in substances.csv
 ```
 
 ```{r diff aR/aC > s2/s3 KEEP FOR FINAL VERSION!!!}
@@ -282,8 +338,8 @@ airsoil <- kaas |>
 
 ```{r sedimentation to water KEEP FOR FINAL VERSION}
 resus <- kaas |>
-  filter(from == "sd2R") |>
-  filter(to == "w2R") 
+  filter(from == "sd2C") |>
+  filter(to == "w2C") 
 
 # The processes involved are resuspension and desorption.
 
@@ -302,12 +358,15 @@ resus <- resus |>
 
 
 # The Kacompw differs slightly from the kacompw in excel
+
+#World$moduleList[["k_Desorption"]]$execute(debugAt = list())
+
 ```
 
 ```{r Advection regional sea to continental sea}
 
-#AdvAir$execute(debugAt = list(toScale = "Continental"))
-World$moduleList[["CORRsoil"]]$execute(debugAt = list())
+# The advection differences between R and Excel were caused by different TotalArea in excel than R for the regional and continental scales. It looked like the values in ScaleSheet.csv were rounded, while the values in R were not. This problem was solved by changing the TotalArea values in ScaleSheet.csv to the values used in Excel and Hollander et al. (2015).
+
 ```
 
 ```{r water to sediment KEEP FOR FINAL VERSION}
@@ -332,18 +391,53 @@ w2s <- w2s |>
 
 ```
 
-``` {r comparison of steady state emissions}
+```{r air to lake}
+
+# Get the kaas from air to lake
+
+tolake <- kaas |>
+  filter(fromSubCompart == "air") |>
+  filter(toSubCompart == "lake") |>
+  filter(fromScale == "Continental")
+
+# Processes involved are adsorption and deposition
+
+# Convert the k values in R so that they are the same as in Excel for comparison
+
+# Get the areafrac lake
+land <- World$fetchData("AreaLand") |>
+  filter(Scale == "Continental")
+
+sea <- World$fetchData("AreaSea") |>
+  filter(Scale == "Continental")
+
+area <- World$fetchData("Area") |>
+  filter(Scale == "Continental") |>
+  filter(SubCompart == "lake")
+
+AreaFRAClake <- area$Area/(land$AreaLand+sea$AreaSea)
+
+tolake <- tolake |>
+  mutate(k_e = k/AreaFRAClake)
+
+# k_Adsorption is exactly the same in R as in Excel, k_Deposition is slightly different
+
+World$moduleList[["Kaerw"]]$execute(debugAt = list())
+
+```
+
+``` {r comparison of steady state emissions using SB1Solve}
 
 library(stringi)
 
-World$NewSolver("SBsteady")
+World$NewSolver("SB1Solve")
 
 emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000) ) # convert 1 t/y to si units: kg/s
 
 MW <- World$fetchData("MW")
 
 emissions <- emissions |>
-  mutate(Emis = Emis*1000/(MW*365.25*24*60*60))
+  mutate(Emis = Emis*1000/(MW*365*24*60*60))
 
 SSsolve.R <- World$Solve(emissions)
 
@@ -359,12 +453,50 @@ SSsolve.excel <- SSsolve.excel |>
 SSsolve.R <- SSsolve.R |> mutate(Abbr =  paste0(accronym_map[SubCompart], 
                             accronym_map2[Scale]))
 
-merged_SS_before <- merge(SSsolve.R, SSsolve.excel, by="Abbr", suffixes = c(".R", ".Excel")) |>
+merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by="Abbr", suffixes = c(".R", ".Excel")) |>
   mutate(absdiff = EqMass.R-EqMass.Excel) |>
-  mutate(reldiff = absdiff/EqMass.R)
+  mutate(reldiff = abs(absdiff/EqMass.R))
 
 print("Difference in emissions between R and Excel")
 
-knitr::kable(merged_SS, format="markdown")
+knitr::kable(merged_SS_SB1, format="markdown")
 
+#Diff per "to" compartment
+ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
+  geom_boxplot() +
+  ggtitle(paste0("Relative differences between steady state masses in excel and R (SB1solve) - ", substance)) +
+  geom_hline(yintercept = 0.001, color="red")
+```
+
+``` {r comparison of steady state emissions using SBsteady}
+
+World$NewSolver("SBsteady")
+
+SSsolve.R <- World$Solve(emissions)
+
+SSsolve.excel <- read.xlsx(SBExcelName,
+                             sheet=11,
+                             colNames=TRUE,
+                             rows=c(44,45))
+
+SSsolve.excel <- SSsolve.excel |>
+  select(-c(STEADY.STATE, X2)) |>
+  pivot_longer(names_to = "Abbr", values_to = "EqMass", cols = everything()) 
+
+SSsolve.R <- SSsolve.R |> mutate(Abbr =  paste0(accronym_map[SubCompart], 
+                            accronym_map2[Scale]))
+
+merged_SS_steady <- merge(SSsolve.R, SSsolve.excel, by="Abbr", suffixes = c(".R", ".Excel")) |>
+  mutate(absdiff = EqMass.R-EqMass.Excel) |>
+  mutate(reldiff =abs(absdiff/EqMass.R))
+
+print("Difference in emissions between R and Excel")
+
+knitr::kable(merged_SS_steady, format="markdown")
+
+#Diff per "to" compartment
+ggplot(merged_SS_steady, aes (x = Abbr, y = reldiff)) +
+  geom_boxplot() +
+  ggtitle(paste0("Relative differences between steady state masses in excel and R (SBsteady) - ", substance)) +
+  geom_hline(yintercept = 0.001, color="red")
 ```
