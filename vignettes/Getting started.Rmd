@@ -1,0 +1,191 @@
+---
+title: "Getting started"
+author: "Anne Hids"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: inline
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+# Initialize
+
+This vignette demonstrates how to use SimpleBox Object-Oriented (SBOO).
+
+## Choose a substance
+
+The first step is to initialize the model. Before initialization a
+substance needs to be selected, otherwise the "default substance" is
+used. To select another substance than "default substance", a substance
+can be chosen from the "Substance" column of the data frame created
+below.
+
+```{r Substance list, include=TRUE, warning=FALSE}
+#substances <- read.csv("data/Substances.csv")
+substances <- read.csv("~/GitHub/SimpleBox/SBooScripts/data/Substances.csv")
+
+# Assign a substance name from the Substance column to the variable "substance":
+substance <- "1-aminoanthraquinone"
+```
+
+## Initialize the World object
+
+The World object contains all variables and first order rate constants
+(k's) for the chosen substance. This object is needed later to calculate
+the masses in each compartment on each scale.
+
+To initialize the World object, one of three script is called:
+
+-   initWorld_onlyMolec.R (used for molecules)
+-   initWorld_onlyParticulate.R (used for particulates)
+-   initWorld_onlyPlastics.R (used for microplastics)
+
+Choosing which script to use is dependent on the ChemClass of the chosen
+substance (see "ChemClass" column in the "substances" data frame). Each
+of these three classes require different initWorld scripts because
+different processes and variables are used to calculate the k's. With
+the chunk below, the correct initWorld script is automatically chosen
+and run based on the chosen substance:
+
+```{r Initialize World, include=TRUE, warning=FALSE}
+library(tidyverse)
+
+chemclass <- substances |>
+  filter(Substance == substance) |>
+  select(ChemClass)
+
+chemclass <- chemclass$ChemClass
+
+if(substance == "microplastic"){
+  source("baseScripts/initWorld_onlyPlastics.R")
+} else if (chemclass == "particle") {
+  source("baseScripts/initWorld_onlyParticulate.R")
+} else {
+  source("baseScripts/initWorld_onlyMolec.R")
+}
+
+```
+
+# Accessing variables and k's
+
+Now that the World is initialized, its variables and calculated flows
+can be accessed. To access these variables and k's, first the names of
+the variables are needed:
+
+```{r Get variable names, include=TRUE, warning=FALSE}
+varnames <- World$fetchData()
+
+print(varnames)
+```
+
+## Access variables
+
+A specific variable (in this case AreaSea) can be accessed as follows:
+
+```{r Access variables, include=TRUE, warning=FALSE}
+World$fetchData("AreaSea")
+```
+
+## Access k's
+
+The "kaas" variable contains a data frame with the k's, proccess name,
+to-subcompartment name from-subcompartment name, to-scale name,
+from-scale name, to-species name and from-species name. It can be
+accessed in the same way other variables are accessed:
+
+```{r Access kaas, include=TRUE, warning=FALSE}
+df_ks <- World$fetchData("kaas")
+```
+
+# Calculate steady state output
+
+To calculate steady state masses, emissions and a solver are needed. The
+have to be given to the solver in a particular format.
+
+## Create emissions data frame
+
+To be able to calculate steady state masses, an emission data frame is
+needed. The emissions data frame consists of one column with the
+abbreviation of the scale-subcompartment-species combination, and
+another column containing the emission to that compartment.
+
+*Note: for the particulates, use the S (solid) species, for molecules,
+use the U (unbound) species.*
+
+The abbreviations are as follows:
+
+```{r Abbreviations, include=TRUE, warning=FALSE}
+library(knitr)
+scales <- data.frame(Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"), Abbreviation = c("A", "C", "M", "R", "T"))
+
+subcompartments <- read.csv("data/SubCompartSheet.csv") |>
+  select(SubCompartName, AbbrC) |>
+  rename(Abbreviation = AbbrC) |>
+  rename(SubCompartment = SubCompartName)
+
+species <- read.csv("data/SpeciesSheet.csv") |>
+  select(Species, AbbrP) |>
+  rename(Abbreviation = AbbrP)
+
+print(scales)
+print(subcompartments)
+print(species)
+
+```
+
+*Notes:*
+
+-   *Compartment deepocean only exists on Global (Arctic, Moderate,
+    Tropic) scale.*
+-   *Compartments lake, river, agriculturalsoil and othersoil only exist
+    on regional and continental scale.*
+
+The abbreviations used in the emissions data frame are built up as
+follows:
+
+1.  Abbreviation of the subcompartment
+2.  Abbreviation of the scale
+3.  Abbreviation of the species.
+
+Now the emissions data frame can be created. The column named "Abbr"
+contains the abbreviations, and the column "Emis" contains the
+emissions. In the example below, emissions of 10000 t/y go into regional
+air, regional agricultural soil and regional river water. These
+emissions in tonnes per year are then converted to mol/s.
+
+```{r Create emissions data frame, include=TRUE, warning=FALSE}
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000) ) 
+
+MW <- World$fetchData("MW")
+
+emissions <- emissions |>
+  mutate(Emis = Emis*1000/(MW*365*24*60*60)) # convert 1 t/y to mol/s
+
+```
+
+## Solve the matrix
+
+To solve the matrix, a solver first needs to be specified. To solve for
+a steady state we can use "SB1Solve". In this case the resulting steady
+state masses are reported in the data frame "masses".
+
+```{r Solve the matrix, include=TRUE, warning=FALSE}
+# Specify which solver to use to the World object
+World$NewSolver("SB1Solve")
+
+# Use the emissions data frame and solve the matrix
+masses <- World$Solve(emissions)
+
+print(masses)
+
+```
+
+# Calculate dynamic output
