@@ -1,23 +1,30 @@
 ---
-title: "9 Heteroaglomeration"
-author: "Jaap Slootweg, Joris Quik"
+title: "9 Heteroagglomeration"
+author: "Jaap Slootweg, Joris Quik, Anne Hids"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
   chunk_output_type: console
 ---
 
+```{r setup, include=FALSE, warning=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
 ```{r message=FALSE, warning=FALSE}
 substance <- "nAg_10nm"
-source("baseScripts/initTestWorld.R")
+source("baseScripts/initWorld_onlyParticulate.R")
 
 ```
 
-## Heteroaglomeration
+## Heteroagglomeration
 
 This is a particulate process which only applies to Solid species and the transformation to the Aggregated or Attached Particulate Species.
 
-There are three different aproaches applied here depending on the matrix where this process takes place and the species affected.
+There are three different approaches applied here depending on the matrix where this process takes place and the species affected.
 
 The three approaches are based on: - Smoluchowski's colloid theory (water, soil/sediment pore water) - Filtration theory for porous matrices (soil and sediment) - Aerosol agglomeration approaches (air)
 
@@ -35,20 +42,14 @@ The heteroaggregation rate constant is calculated using (k_HeteroAgglomeration.w
 
 Furthermore there are several helper functions used to avoid repeating code and too complex variables:
 
--   f_Inter
+-   f_Inter (Interception or peri-kinetic collision frequency coefficient)
+-   f_Brown (Brownian motion or kinetic collision frequency coefficient) 
+-   f_Grav (Gravitational impaction collision frequency coefficient)
+-   f_NumConc (Calculate number concentration from mass concentration) 
+-   f_SetVelWater (Function for calculating the Settling Velocity of a particle through water)
 
--   f_Brown
-
--   f_Grav
-
--   f_NumConc
-
--   f_SetVelWater
-
-```{r w.Heteroglomeration}
-# for after editting data
-# source("baseScripts/ReorderCSV.R")
-
+```{r Variables w.Heterogglomeration, include=TRUE, warning=FALSE}
+# Below are all variables used to calculate heteroagglomeration in water
 World$fetchData("alpha") # here to.alpha needs to be used
 World$fetchData("COL")
 World$fetchData("SUSP")
@@ -68,28 +69,17 @@ World$fetchData("DynViscWaterStandard")
 World$fetchData("DynViscAirStandard")
 World$fetchData("Df")
 World$fetchData("SubCompartName")
-
-CalcVariable <- World$NewCalcVariable("rad_species")
-#CalcVariable$execute(debugAt = list(assembly = T))
-
-World$CalcVar("rad_species")
-# debugonce(rad_species)
-# other debug met is using browser()
-# CalcVariable$execute(debugAt = list(ScaleName = "Art")) # Not working currently
-
-World$NewCalcVariable("rho_species")
-(World$CalcVar("rho_species"))
-
-# World$NewCalcVariable("SettlingVelocity")
-# World$CalcVar("SettlingVelocity")
-
-
-World$fetchData("SettlingVelocity")
-
-f_SetVelWater
 World$fetchData("rhoMatrix")
 World$fetchData("Matrix")
-World$fetchData("SpeciesName") # supposed to be in multiple tables?
+World$fetchData("SpeciesName")
+
+# Calculate the radius of the heteroagglomerate
+CalcVariable <- World$NewCalcVariable("rad_species")
+World$CalcVar("rad_species")
+
+# Calculate the density of the heteroagglomerate
+World$NewCalcVariable("rho_species")
+World$CalcVar("rho_species")
 
 # for sediment and soil and het to attached species:
 CalcVariable <- World$NewCalcVariable("FRACs")
@@ -97,50 +87,49 @@ World$CalcVar("FRACs")
 
 ```
 
-```{r}
+```{r Calculate w.Heteroagglomeration, include=TRUE, warning=FALSE}
 World$FromDataAndTo("k_HeteroAgglomeration.wsd")
 testProc <- World$NewProcess("k_HeteroAgglomeration.wsd")
-
-# debugonce(testProc$execute)
 testProc$execute()
-
-# testProc$execute(debugAt = list(to.SpeciesName = "Aggregated", Matrix = "water"))
-# testProc$execute(debugAt = list(assembly = ""))
-
-# debugonce(k_HeteroAgglomeration.wsd)
-
-
-# debug(testProc$execute())
 ```
 
-### air
-Heteroagglomeration for attached species in soil and sediment is also included in k_HeteroAgglomeration.wsd. However, heteroagglomeration in air is calculated seperately using k_HeteroAgglomeration.a.
+### Heteroagglomeration in air
 
+Heteroagglomeration for attached species in soil and sediment is also included in k_HeteroAgglomeration.wsd. However, heteroagglomeration in air is calculated seperately using k_HeteroAgglomeration.a. In k_HeteroAgglomeration.a, two helper functions are defined:
 
+-   ThermVel (calculates the thermal velocity)
+-   f_Fuchs (calculates Fuch's correction factor). 
 
-Testing is done below:
-```{r}
+In addition, the helper function f_Diffusivity is used to calculate the diffusivitiy of the heteroagglomerate. 
 
-World$fetchData("NumConcNuc")
-World$fetchData("NumConcAcc")
-World$fetchData("NumConcCP") 
-
+```{r Calculate heteroagglomeration in air, include=TRUE, warning=FALSE}
+# Below are all variables used to calculate heteroagglomeration in air
 World$fetchData("RadNuc") 
 World$fetchData("RadCOL") 
 World$fetchData("RadCP") 
 
+World$fetchData("NumConcNuc")
+World$fetchData("NumConcAcc")
+World$fetchData("NumConcCP")
+
+World$fetchData("RhoNuc")
+World$fetchData("RhoCOL")
+World$fetchData("RhoCP")
+
+World$fetchData("Temp")
+World$fetchData("DynViscAirStandard")
+World$fetchData("Matrix")
+
 World$fetchData("Substance") 
 
+# Calculate heteroagglomeration in air: 
 World$FromDataAndTo("k_HeteroAgglomeration.a")
 testProc <- World$NewProcess("k_HeteroAgglomeration.a")
-
-# debugonce(testProc$execute)
 testProc$execute()
-
 ```
 
-
-
-[TO DO\* rework input of Aerosol concentrations into mass concentrations instead of number concentrations as they are now for COL and SUSP, and consider Nucc concentrations in CONSTANTS just like their Rad and Rho properties]
-
-Potentially we can integrate air also in one algorithm, alhough it will be a big one...
+```{r To Do, include=FALSE}
+# [TO DO\* rework input of Aerosol concentrations into mass concentrations instead of number concentrations as they are now for COL and SUSP, and consider Nucc concentrations in CONSTANTS just like their Rad and Rho properties]
+# 
+# Potentially we can integrate air also in one algorithm, alhough it will be a big one...
+```
