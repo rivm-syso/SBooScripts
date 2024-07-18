@@ -14,7 +14,7 @@ projectRoot <- paste(getwd(), "..", sep = "/")
 knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
-###Deposition processes 
+###Deposition processes for Molecules
 
 The intermedia transfer processes are related to transport from air to soil/water and from water to sediment, and vice versa. It also includes transport from soil to water.
 
