@@ -1,36 +1,67 @@
 ---
 title: "5.1 Area"
-author: "Jaap Slootweg, Joris Quik"
+author: "Jaap Slootweg, Joris Quik, Valerie de Rijk"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
   chunk_output_type: console
+  markdown: 
+    wrap: 72
 ---
 
-## Calculation of area of SubCompartment within Scales
 
-In the R version the calculation of the scales is based on data input of TotalArea and FRACsea, from which AreaLand and AreaSea are calculated. 
-Scales can be nested: e.g. by default the Regional and Continental scale are included in the Moderate scale. 
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
 
-The calculation of area slightly differs from the excel version. In the Excel version calculation of scales is the other way around for the regional and continental scale: AreaLand and AreaSea are data inputs from which the total system area is calculated. 
-The way of calculating scales in the R version is more consistent across scales, and also makes adding additional scales (e.g. a local scale within regional) or changing the nesting of scales (e.g continental in tropic instead of moderate) more straightforward. 
+### Calculation of area of SubCompartment within Scales
+
+In the R version the calculation of the scales is based on data input of
+TotalArea and FRACsea, from which AreaLand and AreaSea are calculated.
+Scales can be nested: e.g. by default the Regional and Continental scale
+are included in the Moderate scale.
+
+The calculation of area slightly differs from the excel version. In
+theExcel version calculation of scales is the other way around for the
+regional and continental scale: AreaLand and AreaSea are data inputs
+from which the total system area is calculated. The way of calculating
+scales in the R version is more consistent across scales, and also makes
+adding additional scales (e.g. a local scale within regional) or
+changing the nesting of scales (e.g continental in tropic instead of
+moderate) more straightforward.
 
 ```{r start.data, message=FALSE, warning=FALSE}
-source("baseScripts/initTestWorld.R")
+source("baseScripts/initWorld_onlyMolec.R")
 World$fetchData("TotalArea")
 World$fetchData("FRACsea")
 
 ```
 
-## Nesting and splitting land and sea
+#### Nesting and splitting land and sea
 
-Scales can be nested in other scales. TotalArea of a scale represent the total area of that scale, INCLUDING the TotalArea of any scales nested within them.
-However, AreaLand and AreaSea represent the area of respectively land and sea of that scale EXCLUDING any nested scales. Therefore, the TotalArea of any nested scales is substracted before calculating AreaLand and AreaSea. For example, The TotalArea of Continental contains Regional. Therefore,the TotalArea of Continental is reduced
-by Regional, before the sea and land fraction are applied. Similarly, currently by default Continental is included in the Moderate scale, and its TotalArea is substracted from the TotalArea of the moderate scale before calculation of AreaLand and AreaSea. Note that the TotalArea of the Continental scale already includes the TotalArea of the Regional scale, so only TotalArea of the continental scale is substracted (and not also TotalArea of regional separately, as that would be double substracting the area of the regional scale). 
+Scales can be nested in other scales. TotalArea of a scale represent the
+total area of that scale, *including* the TotalArea of any scales nested
+within them. However, AreaLand and AreaSea represent the area of
+respectively land and sea of that scale *excluding* any nested scales.
 
-Regional and Arctic currently have no nested scale, and are straightforward
-calculation of AreaSea and AreaLand as resp. TotalArea\*FRACsea and
-TotalArea\*(1-FRACsea)
+Therefore, the TotalArea of any nested scales is substracted before
+calculating AreaLand and AreaSea. For example, The TotalArea of
+Continental contains Regional. Therefore,the TotalArea of Continental is
+reduced by Regional, before the sea and land fraction are applied.
+Similarly, currently by default Continental is included in the Moderate
+scale, and its TotalArea is substracted from the TotalArea of the
+moderate scale before calculation of AreaLand and AreaSea. Note that the
+TotalArea of the Continental scale already includes the TotalArea of the
+Regional scale, so only TotalArea of the continental scale is
+substracted (and not also TotalArea of regional separately, as that
+would be double substracting the area of the regional scale).
+
+Regional and Arctic currently have no nested scale, and are
+straightforward calculation of AreaSea and AreaLand as respectively.
+TotalArea\*FRACsea and TotalArea\*(1-FRACsea)
 
 ```{r}
 v_AreaSea <- World$NewCalcVariable("AreaSea")
@@ -40,59 +71,67 @@ tAreaLand <- World$CalcVar("AreaLand")
 merge(tAreaLand, tAreaSea)
 ```
 
-## Obvious and not so obvious variable references
+#### Variable references behind the scenes
+
+*The part below gives an insight into the specific workings of the SBOO
+repository. This is not strictly necessary for understanding the
+workings of the model.*
 
 Variables are often tables, as can be seen above for the AreaLand
 variable. When a variable is applied in a “defining function” the SBoo
 system looks for the proper dimension, e.g. when it finds Arealand and
 it is calculating for Arctic it will use the AreaLand of Arctic. But
 when calculating for instance AreaSea for Continental we need TotalArea
-for both Continental AND Regional! How can we implement this in our
-defining function?
+for both Continental AND Regional! 
 
-In such a case we can use the “all.” preposition. The function will receive the
-whole table for the variable at hand. As an example look at the defining
-function for AreaSea:
+In such a case we can use the “all.” preposition. The function will
+receive the whole table for the variable at hand. As an example look at
+the defining function for AreaSea:
 
 ```{r}
 AreaSea
 ```
 
-## The areas to be used in further calculations
+#### The areas to be used in further calculations
 
-AreaLand and AreaSea are used in the calculation of the areas of all Scale/SubCompart combinations.
-The calculation of the area differs per subcompartment. We therefore include SubCompartName as parameter in the defining
-function and use it to distinguish which formula applies (see the Area function below).
+AreaLand and AreaSea are used in the calculation of the areas of all
+Scale/SubCompart combinations. The calculation of the area differs per
+subcompartment. We therefore include SubCompartName as parameter in the
+defining function and use it to distinguish which formula applies (see
+the Area function below).
 
-Be aware that the definition of landFRAC differs from AREAFRAC; landFRAC is the fraction of the
-subcompartment of the AreaLand, whereas AREAFRAC .
-
+landFRAC is the fraction that belongs to a specificic subcompartment (e.g. agricultural soil) of the total AREALand.
 
 All Scale/SubCompart combinations (present in states) have an area,
 including the subcompart “cloudwater”! It receives the same area as air,
 namely the sum of AreaSea and AreaLand for the scale at hand. For sea
 and for oceans, if present, the area equal that of AreaSea. Otherwise
 (different Subcompartments that add up to “AreaLand”) the calculation is
-straightforward (landFRAC \* AreaLand).    
+straightforward (landFRAC \* AreaLand).
 
-In case you are not familiar with this:
-return() ends the function and “returns” its parameter. All different
-states are “peeled of” in order, and the last statements ensures that
-other cases (not existing states) are not included in calculations.
+Below we show the Area function.
+
 
 ```{r}
+World$fetchData("landFRAC")
 Area
 v_Area <- World$NewCalcVariable("Area")
 tArea <- World$CalcVar("Area")
 ```
 
-Just taking the sum of areas grouped by scale would include double counting the subcompartments which are on top of each other, or mixed: air / cloudwater / sea / deepocean! But we can test if the TotalArea of Arctic + Moderate + Tropic equals the total Area of air.
+#### Verification of size compartments
+Just taking the sum of areas grouped by scale would include double
+counting the subcompartments which are on top of each other, or mixed:
+air / cloudwater / sea / deepocean! But we can test if the TotalArea of
+Arctic + Moderate + Tropic equals the total Area of air.
 
 ```{r}
 TotAreaGlobalScales <- World$fetchData("TotalArea")
 TotAreaGlobalScales <- TotAreaGlobalScales$TotalArea[TotAreaGlobalScales$Scale %in% c(
   "Arctic","Moderate","Tropic")]
+print(TotAreaGlobalScales)
 TotAir <- World$fetchData("Area")
 TotAir <- TotAir$Area[TotAir$SubCompart == "air"]
+print(TotAir)
 sum(TotAreaGlobalScales) == sum(TotAir)
 ```
