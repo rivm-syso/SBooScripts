@@ -7,6 +7,15 @@ editor_options:
   chunk_output_type: console
 ---
 
+### Removal processes
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
 Here we describe the fate processess that are implemented for removal for a compartment:
 
 1.  \- Degradation
@@ -17,30 +26,19 @@ Here we describe the fate processess that are implemented for removal for a comp
 
 4.  \- Escape from air to stratosphere (k_Escape)
 
-```{r initiate, message=FALSE, warning=FALSE, include=FALSE}
-#we initialize the test environment with the default substance, therefor we remove possible earlier value
-rm(substance)
-#script to initialize test environment, including faking a future 'library(sboo)'
-try(source("baseScripts/initTestWorld.R"))
-
+```{r preparation, message=FALSE, warning=FALSE}
+#First, we initialize the world object
+source("baseScripts/initWorld_onlyMolec.R")
 ```
 
-```{r preparation, message=FALSE, warning=FALSE, include=FALSE}
-# non variable input data which is calculated (see partioning.Rmd) needs to be available before you can proceed
-
-# This needs to be calculated first:
-source("testScripts/initPartitioningVariables.R")
-```
-
-### 6.1 Degradation
+#### 6.1 Degradation
 
 -   v_Tempfactor is used to correct the generic degradation rate constants either from data (measured) or calculated for the temperature and other factors differentiating the different compartments or scales. For this
 
-    -   Q.10 is required for calculating the temperature related conversion of the measured or calculated kdeg per compartment. Q.10 is added as CONSTANT.
+-   Q.10 is required for calculating the temperature related conversion of the measured or calculated kdeg per compartment. Q.10 is added as a constant.
 
-    -   The concentration bacteria in the test (BACTtest) and the water compartment (BACTcomp) needs to be given. BACTcomp is added to SpeciesCompartments.csv
+-   The concentration bacteria in the test (BACTtest) and the water compartment (BACTcomp) needs to be given. BACTcomp is added to SpeciesCompartments.csv
 
-        
 ```{r v_Tempfactor}
         World$fetchData("Temp")
         World$fetchData("Q.10")
@@ -51,11 +49,7 @@ source("testScripts/initPartitioningVariables.R")
         World$CalcVar("Tempfactor")
 ```
 
--   v_Deg is either measured or estimated.
-
-    -   Measurement dependant on rate constants measured under standard conditions for air, soil, water and sediment.
-
-    -   Estimated based on (European Commission, 2003a). Following section 3.3.12 of report 2015-0161.
+k_Deg is either measured or estimated.Measurement dependant on rate constants measured under standard conditions for air, soil, water and sediment. It is estimated based on (European Commission, 2003a). Following section 3.3.12 of report 2015-0161. See Schoorl et al. (2015) for additional details.
 
 ```{r v_KdegDorC}
 
@@ -69,16 +63,15 @@ World$fetchData("BACTtest")
 World$fetchData("rhoMatrix")
 World$fetchData("kdeg")
 
-World$fetchData("Biodeg")
 
-        World$NewCalcVariable("KdegDorC")
-        World$CalcVar("KdegDorC")
+World$NewCalcVariable("KdegDorC")
+World$CalcVar("KdegDorC")
 
 ```
 
--   Then the final k_Degradation is calculated based on v_DegDorC and v_Tempfactor. The correction factor is currently only implemented for the molecular species these. These v_Deg's are (or can be) corrected for temperature and bacteria concentrations. For particulate species such corrections are not yet available/implemented.
+Then the final k_Degradation is calculated based on v_DegDorC and v_Tempfactor. The correction factor is currently only implemented for the molecular species. These v_Deg's are (or can be) corrected for temperature and bacteria concentrations. For particulate species such corrections are not yet available/implemented.
 
--   In comparison with the xlsx version of SimpleBox, the measured degradation rate constants are not input in the substance database, but in the subcompartment and substance database (SubCompartSpeciesData).
+In comparison with the xlsx version of SimpleBox, the measured degradation rate constants are not input in the substance database, but in the subcompartment and substance database (SubCompartSpeciesData).
 
 ```{r k_Degradation}
 
@@ -90,9 +83,9 @@ testClass$execute()
 
 ```
 
-k_Degradation is now calculated correctly,  but further testing is neededn. E.g. when kdeg needs to be calculated.
+k_Degradation is now calculated correctly, but further testing is neededn. E.g. when kdeg needs to be calculated.
 
-### Burial
+#### 6.2 Burial
 
 Burial is the process by which chemicals are buried in sediment, e.g. they are not part of the top layer of sediment considered in SimpleBox.
 
@@ -103,127 +96,35 @@ World$fetchData("NETsedrate")
 
 TestProcess <- World$NewProcess("k_Burial")
 World$FromDataAndTo("k_Burial")
-TestProcess$execute() # does not compute, likely due to all.NETsedrate (similar issue to k_Adsoprtion)
+TestProcess$execute() 
 
 ```
 
-### Leaching
+#### 6.3 Leaching
 
-Leaching
+The removal from soil is caused by temperature dependent degradation 
+in sediment and leaching of the chemical from the soil into ground 
+water. Leaching is modelled in the following manner. It is dependent on a correction factor for depth dependent-soil concentration, Rain rate and the soil water partioning coefficient. 
 
-```{r Leaching new}
-
-
-
+```{r Leaching}
+#the function to correct for depth-dependendent soil concentration 
+f_CORRsoil
 World$fetchData("Kscompw")
 
 #calculation of kaas is by executing a process
 testClass <- World$NewProcess("k_Leaching")
-World$fetchData("SpeciesName")
 World$FromDataAndTo("k_Leaching")
 testClass$execute()
 
-# source("baseScripts/ReorderCSV.R") # to be run after adding new data to the csv files.
-
-
 ```
 
-### Escape
+#### 6.4 Escape
 
-t_half_Escape is added as constant. A 60 year half life is used in SB4 to calculate the rate constant for escape of chemicals from air to the stratosphere.
+t_half_Escape is added as constant. A 60 year half life (in seconds) is used in SB4 to calculate the rate constant for escape of chemicals from air to the stratosphere. 
 
 ```{r k_Escape}
-
+World$fetchData("t_half_Escape")
 testClass <- World$NewProcess("k_Escape")
-World$fetchData("SpeciesName")
-World$FromDataAndTo("k_Leaching")
 testClass$execute()
 
-
-```
-
-
-
-```{r eval=FALSE, include=FALSE}
-
-# Code on exclusions and inclusions for where the functions are needed are added:
-ProcessXlsx <- "data/DEGradation.xlsx" 
-processName <- unname(unlist(openxlsx::read.xlsx(ProcessXlsx, colNames=FALSE,
-                                                 namedRegion = "process")))
-TransDim <- unname(unlist(openxlsx::read.xlsx(ProcessXlsx, colNames=FALSE,
-                                              namedRegion = "TransDim")))
-fromTo <- openxlsx::read.xlsx(ProcessXlsx, colNames=TRUE,
-                              namedRegion = "fromTo")
-exceptions <- openxlsx::read.xlsx(ProcessXlsx, colNames=TRUE,
-                                  namedRegion = "exceptions")
-
-library(tidyverse)
-source("baseScripts/fakeLib.R")
-if (!TransDim %in% The3D) {
-  stringsAsList <- as.list(c("TransDim should be one of", The3D))
-  stop(do.call(paste, stringsAsList))
-}
-if(!all(names(exceptions) %in% The3D)) {
-  stringsAsList <- as.list(c("exception columns should be empty or one of", The3D))
-  stop(do.call(paste, stringsAsList))
-}
-if (TransDim %in% names(exceptions)) {
-  stop("exception columns should differ from TransDim")
-}
-
-
-
-DefKeys <- read.csv("data/Defs.csv")
-#obtain (unique) Defs in this!! order
-DefDups <- duplicated(DefKeys$Defs)
-Defs <- DefKeys$Defs[!DefDups]
-
-MlikeWorkBook <- lapply(Defs, function(tableName) {
-  assign(tableName, read.csv(
-    paste("data/", tableName, ".csv", sep = "")))
-})
-names(MlikeWorkBook) <- Defs
-
-
-for (TheDim in The3D) {#TheDim = The3D[1]
-  dataFrameName <- paste(TheDim, "Processes", sep = "")
-  dataFrame <- MlikeWorkBook[[dataFrameName]]
-  ThisProcessRows <- dataFrame$process == processName
-  if (any(ThisProcessRows)) {
-    cat(paste("process updated in", dataFrameName))
-    MlikeWorkBook[[dataFrameName]] <- dataFrame[!ThisProcessRows,]
-  }
-  #exceptions; as columns of
-  dataFrameName <- paste(TheDim, "Sheet", sep = "")
-  dataFrame <- MlikeWorkBook[[dataFrameName]]
-  if (processName %in% names(dataFrame)) {
-    cat(paste("exceptions updated in", dataFrameName))
-    minCol <- match(processName, names(dataFrame))
-    MlikeWorkBook[[dataFrameName]] <- dataFrame[, -minCol]
-  }
-}
-
-
-dataFrameName <- paste(TransDim, "Processes", sep = "")
-ReplacePart <- fromTo
-ReplacePart$process <- processName
-OldProcessData <- MlikeWorkBook[[dataFrameName]]
-MlikeWorkBook[[dataFrameName]] <- rbind(
-  OldProcessData,
-  ReplacePart[,names(OldProcessData)])
-
-#exceptions; as columns of
-for (TheDim in names(exceptions)) {#TheDim = names(exceptions)[1]
-  dataFrameName <- paste(TheDim, "Sheet", sep = "")
-  dataFrame <- MlikeWorkBook[[dataFrameName]]
-  ToFalse <- dataFrame[,TheDim] %in% exceptions[,TheDim]
-  MlikeWorkBook[[dataFrameName]] <- dataFrame %>%
-    mutate({{processName}} := !ToFalse)
-}
-
-
-source("baseScripts/ReorderCSV.R")
-
-source("baseScripts/initTestWorld.R")
-World$FromDataAndTo("k_DEGradation")
 ```
