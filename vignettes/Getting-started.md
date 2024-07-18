@@ -3,11 +3,11 @@ Getting started
 Anne Hids
 2024-07-18
 
-# Initialize
+## Initialize
 
 This vignette demonstrates how to use SimpleBox Object-Oriented (SBOO).
 
-## Choose a substance
+### Choose a substance
 
 The first step is to initialize the model. Before initialization a
 substance needs to be selected, otherwise the “default substance” is
@@ -23,7 +23,7 @@ substances <- read.csv("~/GitHub/SimpleBox/SBooScripts/data/Substances.csv")
 substance <- "1-aminoanthraquinone"
 ```
 
-## Initialize the World object
+### Initialize the World object
 
 The World object contains all variables and first order rate constants
 (k’s) for the chosen substance. This object is needed later to calculate
@@ -90,7 +90,7 @@ if(substance == "microplastic"){
     ## 
     ## Joining with `by = join_by(Matrix)`Joining with `by = join_by(Compartment)`
 
-# Accessing variables and k’s
+## Accessing variables and k’s
 
 Now that the World is initialized, its variables and calculated flows
 can be accessed. To access these variables and k’s, first the names of
@@ -208,7 +208,7 @@ print(varnames)
     ## [207] "x_RegSea2Cont"             "x_RiverDischarge"         
     ## [209] "x_ToModerateWater"
 
-## Access variables
+### Access variables
 
 A specific variable (in this case AreaSea) can be accessed as follows:
 
@@ -223,7 +223,7 @@ World$fetchData("AreaSea")
     ## 4    Regional 1.000000e+09
     ## 5      Tropic 8.925000e+13
 
-## Access k’s
+### Access k’s
 
 The “kaas” variable contains a data frame with the k’s, proccess name,
 to-subcompartment name from-subcompartment name, to-scale name,
@@ -234,20 +234,17 @@ accessed in the same way other variables are accessed:
 df_ks <- World$fetchData("kaas")
 ```
 
-# Calculate steady state output
+## Calculate steady state output
 
 To calculate steady state masses, emissions and a solver are needed. The
 have to be given to the solver in a particular format.
 
-## Create emissions data frame
+### Create emissions data frame
 
 To be able to calculate steady state masses, an emission data frame is
 needed. The emissions data frame consists of one column with the
 abbreviation of the scale-subcompartment-species combination, and
 another column containing the emission to that compartment.
-
-*Note: for the particulates, use the S (solid) species, for molecules,
-use the U (unbound) species.*
 
 The abbreviations are as follows:
 
@@ -324,6 +321,10 @@ emissions. In the example below, emissions of 10000 t/y go into regional
 air, regional agricultural soil and regional river water. These
 emissions in tonnes per year are then converted to mol/s.
 
+**Notice that because this script is using a molecular substance, the
+abbreviation “U” for “Unbound” is used here to specify emissions. If the
+substance is a particle, use “S” for “Solid”!**
+
 ``` r
 emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000) ) 
 
@@ -331,9 +332,16 @@ MW <- World$fetchData("MW")
 
 emissions <- emissions |>
   mutate(Emis = Emis*1000/(MW*365*24*60*60)) # convert 1 t/y to mol/s
+
+print(emissions)
 ```
 
-## Solve the matrix
+    ##   Abbr     Emis
+    ## 1  aRU 1.421964
+    ## 2 s2RU 1.421964
+    ## 3 w1RU 1.421964
+
+### Solve the matrix
 
 To solve the matrix, a solver first needs to be specified. To solve for
 a steady state we can use “SB1Solve”. In this case the resulting steady
@@ -386,4 +394,4 @@ print(masses)
     ## 228 sd2TU      Tropic     marinesediment Unbound 1.385302e+05
     ## 202  s1TU      Tropic        naturalsoil Unbound 1.033855e+04
 
-# Calculate dynamic output
+## Calculate dynamic output
