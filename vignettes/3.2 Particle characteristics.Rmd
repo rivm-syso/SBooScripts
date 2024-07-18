@@ -1,5 +1,5 @@
 ---
-author: "Jaap Slootweg, Joris Quik"
+author: "Jaap Slootweg, Joris Quik, Valerie de Rijk "
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
@@ -10,26 +10,29 @@ editor_options:
 
 #### Rho, Radii and settling velocity
 
-For several processes of particles and between particles the density (rho) and radius of the particle are important, as are the density of the matrix (medium) in which the particles are. The table in which the data to be used depend on the key of the property. The key for the density of the matrix is subcompartment. But it is "inherited" from the datafile "matrix.csv". This inheritance is performed in the initialisation; if you look for rhoMatrix as a parameter for defining function use World\$fetchdata()
+Properties related to the substance directly are all contained in csv files that serve as the input data for SimpleBox. These can be accessed after initializing the SimpleBox world. Each property is accessed by a key, which is dependent on the amount of detail that is required for the property of the substance (e.g. a property that is dependent on both the SubCompartment and the Scale would need both of these keys to be accessesed). First, let's
+
+The key for the density of the matrix is subcompartment. But it is "inherited" from the datafile "matrix.csv". This inheritance is performed in the initialisation; if you look for rhoMatrix as a parameter for defining function use World\$fetchData()
 
 ```{r initiate, echo=TRUE, message=FALSE, warning=TRUE}
-#we initialize the test environment with a nano substance, and the nano excel version
+#we initialize the test environment with a nano substance
 substance <- "nAg_10nm"
-excelReference <- "data/20210331 SimpleBox4nano_rev006.xlsx"
 #script to initialize test environment, including faking a future 'library(sboo)'
-source("baseScripts/initTestWorld.R")
+source("baseScripts/initWorld_onlyParticulate.R")
 World$fetchData("rhoMatrix")
 ```
 
-## The density and radius of the nanomaterial
+#### The density and radius of the nanomaterial
 
-depend on the species. The density and radius of the nano material itself is given by the substance properties RhoS and RadS. For the aggregated and the properties of the "natural part" of the species; CoarseParticulate for the Attached species and NaturalColloid for the aggregated species. Those properties are RhoCP and RhoNC for density and RadCP and RadNC for their radius. An overview of excel origines:
+Three different speciation types exist for particulates: Particle (Soild/S), Attached (Large/P) and Aggregated (Small/A).
+
+These are solely dependent on the species. The density and radius of the nano material itself is given by the substance properties RhoS and RadS. For the aggregated and the properties of the "natural part" of the species; *CoarseParticulate* for the Attached species and *NaturalColloid* for the Aggregated species. Those properties are RhoCP and RhoNC for density and RadCP and RadNC for their radius. An overview of excel origins:
 
 ```{r}
 read_csv("data/Substances.csv") |> filter(ChemClass == "Particle") # data cleanup needed - not all correct!
 ```
 
-From these, we can derive the values for rho_species
+From these, we can derive the values for rho_species. As can
 
 ```{r}
 rp <- World$NewCalcVariable("rho_species")
@@ -46,13 +49,12 @@ World$CalcVar("rad_species")
 
 ```
 
-## settling velocity
+#### settling velocity
 
-The settling velocity is best calculated according Stokes [ref?], like the regular R function. This is not a SB defining function, because it is used not only for species, but also their natural parts, and aerosols. But we use this function to as part of the defining function for natural particles, as used for sedimentation rate of molecular species
+An example of a process dependent on these characteristics is the Settling Velocity. The Settling Velocity is calculated through the choice of three methods, of which Stokes is the Default.
 
 ```{r}
 
 World$NewCalcVariable("SettlingVelocity")
 World$CalcVar("SettlingVelocity")
 ```
-

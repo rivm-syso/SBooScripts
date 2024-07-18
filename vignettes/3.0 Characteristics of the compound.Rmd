@@ -9,8 +9,8 @@ editor_options:
 
 Several characteristics are calculated based on substance of material properties.
 
-For molecular chemicals characteristics, see section [3.1 Molecular characteristics](vignettes/Molecular characteristics.md).
+For molecular chemicals characteristics, see section [3.1 Molecular characteristics](vignettes/Molecular%20characteristics.md).
 
-For particles properties that are being calculated, see section [3.2 Particle characteristics](vignettes/3.2 Particle characteristics.md "Particle characteristics").
+For particles properties that are being calculated, see section [3.2 Particle characteristics](vignettes/3.2%20Particle%20characteristics.md "Particle characteristics").
 
 Data on both is included in ... <!--# PM update and include tables of all properties-->
