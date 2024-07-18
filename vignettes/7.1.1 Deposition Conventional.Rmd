@@ -1,96 +1,45 @@
 ---
 title: "7.1.1. Molecular Deposition Processes"
-author: "JQ"
-date: "2023-08-22"
+author: "Joris Quick, Valerie de Rijk"
+date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
   chunk_output_type: console
 ---
 
-## INTERMEDIA TRANSFER
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
 
-The intermedia transfer processes are related to transport from air to soil/water and from water to sediment, and vice versa. Also transport from soil to water.
+###Deposition processes 
+
+The intermedia transfer processes are related to transport from air to soil/water and from water to sediment, and vice versa. It also includes transport from soil to water.
 
 Another vignette describes the flows related to diffusion processes (DiffusionProcesses.Rmd) and other intermedia transfer coefficients (OtherInterMedia.Rmd). Here we describe the implementation of the Deposition process from air to soil and water for the molecular species.
 
-### Preparation
-
-We initialise a "World" and calculate the needed parameters.
-
-```{r initiate, echo=TRUE, message=FALSE, warning=TRUE}
-#we initialize the test environment with the default substance, therefor we remove possible earlier value
-rm(substance)
-#script to initialize test environment, including faking a future 'library(sboo)'
-#init default core (World) with classic states, and classic kaas
-source("baseScripts/initTestWorld.R")
-
-#we need the partitioning
-source("testScripts/initPartitioningVariables.R")
-#calculation of the needed SB variables, first compiling their defining functions
-
-# non variable input data which is calculated (see partioning.Rmd) needs to be available before you can proceed
-
+#### Deposition
+Once again, we initialize the World object before any calculations.
+```{r initiate, message=FALSE, warning=FALSE}
+source("baseScripts/initWorld_onlyMolec.R")
 ```
 
+#### Variables needed
 
-```{r eval=FALSE, include=FALSE}
-RHOsolid <- with(World$fetchData("rhoMatrix"),
-                                    rhoMatrix[SubCompart == "othersoil"])
+Calculation of deposition for molecular substances differs from calculating deposition of substances that are (part of) particles. This description focusses on the molecular process which is more elaborate. In SimpleBox 4.0, dry and wet deposition occurs through dry aerosol 
+deposition, and through wet aerosol and gas washout; mass-flows are 
+derived by means of the approach described by Jolliet and Hauschild 
+(2006). 
 
+The deposition pattern consists of dry and wet periods of dry and wet 
+deposition, respectively. The dry deposition contains dry deposition from 
+the aerosol phase of the air and gas absorption from the air to the soil 
+and water compartment.The wet deposition contains chemical washout from the aerosol and gas 
+phase of the air, and from gas absorption from the air to the soil and 
+water compartments.
 
-# kdeg.sediment <- f_kdegcalc(Q.10 = World$fetchData("Q.10"), 
-#                           Ksw = World$fetchData("Ksw"), 
-#                           Biodeg = "r", 
-#                           C.OHrad.n = World$fetchData("C.OHrad.n"), 
-#                           Ea.OHrad = World$fetchData("Ea.OHrad"), 
-#                           k0.OHrad = World$fetchData("k0.OHrad"),
-#                           CorgStandard = World$fetchData("CorgStandard"), 
-#                           RHOsolid = RHOsolid,
-#                           Matrix = "sediment")
-
-#FromData <- World$fetchData("Globals")
-#FromData$kdeg.sediment <- kdeg.sediment
-#World$UpdateData(FromData, keys = T, TableName = "Globals")
-
-World$NewCalcVariable("Kp")
-World$CalcVar("Kp")
-
-World$NewCalcVariable("D")
-World$CalcVar("D")
-World$NewCalcVariable("KpCOL")
-World$CalcVar("KpCOL")
-
-World$NewCalcVariable("Kacompw")
-World$CalcVar("Kacompw")
-
-World$NewCalcVariable("FRinw")
-World$CalcVar("FRinw")
-
-World$NewCalcVariable("Kaerw")
-World$CalcVar("Kaerw")
-World$NewCalcVariable("Kaers")
-World$CalcVar("Kaers")
-
-World$NewCalcVariable("FRingas")
-World$CalcVar("FRingas")
-
-# So, degradation is needed here? Are we sure?
-
-# source("newAlgorithmScripts/k_Degradation.R")
-
-# Read in function to derive the temperature correction factor, now a SB variable
-Tempfactor
-
-# World$NewCalcVariable("k_Degradation")
-# World$CalcVar("k_Degradation")
-```
-
-
-## Deposition
-
-Calculation of deposition for molecular substances differs from calculating deposition of substances that are (part of) particles. This description focusses on the molecular process which is more elaborate.
-
-One part of the function to get the transfer from air to the land surface is calculating the deposition rate constant. This is done using a large function k_MeanDep.R
 
 First we try to see of all variables are available for calculating the deposition rate constant:
 
@@ -124,13 +73,6 @@ World$fetchData("FRinaers")
 
 To calculate molecular deposition, the other processes describing fluxes that leave the air box are part of the calculation. This demands a different procedure to the other functions used to calculate k's. Here we create a variable named 'OtherkAir'.
 ```{r}
-#fill another relevant k for OtherkAir
-
-source("testScripts/initOtherKaasAir.R")
- World$UpdateKaas() #was mergeExisting = F, I think it should be merged? TODO
-
- 
-#only now we can calculate OtherkAir, because:
 kaas <- World$kaas 
 
 # To see the K's:
@@ -156,18 +98,14 @@ World$CalcVar("OtherkAir")
 Now the deposition rate constants for molecular substances can also be calculated
 
 ```{r}
-# source("newAlgorithmScripts/k_Deposition.R")
 
 testClass <- World$NewProcess("k_Deposition")
 testClass$execute()
 
-testClass$execute(debugAt = list())
 
 World$FromDataAndTo(processName = "k_Deposition")
 
-testClass$execute(debugAt = list()) #an empty list always triggers
-testClass$execute(debugAt = list(Scale = "Regional", Substance = "Molecular"))
-#The actual execution of the proces:
+
 testClass$execute()
 ```
 
