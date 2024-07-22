@@ -18,7 +18,7 @@ knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct s
 
 The intermedia transfer processes are related to transport from air to soil/water and from water to sediment, and vice versa. It also includes transport from soil to water.
 
-Another vignette describes the flows related to diffusion processes (DiffusionProcesses.Rmd) and other intermedia transfer coefficients (OtherInterMedia.Rmd). Here we describe the implementation of the Deposition process from air to soil and water for the molecular species.
+Another vignette describes the flows related to diffusion processes (OtherkAir) and other intermedia transfer coefficients (OtherInterMedia.Rmd). Here we describe the implementation of the Deposition process from air to soil and water for the molecular species.
 
 #### Deposition
 Once again, we initialize the World object before any calculations.
@@ -71,7 +71,7 @@ World$fetchData("FRinaers")
 
 ```
 
-To calculate molecular deposition, the other processes describing fluxes that leave the air box are part of the calculation. This demands a different procedure to the other functions used to calculate k's. Here we create a variable named 'OtherkAir'.
+To calculate molecular deposition, the other processes describing fluxes that leave the air box are part of the calculation. This demands a different procedure to the other functions used to calculate k's. Here we create a variable named 'OtherkAir'. This will be further dived into in vignette 7.2 OtherKair.
 ```{r}
 kaas <- World$kaas 
 
@@ -95,7 +95,7 @@ World$CalcVar("OtherkAir")
 
 ```
 
-Now the deposition rate constants for molecular substances can also be calculated
+Now the deposition rate constants for molecular substances can also be calculated.
 
 ```{r}
 

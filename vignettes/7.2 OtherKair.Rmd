@@ -1,0 +1,136 @@
+---
+title: "Diffusion Processes"
+author: "Jaap Slootweg, Valerie de Rijk"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+### Other K Air
+
+Here we describe the fate processess that are part of the "other" k Air,
+as described in 7.1.1.
+
+1.  \- Ab/adsorption
+
+2.  \- Degradation
+
+3.  \- Advection 
+
+####Initialization
+
+We initialise a "World" and calculate the needed parameters.
+
+```{r initiate, message=FALSE, warning=FALSE}
+source("baseScripts/initWorld_onlyMolec.R")
+```
+
+#### Gas absorption
+
+The overall mass transfer coefficient for gas absorption can be
+estimated using the classical two - film resistance model (Schwarzenbach
+et al., 1993). In the case of transport across the air/water interface,
+the overall transfer coefficients follow from summation of the
+resistances at the water and air sides of the interface. In the case of
+transport across the air/soil interface, the soil-side of the interface
+is treated as a pair of parallel resistances (air phase and water phase
+of the soil).
+
+Below, we start with calculating the fraction of speciations of the
+molecules (e.g. how much is free in particular matrices)
+
+```{r absorption}
+
+# This needs to be calculated first:
+World$NewCalcVariable("FRorig")
+World$CalcVar("FRorig")
+World$NewCalcVariable("FRorig_spw")
+World$CalcVar("FRorig_spw")
+
+# World$NewCalcVariable("FRACa")
+World$fetchData("FRACa")
+# World$NewCalcVariable("FRACw")
+World$fetchData("FRACw")
+
+World$NewCalcVariable("FRACs")
+World$CalcVar("FRACs")
+```
+
+*MassTransferCoefficients* Next, we compute partial mass transfer
+coefficients between compartments. These are based on wind matrices and
+other parameters. We introduce all of them here:
+
+Partial Mass Transfer Coefficients operate like resistors; to calculate
+the total MTC we use 1/K = 1/k1 + 1/(kp.k2), with kp the equilibrium
+constant. The soil side MTCa,s is related to the degradation of the
+substance, for water/air the wind plays a role. The defining functions
+are organised by the medium the film is bordering towards, but use the
+properties of the medium () of the box) they are defined for, the
+departure of the diffusion.
+
+Following is the implementation of 4 MTC's.
+
+1.  MTC_2a -\> for water side of the water-air interface (from water to
+    air) and the soil side of the soil-air interface (from soil to air).
+
+2.  MTC_2w -\> for air side of the air-water interface (from air to
+    water) and the sediment side of the sediment-water interface (from
+    sediment to water).
+
+3.  MTC_2s -\> for the air side of the air-soil interface (from air to
+    soil).
+
+4.  MTC_2sd -\> for the water side of the water-sediment interface (from
+    water to sediment).
+
+```{r MTC}
+
+World$NewCalcVariable("MTC_2a")
+World$CalcVar("MTC_2a")
+World$NewCalcVariable("MTC_2w")
+World$CalcVar("MTC_2w")
+World$NewCalcVariable("MTC_2s")
+World$CalcVar("MTC_2s")
+World$NewCalcVariable("MTC_2sd")
+World$CalcVar("MTC_2sd")
+
+World$NewCalcVariable("Kscompw")
+World$CalcVar("Kscompw")
+```
+
+We calculate the absorption based on these parameters. Next, we also
+have to correct for the relative area and vertical depth of the
+compartment, e.g if it goes to water we correct for how much of the
+total to area is water: AreaFrac = to.Area/(AreaLand+AreaSea)
+return(GASABS/VertDistance\*AreaFrac)
+
+```{r}
+
+World$fetchData("VertDistance")
+World$fetchData("landFRAC")
+World$fetchData("Area")
+World$fetchData("AreaLand")
+World$fetchData("AreaSea")
+World$fetchData("SpeciesName")
+
+testProc <- World$NewProcess("k_Adsorption")
+testProc$execute()
+
+
+```
+
+#### Degradation
+Degradation of the molecule in the air also is part of other processes happening in the air. For a description of this process, see vignette 6.0 Removal. 
+
+### Advection 
+Advective processes (movement of air from one scale to another scale) are also part of the kaas in air. For a detailed description of this process, see vignette 5.4 Advection. 
