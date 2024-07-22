@@ -1,0 +1,47 @@
+---
+title: "3.3 Characteristics of the landscape"
+author: "Valerie de Rijk"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+### Landscape characteristics
+
+In its default settings, SimpleBox represents the Earth’s northern 
+hemisphere: continents surrounded by oceans in three climatic zones, 
+and continents composed of river catchments, one of which is detailed 
+as regional environment. 
+
+#### Initialisation 
+
+```{r preparation, message=FALSE, warning=FALSE}
+#First, we initialize the world object
+source("baseScripts/initWorld_onlyMolec.R")
+```
+
+
+#### Examples of parameters
+Several examples of landscape characteristics are given below. Area characteristics are specifically discussed in vignette 5.1-Area. All units are SI units.
+
+```{r parameters}
+
+# Each scale has its own temperature
+World$fetchData("Temp")
+
+##windspeed is constant
+World$fetchData("WINDspeed")
+
+## and so is the rain rate
+World$fetchData("RAINrate")
+
+
+```
