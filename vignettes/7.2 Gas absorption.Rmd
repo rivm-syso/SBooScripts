@@ -1,18 +1,17 @@
 ---
-title: "DiffusionProcesses"
-author: "JS"
-date: "2023-08-03"
+title: "Diffusion Processes"
+author: "Jaap Slootweg, Valerie de Rijk"
+date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
   chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
-# knitr::opts_chunk$set(include = FALSE)
-# knitr::knit_meta()
-# # knitr::opts_chunk$set(echo = TRUE)
-# projectRoot <- paste(getwd(), "..", sep = "/")
-# knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
 # INTERMEDIA TRANSFER
