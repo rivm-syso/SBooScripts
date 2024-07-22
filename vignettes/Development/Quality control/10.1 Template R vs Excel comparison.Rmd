@@ -53,7 +53,7 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "Sb(III)" # metal
                           ) 
               
-substance <- Potential_substances[3]
+substance <- Potential_substances[1]
 source("baseScripts/initWorld_onlyMolec.R")
 
 length(unique(World$kaas$process))
@@ -67,41 +67,6 @@ ProcessMolFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
 ProcessMolFunctions[!ProcessMolFunctions %in% unique(World$kaas$process)]
 
 ```
-
-# ```{r Change NETsedrate for test}
-# 
-# NETsedrate <- c(8.62268518546068*10^-11, 8.68610476915272*10^-11,                 # River
-#           8.62268518546068*10^-11, 8.68610476915272*10^-11,                       # Lake
-#           2.74*10^-11, 2.74287972475951*10^-11,                                   # Sea
-#           6.34195839675285*10^-14, 8.95180294396847*10^-14, 6.34195839675295*10^-14) # Deepocean
-# 
-# NETsedrate <- format(NETsedrate, scientific = F)
-# 
-# Scale <- c("Continental", "Regional", 
-#             "Continental", "Regional",
-#             "Continental", "Regional", 
-#             "Arctic", "Moderate", "Tropic")
-# 
-# SubCompart <- c("river", "river", 
-#            "lake", "lake",
-#            "sea", "sea",
-#            "deepocean", "deepocean", "deepocean")
-# 
-# df <- data.frame(cbind(Scale, SubCompart, NETsedrate))
-# 
-# ToPaste <- lapply(list(df), function(x) {
-#   varName <- names(x)[!names(x) %in% The3D]
-#   stopifnot(length(varName)==1)
-#   # one line with 2 disadvantages of tidyverse..:
-#   as.data.frame(pivot_longer(data = x, cols = all_of(varName), names_to = "varName", values_to = "Waarde"))
-# })
-# #and one advantage: bind_rows handles missing columns
-# dfs <- do.call(bind_rows, ToPaste)
-# 
-# World$mutateVars(dfs)
-# World$fetchData("NETsedrate")
-# # World$UpdateKaas() # Doesn't work??
-# ```
 
 ```{r data xlsx and R}
 #Comparing K's from R model to K's from excel model
@@ -190,10 +155,16 @@ merged_diagonal$reldif <- merged_diagonal$diff/merged_diagonal$k_R
 
 #Plot of differences of the diagonals per compartment
 ggplot(merged_diagonal, aes(x = from, y = diff)) +
-  geom_boxplot()
+  geom_boxplot() +
+  ggtitle(paste0("Absolute differences removal k's between R and excel for ", substance)) +
+  geom_hline(yintercept = 0.001, color="red") +
+  geom_hline(yintercept = -0.001, color="red")
 
 ggplot(merged_diagonal, aes(x = from, y = reldif)) +
-  geom_boxplot()
+  geom_boxplot() +
+  ggtitle(paste0("Relative differences removal k's between R and excel for ", substance)) +
+  geom_hline(yintercept = 0.001, color="red") +
+  geom_hline(yintercept = -0.001, color="red")
 
 ```
 
@@ -249,50 +220,63 @@ ggplot(mergedkaas, aes (x = to, y = diff)) +
 # "To" and "from" in one plot
 ggplot(mergedkaas, aes(x = to, y = from, color = abs(diff))) + 
   geom_point() +
-  scale_color_gradient(low = "green", high = "red", trans = "log10") 
-
+  scale_color_gradient(low = "green", high = "red", trans = "log10") +
+  ggtitle(paste0("Absolute differences k's between R and excel for ", substance)) 
 
 ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) + 
   geom_point() +
-  scale_color_gradient(low = "green", high = "red") 
+  scale_color_gradient(low = "green", high = "red") +
+  ggtitle(paste0("Relative differences k's between R and excel for ", substance)) 
 #If you want to inspect per process instead of fromto box: look at the original kaas dataframe
 
 ```
 
-```{r get differences larger than 0.1 percentile}
+```{r get differences larger than 1 percentile}
 
 large_differences <- mergedkaas |>
   mutate(relDif = abs(relDif)) |>
-  filter(relDif > 0.0001) 
+  filter(relDif > 0.001) 
+
+diagonal_diffs <- merged_diagonal |>
+  mutate(reldif = abs(reldif)) |>
+  filter(reldif > 0.001)
 
 ```
 
 ```{r Lake removal}
+lake <- kaas |>
+  filter(fromSubCompart == "lake") |>
+  filter(toSubCompart == "lake")
+
+lake2 <- kaas |>
+  filter(fromSubCompart == "lake") |>
+  filter(fromScale == "Continental")
 # The relative difference in lake removal rate is caused by lake sedimentation
 # being included in R but not in excel.
 
-# To make an accurate comparison between R and excel, the lake compartment will 
-# be excluded from the emission figure.
+# To make an accurate comparison between R and excel, the test variable was used 
+# to exclude flows to lake sediment in k_Sedimentation and k_Adsorption 
+# for an accurate comparison between excel and R. 
 
-#World$moduleList[["k_Degradation"]]$execute(debugAt = list())
-
-```
-
-```{r Sea removal}
-
-remsea <- kaas |>
-  filter(from == "w2A")
-
-remdeepsea <- kaas |>
-  filter(from == "w3A")
+World$moduleList[["k_Leaching"]]$execute(debugAt = list())
 
 ```
 
-``` {r to lake}
+``` {r Air removal}
+air <- kaas |>
+  filter(fromSubCompart == "air") |>
+  filter(toSubCompart == "air") |>
+  filter(fromScale == "Tropic")
 
-tolake <- kaas |>
-  filter(toScale == "Regional") |>
-  filter(toSubCompart == "lake")
+# The difference between the diagonals for the air compartment is in k_Degradation. The variable 'KdegDorC' is used to calculate this K, but in R the value is rounded while in excel it is not. Rounding this value in excel solved the problem. 
+
+```
+
+```{r Soil removal}
+soil <- kaas |>
+  filter(fromSubCompart == "naturalsoil") |>
+  filter(toSubCompart == "naturalsoil") |>
+  filter(fromScale == "Regional")
 
 ```
 
