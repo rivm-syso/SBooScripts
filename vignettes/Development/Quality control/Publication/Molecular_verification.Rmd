@@ -1,6 +1,6 @@
 ---
-title: "Model output"
-author: "Joris Quik, Jaap Slootweg, Anne Hids"
+title: "Molecular verification"
+author: "Anne Hids"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
@@ -53,19 +53,8 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "Sb(III)" # metal
                           ) 
               
-substance <- Potential_substances[1]
+substance <- Potential_substances[5]
 source("baseScripts/initWorld_onlyMolec.R")
-
-length(unique(World$kaas$process))
-
-ProcessMolFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
-                          "k_Degradation", "k_Deposition", "k_Desorption",
-                          "k_Erosion", "k_Escape", 
-                         "k_Leaching", "k_Resuspension", "k_Runoff", "k_Sedimentation", 
-                         "k_Volatilisation")
-
-ProcessMolFunctions[!ProcessMolFunctions %in% unique(World$kaas$process)]
-
 ```
 
 ```{r data xlsx and R}
@@ -87,12 +76,8 @@ SBexcel.K$to <-  as.character(SBexcel.Names)
 
 SBexcel.K <- pivot_longer(SBexcel.K, cols =  as.character(SBexcel.Names), values_to = "k", names_to = "from")
 
-length(SBexcel.K$k)
-
 #adding "from" and "to" acronyms to the R K matrix
 kaas <- as_tibble(World$kaas)
-unique(kaas$fromScale)
-unique(kaas$fromSubCompart)
 
 #R version does not us the acronyms of the excel version, set-up to convert them
 #Note: this map creates the wrong acronym for soil and sediment at global scale, this is fixed afterwards
@@ -144,9 +129,6 @@ diagonal_R <-
 diagonal_R$from[!diagonal_R$from %in% diagonal_excel$from] # "sd0C" "sd0R" were added in sboo v1
 diagonal_excel$from[!diagonal_excel$from %in% diagonal_R$from] #all excel diagonals are in those of R
 
-# ifelse( (length(diagonal_R$k)-2)==length(diagonal_excel$k) ,
-#        print("ok"), stop("too many compartment combo's")) 
-
 #Single dataframe with both the R and excel diagonals
 merged_diagonal <- merge(diagonal_R, diagonal_excel, by = "from", suffixes = c("_R", "_Excel")) 
 merged_diagonal$k_Excel <- -merged_diagonal$k_Excel #Turning the "negative" values from the Excel matrix into positive ones
@@ -155,16 +137,10 @@ merged_diagonal$reldif <- merged_diagonal$diff/merged_diagonal$k_R
 
 #Plot of differences of the diagonals per compartment
 ggplot(merged_diagonal, aes(x = from, y = diff)) +
-  geom_boxplot() +
-  ggtitle(paste0("Absolute differences removal k's between R and excel for ", substance)) +
-  geom_hline(yintercept = 0.001, color="red") +
-  geom_hline(yintercept = -0.001, color="red")
+  geom_boxplot()
 
 ggplot(merged_diagonal, aes(x = from, y = reldif)) +
-  geom_boxplot() +
-  ggtitle(paste0("Relative differences removal k's between R and excel for ", substance)) +
-  geom_hline(yintercept = 0.001, color="red") +
-  geom_hline(yintercept = -0.001, color="red")
+  geom_boxplot()
 
 ```
 
@@ -220,63 +196,50 @@ ggplot(mergedkaas, aes (x = to, y = diff)) +
 # "To" and "from" in one plot
 ggplot(mergedkaas, aes(x = to, y = from, color = abs(diff))) + 
   geom_point() +
-  scale_color_gradient(low = "green", high = "red", trans = "log10") +
-  ggtitle(paste0("Absolute differences k's between R and excel for ", substance)) 
+  scale_color_gradient(low = "green", high = "red", trans = "log10") 
+
 
 ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) + 
   geom_point() +
-  scale_color_gradient(low = "green", high = "red") +
-  ggtitle(paste0("Relative differences k's between R and excel for ", substance)) 
+  scale_color_gradient(low = "green", high = "red") 
 #If you want to inspect per process instead of fromto box: look at the original kaas dataframe
 
 ```
 
-```{r get differences larger than 1 percentile}
+```{r get differences larger than 0.1 percentile}
 
 large_differences <- mergedkaas |>
   mutate(relDif = abs(relDif)) |>
-  filter(relDif > 0.001) 
-
-diagonal_diffs <- merged_diagonal |>
-  mutate(reldif = abs(reldif)) |>
-  filter(reldif > 0.001)
+  filter(relDif > 0.0001) 
 
 ```
 
 ```{r Lake removal}
-lake <- kaas |>
-  filter(fromSubCompart == "lake") |>
-  filter(toSubCompart == "lake")
-
-lake2 <- kaas |>
-  filter(fromSubCompart == "lake") |>
-  filter(fromScale == "Continental")
 # The relative difference in lake removal rate is caused by lake sedimentation
 # being included in R but not in excel.
 
-# To make an accurate comparison between R and excel, the test variable was used 
-# to exclude flows to lake sediment in k_Sedimentation and k_Adsorption 
-# for an accurate comparison between excel and R. 
+# To make an accurate comparison between R and excel, the lake compartment will 
+# be excluded from the emission figure.
 
-World$moduleList[["k_Leaching"]]$execute(debugAt = list())
-
-```
-
-``` {r Air removal}
-air <- kaas |>
-  filter(fromSubCompart == "air") |>
-  filter(toSubCompart == "air") |>
-  filter(fromScale == "Tropic")
-
-# The difference between the diagonals for the air compartment is in k_Degradation. The variable 'KdegDorC' is used to calculate this K, but in R the value is rounded while in excel it is not. Rounding this value in excel solved the problem. 
+#World$moduleList[["k_Degradation"]]$execute(debugAt = list())
 
 ```
 
-```{r Soil removal}
-soil <- kaas |>
-  filter(fromSubCompart == "agriculturalsoil") |>
-  filter(toSubCompart == "agriculturalsoil") |>
-  filter(fromScale == "Continental")
+```{r Sea removal}
+
+remsea <- kaas |>
+  filter(from == "w2A")
+
+remdeepsea <- kaas |>
+  filter(from == "w3A")
+
+```
+
+``` {r to lake}
+
+tolake <- kaas |>
+  filter(toScale == "Regional") |>
+  filter(toSubCompart == "lake")
 
 ```
 
