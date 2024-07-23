@@ -7,8 +7,8 @@ editor_options:
   chunk_output_type: console
 ---
 
-Here we discuss the calculation of the Surface Area of the different environmental compartments and the Volume of these Compartments. The Characteristics of the environment are based on Landscape defining data, further elaborated in Section 2 <!--# PM to be added -->. See the [Vignette explaining calculation of area of compartments](Area.md "Area") and the Vignette showing the calculation of the Volume of each compartment <!--# PM to be added -->.
+Here we discuss the calculation of the Surface Area of the different environmental compartments and the Volume of these Compartments. The Characteristics of the environment are based on Landscape defining data, further elaborated in Section 2.  See the [Vignette explaining calculation of area of compartments](vignettes/Area.md "Area"). 
 
-Also the volume fraction of water, solid or gas phase is calculated. See the [Vignette explaining calculation of Volume fraction of different phases in each subcompartment](FRACwas.md "Volume FRACtion").
+Also the volume fraction of water, solid or gas phase is calculated. See the [Vignette explaining calculation of Volume fraction of different phases in each subcompartment](vignettes/FRACwas.md "Volume FRACtion").
 
 Lastly the air and water flows are needed. Their calculation is shown in [Vignette on Advection](vignettes/5.4%20Advection.md "Advection").

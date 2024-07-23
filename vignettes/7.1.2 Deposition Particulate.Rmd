@@ -1,41 +1,30 @@
 ---
 title: "7.1.2 Particulate Deposition air to soil/water"
-author: "Jaap Slootweg, Joris Quik"
+author: "Jaap Slootweg, Joris Quik, Valerie de Rijk"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
   chunk_output_type: console
 ---
 
-```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
 
-# knitr::opts_chunk$set(echo = TRUE)
-# projectRoot <- paste(getwd(), "..", sep = "/")
-# knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+### Deposition processes for particulates
+The deposition process for particulates, contrary to molecules, is split into two separate process for wet and dry. First, we have to initialize our particulate world again. 
+```{r initiate, message=FALSE, warning=FALSE}
 
-# see which relevant substances are in the database:
-library(tidyverse)
-SubstanceDatabase <- read.csv("data/Substances.csv")
-# unique(as.tibble(SubstanceDatabase$ChemClass))
-SubstanceDatabase |> filter(ChemClass == "particle")
-
-rm(substance) #for "default substance", example of neutral substance
-substance <- "nAg_10nm"
-#substance <- "organic acid" #example of acid
-#substance <- "organic base" #example of base
-#substance <- "Ag(I)" #example of metal
-
-source("baseScripts/initTestWorld.R")
+source("baseScripts/initWorld_onlyParticulate.R")
 
 ```
 
-## Introduction
+#### Variable check
 
-See if the following variable are available. They are required for the DryDeposition function
-
-to.Area, from.Volume, AEROresist, Diffusivity,
-                          DynVisc,rhoMatrix,ColRad,rad_species,rho_species,
-                          Temp,to.alpha.surf, Cunningham, SetVel
+See if the following variable are available. They are required for the DryDeposition function. 
 
 ```{r paged.print=TRUE}
 
@@ -70,9 +59,16 @@ World$fetchData("SubCompartName")
 ```
 
 
-## Calculation of Dry Deposition rate constant for particulates
+#### Calculation of Dry Deposition rate constant for particulates
 
-The implementation follows the LOTOS-EUROS v2.0 2016 guidance for dry deposition of particles. This does mean there might be small deviations from the current implementation in SimpleBox4nano xlsx.
+The implementation follows the LOTOS-EUROS v2.0 2016 guidance for dry deposition of particles. This does mean there might be small deviations from the current implementation in SimpleBox4nano xlsx. However, a Test function is provided for initializing the world that can reproduce the exact k's from Excel.
+
+```{r Initializing test function, warning=FALSE }
+#only if you want exact same output as Excel version
+World$SetConst(Test = "TRUE")
+#Updating of matrix because of the Test function 
+World$UpdateKaas(mergeExisting = F)
+```
 
 ```{r k_DryDeposition, warning=FALSE, paged.print=TRUE}
 
@@ -82,21 +78,10 @@ testProc$execute()
 
 ```
 
-## Calculation of Wet Deposition rate constant for particulates
-For wet deposition there are two steps where the particulates are first scavenged into an intermediate cloud water compartment after which they deposit to soil or surface water. 
+#### Calculation of Wet Deposition rate constant for particulates
+For wet deposition there are two steps where the particulates are first scavenged into an intermediate cloud water compartment after which they deposit to soil or surface water through the process of k_WetDeposition. 
 
 ```{r k_CWscavenging}
-
-# #init default core (World) with classic states, and classic kaas
-# substance <- "nAg_10nm"  #use a nano material, otherwise it only encounters Molecular
-# excelReference <- "data/20210331 SimpleBox4nano_rev006.xlsx"
-# source("baseScripts/initTestWorld.R")
-# 
-# lapply(c("rho_species", "rad_species"), function(FuName){
-#   World$NewCalcVariable(FuName)
-#   World$CalcVar(FuName)
-# })
-# World$fetchData("Temp")
 
 World$fetchData("NaturalRho")
 World$fetchData("SettlingVelocity") 
@@ -106,30 +91,14 @@ World$fetchData("FRACtwet")
 World$fetchData("tdry")
 World$fetchData("twet")
 World$fetchData("COLLECTeff")
-
-World$FromDataAndTo("k_CWscavenging")
 testProc <- World$NewProcess("k_CWscavenging")
-# debugonce(k_CWscavenging)
-# testProc$execute(debugAt = list(fromScale = "Regional"))
 testProc$execute()
-# debug(testProc$execute())
 
-#calculation of kaas is by executing a process
-# testClass <- World$NewProcess("k_CWscavenging")
-# testClass$execute(list())
-
-
-
-# debug(testClass$execute)
-# testClass$execute(debugAt = list()) #an empty list always triggers
-#testVar$execute(debugAt = list(Scale = "Regional", SubCompart = "air"))
 
 ```
 
-
 ```{r k_WetDeposition}
 
-World$FromDataAndTo("k_WetDeposition")
 testProc <- World$NewProcess("k_WetDeposition")
 testProc$execute()
 

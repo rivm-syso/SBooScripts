@@ -1,24 +1,33 @@
 ---
 title: "5.3 Volume FRACtions of phases in subcompartments"
-author: "Jaap Slootweg, Joris Quik"
+author: "Jaap Slootweg, Joris Quik, Valerie de Rijk"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
   chunk_output_type: console
 ---
 
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
 
-```{r message=FALSE, warning=FALSE, include=FALSE}
+### Volume fraction of water or air or solids in a matrix
 
-try(source("baseScripts/initTestWorld.R"))
+This vignette explains in more detail the fractions that were mentioned in vignette *4.0 partitioning*.
+
+A Subcompartment has a main matrix (medium); for soils and sediment this is "solids". But both also contain water, and soil also contains a fraction of air, in addition to water. These matrices play a part in the exchange of substances. The fraction of the non-main matrices are in the data, named subFRACw, subFRACa, and subFRACs. The main fraction of the subcompartment is calculated as the remainder. All fractions are determined by three variable defining functions. For example for soils and sediments FRACs is calculated:
+
+```{r start.data, message=FALSE, warning=FALSE}
+# first we have to initialize the World object
+source("baseScripts/initWorld_onlyMolec.R")
 
 ```
 
-## Volume fraction of water or air phase in a matrix
-A Subcompartment has a main matrix (medium); for soils and sediment this is "solids". But both also contain water, and soil also contains a fraction of air, in addition to water. These matrices play a part in the exchange of substances. The fraction of the non-main matrices are in the data, named subFRACw, subFRACa, and subFRACs. The main fraction of the subcompartment is calculated as the remainder. All fractions are determined by three variable defining functions. For example for soils and sediments FRACs is calculated:
 
-
-```{r}
+```{r fetching subfractions and calculating main variable}
 
 World$fetchData("subFRACa")
 World$fetchData("subFRACs")
@@ -29,32 +38,33 @@ World$CalcVar("FRACs")
 
 ```
 
-## Implementation for air
-This generalisation is extended to the solids and water fractions in air, formerly known as FRACears and FRACearw.
-FRACaers -> FRACs for air, FRACaerw -> FRACw for air.
+#### Implementation for air
+
+This generalisation is extended to the solids and water fractions in air. .
 
 An overview for the scale Regional. The NA are not calculated, but also not needed in further calculations of the partitioning between these phases.
 
 ```{r}
 
-Fs <- World$NewCalcVariable("FRACa")
+Fa <- World$NewCalcVariable("FRACa")
 World$CalcVar("FRACa")
-Fs <- World$NewCalcVariable("FRACw")
+Fw <- World$NewCalcVariable("FRACw")
 World$CalcVar("FRACw")
 
-allFrac <- Reduce(merge, list(World$fetchData("FRACa"), World$fetchData("FRACw"), World$fetchData("FRACs"))) %>%
-  dplyr::filter(Scale == "Regional") %>%
+allFrac <- Reduce(merge, list(World$fetchData("FRACa"), World$fetchData("FRACw"), World$fetchData("FRACs"))) |>
+  dplyr::filter(Scale == "Regional") |>
   pivot_longer(c(FRACa, FRACw, FRACs))
 
 allFrac <- full_join(as_tibble(World$fetchData("FRACa")),
-                     as_tibble(World$fetchData("FRACw")), by = c("SubCompart","Scale")) %>% 
-  full_join(as_tibble(World$fetchData("FRACs"))) |> filter(Scale=="Regional") %>% print()
+                     as_tibble(World$fetchData("FRACw")), by = c("SubCompart","Scale")) |>
+  full_join(as_tibble(World$fetchData("FRACs"))) |> filter(Scale=="Regional") |> print()
 ```
 
-## colloidal and suspended matter in waters
+#### colloidal and suspended matter in waters
+
 For solids in water SB distinguishes colloidal and suspended matter. Therefore subFRACs for waters is not in the data; use the data for "COL" and "SUSP" for these quantities. These quantities are not used to calculate a "FRACw" for waters.
+
 ```{r}
 World$fetchData("COL")
 World$fetchData("SUSP")
 ```
-

@@ -1,0 +1,465 @@
+
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) 
+```
+
+## Initiation
+
+
+
+```{r solver}
+library(dplyr)
+library(readr)
+library(tidyr)
+library(stringr)
+
+
+emissions <- data.frame(Abbr = "w1CU", 
+                        Emis = 35)
+emissions$Emis<- emissions$Emis * 1000 / (365.25 * 24 * 60 * 60) # convert 1 t/y to si units: kg/s)
+```
+
+
+
+```{r list}
+# Define the list of substances
+
+substances <- c(
+                          "Ba(II)", 
+                          "Al(III)", 
+                          "Ag(I)", 
+                          "Zn(II)", 
+                          "Be(II)", 
+                          "Cd(II)"
+) # neutral
+# Define the list of solvers
+solvers <- c("SBsteady", "SB1Solve")
+
+
+
+
+
+
+```
+
+```{r mass balance checks}
+# Initialize lists to store results
+results_list <- list()
+mass_balance_results <- list()
+total_abs_differences <- data.frame(Substance = character(), Solver = character(), TotalAbsDifference = numeric(), stringsAsFactors = FALSE)
+top_rows_list <- list()
+total_mass_difference_list <- list()
+kaas_filtered_list <- list()
+
+# Loop over solvers and substances
+for (solver in solvers) {
+  for (substance in substances) {
+    # Print the current substance and solver (optional)
+    cat("Processing substance:", substance, "with solver:", solver, "\n")
+    
+    # Initialize the world with the current substance
+    source("baseScripts/initWorld_onlyMolec.R")
+    World$NewSolver(solver)
+  
+    # Solve for the steady solution
+    SolutionSteady <- World$Solve(emissions)
+    
+    # Add a column for the substance and solver
+    SolutionSteady$Substance <- substance
+    SolutionSteady$Solver <- solver
+    
+    # Append the results to the list
+    results_list[[paste(substance, solver, sep = "_")]] <- SolutionSteady
+    
+    # Remove the SolutionSteady object to free up memory and ensure it's not reused
+    rm(SolutionSteady)
+    
+    # Mass balance processing
+    cat("Processing mass balance for substance:", substance, "\n")
+    key <- paste(substance, solver, sep = "_")
+    SolutionSteady <- results_list[[key]]
+    
+    # Create unique combinations
+    unique_combinations <- SolutionSteady |>
+      select(Scale, SubCompart, Species) |>
+      distinct()
+    
+    # Create emission rows
+    emission_rows <- unique_combinations |>
+      mutate(
+        Value = "emission",
+        EqMass = if_else(Scale == "Continental" & SubCompart == "sea" & Species == "Unbound", emissions$Emis, 0)
+      )
+    
+    # Adding "from" and "to" acronyms to the R K matrix
+    kaas <- as_tibble(World$kaas)
+    kaas <- kaas |>
+      left_join(SolutionSteady, by = c("fromScale" = "Scale", "fromSubCompart" = "SubCompart", "fromSpecies" = "Species"))
+    
+    # Multiply k by the corresponding EqMass
+    kaas <- kaas |>
+      mutate(k = k * EqMass)
+    kaas <- kaas |>
+      mutate(k = if_else(fromSubCompart == toSubCompart &
+                           fromScale == toScale &
+                           fromSpecies == toSpecies,
+                         -abs(k),
+                         k))
+    
+    # Save kaas rows for certain subcompartments 
+    kaas_filtered <- kaas |>
+      filter((fromScale == "Continental" & fromSubCompart == "river" & fromSpecies == "Unbound") |
+             (toScale == "Continental" & toSubCompart == "river" & toSpecies == "Unbound"))
+    
+    # Aggregate k values based on toScale, toSubCompart, and toSpecies
+    aggregated_to <- kaas |>
+      group_by(toScale, toSubCompart, toSpecies) |>
+      summarise(k_sum_to = sum(k)) |>
+      ungroup()
+    
+    # Aggregate k values based on fromScale, fromSubCompart, and fromSpecies
+    aggregated_from <- kaas |>
+      filter(k >= 0) |>
+      group_by(fromScale, fromSubCompart, fromSpecies) |>
+      summarise(k_sum_from = sum(k)) |>
+      ungroup()
+    
+    new_rows_from <- aggregated_from |>
+      mutate(
+        Value = "transportfrom",
+        Scale = fromScale,
+        SubCompart = fromSubCompart,
+        Species = fromSpecies,
+        EqMass = k_sum_from
+      ) |>
+      select(Value, Scale, SubCompart, Species, EqMass)
+    
+    new_rows_to <- aggregated_to |>
+      mutate(
+        Value = "transportto",
+        Scale = toScale,
+        SubCompart = toSubCompart,
+        Species = toSpecies,
+        EqMass = k_sum_to
+      ) |>
+      select(Value, Scale, SubCompart, Species, EqMass)
+    
+    # Combine SolutionSteady with new rows
+    massbalancecheck <- bind_rows(new_rows_from, new_rows_to, emission_rows)
+    massbalancecheck_sorted <- massbalancecheck |>
+      arrange(Scale, SubCompart, Species)
+    
+    # Check differences
+    massbalance_difference <- massbalancecheck_sorted |>
+      pivot_wider(names_from = Value, values_from = EqMass) |>
+      mutate(difference = transportto + emission - transportfrom) |>
+      select(Scale, SubCompart, Species, difference)
+    
+    total_abs_difference <- sum(abs(massbalance_difference$difference), na.rm = TRUE)
+    total_mass_difference <- sum(massbalance_difference$difference, na.rm = TRUE)
+    
+    # Add columns for substance and solver
+    massbalance_difference$Substance <- substance
+    massbalance_difference$Solver <- solver
+    kaas_filtered$Substance <- substance
+    kaas_filtered$Solver <- solver
+    
+    # Print largest differences
+    top_5_rows <- massbalance_difference |>
+      arrange(desc(abs(difference))) |>
+      head(5)
+    
+    # Append the results to the lists
+    mass_balance_results[[key]] <- massbalance_difference
+    total_abs_differences <- rbind(total_abs_differences, data.frame(Substance = substance, Solver = solver, TotalAbsDifference = total_abs_difference))
+    top_rows_list[[key]] <- top_5_rows
+    total_mass_difference_list[[key]] <- total_mass_difference
+    kaas_filtered_list[[key]] <- kaas_filtered
+    rm(World)
+  }
+}
+
+# Combine all mass balance results into a single dataframe
+massbalance_difference_all <- do.call(rbind, mass_balance_results)
+top_rows_all <- do.call(rbind, top_rows_list)
+kaas_filtered_all <- do.call(rbind, kaas_filtered_list)
+
+# Print the combined results (optional)
+print(massbalance_difference_all)
+print(top_rows_all)
+print(kaas_filtered_all)
+```
+
+````{r plot}
+
+library(ggplot2)
+ggplot(total_abs_differences, aes(x = Substance, y = TotalAbsDifference, fill = Solver)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Total Absolute Differences by Substance and Solver", x = "Substance", y = "Total Absolute Difference [kg]") +
+  theme_minimal()
+
+# Plotting the mass balance differences
+ggplot(massbalance_difference_all, aes(x = interaction(Scale, SubCompart, Species), y = difference, fill = Substance)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~ Solver, scales = "free", ncol = 2) +
+  labs(title = "Mass Balance Differences by Scale, SubCompart, and Species", x = "Combination (Scale, SubCompart, Species)", y = "Difference Mass Balance [kg]") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal()
+
+top_rows_all$Substance <- factor(top_rows_all$Substance, levels = unique(top_rows_all$Substance))
+top_rows_all$Solver <- factor(top_rows_all$Solver, levels = unique(top_rows_all$Solver))
+
+
+# Plotting the top differences as grouped bars with facets for solvers
+ggplot(top_rows_all, aes(x = interaction(SubCompart, Scale, Species), y = difference, fill = Substance)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.4) +
+  labs(title = "Top Differences by Compartment, Scale, and Species", x = "Combination (Compartment, Scale, Species)", y = "Difference Mass Balance [kg]", fill = "Substance") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  facet_wrap(~ Solver, scales = "free", ncol = 2)
+
+
+```
+
+
+```{r all plots}
+library(dplyr)
+library(ggplot2)
+
+# Function to process and plot data for a given substance
+process_substance <- function(data, substance_name) {
+  filtered_data <- data |>
+    filter(Solver == "SB1Solve", Substance == substance_name)
+  
+  
+  filtered_data <- filtered_data |>
+  mutate(
+    condition_met = fromSubCompart == "sea" & fromScale == "Continental" ,
+    k = if_else(condition_met, -k, k)
+  )
+  print(filtered_data)
+  
+  # Make the ones with the specified from columns negative
+  # Aggregate k values for k_Advection
+  k_Advection_sum <- sum(filtered_data$k[filtered_data$process == "k_Advection"])
+  filtered_data <- filtered_data |>
+    group_by(process) |>
+    mutate(k = if_else(process == "k_Advection", k_Advection_sum, k)) |>
+    filter(!duplicated(process))  # Remove duplicates after aggregation
+  
+  # # Ensure k_Degradation remains negative
+  # filtered_data <- filtered_data |>
+  #   mutate(k = if_else(process == "k_Degradation", -abs(k), k))
+  # 
+  # # Calculate the sum of k_Degradation
+  # k_Degradation_sum <- sum(filtered_data$k[filtered_data$process == "k_Degradation"])
+  # print(paste("k_Degradation_sum for", substance_name, ":", k_Degradation_sum))
+  # 
+  # # Calculate the sum of Desorption, Resuspension, and Sedimentation
+  # other_processes_sum <- sum(filtered_data$k[filtered_data$process %in% c("k_Desorption", "k_Resuspension", "k_Sedimentation")])
+  # 
+  # Calculate the difference
+  difference <-sum(filtered_data$k)
+  print(paste("Difference for", substance_name, ":", difference))
+  
+  # Plot the data
+  plot <- ggplot(filtered_data, aes(x = process, y = k, fill = process)) +
+    geom_bar(stat = "identity") +
+    scale_fill_brewer(palette = "Set1") +  # Choose a color palette (e.g., Set1)
+    theme_minimal() +
+    labs(
+      title = paste("k values for", substance_name, "and", solver," for sea at continetal Scale"),
+      x = "net Process",
+      y = "k [k*EqMass]"
+    ) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+   geom_text(aes(label = paste("Difference:", round(difference, 6))), 
+              x = 1, y = max(filtered_data$k) * 0.8, 
+              hjust = 0, vjust = 0, color = "black", size = 3.5)
+  
+  
+  print(plot)  # Explicitly print the plot
+}
+
+# Example usage
+# Assuming kaas_filtered_all is your original data frame containing all relevant columns
+unique_substances <- unique(kaas_filtered_all$Substance)
+
+# Apply the function to all unique substances
+for (substance in unique_substances) {
+  process_substance(kaas_filtered_all, substance)
+}
+```
+```{r mutate var for kdeg}
+substance <- "Zn(II)"
+source("baseScripts/initWorld_onlyMolec.R")
+emissions <- data.frame(Abbr = "w1CU", 
+                        Emis = 35)
+# Initialize lists and data frames
+sens_mass_balance_results <- list()
+sens_total_abs_differences <- data.frame(Degradation = numeric(), TotalAbsDifference = numeric(), stringsAsFactors = FALSE)
+sens_top_rows_list <- list()
+sens_total_mass_difference_list <- list()
+sens_kaas_filtered_list <- list()
+
+# Generate a log scale sequence for degradation rates
+log_seq <- seq(from = log10(1e-20), to = log10(1e-1), length.out = 10)
+
+# Convert the log scale sequence back to the original scale
+kdeg_range <- 10^log_seq
+print(kdeg_range)
+
+World$fetchData("Substance")
+# Loop over vapor pressures
+for (vap in kdeg_range) {
+  cat("Processing mass balance degradation:", vap, "\n")
+  print(World$fetchData("Substance"))
+  # Set the constant vapor pressure
+  kdeg <- data.frame(
+  SubCompart = c("agriculturalsoil", "air", "cloudwater", "deepocean", 
+                 "freshwatersediment", "lake", "lakesediment", 
+                 "marinesediment", "naturalsoil", "othersoil", 
+                 "river", "sea"),
+  kdeg = rep(vap, 12)  # Assuming kdeg values are all 1e-20 as per your example
+)
+
+  ToPaste <- lapply(list(kdeg), function(x) {
+    varName <- names(x)[!names(x) %in% The3D]
+    stopifnot(length(varName)==1)
+    # one line with 2 disadvantages of tidyverse..:
+    as.data.frame(pivot_longer(data = x, cols = all_of(varName), names_to = "varName", values_to = "Waarde"))
+  })
+  
+  dfs <- do.call(bind_rows, ToPaste)
+  print(World$fetchData("Substance"))
+  World$mutateVars(dfs)
+  World$UpdateKaas(mergeExisting = FALSE)
+  World$NewSolver("SB1Solve")
+  World$Solve(emissions)
+  SolutionSteady <-World$Solve(emissions)
+  SolutionSteady2 <- as.data.frame(SolutionSteady)
+  
+
+  # Create unique combinations
+  unique_combinations <- SolutionSteady2 |>
+    select(Scale, SubCompart, Species) |>
+    distinct()
+
+  # Create emission rows
+  emission_rows <- unique_combinations |>
+    mutate(
+      Value = "emission",
+      EqMass = if_else(Scale == "Continental" & SubCompart == "river" & Species == "Unbound", emissions$Emis, 0)
+    )
+
+  # Adding "from" and "to" acronyms to the R K matrix
+  kaas <- as_tibble(World$kaas)
+  kaas <- kaas |>
+    left_join(SolutionSteady, by = c("fromScale" = "Scale", "fromSubCompart" = "SubCompart", "fromSpecies" = "Species"))
+
+  # Multiply k by the corresponding EqMass
+  kaas <- kaas |>
+    mutate(k = k * EqMass)
+  kaas <- kaas |>
+    mutate(k = if_else(fromSubCompart == toSubCompart &
+                         fromScale == toScale &
+                         fromSpecies == toSpecies,
+                       -abs(k),
+                       k))
+
+  # Save kaas rows for certain subcompartments 
+  kaas_filtered <- kaas |>
+    filter((fromScale == "Tropic" & fromSubCompart == "deepocean" & fromSpecies == "Unbound") |
+           (toScale == "Tropic" & toSubCompart == "deepocean" & toSpecies == "Unbound"))
+
+  # Aggregate k values based on toScale, toSubCompart, and toSpecies
+  aggregated_to <- kaas |>
+    group_by(toScale, toSubCompart, toSpecies) |>
+    summarise(k_sum_to = sum(k)) |>
+    ungroup()
+
+  # Aggregate k values based on fromScale, fromSubCompart, and fromSpecies
+  aggregated_from <- kaas |>
+    filter(k >= 0) |>
+    group_by(fromScale, fromSubCompart, fromSpecies) |>
+    summarise(k_sum_from = sum(k)) |>
+    ungroup()
+
+  new_rows_from <- aggregated_from |>
+    mutate(
+      Value = "transportfrom",
+      Scale = fromScale,
+      SubCompart = fromSubCompart,
+      Species = fromSpecies,
+      EqMass = k_sum_from
+    ) |>
+    select(Value, Scale, SubCompart, Species, EqMass)
+
+  new_rows_to <- aggregated_to |>
+    mutate(
+      Value = "transportto",
+      Scale = toScale,
+      SubCompart = toSubCompart,
+      Species = toSpecies,
+      EqMass = k_sum_to
+    ) |>
+    select(Value, Scale, SubCompart, Species, EqMass)
+
+  # Combine SolutionSteady with new rows
+  massbalancecheck <- bind_rows(new_rows_from, new_rows_to, emission_rows)
+
+  massbalancecheck_sorted <- massbalancecheck |>
+    arrange(Scale, SubCompart, Species)
+
+  # Check differences
+  massbalance_difference <- massbalancecheck_sorted |>
+    pivot_wider(names_from = Value, values_from = EqMass) |>
+    mutate(difference = transportto + emission - transportfrom) |>
+    select(Scale, SubCompart, Species, difference)
+
+  sens_total_abs_difference <- sum(abs(massbalance_difference$difference), na.rm = TRUE)
+  sens_total_mass_difference <- sum(massbalance_difference$difference, na.rm = TRUE)
+
+  # Add columns for vapor pressure
+  massbalance_difference$Degradation <- vap
+  kaas_filtered$Degradation <- vap
+
+  # Print largest differences
+  top_5_rows <- massbalance_difference |>
+    arrange(desc(abs(difference))) |>
+    head(5)
+
+  # Append the results to the lists
+  key <- as.character(vap)
+  sens_mass_balance_results[[key]] <- massbalance_difference
+  sens_total_abs_differences <- rbind(sens_total_abs_differences, data.frame(Degradation = vap, TotalAbsDifference = sens_total_abs_difference))
+  sens_top_rows_list[[key]] <- top_5_rows
+  sens_total_mass_difference_list[[key]] <- sens_total_mass_difference
+  sens_kaas_filtered_list[[key]] <- kaas_filtered
+
+}  # End of vapor pressure loop
+
+# Combine all mass balance results into a single dataframe
+sens_massbalance_difference_all <- do.call(rbind, sens_mass_balance_results)
+sens_top_rows_all <- do.call(rbind, sens_top_rows_list)
+sens_kaas_filtered_all <- do.call(rbind, sens_kaas_filtered_list)
+
+# Print the combined results (optional)
+print(sens_massbalance_difference_all)
+print(sens_top_rows_all)
+
+ggplot(sens_total_abs_differences, aes(x = as.factor(Degradation), y = TotalAbsDifference, fill = as.factor(Degradation))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Total Absolute Differences by Degradation value for SB", 
+       x = "Degradation rate [s-1]", 
+       y = "Total Absolute Difference [kg]") +
+  scale_x_discrete(labels = function(x) format(as.numeric(x), digits = 2, nsmall = 2, scientific = TRUE)) +
+  scale_fill_manual(values = scales::hue_pal()(length(unique(sens_total_abs_differences$Degradation))), guide = "none") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```

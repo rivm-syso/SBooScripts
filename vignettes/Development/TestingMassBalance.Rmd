@@ -24,11 +24,10 @@ library(dplyr)
 library(readr)
 library(tidyr)
 library(stringr)
-World$fetchData("kdegDorC")
 
 
 emissions <- data.frame(Abbr = "s1CU", 
-                        Emis = 3)
+                        Emis = 35)
 emissions$Emis<- emissions$Emis * 1000 / (365.25 * 24 * 60 * 60) # convert 1 t/y to si units: kg/s
 ```
 
@@ -41,8 +40,8 @@ substances <- c(
                           "1-HYDROXYANTHRAQUINONE", # acid
                           "1-Hexadecanamine, N,N-dimethyl-", # base
                           "1-Chloro-2-nitro-propane", 
-                           "Zn(II)", 
-                          "Be(II)", 
+                          # "Zn(II)", 
+                          #"Be(II)", 
                           "FUMARIC ACID", 
                           "Closantel"
 ) # neutral
@@ -71,6 +70,8 @@ for (solver in solvers) {
     
     # Append the results to the list
     results_list[[paste(substance, solver, sep = "_")]] <- SolutionSteady
+    rm(SolutionSteady)
+    rm(World)
   }
 }
 
@@ -178,19 +179,40 @@ total_abs_differences <- data.frame(Substance = character(), Solver = character(
 top_rows_list <- list()
 total_mass_difference_list <- list()
 kaas_filtered_list <- list()
-# Loop over substances 
-for (substance in substances) {
-  cat("Processing mass balance for substance:", substance, "\n")
-  
-  # Loop over solvers
-  for (solver in solvers) {
-    cat("  Using solver:", solver, "\n")
+results_list <- list()
+mass_balance_results <- list()
+total_abs_differences <- data.frame(Substance = character(), Solver = character(), TotalAbsDifference = numeric(), stringsAsFactors = FALSE)
+top_rows_list <- list()
+total_mass_difference_list <- list()
+kaas_filtered_list <- list()
+
+# Loop over solvers and substances
+for (solver in solvers) {
+  for (substance in substances) {
+    # Print the current substance and solver (optional)
+    cat("Processing substance:", substance, "with solver:", solver, "\n")
     
-    # Access SolutionSteady from results_list
+    # Initialize the world with the current substance
+    source("baseScripts/initWorld_onlyMolec.R")
+    World$NewSolver(solver)
+  
+    # Solve for the steady solution
+    SolutionSteady <- World$Solve(emissions)
+    
+    # Add a column for the substance and solver
+    SolutionSteady$Substance <- substance
+    SolutionSteady$Solver <- solver
+    
+    # Append the results to the list
+    results_list[[paste(substance, solver, sep = "_")]] <- SolutionSteady
+    
+    # Remove the SolutionSteady object to free up memory and ensure it's not reused
+    rm(SolutionSteady)
+    
+    # Mass balance processing
+    cat("Processing mass balance for substance:", substance, "\n")
     key <- paste(substance, solver, sep = "_")
     SolutionSteady <- results_list[[key]]
-    # SolutionSteady <- SolutionSteady |>
-    #   filter(Species != "Unbound")
     
     # Create unique combinations
     unique_combinations <- SolutionSteady |>
@@ -201,13 +223,11 @@ for (substance in substances) {
     emission_rows <- unique_combinations |>
       mutate(
         Value = "emission",
-        EqMass = if_else(Scale == "Continental" & SubCompart == "sea" & Species == "Unbound", emissions$Emis, 0)
+        EqMass = if_else(Scale == "Continental" & SubCompart == "naturalsoil" & Species == "Unbound", emissions$Emis, 0)
       )
     
     # Adding "from" and "to" acronyms to the R K matrix
     kaas <- as_tibble(World$kaas)
-    # kaas <- kaas |>
-    #   filter(fromSpecies != "Unbound")
     kaas <- kaas |>
       left_join(SolutionSteady, by = c("fromScale" = "Scale", "fromSubCompart" = "SubCompart", "fromSpecies" = "Species"))
     
@@ -223,9 +243,8 @@ for (substance in substances) {
     
     # Save kaas rows for certain subcompartments 
     kaas_filtered <- kaas |>
-      filter((fromScale == "Tropic" & fromSubCompart == "deepocean" & fromSpecies == "Unbound") |
-             (toScale == "Tropic" & toSubCompart == "deepocean" & toSpecies == "Unbound"))
-    
+      filter((fromScale == "Continental" & fromSubCompart == "river" & fromSpecies == "Unbound") |
+             (toScale == "Continental" & toSubCompart == "river" & toSpecies == "Unbound"))
     
     # Aggregate k values based on toScale, toSubCompart, and toSpecies
     aggregated_to <- kaas |>
@@ -262,7 +281,6 @@ for (substance in substances) {
     
     # Combine SolutionSteady with new rows
     massbalancecheck <- bind_rows(new_rows_from, new_rows_to, emission_rows)
-    
     massbalancecheck_sorted <- massbalancecheck |>
       arrange(Scale, SubCompart, Species)
     
@@ -292,14 +310,19 @@ for (substance in substances) {
     top_rows_list[[key]] <- top_5_rows
     total_mass_difference_list[[key]] <- total_mass_difference
     kaas_filtered_list[[key]] <- kaas_filtered
-  }  # End of solver loop
-  
-}  # End of substance loop
+    rm(World)
+  }
+}
 
 # Combine all mass balance results into a single dataframe
 massbalance_difference_all <- do.call(rbind, mass_balance_results)
 top_rows_all <- do.call(rbind, top_rows_list)
 kaas_filtered_all <- do.call(rbind, kaas_filtered_list)
+
+# Print the combined results (optional)
+print(massbalance_difference_all)
+print(top_rows_all)
+print(kaas_filtered_all)
 
 # Print the combined results (optional)
 print(massbalance_difference_all)

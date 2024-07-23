@@ -1,6 +1,6 @@
 ---
 title: "Advection"
-author: "Jaap Slootweg, Joris Quik"
+author: "Jaap Slootweg, Joris Quik, Valerie de Rijk"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
@@ -9,19 +9,25 @@ editor_options:
     wrap: 72
 ---
 
-# Advection
+### Advection
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
 
 This vignette demonstrates the implementation of the advective flows of
 air and water in SimpleBox (SB). An advective flow in the context of SB
-is the massflow of a matrix (air, water, ) from one box to another,
+is the massflow of a matrix (air, water ) from one box to another,
 where either the subcompartment or scale is different.
 
 ```{r initialize}
-source("baseScripts/initTestWorld.R")
-World
+source("baseScripts/initWorld_onlyMolec.R")
 ```
 
-## Data and variables
+#### Data and variables
 
 For calculating the rate constants for advection there is data needed
 on: - Windspeed Together with the variables: -
@@ -39,48 +45,48 @@ for (x in SBvars) {
 }
 ```
 
-## Air flow
+#### Air flow
 
 We calculate AirFlow in two steps. The first is the application of a
 simple model of air circulation depending on windspeed; The mean
-residence time in the region is according the f_TAU function. r f_TAU
+residence time in the region is according the f_TAU function.
 The AirFlow function calculates the amount that would enter/leave the
-region namely the volume divided by the residence time. Notice that
+region; namely the volume divided by the residence time. Notice that
 f_TAU is a normal function, but AirFlow will be used as a variable
 defining function. After the call to World\$CalcVar("AirFlow") this
-property is stored in the data within World. r AirFlow. This provides
+property is stored in the data within World. This provides
 the overal airflow within a compartment which affects the flow from this
 compartment or scale to the next. Currently air only flows between
 scales.
+
+```{r f tau}
+f_TAU
+``` 
 
 ```{r}
 World$fetchData("Volume")
 World$fetchData("Area")
 World$fetchData("WINDspeed")
-World$fetchData("SubCompartName")
-# f_TAU
-# AirFlow
 World$NewCalcVariable("AirFlow")
 World$CalcVar("AirFlow")
 ```
 
-### flow mass balance
+#### flow mass balance
 
-To keep the mass balance in the model the amount from one scale to the
+To ensure mass balance in the model the amount from one scale to the
 next would need to be equal to the amount flowing the opposite way! To
 honor the mass balance we give priority to the amount calculated for the
 smallest volume to calculate the actual flows. This means that for
-nested scales we need to know how the nesting is. This brings a new
-challange; we need to know properties of the scale the flow is going to,
+nested scales we need to know their 'place' in the world. This brings a new
+challenge; we need to know properties of the scale the flow is going to,
 or possibly the scale where it is coming from. Because of the nesting,
 we need to know even properties of scale not directly related to the to-
-or from- the scale! To accomodate this use of the "to.", the "from." and
+or from- the scale! To accommodate this use of the "to.", the "from." and
 the "all." preposition is made available. The to- and from scaleName are
 atomic (a single string) but the "all." prepositions provides a full
-table of the variable and its dimensions (in this case only accross
+table of the variable and its dimensions (in this case only across
 Scales). If you want to see what is really going on in the function
-calls you can use the debug parameter. See the Debugging vignette for
-further information.
+calls you can use the debug parameter.
 
 ```{r}
 x_Advection_Air
@@ -100,19 +106,18 @@ FromFlow <- aggregate(flow~fromScale, data = AirFlows, FUN = sum)
 merge(FromFlow, ToFlow, by.x = "fromScale", by.y = "toScale", suffixes = c("_from", "_to"))
 ```
 
-## Water flow
-
-For water the flows are relevant for different dimensions:
+#### Water flow
+All flows dealing with advective processes are denoted by x_files in SBOO.
+Different dimensions are relevant for computing the water flows:
 subcompartments and scale. This relates to water flowing from lake,
-through the river compartment to the sea. And the sea flows between
-scales. This is defined in the following x_flow algorithms for water
-advection in the following sections. The order of calculation matters
+through the river compartment to the sea, after which  the sea flows between
+scales. This is defined in the following x_flow. The order of calculation matters
 (for regional and continental scale function x 1-5) !
 
-### 1. x_ContRiver2Reg
+*1. x_ContRiver2Reg*
 
 x_ContRiver2Reg: based on Runoff calculates the flow from contintental
-river to regional river subcompartment (not usually relevant, thus ofter
+river to regional river subcompartment (not usually relevant, thus often
 0).
 
 ```{r}
@@ -141,7 +146,7 @@ flow1$execute()
 World$CalcVar("x_ContRiver2Reg")
 ```
 
-### 2. x_RiverDischarge
+*2. x_RiverDischarge*
 
 ```{r}
 
@@ -160,7 +165,7 @@ flow2$execute()
 World$CalcVar("x_RiverDischarge")
 ```
 
-### 3. x_LakeOutflow
+*3. x_LakeOutflow*
 
 ```{r}
 World$fetchData("x_RiverDischarge")
@@ -176,10 +181,9 @@ World$CalcVar("x_LakeOutflow")
 
 ```
 
-### 4. x_ContSea2Reg
+*4. x_ContSea2Reg*
 
 ```{r}
-# these cannot be found:
 World$fetchData("LakeFracRiver")
 World$fetchData("x_RiverDischarge")
 
@@ -190,7 +194,7 @@ flow4$execute()
 World$CalcVar("x_ContSea2Reg")
 ```
 
-### 5. x_RegSea2Cont
+*5. x_RegSea2Cont*
 
 ```{r}
 
@@ -205,10 +209,10 @@ World$CalcVar("x_RegSea2Cont")
 
 ```
 
-### 6. x_ToModerateWater
+*6. x_ToModerateWater*
 
 Advection of continental sea, Tropic and Arctic sea compartments to sea
-and deepocean at Moderate scale
+and deepocean at Moderate scale.
 
 ```{r}
 
@@ -227,9 +231,9 @@ World$CalcVar("x_ToModerateWater")
 
 ### Water flow from Moderate Scale
 
-#### 7. x_FromModerate2TropWater
+*7. x_FromModerate2TropWater*
 
-Seperated in different flows based on the to Scale
+Separated in different flows based on the to Scale
 
 ```{r}
 
@@ -246,7 +250,7 @@ flow$execute()
 World$CalcVar("x_FromModerate2TropWater")
 ```
 
-#### 8. x_FromModerate2ArctWater
+*8. x_FromModerate2ArctWater*
 
 ```{r}
 World$fetchData("OceanCurrent")
@@ -259,7 +263,7 @@ flow$execute()
 World$CalcVar("x_FromModerate2ArctWater")
 ```
 
-#### 9. x_FromModerate2ContWater
+*9. x_FromModerate2ContWater*
 
 ```{r}
 # required data:
@@ -276,7 +280,7 @@ flow$execute()
 World$CalcVar("x_FromModerate2ContWater")
 ```
 
-### 10. x_OceanMixing2Deep
+*10. x_OceanMixing2Deep*
 
 ```{r}
 x_OceanMixing2Deep
@@ -294,7 +298,7 @@ World$CalcVar("x_OceanMixing2Deep")
 
 ```
 
-### 11. x_OceanMixing2Sea
+*11. x_OceanMixing2Sea*
 
 ```{r}
 x_OceanMixing2Sea
@@ -311,7 +315,7 @@ flow$execute()
 World$CalcVar("x_OceanMixing2Sea")
 ```
 
-### Overview of water flows
+#### Overview of water flows
 
 Overview of flows included above (excludes surface - deep ocean mixing
 and ocean currents at global scales)
@@ -339,9 +343,14 @@ print(table1, n=40)
 
 ```
 
+#### Advection rate constant
 
-## Advection rate constant
-This process is only one step beyond the calculation of the relevant flows, see the function f_Advection. All flows are by default associated with this process. "flow" is used as special keyword, there is no SB variable with the name flow. You can find the values by fetching "Flows". This also means the script to get the k_Advection is a little different from other k's. See below:
+This process is only one step beyond the calculation of the relevant
+flows, see the function f_Advection. All flows are by default associated
+with this process. "flow" is used as special keyword, there is no SB
+variable with the name flow. You can find the values by fetching
+"Flows". This also means the script to get the k_Advection is a little
+different from other k's. See below:
 
 ```{r}
 World$fetchData("Flows")
