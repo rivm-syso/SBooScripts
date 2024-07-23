@@ -1,7 +1,7 @@
 ---
 title: "Basics for new developers of SimpleBox"
-author: "VR"
-date: "5/1/2024"
+author: "Valerie de Rijk"
+date: "`r Sys.Date()`"
 output: 
   github_document:
     toc: true
@@ -19,7 +19,7 @@ The vignette and the development folders contain a lot of information for specif
 
 Several main parts of the model are important to understand:
 
--   Compartments: The main 4 compartments (air, water, soil, sediment). These are also called 'maxtrix'.
+-   Compartments: The main 4 compartments (air, water, soil, sediment). These are also called 'matrix'.
 
 -   Subcompartments: Divide the 4 main compartments into different subcompartments with different properties (e.g. soil --\> naturalsoil, agriculturalsoil and othersoil.
 
@@ -27,7 +27,7 @@ Several main parts of the model are important to understand:
 
 -   Substances: Individual substances can be called by the model. They are part of either one of the three substance classes: molecular, particle or plastic.
 
--   Species: The particles and plastics are found in four speciations: Particle (Solid, S), Aggregated (Small, A) Attached (Large, P), Unbound (Molecular, U). In SBExcel, Unboud is split over Dissolved and Gaseous. *Note that each speciation has three different ways of calling it*
+-   Species: The particles and plastics are found in four speciations: Particle (Solid, S), Aggregated (Small, A) Attached (Large, P), Unbound (Molecular, U). In SBExcel, Unbound is split over Dissolved and Gaseous. *Note that each speciation has three different ways of calling it*
 
 The concept of SimpleBox in R follows the long data method, meaning that there is different nests in which properties are defined, e.g. the attachment efficiency of a particular substance might differ per subcompartment or even scale. As such it is important to understand the basic 'nests'. If you initialize the world and the core 'looks' for data it follows a certain key such as (SubstanceName, SpeciesName, from.SubCompartName, to.SubCompartName). It will need input data for all of this.
 
@@ -134,6 +134,12 @@ debugonce(k_CWscavenging)
 
 You can create new variables, functions and processes without needing to access the SBOO core.
 
+*Important Note* 
+Always run the following before comitting, so keeping track remains clear. 
+```{r run before commit, eval = FALSE}
+source("baseScripts/ReorderCSV.R")
+```
+
 ### Variables and functions (v\_ and f\_)
 
 These can be added without adding much to the csv files (unless new (constant) variables are needed. v\_ and f\_ files are initialized before the processes \$from and \$to are initialized, hence you can not use this information directly in these scripts. If this behavior is needed, its best to create a placeholder variable that can be called from a k\_ script, which does have access to this data.
@@ -208,5 +214,5 @@ CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deep
 ```
 
 ##Emissions
+To do when emissions are implemented completely.
 
-TO DO add emissions

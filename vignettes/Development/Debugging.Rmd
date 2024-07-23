@@ -1,41 +1,41 @@
 ---
 title: "CalcGraph and Debugging"
-author: "JS"
-date: "2023-03-13"
+author: "Jaap Slootweg, Valerie de Rijk"
+date: "`r Sys.Date()`"
 output: github_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::knit_meta()
 knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
 knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
+#CalcGraph and Debugging
 This vignettes describes a way to debug the functions that define variables, flows or processes.
 
-## Defining functions
-
-You can create and modify existing calculations in simplebox, see the vignette FirstVars. If you do, you will write an R function.. 
- 
 ## The "CalcGraph"
-You can imagine that the calculations of SB variables (SBVs), flows and processes need a specific order (processes can only be calculated after all their inputs are calculated). This order is automated. 
 
-## debugging
-, and you may need to debug this funcion.
-SBoo is created using R6 objects. These objects let the user define special landscape variables and processes that define rates of the first-order transfers. The R6 objects also calls the defining functions with the right parameters. Normal debugging would mean you have to step through SBoo methods and possibly even code from the R6 package. Therefor an easier way to debug your defining function has been implemented.
-This way of debugging in tailored for use in R-studio and cannot (easily) be shown in a vignette, because of the interactive way debugging is needed. The code that would trigger the debug mode is therefore commented out to avoid executing in the vignette itself.
-We initialize in the normal way, and use an availeable function as an example.
-```{r}
-source("baseScripts/initTestWorld.R")
-Area
+You can imagine that the calculations of SB variables (SBVs), flows and processes need a specific order (processes can only be calculated after all their inputs are calculated). This order is automated.
+
+## Debugging
+
+Once you have created a function, you might need to update it. SBOO is created using R6 objects. These objects let the user define special landscape variables and processes that define rates of the first-order transfers. The R6 objects also calls the defining functions with the right parameters. Normal debugging would mean you have to step through SBOO methods and possibly even code from the R6 package. Therefor an easier way to debug your defining function has been implemented. This way of debugging in tailored for use in R-studio and cannot (easily) be shown in a vignette, because of the interactive way debugging is needed. The code that would trigger the debug mode is therefore commented out to avoid executing in the vignette itself. We initialize in the normal way, and use an availeable function as an example.
+
+```{r, warning = FALSE}
+source("baseScripts/initWorld_onlyMolec.R")
 ```
+
 Normally we define a SBoo variable by just calling the NewCalcVariable method. This method silently returns an object for the variable. Silently means that normally you don't see this. Normally you don't need it because the object is "injected" in the World object. But for debugging we do need it. Printing it reveals that it is indeed an R6 object.
+
 ```{r}
 CalcVariable <- World$NewCalcVariable("Area")
 CalcVariable
 ```
-From the needVars property we learn that we need "AreaLand" and "AreaSea". The execute method, normally called by World, return the results for all cases, all scale-SubCompart combinations that exist in a state. 
+
+From the needVars property we learn that we need "AreaLand" and "AreaSea". The execute method, normally called by World, return the results for all cases, all scale-SubCompart combinations that exist in a state.
+
 ```{r}
 CalcVariable$needVars
 for (SBVar in c("AreaLand", "AreaSea")){
@@ -44,13 +44,11 @@ for (SBVar in c("AreaLand", "AreaSea")){
 }
 CalcVariable$execute()
 ```
-The results are not stored in the World object, it is not called by that object!
-You called the execute method, which prepares the parameters and call the defining function for each case separately. Each of the input parameters is an atomic variable, this makes the defining function easier to write for those who are not used to the vectorize way R normally uses. This supports debugging with a special set of input-parameters you want to debug for. This is exactly what you optionally put in the debugAt list. You can use any combination of the input parameters, like below. Any empty parameter will "trigger" for any value; use list() to pass an empty list, which will trigger at the first call, AND all consecutive calls.
+
+The results are not stored in the World object, it is not called by that object! You called the execute method, which prepares the parameters and call the defining function for each case separately. Each of the input parameters is an atomic variable, this makes the defining function easier to write for those who are not used to the vectored way R normally uses. This supports debugging with a special set of input-parameters you want to debug for. This is exactly what you optionally put in the debugAt list. You can use any combination of the input parameters, like below. Any empty parameter will "trigger" for any value; use list() to pass an empty list, which will trigger at the first call, AND all consecutive calls.
 
 ```{r}
-# try this at home... CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
+#commented out so it does not trigger
 # use debugAt
-CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
-```
+# CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
 
-Happy programming :)
