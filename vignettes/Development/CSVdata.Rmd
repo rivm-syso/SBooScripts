@@ -1,20 +1,20 @@
 ---
-title: "sb oo data"
-author: "JS"
-date: "3/30/2022"
+title: "CSV files and their units"
+author: "Jaap Slootweg, Valreie de Rijk"
+date: "`r Sys.Date()`"
 output: github_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::knit_meta()
 knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
 knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
 ## sb oo data
 
-the sboo package depends on data, including "landscape variables", but also information where transfers (1rst order processes) take place. This data is stored in csv files (for Dutch: literally comma delimited the . as decimal delimiter). Each file has key columns that identify uniquely identify a row and the combination of key columns is unique for the file; i.e. if you know the key, you can find the proper file. Example of keys are the "Dimensions" Scale, Subcompartment and Species, but also "process" and "VarName". The list of files (without extension) and their keys is also in a csv file, in so-called long format, also known as the "relational" model.
+the sboo package depends on data, including "landscape variables", but also information where transfers (1st order processes) take place. This data is stored in csv files. Each file has key columns that identify a row and the combination of key columns is unique for the file; i.e. if you know the key, you can find the proper file. Example of keys are the _Dimensions_ Scale, Subcompartment and Species, but also "process" and "VarName". The list of files (without extension) and their keys is also in a csv file, in so-called long format, also known as the "relational" model.
 
 ```{r Defs}
 DefKeys <- read.csv("data/Defs.csv")
@@ -55,34 +55,37 @@ SubCompartments[,c("Compartment", "SubCompart")]
 
 To demonstrate we need to initialise sboo; a default script for this is
 
-```{r initsboo}
-source("baseScripts/initTestWorld.R")
+```{r initsboo, warning = FALSE}
+source("baseScripts/initWorld_onlyMolec.R")
 ```
 
 Data in SpeciesCompartments, for example RadOther (radius of "Other", natural particle before the attachement of this species) is transfered to the children. Before:
 
 ```{r before}
 SpeciesCompartments <- MlikeWorkBook[["SpeciesCompartments"]]
-SpeciesCompartments[SpeciesCompartments$VarName == "NaturalRad",]
+SpeciesCompartments[SpeciesCompartments$VarName == "BACTcomp",]
 ```
 
 and after (World as SBcore object is defined by initTestWorld):
 
 ```{r after}
-World$fetchData("NaturalRad")
+World$fetchData("BACTcomp")
 ```
 
 In 99% of the cases you will only use the fetchData method to see or use the data! This is the data as it is used by the calculations.
 
+
+## Git link
 The csv files are versioned in git; It's convenient to sort them when you enter (copy-paste) new data. But it is even more covenient to consistenly sort all files to trace the changes in git!!
 
-# Please run the script below before commit, merge-master, push and merge-request your changes!!
+
+Please run the script below before commit, merge-master, push and merge-request your changes!!
 
 ```{r beforecommit}
 source("baseScripts/ReorderCSV.R")
 ```
 
-## Units
+## Units and CSV data
 
 As always units are boring and crucial to obtain proper results. Using SI helps in quality assurance, but custom units are very custom... The quantity of rainfall is normally expressed as mm/yr, and forcing SI can add to the confusion. The choosen solution is to define a Units table, stored in data/Units.csv . This file has columns for the name of the variable, the unit in the csv file and the conversion, respectively named "Unit"	and "ToSI". Use of the other columns ("table" and "Description") are described in the metadata vignette.
 ```{r}
@@ -95,29 +98,25 @@ In the ToSI column is an R expression including the variable itself. As an examp
 MlikeWorkBook[["ScaleSheet"]][,c("ScaleName", "RAINrate")]
 ```
 
-From the units table we see the unit it is in, and how to covert in:
+From the units table we see the unit it is in, and how to convert into SI units:
 
 ```{r}
 UnitTable <- MlikeWorkBook[["Units"]]
 UnitTable[UnitTable$VarName == "RAINrate",]
 ```
 
-When fetching the data (from within World) we receive the variable, CONVERTED TO SI!
+When fetching the data (from within World) we receive the variable *converted to SI*.
 
 ```{r}
 World$fetchData("RAINrate")
 ```
 
-The functions that use the variables do so by calling the fetchData method. This way usage of SI has been made easy. 
 
 ## The constants package
-Some global constants are imported from this package. For convenience two functions are availeable, demonstrated below.
+Some global constants are imported from this package. For convenience two functions are available, demonstrated below.
 ```{r}
 getConst("r")
 ```
 ```{r}
 ConstGrep("gravity")
-# we were loooking for getConst("gn")
 ```
-
-You may want to read about documentation and other metadata in the vignette METAdata. Happy calculations!

@@ -90,72 +90,6 @@ ProcessMolFunctions[!ProcessMolFunctions %in% unique(World$kaas$process)]
 unique(World$kaas$process)
 World$kaas
 
-# The from and to compartments for a process can be seen like this:
-World$moduleList[["k_Adsorption"]]$FromAndTo
-# The calculation can be initiated and debugged like this:
-World$moduleList[["k_Adsorption"]]$execute(debugAt = list(ScaleName = "Regional"))
-
-# if debugging of a missing or NA variable is needed, this can be done like so:
-kex = World$NewCalcVariable("Kaers")
-kex$execute(debugAt = list())
-
-# for seeing what is known for a certain variable:
-World$fetchData("Kaers")
-
-
-unique(World$kaas$process)
-World$moduleList[["k_Deposition"]]
-World$moduleList[["k_Deposition"]]$FromAndTo
-World$moduleList[["k_Desorption"]]$execute(debugAt = list())
-
-World$fetchData("Ksdcompw")
-kex = World$NewCalcVariable("KswDorC")
-kex$execute(debugAt = list())
-World$fetchData("pKa")
-World$fetchData("KswDorC")
-World$fetchData("KpCOL")
-
-kex = World$NewCalcVariable("KpCOL")
-kex$execute(debugAt = list(Matrix = "water"))
-
-#kscompw issues:
-World$fetchData("Kscompw")
-kex = World$NewCalcVariable("Kscompw")
-kex$execute(debugAt = list(Matrix = "soil"))
-World$fetchData("Kp")
-kex = World$NewCalcVariable("Kp")
-kex$execute(debugAt = list(Matrix = "soil"))
-
-World$fetchData("Pvap25")
-World$fetchData("Kacompw")
-kex = World$NewCalcVariable("Kacompw")
-kex$execute(debugAt = list(ChemClass = "metal"))
-
-World$fetchData("FRorig")
-World$fetchData("FRACa")
-kex = World$NewCalcVariable("FRACa")
-kex$execute(debugAt = list(Matrix = "soil"))
-
-World$fetchData("Kp")
-
-World$fetchData("QSARtable")
-World$fetchData("ChemClasClass")
-
-World$fetchData("Kscompw")
-kex = World$NewCalcVariable("Kscompw")
-kex$execute(debugAt = list(Matrix = "soil"))
-
-# World$moduleList[["k_Leaching"]]$execute(debugAt = list())
-# 
-# World$fetchData("rad_species")
-# World$fetchData("SettlingVelocity")
-# 
-# World$NewCalcVariable("SettlingVelocity")
-# World$CalcVar("SettlingVelocity")
-# 
-# World$moduleList[["SettlingVelocity"]]$execute(debugAt = list())
-# World$moduleList[["SettlingVelocity"]]$execute()
-
 ```
 
 
@@ -170,9 +104,9 @@ emission1 <- data.frame(
   Abbr = c("s1RU", "aRU", "w1RU"),
   Emis = 10e3) # what is the unit?
 
-emission1 <- data.frame(
-  Abbr = c("s1RS", "aRS", "w1RS"),
-  Emis = 1e3) # what is the unit?
+# emission1 <- data.frame(
+#   Abbr = c("s1RS", "aRS", "w1RS"),
+#   Emis = 1e3) # what is the unit?
 
 
 ```
@@ -184,7 +118,6 @@ Solution <- World$Solve(emissions = emission1,
   needdebug = F)
 
 SB.states <- Solvr$states$asDataFrame
-SB.states |> count()
 SB.k.matrix <- Solvr$SB.k
 kaas <- World$kaas
 

@@ -1,34 +1,23 @@
 Basics for new developers of SimpleBox
 ================
-VR
-5/1/2024
+Valerie de Rijk
+2024-07-23
 
-- <a href="#basics-for-new-developers"
-  id="toc-basics-for-new-developers">Basics for new Developers</a>
-  - <a href="#structure-of-model" id="toc-structure-of-model">Structure of
-    model</a>
-  - <a href="#repositories" id="toc-repositories">Repositories</a>
-    - <a href="#basics-of-sboo-repository"
-      id="toc-basics-of-sboo-repository">Basics of SBOO Repository</a>
-    - <a href="#sbooscripts---overview-excel-files"
-      id="toc-sbooscripts---overview-excel-files">SBOOScripts - Overview Excel
-      Files</a>
-    - <a href="#sbooscripts---initworld-scripts"
-      id="toc-sbooscripts---initworld-scripts">SBOOScripts - InitWorld
-      Scripts</a>
-  - <a href="#accessing-world-data" id="toc-accessing-world-data">Accessing
-    World Data</a>
-  - <a href="#creating-new-variablesprocesses"
-    id="toc-creating-new-variablesprocesses">Creating new
-    variables/processes</a>
-    - <a href="#variables-and-functions-v_-and-f_"
-      id="toc-variables-and-functions-v_-and-f_">Variables and functions (v_
-      and f_)</a>
-    - <a href="#processes" id="toc-processes">Processes</a>
-  - <a href="#adding-new-substances" id="toc-adding-new-substances">Adding
-    new substances</a>
-  - <a href="#debugging-strategies" id="toc-debugging-strategies">Debugging
-    strategies</a>
+- [Basics for new Developers](#basics-for-new-developers)
+  - [Structure of model](#structure-of-model)
+  - [Repositories](#repositories)
+    - [Basics of SBOO Repository](#basics-of-sboo-repository)
+    - [SBOOScripts - Overview Excel
+      Files](#sbooscripts---overview-excel-files)
+    - [SBOOScripts - InitWorld
+      Scripts](#sbooscripts---initworld-scripts)
+  - [Accessing World Data](#accessing-world-data)
+  - [Creating new variables/processes](#creating-new-variablesprocesses)
+    - [Variables and functions (v\_ and
+      f\_)](#variables-and-functions-v_-and-f_)
+    - [Processes](#processes)
+  - [Adding new substances](#adding-new-substances)
+  - [Debugging strategies](#debugging-strategies)
 
 # Basics for new Developers
 
@@ -51,7 +40,7 @@ vignette, the following things will be described:
 Several main parts of the model are important to understand:
 
 - Compartments: The main 4 compartments (air, water, soil, sediment).
-  These are also called ‘maxtrix’.
+  These are also called ‘matrix’.
 
 - Subcompartments: Divide the 4 main compartments into different
   subcompartments with different properties (e.g. soil –\> naturalsoil,
@@ -69,8 +58,8 @@ Several main parts of the model are important to understand:
 
 - Species: The particles and plastics are found in four speciations:
   Particle (Solid, S), Aggregated (Small, A) Attached (Large, P),
-  Unbound (Molecular, U). In SBExcel, Unboud is split over Dissolved and
-  Gaseous. *Note that each speciation has three different ways of
+  Unbound (Molecular, U). In SBExcel, Unbound is split over Dissolved
+  and Gaseous. *Note that each speciation has three different ways of
   calling it*
 
 The concept of SimpleBox in R follows the long data method, meaning that
