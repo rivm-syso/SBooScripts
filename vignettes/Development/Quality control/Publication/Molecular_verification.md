@@ -1,32 +1,17 @@
----
-title: "Molecular verification"
-author: "Anne Hids"
-date: "`r Sys.Date()`"
-output: html_document
-editor_options: 
-  chunk_output_type: inline
-  markdown: 
-    wrap: 72
----
-
-```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", "..", "..", "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-options(dplyr.summarise.inform=FALSE)
-knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 8)
-```
+Molecular verification
+================
+Anne Hids
+2024-07-23
 
 *This vignettes demonstrates the verification process of the molecular
-version of Simplebox. First, the k's are compared between R and excel,
+version of Simplebox. First, the k’s are compared between R and excel,
 and consequently the steady state masses are compared. This is done for
 5 molecular substances; each of a different chemical class (no class,
 acid, base, neutral and metal).*
 
 First, the world needs to be initialized for a substance.
 
-```{r Initialize,include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+``` r
 # Create a list with the names of substances
 Potential_substances <- c("1-aminoanthraquinone", # no class
                           "1-HYDROXYANTHRAQUINONE", # acid
@@ -40,155 +25,22 @@ substance <- Potential_substances[1]
 source("baseScripts/initWorld_onlyMolec.R")
 ```
 
-```{r data xlsx and R, echo=FALSE, warning=FALSE}
-#Comparing K's from R model to K's from excel model
-library(openxlsx)
-library(tidyverse)
+![](Molecular_verification_files/figure-gfm/Plot%20diagonal%20differences-1.png)<!-- -->![](Molecular_verification_files/figure-gfm/Plot%20diagonal%20differences-2.png)<!-- -->
 
-ProcessMolFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
-                          "k_Degradation", "k_Deposition", "k_Desorption",
-                          "k_Erosion", "k_Escape", 
-                         "k_Leaching", "k_Resuspension", "k_Runoff", "k_Sedimentation", 
-                         "k_Volatilisation")
+    ## Warning in scale_color_gradient(low = "green", high = "red", trans = "log10"):
+    ## log-10 transformation introduced infinite values.
 
-#read in K matrix from excel
-SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.04_20240723_",substance,".xlsm") 
+![](Molecular_verification_files/figure-gfm/Plot%20k%20differences-1.png)<!-- -->![](Molecular_verification_files/figure-gfm/Plot%20k%20differences-2.png)<!-- -->
 
-SBexcel.K <- read.xlsx(SBExcelName,
-                  colNames = FALSE,
-                  namedRegion = "K")
-SBexcel.Names <- read.xlsx(SBExcelName,
-                  colNames = FALSE,
-                  namedRegion = "box_names")
+    ## # A tibble: 0 × 8
+    ## # ℹ 8 variables: from <chr>, to <chr>, k_R <dbl>, fromto_R <chr>,
+    ## #   k_Excel <dbl>, fromto_Excel <chr>, diff <dbl>, relDif <dbl>
 
-colnames(SBexcel.K) <- SBexcel.Names
-SBexcel.K$to <-  as.character(SBexcel.Names)
+    ## # A tibble: 0 × 8
+    ## # ℹ 8 variables: from <chr>, to <chr>, k_R <dbl>, fromto_R <chr>,
+    ## #   k_Excel <dbl>, fromto_Excel <chr>, diff <dbl>, relDif <dbl>
 
-SBexcel.K <- pivot_longer(SBexcel.K, cols =  as.character(SBexcel.Names), values_to = "k", names_to = "from")
-
-#adding "from" and "to" acronyms to the R K matrix
-kaas <- as_tibble(World$kaas)
-
-#R version does not us the acronyms of the excel version, set-up to convert them
-#Note: this map creates the wrong acronym for soil and sediment at global scale, this is fixed afterwards
-accronym_map <- c("marinesediment" = "sd2",
-                "freshwatersediment" = "sd1",
-                "lakesediment" = "sd0", 
-                "agriculturalsoil" = "s2",
-                "naturalsoil" = "s1",
-                "othersoil" = "s3",
-                "air" = "a",
-                "deepocean" = "w3",
-                "sea" = "w2",
-                "river" = "w1",
-                "lake" = "w0")
-
-accronym_map2 <- c("Arctic" = "A",
-                   "Moderate" = "M",
-                   "Tropic" = "T",
-                   "Continental" = "C",
-                   "Regional" = "R")
-
-kaas <- kaas |> mutate(from =  paste0(accronym_map[fromSubCompart], 
-                            accronym_map2[fromScale]),
-               to = paste0(accronym_map[toSubCompart], 
-                           accronym_map2[toScale]))
-
-# Issue that compartments sediment and soil at global scale in excel have sd and s as acronyms instead of sd2 and s1
-kaas <- 
-  kaas |> 
-  mutate(from = 
-                   ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") & 
-                            (fromSubCompart == "marinesediment" | fromSubCompart == "naturalsoil"), 
-                          str_replace_all(from, c("sd2"="sd","s1"="s")), 
-                          from)) |> 
-  mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") & 
-                       (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(to, c("sd2"="sd","s1"="s")), to))
-
-kaas2 <- kaas |>  
-  filter(from != to) |> #filtering the diagonals ou
-  group_by(from, to) %>% summarize(k = sum(k)) #R version sometimes has multiple k's per fromto box; excel only has the summed k's per box
-
-kaas2$fromto <- paste(sep = "_", kaas2$from, kaas2$to)
-
-diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] #all the diagonals in excel are negative values -> sums of all the "froms" of that compartment
-
-diagonal_R <- 
-  aggregate(k ~ from, data = kaas, FUN = sum) #R model has k values per process, not per box. For the "diagonal" ("from = to") boxes, this is different than in the excel version. summing all the "froms" here to be able to compare them with excel matrix. This should result in one value for each compartment (scale-subcomp-species combo)
-
-#Single dataframe with both the R and excel diagonals
-merged_diagonal <- merge(diagonal_R, diagonal_excel, by = "from", suffixes = c("_R", "_Excel")) 
-merged_diagonal$k_Excel <- -merged_diagonal$k_Excel #Turning the "negative" values from the Excel matrix into positive ones
-merged_diagonal$diff <- merged_diagonal$k_R - merged_diagonal$k_Excel 
-merged_diagonal$reldif <- merged_diagonal$diff/merged_diagonal$k_R
-
-SBexcel.K <- filter(SBexcel.K, k != 0 & SBexcel.K$from != SBexcel.K$to)
-SBexcel.K$fromto <- paste(sep = "_", SBexcel.K$from, SBexcel.K$to)
-
-mergedkaas <- merge(kaas2, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
-
-mergedkaas$diff <- mergedkaas$k_R - mergedkaas$k_Excel #compare R k to Excel K
-
-mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)  
-
-
-```
-
-```{r Plot diagonal differences, echo=FALSE, warning=FALSE}
-#Plot of differences of the diagonals per compartment
-# Plot of differences of the diagonals per compartment
-ggplot(merged_diagonal, aes(x = from, y = diff)) +
-  geom_boxplot() +
-  ggtitle(paste0("Absolute differences removal k's between R and excel for ", substance)) +
-  geom_hline(yintercept = 0.001, color = "red") +
-  geom_hline(yintercept = -0.001, color = "red") +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 10), # Rotate and adjust text size
-    plot.margin = margin(t = 10, r = 10, b = 30, l = 10) # Increase bottom margin
-  ) +
-  labs(x = "from", y = "Absolute diff")
-
-# Plot of relative differences of the diagonals per compartment
-ggplot(merged_diagonal, aes(x = from, y = reldif)) +
-  geom_boxplot() +
-  ggtitle(paste0("Relative differences removal k's between R and excel for ", substance)) +
-  geom_hline(yintercept = 0.001, color = "red") +
-  geom_hline(yintercept = -0.001, color = "red") +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 10), # Rotate and adjust text size
-    plot.margin = margin(t = 10, r = 10, b = 30, l = 10) # Increase bottom margin
-  ) +
-  labs(x = "from", y = "Relative diff")
-```
-
-```{r Plot k differences, echo=FALSE, warning=FALSE}
-# "To" and "from" in one plot
-ggplot(mergedkaas, aes(x = to, y = from, color = abs(diff))) + 
-  geom_point() +
-  scale_color_gradient(low = "green", high = "red", trans = "log10") +
-  ggtitle(paste0("Absolute differences k's between R and excel for ", substance)) 
-
-ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) + 
-  geom_point() +
-  scale_color_gradient(low = "green", high = "red") +
-  ggtitle(paste0("Relative differences k's between R and excel for ", substance)) 
-```
-
-```{r filter large differences, include=TRUE, echo=FALSE}
-large_differences <- mergedkaas |>
-  mutate(relDif = abs(relDif)) |>
-  filter(relDif > 0.001) 
-
-print(large_differences)
-
-diagonal_diffs <- merged_diagonal |>
-  mutate(reldif = abs(reldif)) |>
-  filter(reldif > 0.001)
-
-print(large_differences)
-```
-
-```{r Lake removal KEEP FOR FINAL VERSION!}
+``` r
 lake <- kaas |>
   filter(fromSubCompart == "lake") |>
   filter(toSubCompart == "lake")
@@ -203,7 +55,7 @@ lake2 <- kaas |>
 # to exclude flows to lake sediment in k_Sedimentation and k_Adsorption.
 ```
 
-```{r Soil/air/sediment removal + volatilisation when kdeg is given as input value KEEP FOR FINAL VERSION!}
+``` r
 soil <- kaas |>
   filter(fromSubCompart == "agriculturalsoil") |>
   filter(toSubCompart == "agriculturalsoil") |>
@@ -217,11 +69,9 @@ soil <- kaas |>
 
 # This was tested by using the rounded kdeg value as input in excel and comparing
 # the resulting k manually to the k in R. 
-
 ```
 
-```{r diff aR/aC > s2/s3 KEEP FOR FINAL VERSION!!!}
-
+``` r
 # Get the kaas from soil to air and see what processes are involved
 airsoil <- kaas |>
   filter(fromScale == "Regional") |>
@@ -234,11 +84,9 @@ airsoil <- kaas |>
 # possible to temporarly change the FRorig_spw and FRorig in R to the value used in Excel. This fixed the large relative difference for this
 # flux between excel and R. Conclusion: GASABS (used to calculate k_Adsorption) in R is calculated specifically for each 
 # subcompartment, while in excel this variable is only calculated once for soil and once for water.  
-
-
 ```
 
-```{r sedimentation to water KEEP FOR FINAL VERSION}
+``` r
 resus <- kaas |>
   filter(from == "sd2C") |>
   filter(to == "w2C") 
@@ -262,16 +110,13 @@ resus <- resus |>
 # The Kacompw differs slightly from the kacompw in excel
 
 #World$moduleList[["k_Desorption"]]$execute(debugAt = list())
-
 ```
 
-```{r Advection regional sea to continental sea}
-
+``` r
 # The advection differences between R and Excel were caused by different TotalArea in excel than R for the regional and continental scales. It looked like the values in ScaleSheet.csv were rounded, while the values in R were not. This problem was solved by changing the TotalArea values in ScaleSheet.csv to the values used in Excel and Hollander et al. (2015).
-
 ```
 
-```{r water to sediment KEEP FOR FINAL VERSION}
+``` r
 # Get kaas from water to sediment
 
 w2s <- kaas |>
@@ -293,11 +138,9 @@ w2s <- w2s |>
 
 # By using the test variable it was possible to temporarily use the same function for settling velocity in R as in excel. This
 # solved the differences. 
-
 ```
 
-```{r air to lake}
-
+``` r
 # Get the kaas from air to lake
 
 tolake <- kaas |>
@@ -328,11 +171,9 @@ tolake <- tolake |>
 # k_Adsorption is exactly the same in R as in Excel, k_Deposition is slightly different
 
 #World$moduleList[["Kaerw"]]$execute(debugAt = list())
-
 ```
 
-```{r comparison of steady state emissions using SB1Solve}
-
+``` r
 library(stringi)
 
 World$NewSolver("SB1Solve")
@@ -345,7 +186,12 @@ emissions <- emissions |>
   mutate(Emis = Emis*1000/(MW*365*24*60*60))
 
 SSsolve.R <- World$Solve(emissions)
+```
 
+    ## Warning in private$solver$PrepKaasM(): 12 k values equal to 0; removed for
+    ## solver
+
+``` r
 SSsolve.excel <- read.xlsx(SBExcelName,
                              sheet=11,
                              colNames=TRUE,
@@ -368,38 +214,92 @@ merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by="Abbr", suffixes = c(".R", "
   mutate(reldiff = absdiff/EqMass.R)
 
 print("Difference in emissions between R and Excel")
+```
 
+    ## [1] "Difference in emissions between R and Excel"
+
+``` r
 knitr::kable(merged_SS_SB1, format="markdown")
+```
 
+| Abbr | Scale       | SubCompart         | Species |     EqMass.R | EqMass.Excel |       absdiff |   reldiff |
+|:-----|:------------|:-------------------|:--------|-------------:|-------------:|--------------:|----------:|
+| aA   | Arctic      | air                | Unbound | 3.591242e+02 | 3.591310e+02 | -6.813300e-03 | -1.90e-05 |
+| aC   | Continental | air                | Unbound | 6.707185e+04 | 6.707302e+04 | -1.165817e+00 | -1.74e-05 |
+| aM   | Moderate    | air                | Unbound | 8.543227e+03 | 8.543441e+03 | -2.139318e-01 | -2.50e-05 |
+| aR   | Regional    | air                | Unbound | 8.086733e+04 | 8.086809e+04 | -7.681820e-01 | -9.50e-06 |
+| aT   | Tropic      | air                | Unbound | 5.140830e+02 | 5.141005e+02 | -1.753260e-02 | -3.41e-05 |
+| s1C  | Continental | naturalsoil        | Unbound | 1.094862e+06 | 1.094893e+06 | -3.074297e+01 | -2.81e-05 |
+| s1R  | Regional    | naturalsoil        | Unbound | 2.497622e+06 | 2.497652e+06 | -3.034130e+01 | -1.21e-05 |
+| s2C  | Continental | agriculturalsoil   | Unbound | 5.072990e+06 | 5.073132e+06 | -1.424787e+02 | -2.81e-05 |
+| s2R  | Regional    | agriculturalsoil   | Unbound | 6.151982e+07 | 6.151995e+07 | -1.346990e+02 | -2.20e-06 |
+| s3C  | Continental | othersoil          | Unbound | 4.055044e+05 | 4.055158e+05 | -1.138628e+01 | -2.81e-05 |
+| s3R  | Regional    | othersoil          | Unbound | 9.250451e+05 | 9.250563e+05 | -1.123752e+01 | -1.21e-05 |
+| sd1C | Continental | freshwatersediment | Unbound | 8.627765e+04 | 8.628225e+04 | -4.602324e+00 | -5.33e-05 |
+| sd1R | Regional    | freshwatersediment | Unbound | 1.245849e+06 | 1.245889e+06 | -3.959457e+01 | -3.18e-05 |
+| sd2C | Continental | marinesediment     | Unbound | 5.977588e+04 | 5.977728e+04 | -1.400223e+00 | -2.34e-05 |
+| sd2R | Regional    | marinesediment     | Unbound | 1.946351e+04 | 1.946309e+04 |  4.151897e-01 |  2.13e-05 |
+| w0C  | Continental | lake               | Unbound | 7.114195e+06 | 7.114396e+06 | -2.011646e+02 | -2.83e-05 |
+| w0R  | Regional    | lake               | Unbound | 5.705913e+07 | 5.705933e+07 | -2.019425e+02 | -3.50e-06 |
+| w1C  | Continental | river              | Unbound | 3.036373e+06 | 3.036450e+06 | -7.681023e+01 | -2.53e-05 |
+| w1R  | Regional    | river              | Unbound | 4.384522e+07 | 4.384539e+07 | -1.637763e+02 | -3.70e-06 |
+| w2A  | Arctic      | sea                | Unbound | 1.102121e+08 | 1.102130e+08 | -8.475663e+02 | -7.70e-06 |
+| w2C  | Continental | sea                | Unbound | 1.430368e+08 | 1.430378e+08 | -1.029441e+03 | -7.20e-06 |
+| w2M  | Moderate    | sea                | Unbound | 1.403230e+08 | 1.403241e+08 | -1.077484e+03 | -7.70e-06 |
+| w2R  | Regional    | sea                | Unbound | 2.328601e+06 | 2.328609e+06 | -8.448923e+00 | -3.60e-06 |
+| w2T  | Tropic      | sea                | Unbound | 1.537175e+08 | 1.537186e+08 | -1.185858e+03 | -7.70e-06 |
+| w3A  | Arctic      | deepocean          | Unbound | 2.701980e+09 | 2.702001e+09 | -2.077898e+04 | -7.70e-06 |
+| w3M  | Moderate    | deepocean          | Unbound | 4.104167e+09 | 4.104198e+09 | -3.152051e+04 | -7.70e-06 |
+| w3T  | Tropic      | deepocean          | Unbound | 4.962769e+09 | 4.962807e+09 | -3.826256e+04 | -7.70e-06 |
+
+``` r
 #Diff per "to" compartment
 ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
   geom_boxplot() +
   ggtitle(paste0("Relative differences between steady state masses in excel and R (SB1solve) - ", substance)) +
   geom_hline(yintercept = 0.001, color="red") +
   geom_hline(yintercept = -0.001, color="red") 
+```
 
+![](Molecular_verification_files/figure-gfm/comparison%20of%20steady%20state%20emissions%20using%20SB1Solve-1.png)<!-- -->
+
+``` r
 sum(merged_SS_SB1$absdiff)
+```
 
+    ## [1] -95762.78
+
+``` r
 sum(merged_SS_SB1$EqMass.R)
+```
 
+    ## [1] 12502672958
+
+``` r
 sum(merged_SS_SB1$EqMass.Excel)
+```
 
+    ## [1] 12502768721
+
+``` r
 lakenames <- data.frame(SubCompart = c("lakesediment", "lakesediment"), Scale = c("Regional", "Continental"), Abbr = c("sd0R", "sd0C"), Species = c("Unbound", "Unbound"))
 
 names <- SSsolve.R |>
   select(SubCompart, Scale, Abbr, Species) 
 
 names <- rbind(names, lakenames)
-
-
 ```
 
-```{r comparison of steady state emissions using SBsteady}
-
+``` r
 World$NewSolver("SBsteady")
 
 SSsolve.R <- World$Solve(emissions)
+```
 
+    ## Warning in private$solver$PrepKaasM(): 12 k values equal to 0; removed for
+    ## solver
+
+``` r
 SSsolve.excel <- read.xlsx(SBExcelName,
                              sheet=11,
                              colNames=TRUE,
@@ -422,19 +322,69 @@ merged_SS_steady <- merge(SSsolve.R, SSsolve.excel, by="Abbr", suffixes = c(".R"
   mutate(reldiff =absdiff/EqMass.R)
 
 print("Difference in emissions between R and Excel")
+```
 
+    ## [1] "Difference in emissions between R and Excel"
+
+``` r
 knitr::kable(merged_SS_steady, format="markdown")
+```
 
+| Abbr | Scale       | SubCompart         | Species |     EqMass.R | EqMass.Excel |       absdiff |    reldiff |
+|:-----|:------------|:-------------------|:--------|-------------:|-------------:|--------------:|-----------:|
+| aA   | Arctic      | air                | Unbound | 3.591241e+02 | 3.591310e+02 | -6.897700e-03 | -0.0000192 |
+| aC   | Continental | air                | Unbound | 6.707185e+04 | 6.707302e+04 | -1.165916e+00 | -0.0000174 |
+| aM   | Moderate    | air                | Unbound | 8.543226e+03 | 8.543441e+03 | -2.152079e-01 | -0.0000252 |
+| aR   | Regional    | air                | Unbound | 8.086733e+04 | 8.086809e+04 | -7.681837e-01 | -0.0000095 |
+| aT   | Tropic      | air                | Unbound | 5.140733e+02 | 5.141005e+02 | -2.721270e-02 | -0.0000529 |
+| s1C  | Continental | naturalsoil        | Unbound | 1.094862e+06 | 1.094893e+06 | -3.074459e+01 | -0.0000281 |
+| s1R  | Regional    | naturalsoil        | Unbound | 2.497622e+06 | 2.497652e+06 | -3.034135e+01 | -0.0000121 |
+| s2C  | Continental | agriculturalsoil   | Unbound | 5.072990e+06 | 5.073132e+06 | -1.424863e+02 | -0.0000281 |
+| s2R  | Regional    | agriculturalsoil   | Unbound | 6.151982e+07 | 6.151995e+07 | -1.346991e+02 | -0.0000022 |
+| s3C  | Continental | othersoil          | Unbound | 4.055044e+05 | 4.055158e+05 | -1.138689e+01 | -0.0000281 |
+| s3R  | Regional    | othersoil          | Unbound | 9.250451e+05 | 9.250563e+05 | -1.123754e+01 | -0.0000121 |
+| sd1C | Continental | freshwatersediment | Unbound | 8.627765e+04 | 8.628225e+04 | -4.602505e+00 | -0.0000533 |
+| sd1R | Regional    | freshwatersediment | Unbound | 1.245849e+06 | 1.245889e+06 | -3.959498e+01 | -0.0000318 |
+| sd2C | Continental | marinesediment     | Unbound | 5.949637e+04 | 5.977728e+04 | -2.809141e+02 | -0.0047215 |
+| sd2R | Regional    | marinesediment     | Unbound | 1.946344e+04 | 1.946309e+04 |  3.474304e-01 |  0.0000179 |
+| w0C  | Continental | lake               | Unbound | 7.114195e+06 | 7.114396e+06 | -2.012287e+02 | -0.0000283 |
+| w0R  | Regional    | lake               | Unbound | 5.705913e+07 | 5.705933e+07 | -2.023654e+02 | -0.0000035 |
+| w1C  | Continental | river              | Unbound | 3.036373e+06 | 3.036450e+06 | -7.681659e+01 | -0.0000253 |
+| w1R  | Regional    | river              | Unbound | 4.384522e+07 | 4.384539e+07 | -1.637908e+02 | -0.0000037 |
+| w2A  | Arctic      | sea                | Unbound | 1.070065e+08 | 1.102130e+08 | -3.206443e+06 | -0.0299649 |
+| w2C  | Continental | sea                | Unbound | 1.423686e+08 | 1.430378e+08 | -6.692221e+05 | -0.0047006 |
+| w2M  | Moderate    | sea                | Unbound | 1.368469e+08 | 1.403241e+08 | -3.477126e+06 | -0.0254089 |
+| w2R  | Regional    | sea                | Unbound | 2.328592e+06 | 2.328609e+06 | -1.654770e+01 | -0.0000071 |
+| w2T  | Tropic      | sea                | Unbound | 1.476992e+08 | 1.537186e+08 | -6.019439e+06 | -0.0407547 |
+| w3A  | Arctic      | deepocean          | Unbound | 2.620894e+09 | 2.702001e+09 | -8.110658e+07 | -0.0309461 |
+| w3M  | Moderate    | deepocean          | Unbound | 3.995938e+09 | 4.104198e+09 | -1.082602e+08 | -0.0270926 |
+| w3T  | Tropic      | deepocean          | Unbound | 4.768716e+09 | 4.962807e+09 | -1.940913e+08 | -0.0407010 |
+
+``` r
 #Diff per "to" compartment
 ggplot(merged_SS_steady, aes (x = Abbr, y = reldiff)) +
   geom_boxplot() +
   ggtitle(paste0("Relative differences between steady state masses in excel and R (SBsteady) - ", substance)) +
   geom_hline(yintercept = 0.001, color="red") +
   geom_hline(yintercept = -0.001, color="red")
+```
 
+![](Molecular_verification_files/figure-gfm/comparison%20of%20steady%20state%20emissions%20using%20SBsteady-1.png)<!-- -->
+
+``` r
 sum(merged_SS_steady$absdiff)
+```
 
+    ## [1] -396831706
+
+``` r
 sum(merged_SS_steady$EqMass.R)
+```
 
+    ## [1] 12105937015
+
+``` r
 sum(merged_SS_steady$EqMass.Excel)
 ```
+
+    ## [1] 12502768721
