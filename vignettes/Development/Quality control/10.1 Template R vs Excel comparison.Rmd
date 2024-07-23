@@ -274,9 +274,9 @@ air <- kaas |>
 
 ```{r Soil removal}
 soil <- kaas |>
-  filter(fromSubCompart == "naturalsoil") |>
-  filter(toSubCompart == "naturalsoil") |>
-  filter(fromScale == "Regional")
+  filter(fromSubCompart == "agriculturalsoil") |>
+  filter(toSubCompart == "agriculturalsoil") |>
+  filter(fromScale == "Continental")
 
 ```
 
