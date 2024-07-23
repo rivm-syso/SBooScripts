@@ -33,7 +33,7 @@ World$SetConst(DragMethod = "Original")
 AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 
-World$SetConst(Test = "TRUE") 
+World$SetConst(Test = "FALSE") 
 
 #Which are Molecular? Create those as module NB the k_ is missing in the processlist
 Processes4SpeciesTp <- read.csv("data/Processes4SpeciesTp.csv")
