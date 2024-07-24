@@ -19,7 +19,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 8)
 ```
 
 This vignette demonstrates the verification process of the molecular
-version of Simplebox for a substance with an acid class.
+version of Simplebox for a substance of class 'acid'.
 First, the k's are compared between R and excel,
 and consequently the steady state masses are compared. This is done for
 5 molecular substances; each of a different chemical class (no class,
@@ -27,7 +27,7 @@ acid, base, neutral and metal). The reason that the verification is performed fo
 each of these classes is that some processes differ per class.
 
 First, the world needs to be initialized for a substance. In this case, that substance
-is 1-aminoanthraquinone, which does not have a class. 
+is 1-HYDROXYANTHRAQUINONE, which is an acid. 
 
 ```{r Initialize,include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 # Create a list with the names of substances

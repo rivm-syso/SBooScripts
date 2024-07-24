@@ -19,7 +19,8 @@ knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 8)
 ```
 
 This vignette demonstrates the verification process of the molecular
-version of Simplebox for a substance with a neutral class or without a class.
+version of Simplebox for a substance with a neutral class or without a class, as
+the processes for these classes are the same.
 First, the k's are compared between R and excel,
 and consequently the steady state masses are compared. This is done for
 5 molecular substances; each of a different chemical class (no class,

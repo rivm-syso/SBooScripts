@@ -4,14 +4,13 @@ author: "Anne Hids"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
   markdown: 
     wrap: 72
 ---
 
 ```{r setup, include=FALSE}
 knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
 projectRoot <- paste(getwd(), "..", "..", "..", "..", sep = "/")
 knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 options(dplyr.summarise.inform=FALSE)
@@ -19,7 +18,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 8)
 ```
 
 This vignette demonstrates the verification process of the molecular
-version of Simplebox for a substance with a base class.
+version of Simplebox for a substance of class 'base'.
 First, the k's are compared between R and excel,
 and consequently the steady state masses are compared. This is done for
 5 molecular substances; each of a different chemical class (no class,
@@ -27,7 +26,7 @@ acid, base, neutral and metal). The reason that the verification is performed fo
 each of these classes is that some processes differ per class.
 
 First, the world needs to be initialized for a substance. In this case, that substance
-is 1-aminoanthraquinone, which does not have a class. 
+is 1-Hexadecanamine, N,N-dimethyl-, which is a base. 
 
 ```{r Initialize,include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 # Create a list with the names of substances
@@ -234,7 +233,7 @@ available, this value has 2 decimals in R but more decimals in excel. This can c
 differences the k's where this value is used. Therefore, these values were rounded in the 
 excel files that were used for comparison to the R output. 
 
-#### Air
+#### Air to soil
 
 The difference in diagonal k's for air is caused by a different use of variables to 
 calculate k_Adsorption. This process uses the fraction of original species in the (pore)water
