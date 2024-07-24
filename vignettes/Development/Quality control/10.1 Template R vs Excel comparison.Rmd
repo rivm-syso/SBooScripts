@@ -53,7 +53,7 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "Sb(III)" # metal
                           ) 
               
-substance <- Potential_substances[1]
+substance <- Potential_substances[2]
 source("baseScripts/initWorld_onlyMolec.R")
 
 length(unique(World$kaas$process))
@@ -73,7 +73,7 @@ ProcessMolFunctions[!ProcessMolFunctions %in% unique(World$kaas$process)]
 library(openxlsx)
 library(tidyverse)
 #read in K matrix from excel
-SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.04_20240716_",substance,".xlsm") 
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.04_20240723_",substance,".xlsm") 
 
 SBexcel.K <- read.xlsx(SBExcelName,
                   colNames = FALSE,
@@ -243,7 +243,7 @@ diagonal_diffs <- merged_diagonal |>
 
 ```
 
-```{r Lake removal}
+```{r Lake removal KEEP FOR FINAL VERSION!}
 lake <- kaas |>
   filter(fromSubCompart == "lake") |>
   filter(toSubCompart == "lake")
@@ -255,84 +255,27 @@ lake2 <- kaas |>
 # being included in R but not in excel.
 
 # To make an accurate comparison between R and excel, the test variable was used 
-# to exclude flows to lake sediment in k_Sedimentation and k_Adsorption 
-# for an accurate comparison between excel and R. 
+# to exclude flows to lake sediment in k_Sedimentation and k_Adsorption.
 
-World$moduleList[["k_Leaching"]]$execute(debugAt = list())
-
-```
-
-``` {r Air removal}
-air <- kaas |>
-  filter(fromSubCompart == "air") |>
-  filter(toSubCompart == "air") |>
-  filter(fromScale == "Tropic")
-
-# The difference between the diagonals for the air compartment is in k_Degradation. The variable 'KdegDorC' is used to calculate this K, but in R the value is rounded while in excel it is not. Rounding this value in excel solved the problem. 
+#World$moduleList[["k_Volatilisation"]]$execute(debugAt = list())
 
 ```
 
-```{r Soil removal}
+```{r Soil/air/sediment removal + volatilisation when kdeg is given as input value KEEP FOR FINAL VERSION!}
 soil <- kaas |>
   filter(fromSubCompart == "agriculturalsoil") |>
   filter(toSubCompart == "agriculturalsoil") |>
   filter(fromScale == "Continental")
 
-```
+# If there is a slight difference in diagonal k's between excel and R, the difference 
+# is caused by the input kdegs. If there are input kdegs for air/soil/sediment 
+# (so they are not calculated using KdegDorC), these values have two decimals in R
+# but more decimals in excel. This can cause relative differences between the k's
+# that are slightly larger than the threshold value of 0.001. 
 
-```{r soil to air}
-# Get the kaas
+# This was tested by using the rounded kdeg value as input in excel and comparing
+# the resulting k manually to the k in R. 
 
-toair <- kaas |>
-  filter(fromSubCompart == "naturalsoil") |>
-  filter(toSubCompart == "air")
-
-# The only process involved is volatilisation
-# The last time, a difference in pvap was the problem
-
-Substances <- read.csv("data/substances.csv")
-
-sub <- Substances |>
-  filter(Substance == substance)
-
-# World$moduleList[["MTC_2a"]]$execute(debugAt = list())
-# 
-# # Problem might be a difference in KdegDorC
-# 
-# kdeg <- World$fetchData("KdegDorC")
-# 
-# kdeg <- format(kdeg$KdegDorC, scientific = F)
-
-# The difference in volatilisation rates comes from a difference in kdeg values. 
-# The difference is that these values are more accurate in excel than in R. 
-# A quick test with changing the kdeg value in excel to the value used in R revealed
-# that this solved the problem. I don't think this needs a permanent solution. 
-
-```
-
-```{r s/w > a}
-# Get processes involved 
-
-toair <- kaas |>
-  filter(toSubCompart == "air") |>
-  filter(fromSubCompart != "air")
-
-# process to look at is volatilisation
-
-# Kaw differs between R and Excel
-
-# The value for the variable R is more accurate in R than in excel (8.314462618 in R, 8.314 in Excel)
-# Changing this with the test variable did not solve the issue
-
-# Sol25 is the same
-# MW is the same
-# t25 is the same
-
-# So pvap25 must be different, as it is the only remaining variable. 
-
-# For the acid 1-HYDROXYANTHRAQUINONE, the pvap value from the substance csv was rounded to 2 decimals. In excel this number has much more decimals, causing the difference in kaw, kacompw and eventually volatilisation. 
-
-# Changed in substances.csv
 ```
 
 ```{r diff aR/aC > s2/s3 KEEP FOR FINAL VERSION!!!}
@@ -405,6 +348,9 @@ w2s <- w2s |>
 # The reason that the k's from w to sd are not the same in R as in excel is that the settling velocities are different, 
 # because of a difference in calculation. In excel, the settling velocity is calculated as 2.5/(24*3600). In R, the 
 # settling velocity is calculated using a function. 
+
+# By using the test variable it was possible to temporarily use the same function for settling velocity in R as in excel. This
+# solved the differences. 
 
 ```
 
