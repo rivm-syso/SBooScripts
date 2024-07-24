@@ -1,0 +1,94 @@
+---
+title: "Dependencies in R"
+author: "Valerie de Rijk"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+## Dependencies of R functions 
+Just like in Excel, we can trace the dependencies of processes and variables. For this, we can use the function World$nodelist. This returns all calculated variables in SBoo and they're required parameters. In this vignette, we demonstrate both the dependencies for a process module (k_Adsorption and AreaSea). You can use this technique to generate plots like these for all calculated parameters.
+
+### Generating nodes
+
+```{r Initializing World, warning = FALSE}
+source("baseScripts/initWorld_onlyMolec.R")
+allnodes <- World$nodelist
+head(allnodes)
+filtered_nodelist <- World$nodelist[World$nodelist$Calc == "k_Adsorption", ]
+filtered_nodelist_sea <- World$nodelist[World$nodelist$Calc == "AreaSea",]
+print(filtered_nodelist)
+```
+
+### k_Adsorption dependents
+k_Adsorption is a great example of a process module that is dependent on a significant amount of parameters. 
+```{r World nodes}
+NodeAsText <- paste(filtered_nodelist$Params, "->", filtered_nodelist$Calc)
+AllNodesAsText <- do.call(paste, c(as.list(NodeAsText), list(sep = ";")))
+
+# Create the DAG string
+dag_string <- paste("dag{", AllNodesAsText, "}")
+
+# Convert the string to a DAG object
+dag <- dagitty::dagitty(dag_string)
+tidy_dag <- tidy_dagitty(dag)
+
+
+
+# Plot with customized node colors
+ggdag(tidy_dag, text = FALSE) +
+  theme_dag_blank() +  # Apply the default DAG theme
+  geom_dag_node(aes(color = "black"), fill = "black", size = 25) +  # Customize node colors and size
+  geom_dag_text(aes(label = name), size = 2, color = "white") +  # Customize node text size and color
+  scale_fill_manual(values = "green") +  # Apply custom fill colors
+  theme(
+    plot.title = element_text(hjust = 0.5), 
+    legend.position = "none"  # Remove the legend
+  ) +
+  labs(
+    title = "Dependents of k_Adsorption"
+  )
+```
+
+### v_AreaSea dependents 
+As we can see below, v_AreaSea is dependent on way less parameters. 
+```{r v_AreaSea dependents}
+# Assuming filtered_nodelist_sea is a data frame and Params and Calc are columns in it
+NodeAsText <- paste(filtered_nodelist_sea$Params, "->", filtered_nodelist_sea$Calc)
+
+# Combine all nodes into a single string, separating them with ";"
+AllNodesAsText <- do.call(paste, c(as.list(NodeAsText), list(sep = ";")))
+
+# Create the DAG string
+dag_string <- paste("dag{", AllNodesAsText, "}")
+
+# Convert the string to a DAG object
+dag <- dagitty::dagitty(dag_string)
+
+# Convert the DAG object to a tidy format for plotting
+tidy_dag <- tidy_dagitty(dag)
+
+# Plot the DAG with customized aesthetics
+ggdag(tidy_dag, text = FALSE) +
+  theme_dag_blank() +  # Apply the default DAG theme
+  geom_dag_node(aes(color = "black"), fill = "black", size = 25) +  # Customize node colors and size
+  geom_dag_text(aes(label = name), size = 2, color = "white") +  # Customize node text size and color
+  scale_fill_manual(values = "green") +  # Apply custom fill colors
+  theme(
+    plot.title = element_text(hjust = 0.5), 
+    legend.position = "none"  # Remove the legend
+  ) +
+  labs(
+    title = "Dependents of v_AreaSea"
+  )
+```
+
