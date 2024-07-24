@@ -1,14 +1,17 @@
 ---
-title: "Defaults"
-author: "JS"
+title: "Input Data and Inheriting data"
+author: "Jaap Slootweg, Valerie de Rijk"
 date: "`r Sys.Date()`"
 output: github_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 knitr::knit_meta()
-# knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_chunk$set(echo = TRUE)
+## impossible to generalise? projectRoot <- paste(getwd(), "..", sep = "/")
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
 knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
@@ -17,8 +20,8 @@ We implemented a modest mechanism of setting "defaults" for your data. Through t
 
 ## Input data related to the 3 dimension
 A crucial mechanism of SBoo is the consistent use of the the dimensions (scale, subcompartment, species) as key fields in the data. The input data is normally in one of tables with a key of the combinations of these three. (Because of the intensive use of the dimensions, a variable The3D is defined by the package)
-```{r}
-source("baseScripts/initTestWorld.R")
+```{r, warning = FALSE}
+source("baseScripts/initWorld_onlyMolec.R")
 The3D
 for (m in 1:length(The3D)) {
   combies <- combn(The3D, m)
@@ -30,11 +33,7 @@ for (m in 1:length(The3D)) {
 
 ## Defaults at initialisation
 There are three input (csv-)files that automatically "translate" their data to the normal data tables mentioned above: Matrixsheet, Compartments and SpeciesCompartments which put their data into Subcompartsheet, or SpeciesSubCompartments. In the following code the original data is taken from the csv files, and the fetched data is from the initialised "World" object.
-```{r}
-Nrad <- read.csv("data/SpeciesCompartments.csv")
-Nrad[Nrad$VarName == "NaturalRad",]
-World$fetchData("NaturalRad")
-```
+
 The way this translation works is by the relation with SubCompartment, which has the properties Matrix and Compartment:
 ```{r}
 merge(World$fetchData("Matrix"), World$fetchData("Compartment"))

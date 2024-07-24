@@ -1,27 +1,36 @@
 ---
-title: "sb oo data"
-author: "JS"
+title: "Metadata and Documentation"
+author: "Jaap Slootweg, Valerie de Rijk"
 date: "15 Mar 2022"
 output: github_document
 editor_options: 
   chunk_output_type: console
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
 knitr::knit_meta()
 knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
+projectRoot <- paste(getwd(), "..", "..",  sep = "/")
 knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
-## Documentation / metadata
-Documentation of the data is basically in the same table as the units. This means ALL variables should be in the list. It takes quite some discipline to maintain this documentation. It might help to run a script like below, to check how complete the units-table is.
-```{r}
+## Metadata
+
+Documentation of the data is basically in the same table as the units.
+The information stems from the file *units.csv*. This means ALL
+variables should be in the list. It takes quite some discipline to
+maintain this documentation. It might help to run a script like below,
+to check how complete the units-table is. New parameters should be added
+to this file by developers, with the corresponding conversion to SI
+units. As mentioned before, this column is read in by SBOO to convert
+input parameters into SI units.
+
+```{r World initialization, warning= FALSE}
 #We need to initialize for a nano material to obtain all properties, including those only needed for nanomaterials
 substance <- "nAg_10nm"
-#Initialize World, but also the object NewstateModule. This object you don't use, normally. 
-#It is internal, exposed through "injection" into World
-source("baseScripts/initTestWorld.R")
+source("baseScripts/initWorld_onlyParticulate.R")
 AllVarnames <- World$fetchData() 
 #There should be 1 place (table) for a variable; are there multiple?
 table(AllVarnames)[table(AllVarnames)!=1]
@@ -34,35 +43,44 @@ AllVarnames <- AllVarnames[!startsWith(AllVarnames, prefix = "k_") &
                              !startsWith(AllVarnames, prefix = "outdated")]
 AllVarnames <- AllVarnames[!AllVarnames %in% c("VarName", "Waarde", "Dimension", "forWhich", "Unit", "table")] 
 #compare to the units table; which has been read into the World by 
-UnitTable <- NewstateModule$SB4N.data[["Units"]]
-
-unique(AllVarnames)[!AllVarnames %in% UnitTable$VarName]
-```
-## Update Units table == Adding and Deleting
-
-We determined the variables missing in Units; but if we overwrite the current csv file, (old) variables will be deleted; is the user sure?
-
-```{r}
-UnitTable$VarName[!UnitTable$VarName %in% unique(AllVarnames)]
-```
-If everything looks honky dori, we can find the table/sheet/csv filename for each new variable add it to the units dataframe and overwrite the existing data...
-
-```{r}
-#The trail of variables is stored when reading it originally; in 
-NewUnits <- left_join(UnitTable, NewstateModule$varOrigine)
-AlfOrder <- order(NewUnits$VarName)
-write.csv(NewUnits[AlfOrder,], file = "data/Units.csv")
-# source("baseScripts/ReorderCSV.R") not needed because already alphabetic
+UnitTable <-read.csv("data/Units.csv")
+print(UnitTable$VarName)
+print(AllVarnames)
 ```
 
 ## The constants package
-Some global constants are imported from this package. For convenience two functions are availeable, demonstrated below.
+
+Some global constants are imported from this package. For convenience
+two functions are availeable, demonstrated below.
+
 ```{r}
 getConst("r")
 ```
+
 ```{r}
 ConstGrep("gravity")
 # we were loooking for getConst("gn")
 ```
 
-Happy calculations!
+## Roxygen documentation
+
+The [roxygen package][<https://roxygen2.r-lib.org/index.html>] allows
+for describing functions next to their definitions and subsequently
+generates markdown files when help files are requested. It is essential that these are created for all functions.  An example is
+that of the solver function. SB1 Solve:
+
+\#' @title SB1Solve
+
+\#' @name SB1Solve 
+
+\#'@description solve system of 1rst order k(i,j) and
+emissions,by solving v = 0
+
+\#' @param ParentModule SBcore
+
+\#' @param tol tolerance for accepting as steady state
+
+\#' @return States (i) (=mass)
+
+
+The roxygen package allows for a lot of functions, but please refer to the package for all options. In principle, it is essential that each new function has a title, a name, a description, a return function and a description of each parameter. 

@@ -1,9 +1,9 @@
-Defaults
+Input Data and Inheriting data
 ================
-JS
-2023-03-01
+Jaap Slootweg, Valerie de Rijk
+2024-07-23
 
-# Defaults
+## Introduction
 
 We implemented a modest mechanism of setting “defaults” for your data.
 Through this mechanism you need to enter less (possibly redundant) row
@@ -19,17 +19,19 @@ these three. (Because of the intensive use of the dimensions, a variable
 The3D is defined by the package)
 
 ``` r
-source("baseScripts/initTestWorld.R")
+source("baseScripts/initWorld_onlyMolec.R")
 ```
 
-    ## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.2 ──
-    ## ✔ ggplot2 3.4.0     ✔ purrr   1.0.1
-    ## ✔ tibble  3.1.8     ✔ dplyr   1.1.0
-    ## ✔ tidyr   1.3.0     ✔ stringr 1.5.0
-    ## ✔ readr   2.1.3     ✔ forcats 1.0.0
+    ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+    ## ✔ dplyr     1.1.4     ✔ readr     2.1.5
+    ## ✔ forcats   1.0.0     ✔ stringr   1.5.1
+    ## ✔ ggplot2   3.5.0     ✔ tibble    3.2.1
+    ## ✔ lubridate 1.9.3     ✔ tidyr     1.3.1
+    ## ✔ purrr     1.0.2     
     ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
     ## ✖ dplyr::filter() masks stats::filter()
     ## ✖ dplyr::lag()    masks stats::lag()
+    ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
     ## 
     ## Attaching package: 'ggdag'
     ## 
@@ -51,7 +53,6 @@ source("baseScripts/initTestWorld.R")
     ## 
     ## Joining with `by = join_by(Matrix)`
     ## Joining with `by = join_by(Compartment)`
-    ## Joining with `by = join_by(sheet, row)`
 
 ``` r
 The3D
@@ -80,48 +81,6 @@ Compartments and SpeciesCompartments which put their data into
 Subcompartsheet, or SpeciesSubCompartments. In the following code the
 original data is taken from the csv files, and the fetched data is from
 the initialised “World” object.
-
-``` r
-Nrad <- read.csv("data/SpeciesCompartments.csv")
-Nrad[Nrad$VarName == "NaturalRad",]
-```
-
-    ##      VarName Compartment Species   Waarde SB4N_name Unit
-    ## 1 NaturalRad         air   Large 9.00e-07   RadCP.a    m
-    ## 2 NaturalRad    sediment   Large 1.28e-04  RadFP.sd    m
-    ## 3 NaturalRad    sediment   Small 1.50e-07  RadNC.sd    m
-    ## 4 NaturalRad        soil   Large 1.28e-04   RadFP.s    m
-    ## 5 NaturalRad        soil   Small 1.50e-07   RadNC.s    m
-    ## 6 NaturalRad       water   Large 3.00e-06  RadSPM.w    m
-    ## 7 NaturalRad       water   Small 1.50e-07   RadNC.w    m
-
-``` r
-World$fetchData("NaturalRad")
-```
-
-    ##            SubCompart Species NaturalRad
-    ## 1                 air   Large   9.00e-07
-    ## 2          cloudwater   Large   9.00e-07
-    ## 3  freshwatersediment   Large   1.28e-04
-    ## 4  freshwatersediment   Small   1.50e-07
-    ## 5        lakesediment   Large   1.28e-04
-    ## 6        lakesediment   Small   1.50e-07
-    ## 7      marinesediment   Large   1.28e-04
-    ## 8      marinesediment   Small   1.50e-07
-    ## 9    agriculturalsoil   Large   1.28e-04
-    ## 10   agriculturalsoil   Small   1.50e-07
-    ## 11        naturalsoil   Large   1.28e-04
-    ## 12        naturalsoil   Small   1.50e-07
-    ## 13          othersoil   Large   1.28e-04
-    ## 14          othersoil   Small   1.50e-07
-    ## 15          deepocean   Large   3.00e-06
-    ## 16          deepocean   Small   1.50e-07
-    ## 17               lake   Large   3.00e-06
-    ## 18               lake   Small   1.50e-07
-    ## 19              river   Large   3.00e-06
-    ## 20              river   Small   1.50e-07
-    ## 21                sea   Large   3.00e-06
-    ## 22                sea   Small   1.50e-07
 
 The way this translation works is by the relation with SubCompartment,
 which has the properties Matrix and Compartment:
@@ -158,7 +117,7 @@ World$doInherit
     ## {
     ##     private$DoInherit(fromData, toData)
     ## }
-    ## <environment: 0x558df2a462c0>
+    ## <environment: 0x5652416f4688>
 
 The fromData can be in 1) CONSTANTS 2) Matrix or 3) a dimension which is
 part of the dimensions of the toData. We demonstrate this with two
@@ -174,12 +133,18 @@ World$fetchData("DefaultpH")
 World$fetchData("pH")
 ```
 
-    ##        SubCompart pH
-    ## 2      cloudwater  3
-    ## 5  marinesediment  8
-    ## 7     naturalsoil  5
-    ## 9       deepocean  8
-    ## 12            sea  8
+    ##            SubCompart pH
+    ## 1    agriculturalsoil  7
+    ## 2                 air  3
+    ## 4           deepocean  8
+    ## 5  freshwatersediment  7
+    ## 6                lake  7
+    ## 7        lakesediment  7
+    ## 8      marinesediment  8
+    ## 9         naturalsoil  5
+    ## 10          othersoil  7
+    ## 11              river  7
+    ## 12                sea  8
 
 ``` r
 World$doInherit("DefaultpH","pH")
@@ -188,17 +153,17 @@ World$doInherit("DefaultpH","pH")
     ## Joining with `by = join_by(SubCompart)`
 
     ##            SubCompart old_pH pH
-    ## 1    agriculturalsoil     NA  7
-    ## 2                 air     NA  7
-    ## 3          cloudwater      3  3
+    ## 1    agriculturalsoil      7  7
+    ## 2                 air      3  3
+    ## 3          cloudwater     NA  7
     ## 4           deepocean      8  8
-    ## 5  freshwatersediment     NA  7
-    ## 6                lake     NA  7
-    ## 7        lakesediment     NA  7
+    ## 5  freshwatersediment      7  7
+    ## 6                lake      7  7
+    ## 7        lakesediment      7  7
     ## 8      marinesediment      8  8
     ## 9         naturalsoil      5  5
-    ## 10          othersoil     NA  7
-    ## 11              river     NA  7
+    ## 10          othersoil      7  7
+    ## 11              river      7  7
     ## 12                sea      8  8
 
 ``` r
@@ -215,8 +180,16 @@ World$fetchData("DefaultNETsedrate")
 World$fetchData("NETsedrate")
 ```
 
-    ##       Scale SubCompart NETsedrate
-    ## 11 Moderate  deepocean   8.95e-14
+    ##          Scale SubCompart NETsedrate
+    ## 4       Arctic  deepocean   6.30e-14
+    ## 18 Continental       lake   8.60e-11
+    ## 23 Continental      river   8.60e-11
+    ## 24 Continental        sea   2.74e-11
+    ## 28    Moderate  deepocean   8.95e-14
+    ## 42    Regional       lake   8.70e-11
+    ## 47    Regional      river   8.70e-11
+    ## 48    Regional        sea   2.70e-11
+    ## 52      Tropic  deepocean   6.30e-14
 
 ``` r
 World$doInherit(fromData = "DefaultNETsedrate", toData = "NETsedrate")
@@ -226,15 +199,23 @@ World$doInherit(fromData = "DefaultNETsedrate", toData = "NETsedrate")
     ## Joining with `by = join_by(SubCompart)`
 
     ##          Scale SubCompart old_NETsedrate NETsedrate
-    ## 1       Arctic  deepocean             NA   6.34e-14
-    ## 2       Arctic        sea             NA   2.74e-11
-    ## 3  Continental       lake             NA   8.62e-11
-    ## 4  Continental      river             NA   8.62e-11
-    ## 5  Continental        sea             NA   2.74e-11
-    ## 6     Moderate  deepocean       8.95e-14   8.95e-14
-    ## 7     Moderate        sea             NA   2.74e-11
-    ## 8     Regional       lake             NA   8.62e-11
-    ## 9     Regional      river             NA   8.62e-11
-    ## 10    Regional        sea             NA   2.74e-11
-    ## 11      Tropic  deepocean             NA   6.34e-14
-    ## 12      Tropic        sea             NA   2.74e-11
+    ## 1       Arctic  deepocean       6.30e-14   6.30e-14
+    ## 2       Arctic       lake             NA   8.62e-11
+    ## 3       Arctic      river             NA   8.62e-11
+    ## 4       Arctic        sea             NA   2.74e-11
+    ## 5  Continental  deepocean             NA   6.34e-14
+    ## 6  Continental       lake       8.60e-11   8.60e-11
+    ## 7  Continental      river       8.60e-11   8.60e-11
+    ## 8  Continental        sea       2.74e-11   2.74e-11
+    ## 9     Moderate  deepocean       8.95e-14   8.95e-14
+    ## 10    Moderate       lake             NA   8.62e-11
+    ## 11    Moderate      river             NA   8.62e-11
+    ## 12    Moderate        sea             NA   2.74e-11
+    ## 13    Regional  deepocean             NA   6.34e-14
+    ## 14    Regional       lake       8.70e-11   8.70e-11
+    ## 15    Regional      river       8.70e-11   8.70e-11
+    ## 16    Regional        sea       2.70e-11   2.70e-11
+    ## 17      Tropic  deepocean       6.30e-14   6.30e-14
+    ## 18      Tropic       lake             NA   8.62e-11
+    ## 19      Tropic      river             NA   8.62e-11
+    ## 20      Tropic        sea             NA   2.74e-11
