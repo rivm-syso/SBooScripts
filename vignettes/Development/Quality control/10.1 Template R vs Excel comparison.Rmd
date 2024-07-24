@@ -271,7 +271,7 @@ soil <- kaas |>
 # is caused by the input kdegs. If there are input kdegs for air/soil/sediment 
 # (so they are not calculated using KdegDorC), these values have two decimals in R
 # but more decimals in excel. This can cause relative differences between the k's
-# that are slightly larger than the treshold value of 0.001. 
+# that are slightly larger than the threshold value of 0.001. 
 
 # This was tested by using the rounded kdeg value as input in excel and comparing
 # the resulting k manually to the k in R. 
