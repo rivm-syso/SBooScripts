@@ -1,127 +1,127 @@
-"VarName","Scale","SubCompart","Waarde","SB4N_name","Unit"
-"landFRAC","Continental","agriculturalsoil",0.6,"FRACagsoil","[-]"
-"landFRAC","Continental","lake",0.0025,"FRAClake","[-]"
-"landFRAC","Continental","naturalsoil",0.27,"FRACnatsoil","[-]"
-"landFRAC","Continental","othersoil",0.1,"FRACothersoil","[-]"
-"landFRAC","Continental","river",0.0275,"FRACfresh","[-]"
-"landFRAC","Regional","agriculturalsoil",0.6,"FRACagsoil","[-]"
-"landFRAC","Regional","lake",0.0025,"FRAClake","[-]"
-"landFRAC","Regional","naturalsoil",0.27,"FRACnatsoil","[-]"
-"landFRAC","Regional","othersoil",0.1,"FRACothersoil","[-]"
-"landFRAC","Regional","river",0.0275,"FRACfresh","[-]"
-"NETsedrate","Arctic","deepocean",6.3e-14,"NETsedrate.wA","m.s-1"
-"NETsedrate","Continental","lake",8.6e-11,"missing","m.s-1"
-"NETsedrate","Continental","river",8.6e-11,"NETsedrate.w1C","m.s-1"
-"NETsedrate","Continental","sea",2.74e-11,"NETsedrate.w2C","m.s-1																 													   "
-"NETsedrate","Moderate","deepocean",8.95e-14,"NETsedrate.wM","m.s-1"
-"NETsedrate","Regional","lake",8.7e-11,"missing","m.s-1"
-"NETsedrate","Regional","river",8.7e-11,"NETsedrate.w1R","m.s-1"
-"NETsedrate","Regional","sea",2.7e-11,"NETsedrate.w2R","m.s-1"
-"NETsedrate","Tropic","deepocean",6.3e-14,"NETsedrate.wT","m.s-1																														 "
-"Shear","Arctic","deepocean",10,"Shear.w3A",NA
-"Shear","Arctic","marinesediment",0,NA,NA
-"Shear","Arctic","naturalsoil",0,NA,NA
-"Shear","Arctic","sea",10,"Shear.w2A",NA
-"Shear","Continental","agriculturalsoil",0,NA,NA
-"Shear","Continental","freshwatersediment",0,NA,NA
-"Shear","Continental","lake",1,"Shear.w0C",NA
-"Shear","Continental","lakesediment",0,NA,NA
-"Shear","Continental","marinesediment",0,NA,NA
-"Shear","Continental","naturalsoil",0,NA,NA
-"Shear","Continental","othersoil",0,NA,NA
-"Shear","Continental","river",100,"Shear.w1C",NA
-"Shear","Continental","sea",10,"Shear.w2C",NA
-"Shear","Moderate","deepocean",10,"Shear.w3M",NA
-"Shear","Moderate","marinesediment",0,NA,NA
-"Shear","Moderate","naturalsoil",0,NA,NA
-"Shear","Moderate","sea",10,"Shear.w2M",NA
-"Shear","Regional","agriculturalsoil",0,NA,NA
-"Shear","Regional","freshwatersediment",0,NA,NA
-"Shear","Regional","lake",1,"Shear.w0R",NA
-"Shear","Regional","lakesediment",0,NA,NA
-"Shear","Regional","marinesediment",0,NA,NA
-"Shear","Regional","naturalsoil",0,NA,NA
-"Shear","Regional","othersoil",0,NA,NA
-"Shear","Regional","river",100,"Shear.w1R",NA
-"Shear","Regional","sea",10,"Shear.w2R",NA
-"Shear","Tropic","deepocean",10,"Shear.w3T",NA
-"Shear","Tropic","marinesediment",0,NA,NA
-"Shear","Tropic","naturalsoil",0,NA,NA
-"Shear","Tropic","sea",10,"Shear.w2T",NA
-"subFRACa","Arctic","naturalsoil",0.2,"FRACa.sA","[-] "
-"subFRACa","Continental","agriculturalsoil",0.2,"FRACa.s2C","[-] "
-"subFRACa","Continental","naturalsoil",0.2,"FRACa.s1C","[-] "
-"subFRACa","Continental","othersoil",0.2,"FRACa.s3C","[-] "
-"subFRACa","Moderate","naturalsoil",0.2,"FRACa.sM","[-] "
-"subFRACa","Regional","agriculturalsoil",0.2,"FRACa.s2R","[-] "
-"subFRACa","Regional","naturalsoil",0.2,"FRACa.s1R","[-] "
-"subFRACa","Regional","othersoil",0.2,"FRACa.s3R","[-] "
-"subFRACa","Tropic","naturalsoil",0.2,"FRACa.sT","[-] "
-"subFRACs","Arctic","air",2e-11,"FRACaers",""
-"subFRACs","Continental","air",2e-11,"FRACaers",""
-"subFRACs","Moderate","air",2e-11,"FRACaers",""
-"subFRACs","Regional","air",2e-11,"FRACaers",""
-"subFRACs","Tropic","air",2e-11,"FRACaers",""
-"subFRACw","Arctic","air",2e-11,"FRACaerw",""
-"subFRACw","Arctic","marinesediment",0.8,"FRACw.sA","[-] "
-"subFRACw","Arctic","naturalsoil",0.2,"FRACw.sA","[-] "
-"subFRACw","Continental","agriculturalsoil",0.2,"FRACw.s2C","[-] "
-"subFRACw","Continental","air",2e-11,"FRACaerw",""
-"subFRACw","Continental","freshwatersediment",0.8,"FRACw.sdC","[-] "
-"subFRACw","Continental","lakesediment",0.8,"FRACw.sdC","[-] "
-"subFRACw","Continental","marinesediment",0.8,"FRACw.sdC","[-] "
-"subFRACw","Continental","naturalsoil",0.2,"FRACw.s1C","[-] "
-"subFRACw","Continental","othersoil",0.2,"FRACw.s3C","[-] "
-"subFRACw","Moderate","air",2e-11,"FRACaerw",""
-"subFRACw","Moderate","marinesediment",0.8,"FRACw.sM","[-] "
-"subFRACw","Moderate","naturalsoil",0.2,"FRACw.sM","[-] "
-"subFRACw","Regional","agriculturalsoil",0.2,"FRACw.s2R","[-] "
-"subFRACw","Regional","air",2e-11,"FRACaerw",""
-"subFRACw","Regional","freshwatersediment",0.8,"FRACw.sdC","[-] "
-"subFRACw","Regional","lakesediment",0.8,"FRACw.sdC","[-] "
-"subFRACw","Regional","marinesediment",0.8,"FRACw.s3R","[-] "
-"subFRACw","Regional","naturalsoil",0.2,"FRACw.s1R","[-] "
-"subFRACw","Regional","othersoil",0.2,"FRACw.s3R","[-] "
-"subFRACw","Tropic","air",2e-11,"FRACaerw",""
-"subFRACw","Tropic","marinesediment",0.8,"FRACw.sT","[-] "
-"subFRACw","Tropic","naturalsoil",0.2,"FRACw.sT","[-] "
-"VertDistance","Arctic","air",1000,"HEIGHT.aA","m"
-"VertDistance","Arctic","cloudwater",1000,"HEIGHT.aA","m"
-"VertDistance","Arctic","deepocean",3000,"DEPTH.w3A","m"
-"VertDistance","Arctic","marinesediment",0.03,"DEPTH.sdA","m"
-"VertDistance","Arctic","naturalsoil",0.05,"DEPTH.sA","m"
-"VertDistance","Arctic","sea",100,"DEPTH.w2A","m"
-"VertDistance","Continental","agriculturalsoil",0.2,"DEPTH.s2C","m"
-"VertDistance","Continental","air",1000,"HEIGHT.aC","m"
-"VertDistance","Continental","cloudwater",1000,"HEIGHT.aC","m"
-"VertDistance","Continental","freshwatersediment",0.03,"DEPTH.sd1C","m"
-"VertDistance","Continental","lake",100,"DEPTH.w0C","m"
-"VertDistance","Continental","lakesediment",0.03,"DEPTH.sd0C","m"
-"VertDistance","Continental","marinesediment",0.03,"DEPTH.sd2C","m"
-"VertDistance","Continental","naturalsoil",0.05,"DEPTH.s1C","m"
-"VertDistance","Continental","othersoil",0.05,"DEPTH.s3C","m"
-"VertDistance","Continental","river",3,"DEPTH.w1C","m"
-"VertDistance","Continental","sea",200,"DEPTH.w2C","m"
-"VertDistance","Moderate","air",1000,"HEIGHT.aM","m"
-"VertDistance","Moderate","cloudwater",1000,"HEIGHT.aM","m"
-"VertDistance","Moderate","deepocean",3000,"DEPTH.w3M","m"
-"VertDistance","Moderate","marinesediment",0.03,"DEPTH.sdM","m"
-"VertDistance","Moderate","naturalsoil",0.05,"DEPTH.sM","m"
-"VertDistance","Moderate","sea",100,"DEPTH.w2M","m"
-"VertDistance","Regional","agriculturalsoil",0.2,"DEPTH.s2R","m"
-"VertDistance","Regional","air",1000,"HEIGHT.aR","m"
-"VertDistance","Regional","cloudwater",1000,"HEIGHT.aR","m"
-"VertDistance","Regional","freshwatersediment",0.03,"DEPTH.sd1R","m"
-"VertDistance","Regional","lake",100,"DEPTH.w0R","m"
-"VertDistance","Regional","lakesediment",0.03,"DEPTH.sd0R","m"
-"VertDistance","Regional","marinesediment",0.03,"DEPTH.sd2R","m"
-"VertDistance","Regional","naturalsoil",0.05,"DEPTH.s1R","m"
-"VertDistance","Regional","othersoil",0.05,"DEPTH.s3R","m"
-"VertDistance","Regional","river",3,"DEPTH.w1R","m"
-"VertDistance","Regional","sea",10,"DEPTH.w2R","m"
-"VertDistance","Tropic","air",1000,"HEIGHT.aT","m"
-"VertDistance","Tropic","cloudwater",1000,"HEIGHT.aT","m"
-"VertDistance","Tropic","deepocean",3000,"DEPTH.w3T","m"
-"VertDistance","Tropic","marinesediment",0.03,"DEPTH.sdT","m"
-"VertDistance","Tropic","naturalsoil",0.05,"DEPTH.sT","m"
-"VertDistance","Tropic","sea",100,"DEPTH.w2T","m"
+"","VarName","Scale","SubCompart","Waarde","SB4N_name","Unit"
+"1","landFRAC","Continental","agriculturalsoil",0.6,"FRACagsoil","[-]"
+"2","landFRAC","Continental","lake",0.0025,"FRAClake","[-]"
+"3","landFRAC","Continental","naturalsoil",0.27,"FRACnatsoil","[-]"
+"4","landFRAC","Continental","othersoil",0.1,"FRACothersoil","[-]"
+"5","landFRAC","Continental","river",0.0275,"FRACfresh","[-]"
+"6","landFRAC","Regional","agriculturalsoil",0.6,"FRACagsoil","[-]"
+"7","landFRAC","Regional","lake",0.0025,"FRAClake","[-]"
+"8","landFRAC","Regional","naturalsoil",0.27,"FRACnatsoil","[-]"
+"9","landFRAC","Regional","othersoil",0.1,"FRACothersoil","[-]"
+"10","landFRAC","Regional","river",0.0275,"FRACfresh","[-]"
+"11","NETsedrate","Arctic","deepocean",6.3e-14,"NETsedrate.wA","m.s-1"
+"12","NETsedrate","Continental","lake",8.62e-11,"missing","m.s-1"
+"13","NETsedrate","Continental","river",8.62e-11,"NETsedrate.w1C","m.s-1"
+"14","NETsedrate","Continental","sea",2.74e-11,"NETsedrate.w2C","m.s-1																 													   "
+"15","NETsedrate","Moderate","deepocean",8.95e-14,"NETsedrate.wM","m.s-1"
+"16","NETsedrate","Regional","lake",8.68e-11,"missing","m.s-1"
+"17","NETsedrate","Regional","river",8.68e-11,"NETsedrate.w1R","m.s-1"
+"18","NETsedrate","Regional","sea",6.34e-11,"NETsedrate.w2R","m.s-1"
+"19","NETsedrate","Tropic","deepocean",6.3e-14,"NETsedrate.wT","m.s-1																														 "
+"20","Shear","Arctic","deepocean",10,"Shear.w3A",NA
+"21","Shear","Arctic","marinesediment",0,NA,NA
+"22","Shear","Arctic","naturalsoil",0,NA,NA
+"23","Shear","Arctic","sea",10,"Shear.w2A",NA
+"24","Shear","Continental","agriculturalsoil",0,NA,NA
+"25","Shear","Continental","freshwatersediment",0,NA,NA
+"26","Shear","Continental","lake",1,"Shear.w0C",NA
+"27","Shear","Continental","lakesediment",0,NA,NA
+"28","Shear","Continental","marinesediment",0,NA,NA
+"29","Shear","Continental","naturalsoil",0,NA,NA
+"30","Shear","Continental","othersoil",0,NA,NA
+"31","Shear","Continental","river",100,"Shear.w1C",NA
+"32","Shear","Continental","sea",10,"Shear.w2C",NA
+"33","Shear","Moderate","deepocean",10,"Shear.w3M",NA
+"34","Shear","Moderate","marinesediment",0,NA,NA
+"35","Shear","Moderate","naturalsoil",0,NA,NA
+"36","Shear","Moderate","sea",10,"Shear.w2M",NA
+"37","Shear","Regional","agriculturalsoil",0,NA,NA
+"38","Shear","Regional","freshwatersediment",0,NA,NA
+"39","Shear","Regional","lake",1,"Shear.w0R",NA
+"40","Shear","Regional","lakesediment",0,NA,NA
+"41","Shear","Regional","marinesediment",0,NA,NA
+"42","Shear","Regional","naturalsoil",0,NA,NA
+"43","Shear","Regional","othersoil",0,NA,NA
+"44","Shear","Regional","river",100,"Shear.w1R",NA
+"45","Shear","Regional","sea",10,"Shear.w2R",NA
+"46","Shear","Tropic","deepocean",10,"Shear.w3T",NA
+"47","Shear","Tropic","marinesediment",0,NA,NA
+"48","Shear","Tropic","naturalsoil",0,NA,NA
+"49","Shear","Tropic","sea",10,"Shear.w2T",NA
+"50","subFRACa","Arctic","naturalsoil",0.2,"FRACa.sA","[-] "
+"51","subFRACa","Continental","agriculturalsoil",0.2,"FRACa.s2C","[-] "
+"52","subFRACa","Continental","naturalsoil",0.2,"FRACa.s1C","[-] "
+"53","subFRACa","Continental","othersoil",0.2,"FRACa.s3C","[-] "
+"54","subFRACa","Moderate","naturalsoil",0.2,"FRACa.sM","[-] "
+"55","subFRACa","Regional","agriculturalsoil",0.2,"FRACa.s2R","[-] "
+"56","subFRACa","Regional","naturalsoil",0.2,"FRACa.s1R","[-] "
+"57","subFRACa","Regional","othersoil",0.2,"FRACa.s3R","[-] "
+"58","subFRACa","Tropic","naturalsoil",0.2,"FRACa.sT","[-] "
+"59","subFRACs","Arctic","air",2e-11,"FRACaers",""
+"60","subFRACs","Continental","air",2e-11,"FRACaers",""
+"61","subFRACs","Moderate","air",2e-11,"FRACaers",""
+"62","subFRACs","Regional","air",2e-11,"FRACaers",""
+"63","subFRACs","Tropic","air",2e-11,"FRACaers",""
+"64","subFRACw","Arctic","air",2e-11,"FRACaerw",""
+"65","subFRACw","Arctic","marinesediment",0.8,"FRACw.sA","[-] "
+"66","subFRACw","Arctic","naturalsoil",0.2,"FRACw.sA","[-] "
+"67","subFRACw","Continental","agriculturalsoil",0.2,"FRACw.s2C","[-] "
+"68","subFRACw","Continental","air",2e-11,"FRACaerw",""
+"69","subFRACw","Continental","freshwatersediment",0.8,"FRACw.sdC","[-] "
+"70","subFRACw","Continental","lakesediment",0.8,"FRACw.sdC","[-] "
+"71","subFRACw","Continental","marinesediment",0.8,"FRACw.sdC","[-] "
+"72","subFRACw","Continental","naturalsoil",0.2,"FRACw.s1C","[-] "
+"73","subFRACw","Continental","othersoil",0.2,"FRACw.s3C","[-] "
+"74","subFRACw","Moderate","air",2e-11,"FRACaerw",""
+"75","subFRACw","Moderate","marinesediment",0.8,"FRACw.sM","[-] "
+"76","subFRACw","Moderate","naturalsoil",0.2,"FRACw.sM","[-] "
+"77","subFRACw","Regional","agriculturalsoil",0.2,"FRACw.s2R","[-] "
+"78","subFRACw","Regional","air",2e-11,"FRACaerw",""
+"79","subFRACw","Regional","freshwatersediment",0.8,"FRACw.sdC","[-] "
+"80","subFRACw","Regional","lakesediment",0.8,"FRACw.sdC","[-] "
+"81","subFRACw","Regional","marinesediment",0.8,"FRACw.s3R","[-] "
+"82","subFRACw","Regional","naturalsoil",0.2,"FRACw.s1R","[-] "
+"83","subFRACw","Regional","othersoil",0.2,"FRACw.s3R","[-] "
+"84","subFRACw","Tropic","air",2e-11,"FRACaerw",""
+"85","subFRACw","Tropic","marinesediment",0.8,"FRACw.sT","[-] "
+"86","subFRACw","Tropic","naturalsoil",0.2,"FRACw.sT","[-] "
+"87","VertDistance","Arctic","air",1000,"HEIGHT.aA","m"
+"88","VertDistance","Arctic","cloudwater",1000,"HEIGHT.aA","m"
+"89","VertDistance","Arctic","deepocean",3000,"DEPTH.w3A","m"
+"90","VertDistance","Arctic","marinesediment",0.03,"DEPTH.sdA","m"
+"91","VertDistance","Arctic","naturalsoil",0.05,"DEPTH.sA","m"
+"92","VertDistance","Arctic","sea",100,"DEPTH.w2A","m"
+"93","VertDistance","Continental","agriculturalsoil",0.2,"DEPTH.s2C","m"
+"94","VertDistance","Continental","air",1000,"HEIGHT.aC","m"
+"95","VertDistance","Continental","cloudwater",1000,"HEIGHT.aC","m"
+"96","VertDistance","Continental","freshwatersediment",0.03,"DEPTH.sd1C","m"
+"97","VertDistance","Continental","lake",100,"DEPTH.w0C","m"
+"98","VertDistance","Continental","lakesediment",0.03,"DEPTH.sd0C","m"
+"99","VertDistance","Continental","marinesediment",0.03,"DEPTH.sd2C","m"
+"100","VertDistance","Continental","naturalsoil",0.05,"DEPTH.s1C","m"
+"101","VertDistance","Continental","othersoil",0.05,"DEPTH.s3C","m"
+"102","VertDistance","Continental","river",3,"DEPTH.w1C","m"
+"103","VertDistance","Continental","sea",200,"DEPTH.w2C","m"
+"104","VertDistance","Moderate","air",1000,"HEIGHT.aM","m"
+"105","VertDistance","Moderate","cloudwater",1000,"HEIGHT.aM","m"
+"106","VertDistance","Moderate","deepocean",3000,"DEPTH.w3M","m"
+"107","VertDistance","Moderate","marinesediment",0.03,"DEPTH.sdM","m"
+"108","VertDistance","Moderate","naturalsoil",0.05,"DEPTH.sM","m"
+"109","VertDistance","Moderate","sea",100,"DEPTH.w2M","m"
+"110","VertDistance","Regional","agriculturalsoil",0.2,"DEPTH.s2R","m"
+"111","VertDistance","Regional","air",1000,"HEIGHT.aR","m"
+"112","VertDistance","Regional","cloudwater",1000,"HEIGHT.aR","m"
+"113","VertDistance","Regional","freshwatersediment",0.03,"DEPTH.sd1R","m"
+"114","VertDistance","Regional","lake",100,"DEPTH.w0R","m"
+"115","VertDistance","Regional","lakesediment",0.03,"DEPTH.sd0R","m"
+"116","VertDistance","Regional","marinesediment",0.03,"DEPTH.sd2R","m"
+"117","VertDistance","Regional","naturalsoil",0.05,"DEPTH.s1R","m"
+"118","VertDistance","Regional","othersoil",0.05,"DEPTH.s3R","m"
+"119","VertDistance","Regional","river",3,"DEPTH.w1R","m"
+"120","VertDistance","Regional","sea",10,"DEPTH.w2R","m"
+"121","VertDistance","Tropic","air",1000,"HEIGHT.aT","m"
+"122","VertDistance","Tropic","cloudwater",1000,"HEIGHT.aT","m"
+"123","VertDistance","Tropic","deepocean",3000,"DEPTH.w3T","m"
+"124","VertDistance","Tropic","marinesediment",0.03,"DEPTH.sdT","m"
+"125","VertDistance","Tropic","naturalsoil",0.05,"DEPTH.sT","m"
+"126","VertDistance","Tropic","sea",100,"DEPTH.w2T","m"
