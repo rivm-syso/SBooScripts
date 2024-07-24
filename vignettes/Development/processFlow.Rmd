@@ -1,20 +1,20 @@
 ---
 title: "processFlow"
-author: "JS"
-date: "3/31/2022"
+author: "Jaap Slootweg, Valerie de Rijk"
+date: "`r Sys.Date()`"
 output: github_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::knit_meta()
 knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
 knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
 ## NewProcess
 
-The flow of mass between compartments in SimpleBox depends on first order rate constants (k in s-1). In converting SimpleBox to R, adding a new process or adjusting an existing process function to be used between a new set of compartments this workflow is relevant. In case of porting or creating a new algorithm in R use the following approach. Here an example for calculating the leaching rate constant from soil to water:
+The flow of mass between compartments in SimpleBox depends on first order rate constants (k in s-1). As such, all new processes should adhere to this approach. In case of creating a new algorithm in R use the following approach. It is advised to test a new process with world initialisation for *all* types of particles (e.g. molecules (acid, base, metal), particulates and microplastics) in your own branch to limit polluting the main with unwanted processes. Secondly, all processes should be documented well, preferably with sources to the paper the process is derived from.  Here an example for calculating the leaching rate constant from soil to water:
 
 ```{r new proces}
 
@@ -41,108 +41,4 @@ k_Leaching <- function(FRACinf, RAINrate, VertDistance, SpeciesName, ...){ #k_ L
 }
 
 
-```
-
-
-## sb oo data
-the sboo package depends on data, including information where transfers (1rst order processes) take place. This data is stored in csv files (for Dutch: literally comma delimited!).
-This process flow information in not straightforward due to possible exceptions. To help developers to enter consistent process information in the csv files, the data concerned can be entered in a special excel-file with named ranges. This vignettes demonstrates how to use the excel, the example excel-file contains the data for the burial process, with the name and defining function k_Burial. 
-These ranges are read, like:
-
-```{r readxls}
-ProcessXlsx <- "data/ExampleProcess.xlsx" 
-processName <- unname(unlist(openxlsx::read.xlsx(ProcessXlsx, colNames=FALSE,
-                                                 namedRegion = "process")))
-TransDim <- unname(unlist(openxlsx::read.xlsx(ProcessXlsx, colNames=FALSE,
-                                              namedRegion = "TransDim")))
-fromTo <- openxlsx::read.xlsx(ProcessXlsx, colNames=TRUE,
-                              namedRegion = "fromTo")
-exceptions <- openxlsx::read.xlsx(ProcessXlsx, colNames=TRUE,
-                                  namedRegion = "exceptions")
-```
-
-## Test for consistency
-To fully test, we need a initializing, then we test the "Dimensions". The3D is a vector with the key names for the three dimensions. The dimension of the transfer and those for the exceptions should match those in The3D.
-```{r test}
-library(tidyverse)
-source("baseScripts/fakeLib.R")
-if (!TransDim %in% The3D) {
-  stringsAsList <- as.list(c("TransDim should be one of", The3D))
-  stop(do.call(paste, stringsAsList))
-}
-if(!all(names(exceptions) %in% The3D)) {
-  stringsAsList <- as.list(c("exception columns should be empty or one of", The3D))
-  stop(do.call(paste, stringsAsList))
-}
-if (TransDim %in% names(exceptions)) {
-  stop("exception columns should differ from TransDim")
-}
-```
-# Updating the sboo data with the data from the excel file
-The update is simply: read all data; remove data for the process in the excel; append the data from the excel; and properly save the data into the csv-files.
-## Reading the current data for sboo from the csv files
-```{r readcsv}
-DefKeys <- read.csv("data/Defs.csv")
-#obtain (unique) Defs in this!! order
-DefDups <- duplicated(DefKeys$Defs)
-Defs <- DefKeys$Defs[!DefDups]
-
-MlikeWorkBook <- lapply(Defs, function(tableName) {
-  assign(tableName, read.csv(
-    paste("data/", tableName, ".csv", sep = "")))
-})
-names(MlikeWorkBook) <- Defs
-
-```
-
-## We remove the process flow data from the current version
-```{r remove}
-for (TheDim in The3D) {#TheDim = The3D[1]
-  dataFrameName <- paste(TheDim, "Processes", sep = "")
-  dataFrame <- MlikeWorkBook[[dataFrameName]]
-  ThisProcessRows <- dataFrame$process == processName
-  if (any(ThisProcessRows)) {
-    cat(paste("process updated in", dataFrameName))
-    MlikeWorkBook[[dataFrameName]] <- dataFrame[!ThisProcessRows,]
-  }
-  #exceptions; as columns of
-  dataFrameName <- paste(TheDim, "Sheet", sep = "")
-  dataFrame <- MlikeWorkBook[[dataFrameName]]
-  if (processName %in% names(dataFrame)) {
-    cat(paste("exceptions updated in", dataFrameName))
-    minCol <- match(processName, names(dataFrame))
-    MlikeWorkBook[[dataFrameName]] <- dataFrame[, -minCol]
-  }
-}
-```
-
-## and append the new data
-```{r append}
-dataFrameName <- paste(TransDim, "Processes", sep = "")
-ReplacePart <- fromTo
-ReplacePart$process <- processName
-OldProcessData <- MlikeWorkBook[[dataFrameName]]
-MlikeWorkBook[[dataFrameName]] <- rbind(
-  OldProcessData,
-  ReplacePart[,names(OldProcessData)])
-
-#exceptions; as columns of
-for (TheDim in names(exceptions)) {#TheDim = names(exceptions)[1]
-  dataFrameName <- paste(TheDim, "Sheet", sep = "")
-  dataFrame <- MlikeWorkBook[[dataFrameName]]
-  ToFalse <- dataFrame[,TheDim] %in% exceptions[,TheDim]
-  MlikeWorkBook[[dataFrameName]] <- dataFrame %>%
-    mutate({{processName}} := !ToFalse)
-}
-```
-
-# RE-SORT CSVs (and save) BEFORE YOU COMMIT!!
-```{r resortsave}
-source("baseScripts/ordWrite2csv.R")
-```
-
-## And testing testing...
-```{r testingtesting}
-source("baseScripts/initTestWorld.R")
-World$FromDataAndTo("k_Burial")
 ```
