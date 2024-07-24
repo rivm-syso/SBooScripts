@@ -1,0 +1,25 @@
+vignette readme
+================
+Valerie de Rijk
+2024-07-24
+
+# Vignettes explaining SimpleBox
+
+This subfolder contains all vignettes explaining SB concepts, as
+described in the paper by [Schoorl et
+al. (2015)](https://www.rivm.nl/bibliotheek/rapporten/2015-0161.html).
+The vignette structure roughly follows Chapter 3 of this paper. New
+nano-material additions \[e.g. HeteroAgglomeration\] are described in
+the vignettes starting with a 9.
+
+There’s three additional vignettes in this folder:
+
+- [Getting Started](/vignettes/Getting-started.md) : this file includes
+  all basics for users (not necessarily developers) to use and calculate
+  with the R-implementation of SB.
+
+- [Vignette_progress](/vignettes/Vignette-progress.md) : tracks all
+  process of the vignettes and if they have been recently tested
+
+- [x1 Solver use](vignettes/x.1%20Solver%20use.Rmd) : explains how to
+  solve for both static and dynamic data.
