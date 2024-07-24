@@ -1,3 +1,12 @@
+---
+title: "vignette readme"
+author: "Valerie de Rijk"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
 # Vignettes explaining SimpleBox
 
 This subfolder contains all vignettes explaining SB concepts, as described in the paper by [Schoorl et al. (2015)](https://www.rivm.nl/bibliotheek/rapporten/2015-0161.html). The vignette structure roughly follows Chapter 3 of this paper. New nano-material additions [e.g. HeteroAgglomeration] are described in the vignettes starting with a 9.
