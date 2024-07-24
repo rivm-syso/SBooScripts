@@ -1,5 +1,5 @@
 ---
-title: "Molecular verification - neutral and no class"
+title: "Molecular verification - acid"
 author: "Anne Hids"
 date: "`r Sys.Date()`"
 output: github_document
@@ -19,7 +19,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 8)
 ```
 
 This vignette demonstrates the verification process of the molecular
-version of Simplebox for a substance with a neutral class or without a class.
+version of Simplebox for a substance with an acid class.
 First, the k's are compared between R and excel,
 and consequently the steady state masses are compared. This is done for
 5 molecular substances; each of a different chemical class (no class,
@@ -38,7 +38,7 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "Sb(III)" # metal
                           ) 
               
-substance <- Potential_substances[1]
+substance <- Potential_substances[2]
 
 source("baseScripts/initWorld_onlyMolec.R")
 ```
@@ -146,7 +146,7 @@ At the time of this verification, some improvements were already made in the R
 version versus the excel version. This meant that some k's differ between R and
 excel, but not because the calculations or input values are wrong. In order to 
 still be able to compare the two versions, the 'Test' variable was created. This
-variable is a boolean, that can be used to calculate some processes in R the same 
+variable is a boolean that can be used to calculate some processes in R the same 
 way as in excel for the verification without removing the improvements that are 
 made. When this test variable was used and why will be explained below. 
 
@@ -189,7 +189,7 @@ ggplot(merged_diagonal, aes(x = from, y = reldif)) +
 ```
 
 Figures 1 and 2 above show the absolute and relative differences in diagonal k's between R and excel. 
-As can be seen in Figure 2, relative differences larger than 1 percentile are in the lake and
+As can be seen in Figure 2, relative differences larger than 1 percentile are in the lake, freshwater and
 sediment subcompartments. 
 
 ```{r filter large diagonal differences, include=FALSE, echo=FALSE}
@@ -205,16 +205,6 @@ The relative difference in lake removal rate is caused by lake sedimentation
 being included in R but not in excel. To make an accurate comparison between R 
 and excel, the Test variable was used to exclude flows from lake to lakesediment in 
 the processes k_Sedimentation and k_Adsorption.
-
-```{r Lake removal KEEP FOR FINAL VERSION!, include=FALSE, echo=FALSE}
-lake <- kaas |>
-  filter(fromSubCompart == "lake") |>
-  filter(toSubCompart == "lake")
-
-lake2 <- kaas |>
-  filter(fromSubCompart == "lake") |>
-  filter(fromScale == "Continental")
-```
 
 #### Settling velocity
 
