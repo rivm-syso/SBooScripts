@@ -191,14 +191,14 @@ filtered_R <- diagonal_R[!endsWith(diagonal_R$from, "U"), ]
 
 ```{r diagonal}
 #Check for any differences in what compartments there are between versions
-# diagonal_R$from[!diagonal_R$from %in% diagonal_excel$from] # "sd0C" "sd0R" were added in sboo v1
+ diagonal_R$from[!diagonal_R$from %in% diagonal_excel$from] # "sd0C" "sd0R" were added in sboo v1
 library (ggplot2)
 library(plotly)
 filtered_R$from[!filtered_R$from %in% filtered_excel$from]
-# diagonal_excel$from[!diagonal_excel$from %in% diagonal_R$from] #all excel diagonals are in those of R
+diagonal_excel$from[!diagonal_excel$from %in% diagonal_R$from] #all excel diagonals are in those of R
 filtered_excel$from[!filtered_excel$from %in% filtered_R$from]
-ifelse(length(diagonal_R$k)==length(diagonal_excel$k) ,
-       print("ok"), stop("too many compartment combo's")) 
+#ifelse(length(diagonal_R$k)==length(diagonal_excel$k) ,
+#       print("ok"), stop("too many compartment combo's")) 
 
 #Single dataframe with both the R and excel diagonals
 merged_diagonal <- merge(filtered_R, filtered_excel, by = "from", suffixes = c("_R", "_Excel")) 
