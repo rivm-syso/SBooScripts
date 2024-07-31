@@ -19,6 +19,11 @@ World <- SBcore$new(ClassicStateModule)
 World$filterStates(SpeciesName = "Molecular")
 
 # To proceed with testing we set
+if (is.na(World$fetchData("kdis"))) {
+  warning("kdis is missing, setting kdis = 1e-20")
+  World$SetConst(kdis = 0)
+}
+          
 
 if (is.na(World$fetchData("pKa"))) {
   warning("pKa is needed but missing, setting pKa=7")
