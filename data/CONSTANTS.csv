@@ -1,42 +1,42 @@
-VarName,Waarde,SB4N_name,Unit,Comments
-AEROresist,74,NA,NA,NA
-BACTtest,40000,BACT.test,CFU.mL-1,CONCENTRATION BACTERIA in test water
-beta.a ,2,NA,NA,# constant (in drydeposition() ) 
-Biodeg,i,biodeg,NA,Biodegradability test result [r / r- / i / p]
-C.OHrad.n,5.00E+05,C.OHrad,cm-3, #  not different in scales... 
-ContinentalInModerate,1,NA,boolean,TRUE
-CORG.susp,0.1,,-,
-CorgStandard,0.02,CORG,[-],Standard mass FRACTION organic carbon in soil/sediment
-DefaultFRACarea,1,NA,NA,NA
-DefaultpH,7,NA,NA,NA
-Df,0.333333333,NA,[-],NA
-DynViscAirStandard,1.81E-05,DYNVISC.a,[kg.m-1.s-1],Dynamic Viscosity of air
-DynViscWaterStandard,0.001002,DYNVISC.w,[kg.m-1.s-1],Dynamic Viscosity of water
-Ea.OHrad,6000,Ea.OHrad,[J.mol-1],NA
-epsilon,3,NA,NA, (in drydeposition() ) is empirical constant set to 3
-Erosion,0.03,EROSION.R,[mm/yr],
-FRACrun,0.25,NA,NA,NA
-FricVel,0.19,NA,NA,friction velicity [ m s-1]
-H0sol,10000,NA,NA,ENTHALPY of dissolution
-k0.OHrad,7.90E-11,k0.OHrad,cm3.s-1,FREQUENCY FACTOR OH radical reaction
-Kow_default,2750,NA,NA,NA
-kwsd.sed,2.78E-08,identical for each scale,m.s-1,
-kwsd.water,2.78E-06,identical for each scale,m.s-1,
-LakeFracRiver,0.1,NA,-,part of river discharge that originates from the lake
-Mackay1,0.43,Mackay1/3600/24,m.d-1,constant described by Mackay (2001)
-Mackay2,0.00475,,-,constant described by Mackay (2001)
-MaxPvap,1.00E+05,100000,Pa,
-MOLMASSAIR,289.647,NA,NA,molar mass air in [kg mol-1]
-OceanCurrent,1.50E+08,NA,m3,NA
-outdated,3.00E-06,RadSPM.x,m,Radius natural suspended particulate matter (SPM > 450 nm) in x
-outdated,2000,RHOears,NA,RhoMatrix to Compartment?
-outdated,2500,RHOsolid,NA,RhoMatrix to Compartment?
-penetration_depth_s,0.1,missing,m,was hard coded in function for Correction factor depth-dependency soil concentrations
-Pvap25_default,4,,Pa,
-Q.10,2,Q.10,-,RATE INCREASE factor per 10 oC
-RadNuc,1.00E-08,RadNuc,m,NA
-relevant_depth_s,0,missing,m,was hard coded in function for Correction factor depth-dependency soil concentrations
-RhoNuc,1300,RhoNuc,[kg.m-3],Density of Nucleation mode aerosol particles
-t_half_Escape,60,missing,yr,Half life time in air for escape to stratosphere
-T25,298,missing,K,Temperature for normalised circumstances
-Tm_default,274,,K,
+"VarName","Waarde","SB4N_name","Unit","Comments"
+"AEROresist","74",NA,NA,NA
+"BACTtest","40000","BACT.test","CFU.mL-1","CONCENTRATION BACTERIA in test water"
+"beta.a ","2",NA,NA,"# constant (in drydeposition() ) "
+"Biodeg","i","biodeg",NA,"Biodegradability test result [r / r- / i / p]"
+"C.OHrad.n","5.00E+05","C.OHrad","cm-3"," #  not different in scales... "
+"ContinentalInModerate","1",NA,"boolean","TRUE"
+"CORG.susp","0.1","","-",""
+"CorgStandard","0.02","CORG","[-]","Standard mass FRACTION organic carbon in soil/sediment"
+"DefaultFRACarea","1",NA,NA,NA
+"DefaultpH","7",NA,NA,NA
+"Df","0.333333333",NA,"[-]",NA
+"DynViscAirStandard","1.81E-05","DYNVISC.a","[kg.m-1.s-1]","Dynamic Viscosity of air"
+"DynViscWaterStandard","0.001002","DYNVISC.w","[kg.m-1.s-1]","Dynamic Viscosity of water"
+"Ea.OHrad","6000","Ea.OHrad","[J.mol-1]",NA
+"epsilon","3",NA,NA," (in drydeposition() ) is empirical constant set to 3"
+"Erosion","0.03","EROSION.R","[mm/yr]",""
+"FRACrun","0.25",NA,NA,NA
+"FricVel","0.19",NA,NA,"friction velicity [ m s-1]"
+"H0sol","10000",NA,NA,"ENTHALPY of dissolution"
+"k0.OHrad","7.90E-11","k0.OHrad","cm3.s-1","FREQUENCY FACTOR OH radical reaction"
+"Kow_default","2750",NA,NA,NA
+"kwsd.sed","2.78E-08","identical for each scale","m.s-1",""
+"kwsd.water","2.78E-06","identical for each scale","m.s-1",""
+"LakeFracRiver","0.1",NA,"-","part of river discharge that originates from the lake"
+"Mackay1","0.43","Mackay1/3600/24","m.d-1","constant described by Mackay (2001)"
+"Mackay2","0.00475","","-","constant described by Mackay (2001)"
+"MaxPvap","1.00E+05","100000","Pa",""
+"MOLMASSAIR","289.647",NA,NA,"molar mass air in [kg mol-1]"
+"OceanCurrent","1.50E+08",NA,"m3",NA
+"outdated","3.00E-06","RadSPM.x","m","Radius natural suspended particulate matter (SPM > 450 nm) in x"
+"outdated","2000","RHOears",NA,"RhoMatrix to Compartment?"
+"outdated","2500","RHOsolid",NA,"RhoMatrix to Compartment?"
+"penetration_depth_s","0.1","missing","m","was hard coded in function for Correction factor depth-dependency soil concentrations"
+"Pvap25_default","4","","Pa",""
+"Q.10","2","Q.10","-","RATE INCREASE factor per 10 oC"
+"RadNuc","1.00E-08","RadNuc","m",NA
+"relevant_depth_s","0","missing","m","was hard coded in function for Correction factor depth-dependency soil concentrations"
+"RhoNuc","1300","RhoNuc","[kg.m-3]","Density of Nucleation mode aerosol particles"
+"t_half_Escape","60","missing","yr","Half life time in air for escape to stratosphere"
+"T25","298","missing","K","Temperature for normalised circumstances"
+"Tm_default","274","","K",""
