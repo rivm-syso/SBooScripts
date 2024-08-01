@@ -53,10 +53,11 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "Sb(III)" # metal
                           ) 
               
-substance <- Potential_substances[2]
 source("baseScripts/initWorld_onlyMolec.R")
+World$substance <- Potential_substances[2]
 
-length(unique(World$kaas$process))
+World$UpdateKaas()
+aggregate(k~process, data = World$kaas, FUN = length)
 
 ProcessMolFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
                           "k_Degradation", "k_Deposition", "k_Desorption",

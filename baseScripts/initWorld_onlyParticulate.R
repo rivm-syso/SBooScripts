@@ -50,5 +50,4 @@ World$SetConst(Ksw = 47500) #default, not used for particle behavior
 
 #World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
 
-World$UpdateKaas()
-# World$UpdateKaas()(debugAt = list())
+# Not now World$UpdateKaas()

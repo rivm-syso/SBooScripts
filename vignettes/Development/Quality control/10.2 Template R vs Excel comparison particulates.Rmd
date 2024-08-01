@@ -61,16 +61,15 @@ source("baseScripts/initWorld_onlyParticulate.R")
 substance <- Potential_substances[6]
 World$substance <- substance
 
-length(unique(World$kaas$process))
+World$UpdateKaas()
+aggregate(k~process, data = World$kaas, FUN = length)
+
 ProcessNanoFunctions <- c("k_Advection", "k_Burial",
                          "k_HeteroAgglomeration.a", "k_HeteroAgglomeration.wsd",
                          "k_CWscavenging", "k_Degradation",
                          "k_DryDeposition", "k_Erosion", "k_Escape",
                          "k_Leaching", "k_Resuspension", "k_Runoff", "k_Sedimentation",
                         "k_WetDeposition")
-
-
-
 
 ProcessNanoFunctions[!ProcessNanoFunctions %in% unique(World$kaas$process)]
 
