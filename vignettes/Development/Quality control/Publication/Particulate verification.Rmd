@@ -1,6 +1,6 @@
 ---
 title: "Particulate verification"
-author: "Anne Hids"
+author: "Anne Hids & Valerie de Rijk"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
@@ -31,7 +31,7 @@ is nAg 10nm, which is a particle.
 
 We will first show the version of the R-code that has been adjusted to match the Excel Version. This means that the code is initialized with the parameter Test = TRUE. As such, this code should match (except for rounding differences) the results of the Excel version.
 
-##Test = TRUE
+## Test = TRUE
 ```{r Initialize,include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 substance <- "nAg_10nm"
 
@@ -441,7 +441,7 @@ solved the large differences in k's between R and excel for the diagonal k's. Al
 The steady state masses in R and Excel were compared by calculating the relative differences
 between the masses in R and Excel (Figure 7). The figure shows that all masses between R and Excel relatively differ less than 1 percentile. 
 
-```{r comparison of steady state emissions using SB1Solve, include=TRUE, echo=FALSE, warning=FALSE}
+```{r comparison of steady state emissions using SB1Solve, include= TRUE, echo= FALSE, warning=FALSE}
 
 library(stringi)
 
@@ -505,15 +505,18 @@ ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
         aspect.ratio = 1/3) 
 ```
 
-##Test = FALSE
+## Test = FALSE
 Now, we will observe the differences made to the code for the R-version by returning to Test = False. This excludes any adjustments to the DragCoefficient options for the settling velocity, which are highlighted in the vignette about Sedimentation. 
 The following adjustments are then initialized: 
+
 - kdis is not included
-- Dry Deposition is implemented in a new manner, according to the Loteur v2 reference guide. 
+
+- Dry Deposition is implemented in a new manner, according to the Loteur v2 reference guide. See v.2.2002 https://www.rivm.nl/lotos-euros
+
 - Thermal velocity in heteroagglomeration is now calculated according to the temperature of the scale, instead of a constant value of T = 285K. 
 
-As can be observed from Figure 8 and 9, Relative differences become large (>0.8). Most of these differences are attributed to the adjustments in the Dry deposition implementation. 
-```{r comparison of fluxes with test = FALSE, include=TRUE, echo=FALSE, warning=FALSE}
+As can be observed from Figure 8 and 9, Relative differences become large (>0.8). Most of these differences are attributed to the adjustments in the Dry Deposition implementation. 
+```{r comparison of fluxes with test FALSE, include=TRUE, echo=FALSE, warning=FALSE}
 World$SetConst(Test = "FALSE")
 World$UpdateKaas(mergeExisting = FALSE)
 SBexcel.K <- read.xlsx(SBExcelName,
@@ -631,7 +634,7 @@ mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)
 ggplot(mergedkaas, aes(x = to, y = from, color = abs(diff))) + 
   geom_point() +
   scale_color_gradient(low = "green", high = "red", trans = "log10") +
-  ggtitle(paste0("Figure 8: Absolute differences k's between R and excel for ", substance, "with test = FALSE")) +
+  ggtitle(paste0("Figure 8: Absolute differences k's between R and excel for ", substance, "with Test = FALSE")) +
   theme(
     axis.text.y = element_text(size = 12),
     axis.text.x = element_text(angle = 45, hjust = 1, size = 10), 
@@ -641,7 +644,7 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(diff))) +
 ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) + 
   geom_point() +
   scale_color_gradient(low = "green", high = "red") +
-  ggtitle(paste0("Figure 9: Relative differences k's between R and excel for ", substance," with test = False")) +
+  ggtitle(paste0("Figure 9: Relative differences k's between R and excel for ", substance," with Test = FALSE")) +
   theme(
     axis.text.y = element_text(size = 12),
     axis.text.x = element_text(angle = 45, hjust = 1, size = 10), 
