@@ -14,10 +14,11 @@ knitr::opts_chunk$set(warning = FALSE)
 projectRoot <- paste(getwd(), "..", "..", sep = "/")
 knitr::opts_knit$set(root.dir = projectRoot) 
 ```
+#Mass balance of molecules
+In this vignette, we assess the mass balance of the SB model. Due to the nature of the solver, small deviations from 0 are expected. However, we like to investigate the steady state computation for different particles to assess the stability of the solver.
 
 ## Initiation
-
-
+First, we initiate the World with some dummy emissions to a chosen compartment. 
 
 ```{r solver}
 library(dplyr)
@@ -31,7 +32,8 @@ emissions <- data.frame(Abbr = "s1CU",
 emissions$Emis<- emissions$Emis * 1000 / (365.25 * 24 * 60 * 60) # convert 1 t/y to si units: kg/s
 ```
 
-
+## Solvers and substances 
+Here, we solve for three different substances and two different solvers. We solve the equilibrium masses to later compute the mass balance. 
 
 ```{r list}
 # Define the list of substances
@@ -84,93 +86,8 @@ SolutionSteady_all <- do.call(rbind, results_list)
 
 ```
 
-```{r Mass Balance Check for 1}
-# unique_combinations <- SolutionSteady |>
-#   select(Scale, SubCompart, Species) |>
-#   distinct()
-# emission_rows <- unique_combinations |>
-#   mutate(
-#     Value = "emission",
-#     EqMass = if_else(Scale == "Continental" & SubCompart == "river" & Species == "Solid", emissions$Emis, 0)
-#   )
-# 
-# #adding "from" and "to" acronyms to the R K matrix
-# kaas <- as_tibble(World$kaas)
-# kaas <- kaas |>
-#   filter(fromSpecies != "Unbound")
-# kaas <- kaas |>
-#   left_join(SolutionSteady, by = c("fromScale" = "Scale", "fromSubCompart" = "SubCompart", "fromSpecies" = "Species"))
-# 
-# # Multiply k by the corresponding EqMass
-# kaas <- kaas |>
-#   mutate(k = k * EqMass)
-# kaas <- kaas |>
-#   mutate(k = if_else(fromSubCompart == toSubCompart &
-#                        fromScale == toScale &
-#                        fromSpecies == toSpecies,
-#                      -abs(k),
-#                      k))
-# print(kaas)
-# unique(kaas$fromScale)
-# unique(kaas$fromSubCompart)
-# print(kaas)
-# 
-# aggregated_to <- kaas |>
-#   group_by(toScale, toSubCompart, toSpecies) |>
-#   summarise(k_sum_to = sum(k)) |> 
-#   ungroup()
-# 
-# # Aggregate k values based on fromScale, fromSubCompart, and fromSpecies
-# aggregated_from <- kaas |>
-#   filter(k>=0) |>
-#   group_by(fromScale, fromSubCompart, fromSpecies) |>
-#   summarise(k_sum_from = sum(k)) |>
-#   ungroup()
-# 
-# new_rows_from <- aggregated_from |>
-#   mutate(
-#     Value = paste("transportfrom"),
-#     Scale = fromScale,
-#     SubCompart = fromSubCompart,
-#     Species = fromSpecies,
-#     EqMass = k_sum_from
-#   ) |>
-#   select(Value, Scale, SubCompart, Species, EqMass)
-# 
-# new_rows_to <- aggregated_to |>
-#   mutate(
-#     Value= paste("transportto"),
-#     Scale = toScale,
-#     SubCompart = toSubCompart,
-#     Species = toSpecies,
-#     EqMass = k_sum_to
-#   ) |>
-#   select(Value, Scale, SubCompart, Species, EqMass)
-# 
-# # Combine SolutionSteady with new rows
-# massbalancecheck <- bind_rows(new_rows_from, new_rows_to, emission_rows)
-# print(massbalancecheck)
-# 
-# massbalancecheck_sorted <- massbalancecheck |>
-#   arrange(Scale, SubCompart, Species)
-# 
-# massbalance_difference <- massbalancecheck_sorted |>
-#   pivot_wider(names_from = Value, values_from = EqMass) |>
-#   mutate(difference = transportto + emission - transportfrom ) |>
-#   select(Scale, SubCompart, Species, difference) 
-# 
-# print(massbalance_difference)
-# 
-# total_abs_difference <- sum(abs(massbalance_difference$difference), na.rm = TRUE)
-# print(total_abs_difference)
-# 
-# # Find the row with the largest value in the EqMass column
-# max_row_index <- which.max(massbalance_difference$difference)
-# max_row <- massbalance_difference[max_row_index, ]
-# 
-# # Print the row with the largest EqMass value
-# print(max_row)   
-```
+## Mass balance check 
+In this section we compute the mass balances for our compartment of interest and visualize it. We print the top rows and differences. 
 
 ```{r mass balance checks}
 # Initialize lists and data frames
@@ -355,55 +272,8 @@ ggplot(top_rows_all, aes(x = interaction(SubCompart, Scale, Species), y = differ
   facet_wrap(~ Solver, scales = "free", ncol = 2)
 ```
 
-```{r new plot}
-kaas_filtered_ZnII_SB1Solve <- kaas_filtered_all |>
-  filter(Solver == "SB1Solve", Substance == "Zn(II)")
-print("Original data frame:")
-print(kaas_filtered_ZnII_SB1Solve)
 
-# Apply the transformation with an additional column to indicate if the condition is met
-kaas_filtered_ZnII_SB1Solve <- kaas_filtered_ZnII_SB1Solve |>
-  mutate(
-    condition_met = fromSubCompart == "deepocean" & fromScale == "Tropic" ,
-    k = if_else(condition_met, -k, k)
-  )
-
-# Print the updated data frame
-print("Updated data frame:")
-print(kaas_filtered_ZnII_SB1Solve)
-
-
-# Calculate the sum of k_Degradation
-k_Degradation_sum <- sum(kaas_filtered_ZnII_SB1Solve$k[kaas_filtered_ZnII_SB1Solve$process == "k_Degradation"])
-print(k_Degradation_sum)
-
-# Calculate the sum of Desorption, Resuspension, and Sedimentation
-other_processes_sum <- sum(kaas_filtered_ZnII_SB1Solve$k[kaas_filtered_ZnII_SB1Solve$process %in% c("k_Desorption", "k_Resuspension", "k_Sedimentation", "k_Advection")])
-
-kaas_aggregated <- kaas_filtered_ZnII_SB1Solve |>
-  group_by(process) |>
-  mutate(k = if_else(process == "k_Advection", sum(k), k)) |>
-  filter(!duplicated(process))
-
-kaas_aggregated <- kaas_aggregated |>
-    mutate(k = if_else(process == "k_Degradation", -abs(k), k))
-
-
-
-# Calculate the difference
-difference <- other_processes_sum + k_Degradation_sum
-print(difference)
-# Plot the data
-ggplot(kaas_aggregated, aes(x = process, y = k)) +
-  geom_bar(stat = "identity") +
-  theme_minimal() +
-  labs(
-    title = "k values for Zn(II) and SB1Solve at Tropic deep ocean",
-    x = "net Process Flux",
-    y = "k[k*eqMass]"
-  ) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
-```
+Here, we zoom in to what is happening at the individual compartments. 
 
 ```{r all plots}
 library(dplyr)
@@ -476,6 +346,8 @@ for (substance in unique_substances) {
 
 ```
 
+## Sensitivity Analysis 
+To discover the influence of the degradation and dissolution on the mass balance of the particulates, we initiate a sensitivity analysis with different degradation rates and different dissolution rates. 
 ``` {r uncertainty}
 #create loop to test uncertainty 
 World$fetchData("Pvap25")
