@@ -270,7 +270,7 @@ large_differences <- mergedkaas |>
 As can be seen in Figure 4 above, the k's that have a relative difference larger
 than 1 percentile go from water to sediment or from sediment to water. Changing 
 the formula for calculating settling velocity when Test = TRUE for the sedimentation
-and resuspension processes (explained abovo under 'Settling velocity') also solves these differences.
+and resuspension processes (explained above under 'Settling velocity') also solves these differences.
 
 ## Run again with Test=TRUE
 
