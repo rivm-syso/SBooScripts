@@ -1,0 +1,473 @@
+---
+title: "Particulate verification"
+author: "Anne Hids & Valerie de Rijk"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", "..", "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+options(dplyr.summarise.inform=FALSE)
+knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 8)
+```
+
+This vignette demonstrates the verification process of the particulate
+version of Simplebox, in this case for a particle that is not a microplastic.
+First, the k's are compared between R and excel,
+and consequently the steady state masses are compared. 
+
+First, the world needs to be initialized for a substance. In this case, that substance
+is nAg 10nm, which is a particle. 
+
+We will first show the version of the model without adjustments to match the 
+excel version. This will show the differences between excel and R. Consequently,
+we will show the version of the model that was adjusted to match the excel version. 
+This adjusted version should yield the same results as the model in excel, except 
+for rounding differences. 
+
+## Test = TRUE
+```{r Initialize,include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+substance <- "nAg_10nm"
+
+source("baseScripts/initWorld_onlyParticulate.R")
+```
+
+```{r comparison of fluxes with test FALSE, message=FALSE, include=TRUE, echo=FALSE, warning=FALSE}
+
+library(openxlsx)
+library(tidyverse)
+library (ggplot2)
+library(plotly)
+
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4plastics_rev009-1_",substance,".xlsx") 
+
+SBexcel.K <- read.xlsx(SBExcelName,
+                  colNames = FALSE,
+                  namedRegion = "K")
+SBexcel.Names <- read.xlsx(SBExcelName,
+                  colNames = FALSE,
+                  namedRegion = "box_names")
+
+colnames(SBexcel.K) <- SBexcel.Names
+
+SBexcel.K$to <-  as.character(SBexcel.Names)
+
+SBexcel.K <- pivot_longer(SBexcel.K, cols =  as.character(SBexcel.Names), values_to = "k", names_to = "from")
+
+#adding "from" and "to" acronyms to the R K matrix
+kaas <- as_tibble(World$kaas)
+
+#R version does not us the acronyms of the excel version, set-up to convert them
+#Note: this map creates the wrong acronym for soil and sediment at global scale, this is fixed afterwards
+accronym_map <- c("marinesediment" = "sd2",
+                "freshwatersediment" = "sd1",
+                "lakesediment" = "sd0", #SB Excel does not have this compartment. To do: can we turn this off (exclude this compartment) for testing?
+                "agriculturalsoil" = "s2",
+                "naturalsoil" = "s1",
+                "othersoil" = "s3",
+                "air" = "a",
+                "deepocean" = "w3",
+                "sea" = "w2",
+                "river" = "w1",
+                "lake" = "w0", 
+                "cloudwater" = "cw")
+
+accronym_map2 <- c("Arctic" = "A",
+                   "Moderate" = "M",
+                   "Tropic" = "T",
+                   "Continental" = "C",
+                   "Regional" = "R")
+
+accronym_map3 <- c("Dissolved" = "D", 
+                   "Gas" = "G", 
+                   "Large" = "P", 
+                   "Small" = "A",
+                   "Solid" = "S", 
+                   "Unbound" = "U")
+
+# kaas |> filter(fromScale == "Tropic" & process == "k_Degradation") |> print(n=50)
+
+kaas <- kaas |> mutate(from =  paste0(accronym_map[fromSubCompart], 
+                            accronym_map2[fromScale], 
+                            accronym_map3[fromSpecies]),
+               to = paste0(accronym_map[toSubCompart], 
+                           accronym_map2[toScale], 
+                           accronym_map3[toSpecies]))
+
+kaas <-
+  kaas |>
+  mutate(from =
+                   ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") &
+                            (fromSubCompart == "marinesediment" | fromSubCompart == "naturalsoil"),
+                          str_replace_all(from, c("sd2"="sd","s1"="s")),
+                          from)) |>
+  mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") &
+                       (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(to, c("sd2"="sd","s1"="s")), to))
+
+kaas2 <- kaas |>  
+  filter(from != to) |> #filtering the diagonals ou
+  group_by(from, to) %>% summarize(k = sum(k)) #R version sometimes has multiple k's per fromto box; excel only has the summed k's per box
+
+kaas2$fromto <- paste(sep = "_", kaas2$from, kaas2$to)
+
+diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] #all the diagonals in excel are negative values -> sums of all the "froms" of that compartment
+
+#filter out dissolved and gas processes
+
+filtered_excel <- diagonal_excel[!endsWith(diagonal_excel$from, "D"), ]
+filtered_excel <- filtered_excel[!endsWith(filtered_excel$from, "G"), ]
+
+#filter out molecular (unbound) state
+#R model has k values per process, not per box. For the "diagonal" ("from = to") boxes, this is different than in the excel version. summing all the "froms" here to be able to compare them with excel matrix. This should result in one value for each compartment (scale-subcomp-species combo)
+
+diagonal_R <-aggregate(k ~ from, data = kaas, FUN = sum) 
+filtered_R <- diagonal_R[!endsWith(diagonal_R$from, "U"), ]
+      
+#Single dataframe with both the R and excel diagonals
+merged_diagonal <- merge(filtered_R, filtered_excel, by = "from", suffixes = c("_R", "_Excel")) 
+merged_diagonal$k_Excel <- -merged_diagonal$k_Excel #Turning the "negative" values from the Excel matrix into positive ones
+merged_diagonal$diff <- merged_diagonal$k_R - merged_diagonal$k_Excel 
+sorted_diff <- merged_diagonal[order(abs(merged_diagonal$diff), decreasing = TRUE), ] |>
+  mutate(reldif  = abs(diff/k_R))
+
+SBexcel.K <- filter(SBexcel.K, k != 0 & SBexcel.K$from != SBexcel.K$to)
+SBexcel.K$fromto <- paste(sep = "_", SBexcel.K$from, SBexcel.K$to)
+
+mergedkaas <- merge(kaas2, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
+
+mergedkaas$diff <- mergedkaas$k_R - mergedkaas$k_Excel #compare R k to Excel K
+
+mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)  
+
+```
+
+## Compare k's
+
+When comparing k's between R and excel, the goal is that the relative difference
+is less than 1 percentile for each k. The reason is that smaller
+differences often are a result of differences in rounding values between
+excel and R, and not the result of mistakes in calculations or different
+input values. In this vignette two types of k's are compared: diagonal
+k's and from-to k's.
+
+At the time of this verification, some improvements were already made in
+the R version versus the excel version. This meant that some k's differ
+between R and excel, but not because the calculations or input values
+are wrong. In order to still be able to compare the two versions, the
+'Test' variable was created. This variable is a boolean, that can be
+used to calculate some processes in R the same way as in excel for the
+verification without removing the improvements that are made. When this
+test variable was used and why will be explained below.
+
+### Diagonal k's
+
+Diagonal k's are k's that are on the diagonal of the k matrix. They are
+calculated as the sum of all the k's leaving the subcompartment plus the
+sum of the removal process k's (i.e. degradation or burial).
+
+```{r Plot diagonal differences, echo=FALSE, warning=FALSE}
+
+custom_theme <- function() {
+  theme(
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 8), 
+    plot.margin = margin(t = 10, r = 10, b = 30, l = 10)#,
+    #panel.background = element_rect(fill = "white", colour = "grey"),   # White background
+    #panel.grid.major = element_line(colour = "grey")#,                   # Black major grid lines
+    #panel.grid.minor = element_line(colour = "black")                    # Black minor grid lines
+  )
+} 
+
+# Plot of differences of the diagonals per compartment
+ggplot(sorted_diff, aes(x = from, y = diff)) +
+  geom_boxplot() +
+  ggtitle(paste0("Figure 1: Absolute differences removal k's between R and excel for ", substance)) +
+  geom_hline(yintercept = 0.001, color = "red") +
+  geom_hline(yintercept = -0.001, color = "red") +
+  custom_theme()+
+  labs(x = "from", y = "Absolute diff")
+
+# Plot of relative differences of the diagonals per compartment
+ggplot(sorted_diff, aes(x = from, y = reldif)) +
+  geom_boxplot() +
+  ggtitle(paste0("Figure 2: Relative differences removal k's between R and excel for ", substance)) +
+  geom_hline(yintercept = 0.001, color = "red") +
+  geom_hline(yintercept = -0.001, color = "red") +
+  custom_theme()+
+  labs(x = "from", y = "Relative diff")
+```
+
+
+#### Dissolution
+As can be seen in Figure 2 above, there are large relative differences between the 
+diagonal k's in excel and R in the soil compartment. This difference is caused by
+dissolution (kdis) not being implemented in R, whereas it is implemented in excel. 
+When using Test=TRUE, the kdis values in R are added to the kdeg values to recreate
+the removal from soil as it is implemented in excel. 
+
+#### Dry deposition
+The other relative differences between the diagonal k's in excel and R are in the 
+air compartment. This is caused by a difference in the dry deposition process. 
+In R, dry deposition is implemented in a new manner, according to the Loteur v2 
+reference guide. See v.2.2002 <https://www.rivm.nl/lotos-euros>.
+
+When using Test=TRUE, the implementation of dry deposition in R is temporarily 
+set to the old implementation that was used in excel. 
+
+### From-to k's
+
+```{r Plot k differences, echo=FALSE, warning=FALSE}
+# "To" and "from" in one plot
+ggplot(mergedkaas, aes(x = to, y = from, color = abs(diff))) + 
+  geom_point() +
+  scale_color_gradient(low = "green", high = "red", trans = "log10") +
+  ggtitle(paste0("Figure 3: Absolute differences k's between R and excel for ", substance)) +
+  theme(
+    axis.text.y = element_text(hjust = 1, size = 8),
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 8), 
+    plot.margin = margin(t = 10, r = 10, b = 30, l = 10)
+  )
+
+ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) + 
+  geom_point() +
+  scale_color_gradient(low = "green", high = "red") +
+  ggtitle(paste0("Figure 4: Relative differences k's between R and excel for ", substance)) +
+  theme(
+    axis.text.y = element_text(size = 8),
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 8), 
+    plot.margin = margin(t = 10, r = 10, b = 30, l = 10)
+  )
+```
+
+```{r filter large differences, include=FALSE, echo=FALSE}
+large_differences <- mergedkaas |>
+  mutate(relDif = abs(relDif)) |>
+  filter(relDif > 0.001) |>
+  arrange(desc(relDif))
+```
+
+#### Dry deposition
+As can be seen in Figure 4, the largest relative differences in k's between R and
+excel are in the k's from air to soil and water. These differences can also be 
+attributed to the different implementation of the dry deposition process between 
+excel and R.
+
+#### Thermal velocity heteroagglomeration
+A smaller difference that was found between the k's in R and excel is the value 
+for thermal velocity in heteroagglomeration. In excel, a constant value of 285K 
+was used. In R, this value was updated by calculating the value specifically 
+for the temperature of the current scale. 
+
+## Run again with Test=TRUE
+
+Now the value for the Test variable can be changed to TRUE, and the difference
+in k's between excel and R can be tested again: 
+
+```{r include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+World$SetConst(Test = "TRUE")
+World$UpdateKaas(mergeExisting = FALSE)
+
+ProcessNanoFunctions <- c("k_Advection", "k_Burial",
+                         "k_HeteroAgglomeration.a", "k_HeteroAgglomeration.wsd",
+                         "k_CWscavenging", "k_Degradation",
+                         "k_DryDeposition", "k_Erosion", "k_Escape",
+                         "k_Leaching", "k_Resuspension", "k_Runoff", "k_Sedimentation",
+                        "k_WetDeposition")
+
+
+
+SBexcel.K <- read.xlsx(SBExcelName,
+                  colNames = FALSE,
+                  namedRegion = "K")
+SBexcel.Names <- read.xlsx(SBExcelName,
+                  colNames = FALSE,
+                  namedRegion = "box_names")
+
+colnames(SBexcel.K) <- SBexcel.Names
+
+SBexcel.K$to <-  as.character(SBexcel.Names)
+
+SBexcel.K <- pivot_longer(SBexcel.K, cols =  as.character(SBexcel.Names), values_to = "k", names_to = "from")
+
+#adding "from" and "to" acronyms to the R K matrix
+kaas <- as_tibble(World$kaas)
+
+#R version does not us the acronyms of the excel version, set-up to convert them
+#Note: this map creates the wrong acronym for soil and sediment at global scale, this is fixed afterwards
+accronym_map <- c("marinesediment" = "sd2",
+                "freshwatersediment" = "sd1",
+                "lakesediment" = "sd0", #SB Excel does not have this compartment. To do: can we turn this off (exclude this compartment) for testing?
+                "agriculturalsoil" = "s2",
+                "naturalsoil" = "s1",
+                "othersoil" = "s3",
+                "air" = "a",
+                "deepocean" = "w3",
+                "sea" = "w2",
+                "river" = "w1",
+                "lake" = "w0", 
+                "cloudwater" = "cw")
+
+accronym_map2 <- c("Arctic" = "A",
+                   "Moderate" = "M",
+                   "Tropic" = "T",
+                   "Continental" = "C",
+                   "Regional" = "R")
+
+accronym_map3 <- c("Dissolved" = "D", 
+                   "Gas" = "G", 
+                   "Large" = "P", 
+                   "Small" = "A",
+                   "Solid" = "S", 
+                   "Unbound" = "U")
+
+# kaas |> filter(fromScale == "Tropic" & process == "k_Degradation") |> print(n=50)
+
+kaas <- kaas |> mutate(from =  paste0(accronym_map[fromSubCompart], 
+                            accronym_map2[fromScale], 
+                            accronym_map3[fromSpecies]),
+               to = paste0(accronym_map[toSubCompart], 
+                           accronym_map2[toScale], 
+                           accronym_map3[toSpecies]))
+
+kaas <-
+  kaas |>
+  mutate(from =
+                   ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") &
+                            (fromSubCompart == "marinesediment" | fromSubCompart == "naturalsoil"),
+                          str_replace_all(from, c("sd2"="sd","s1"="s")),
+                          from)) |>
+  mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") &
+                       (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(to, c("sd2"="sd","s1"="s")), to))
+
+kaas2 <- kaas |>  
+  filter(from != to) |> #filtering the diagonals ou
+  group_by(from, to) %>% summarize(k = sum(k)) #R version sometimes has multiple k's per fromto box; excel only has the summed k's per box
+
+kaas2$fromto <- paste(sep = "_", kaas2$from, kaas2$to)
+
+diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] #all the diagonals in excel are negative values -> sums of all the "froms" of that compartment
+
+#filter out dissolved and gas processes
+
+filtered_excel <- diagonal_excel[!endsWith(diagonal_excel$from, "D"), ]
+filtered_excel <- filtered_excel[!endsWith(filtered_excel$from, "G"), ]
+
+#filter out molecular (unbound) state
+#R model has k values per process, not per box. For the "diagonal" ("from = to") boxes, this is different than in the excel version. summing all the "froms" here to be able to compare them with excel matrix. This should result in one value for each compartment (scale-subcomp-species combo)
+
+diagonal_R <-aggregate(k ~ from, data = kaas, FUN = sum) 
+filtered_R <- diagonal_R[!endsWith(diagonal_R$from, "U"), ]
+
+#Single dataframe with both the R and excel diagonals
+merged_diagonal <- merge(filtered_R, filtered_excel, by = "from", suffixes = c("_R", "_Excel")) 
+merged_diagonal$k_Excel <- -merged_diagonal$k_Excel #Turning the "negative" values from the Excel matrix into positive ones
+merged_diagonal$diff <- merged_diagonal$k_R - merged_diagonal$k_Excel 
+sorted_diff <- merged_diagonal[order(abs(merged_diagonal$diff), decreasing = TRUE), ] |>
+  mutate(reldif  = abs(diff/k_R))
+
+SBexcel.K <- filter(SBexcel.K, k != 0 & SBexcel.K$from != SBexcel.K$to)
+SBexcel.K$fromto <- paste(sep = "_", SBexcel.K$from, SBexcel.K$to)
+
+mergedkaas <- merge(kaas2, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
+
+mergedkaas$diff <- mergedkaas$k_R - mergedkaas$k_Excel #compare R k to Excel K
+
+mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)  
+```
+
+```{r Plots test TRUE, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+# Plot of relative differences of the diagonals per compartment
+ggplot(sorted_diff, aes(x = from, y = reldif)) +
+  geom_boxplot() +
+  ggtitle(paste0("Figure 5: Relative differences removal k's between R and excel for ", substance)) +
+  geom_hline(yintercept = 0.001, color = "red") +
+  geom_hline(yintercept = -0.001, color = "red") +
+  custom_theme()+
+  labs(x = "from", y = "Relative diff")
+
+ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) + 
+  geom_point() +
+  scale_color_gradient(low = "green", high = "red") +
+  ggtitle(paste0("Figure 6: Relative differences k's between R and excel for ", substance)) +
+  theme(
+    axis.text.y = element_text(size = 8),
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 8), 
+    plot.margin = margin(t = 10, r = 10, b = 30, l = 10)
+  )
+```
+
+As can be seen in Figures 5 and 6, there are no k's with a relative difference
+large than 1 percentile between excel and R when Test=TRUE.
+
+## Compare steady state emissions
+
+The steady state masses in R and Excel were compared by calculating the
+relative differences between the masses in R and Excel (Figure 5). The
+figure shows that all masses between R and Excel relatively differ less
+than 1 percentile.
+
+```{r comparison of steady state emissions using SB1Solve, include= TRUE, echo= FALSE, warning=FALSE}
+
+library(stringi)
+
+World$NewSolver("SB1Solve")
+
+emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), Emis = c(10000, 10000, 10000) ) # convert 1 t/y to si units: kg/s
+
+MW <- World$fetchData("MW")
+
+emissions <- emissions |>
+  mutate(Emis = Emis*1000/(365*24*60*60))
+
+SSsolve.R <- World$Solve(emissions)
+
+SSsolve.excel <- read.xlsx(SBExcelName,
+                             sheet=8,
+                             colNames=TRUE,
+                             rows=c(167,169))
+
+SSsolve.excel <- SSsolve.excel |>
+  select(-c(STEADY.STATE)) |>
+  pivot_longer(names_to = "Abbr", values_to = "EqMass", cols = everything())  |>
+  mutate(Species = case_when(
+    substr(Abbr, nchar(Abbr), nchar(Abbr)) == "G" ~ "Gas",
+    substr(Abbr, nchar(Abbr), nchar(Abbr)) == "D" ~ "Dissolved",
+    substr(Abbr, nchar(Abbr), nchar(Abbr)) == "P" ~ "Large",
+    substr(Abbr, nchar(Abbr), nchar(Abbr)) == "A" ~ "Small",
+    substr(Abbr, nchar(Abbr), nchar(Abbr)) == "U" ~ "Unbound",
+    substr(Abbr, nchar(Abbr), nchar(Abbr)) == "S" ~ "Solid",
+    TRUE ~ "Other"
+  )) |>
+  filter(EqMass != 0) |>
+  mutate(Abbr = str_sub(Abbr, 1, -2))
+
+SSsolve.R <- SSsolve.R |> mutate(Abbr =  paste0(accronym_map[SubCompart], 
+                            accronym_map2[Scale])) |>
+  filter(EqMass != 0)
+
+merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by=c("Abbr", "Species"), suffixes = c(".R", ".Excel")) |>
+  mutate(absdiff = EqMass.R-EqMass.Excel) |>
+  mutate(reldiff = absdiff/EqMass.R) |>
+  mutate(Abbr = case_when(
+    Species == "Large" ~ paste0(Abbr,"P"),
+    Species == "Small" ~ paste0(Abbr,"A"),
+    Species == "Solid" ~ paste0(Abbr,"S"),
+    TRUE ~ "Other"
+  ))
+
+#Diff per "to" compartment
+ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
+  geom_boxplot() +
+  ggtitle(paste0("Figure 5: Relative differences between steady state masses in excel and R (SB1solve) - ", substance)) +
+  geom_hline(yintercept = 0.001, color="red") +
+  geom_hline(yintercept = -0.001, color="red") +
+  custom_theme() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
+```

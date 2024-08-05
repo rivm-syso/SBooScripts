@@ -136,7 +136,7 @@ mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)
 ```
 
 ## Compare k's
-When comparing k's between R and excel, the goal is that the difference is less
+When comparing k's between R and excel, the goal is that the relative difference is less
 than 1 percentile for each k. The reason is that smaller differences often are 
 a result of differences in rounding values between excel and R, and not the result
 of mistakes in calculations or different input values. In this vignette two types of 
@@ -270,7 +270,7 @@ large_differences <- mergedkaas |>
 As can be seen in Figure 4 above, the k's that have a relative difference larger
 than 1 percentile go from water to sediment or from sediment to water. Changing 
 the formula for calculating settling velocity when Test = TRUE for the sedimentation
-and resuspension processes (explained abovo under 'Settling velocity') also solves these differences.
+and resuspension processes (explained above under 'Settling velocity') also solves these differences.
 
 ## Run again with Test=TRUE
 
