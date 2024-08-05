@@ -1,7 +1,7 @@
 Molecular verification - acid
 ================
 Anne Hids
-2024-07-24
+2024-08-05
 
 This vignette demonstrates the verification process of the molecular
 version of Simplebox for a substance of class ‘acid’. First, the k’s are
