@@ -244,11 +244,13 @@ large_differences <- mergedkaas |>
   arrange(desc(relDif))
 ```
 
+#### Dry deposition
 As can be seen in Figure 4, the largest relative differences in k's between R and
 excel are in the k's from air to soil and water. These differences can also be 
 attributed to the different implementation of the dry deposition process between 
 excel and R.
 
+#### Thermal velocity heteroagglomeration
 A smaller difference that was found between the k's in R and excel is the value 
 for thermal velocity in heteroagglomeration. In excel, a constant value of 285K 
 was used. In R, this value was updated by calculating the value specifically 

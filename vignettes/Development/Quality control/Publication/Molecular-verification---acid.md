@@ -30,12 +30,12 @@ source("baseScripts/initWorld_onlyMolec.R")
 
 ## Compare k’s
 
-When comparing k’s between R and excel, the goal is that the difference
-is less than 1 percentile for each k. The reason is that smaller
-differences often are a result of differences in rounding values between
-excel and R, and not the result of mistakes in calculations or different
-input values. In this vignette two types of k’s are compared: diagonal
-k’s and from-to k’s.
+When comparing k’s between R and excel, the goal is that the relative
+difference is less than 1 percentile for each k. The reason is that
+smaller differences often are a result of differences in rounding values
+between excel and R, and not the result of mistakes in calculations or
+different input values. In this vignette two types of k’s are compared:
+diagonal k’s and from-to k’s.
 
 At the time of this verification, some improvements were already made in
 the R version versus the excel version. This meant that some k’s differ

@@ -63,10 +63,14 @@ temporarily set to the old implementation that was used in excel.
 
 ![](Microplastic_verification_files/figure-gfm/Plot%20k%20differences-1.png)<!-- -->![](Microplastic_verification_files/figure-gfm/Plot%20k%20differences-2.png)<!-- -->
 
+#### Dry deposition
+
 As can be seen in Figure 4, the largest relative differences in k’s
 between R and excel are in the k’s from air to soil and water. These
 differences can also be attributed to the different implementation of
 the dry deposition process between excel and R.
+
+#### Thermal velocity heteroagglomeration
 
 A smaller difference that was found between the k’s in R and excel is
 the value for thermal velocity in heteroagglomeration. In excel, a

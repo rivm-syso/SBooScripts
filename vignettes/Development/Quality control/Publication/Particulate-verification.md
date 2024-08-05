@@ -51,12 +51,16 @@ sum of the removal process k’s (i.e. degradation or burial).
 
 ![](Particulate-verification_files/figure-gfm/Plot%20diagonal%20differences-1.png)<!-- -->![](Particulate-verification_files/figure-gfm/Plot%20diagonal%20differences-2.png)<!-- -->
 
+#### Dissolution
+
 As can be seen in Figure 2 above, there are large relative differences
 between the diagonal k’s in excel and R in the soil compartment. This
 difference is caused by dissolution (kdis) not being implemented in R,
 whereas it is implemented in excel. When using Test=TRUE, the kdis
 values in R are added to the kdeg values to recreate the removal from
 soil as it is implemented in excel.
+
+#### Dry deposition
 
 The other relative differences between the diagonal k’s in excel and R
 are in the air compartment. This is caused by a difference in the dry
@@ -71,10 +75,14 @@ temporarily set to the old implementation that was used in excel.
 
 ![](Particulate-verification_files/figure-gfm/Plot%20k%20differences-1.png)<!-- -->![](Particulate-verification_files/figure-gfm/Plot%20k%20differences-2.png)<!-- -->
 
+#### Dry deposition
+
 As can be seen in Figure 4, the largest relative differences in k’s
 between R and excel are in the k’s from air to soil and water. These
 differences can also be attributed to the different implementation of
 the dry deposition process between excel and R.
+
+#### Thermal velocity heteroagglomeration
 
 A smaller difference that was found between the k’s in R and excel is
 the value for thermal velocity in heteroagglomeration. In excel, a
