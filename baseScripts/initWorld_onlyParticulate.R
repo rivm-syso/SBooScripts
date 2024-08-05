@@ -43,7 +43,7 @@ sapply(paste("k", ParProcesses, sep = "_"), World$NewProcess)
 #add all flows, they are all part of "Advection"
 FluxDefFunctions <- names(AllF) %>% startsWith("x_")
 sapply(names(AllF)[FluxDefFunctions], World$NewFlow)
-World$SetConst(Test = "TRUE")
+World$SetConst(Test = "FALSE")
 #derive needed variables
 World$VarsFromprocesses()
 
