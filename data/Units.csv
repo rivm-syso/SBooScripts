@@ -7,7 +7,7 @@
 "C.OHrad",6,6,6,6,"cm-3","","ScaleSheet","OH-radical concentration"
 "C.OHrad.n",7,7,7,7,"cm-3","","CONSTANTS",""
 "ChemClass",8,8,8,8,"-","","Substances",""
-"COL",9,9,9,105,"mg.L-1","COL/1000","SubcompartSheet","mass CONCENTRATION Natural Colloids in water"
+"coloidConc",9,9,9,105,"mg.L-1","coloidConc/1000","SubcompartSheet","mass CONCENTRATION Natural Colloids in water"
 "COLLECTeff",10,10,10,101,"-","","ScaleSheet","Aerosol COLLECTION EFFICIENCY"
 "ColRad",11,11,11,11,"m","","SubcompartSheet","Land surface particle collector radius [m] appendix A of LOTEUR."
 "ContinentalInModerate",12,12,12,12,"boolean","","CONSTANTS",""
