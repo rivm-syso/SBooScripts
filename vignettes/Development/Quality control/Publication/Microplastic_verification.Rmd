@@ -204,6 +204,7 @@ ggplot(sorted_diff, aes(x = from, y = reldif)) +
   labs(x = "from", y = "Relative diff")
 ```
 
+#### Dry deposition
 As can be seen in Figure 2 above, the only relative differences between the diagonal
 k's in excel and R are in the air compartment. This is caused by a difference in 
 the dry deposition process. In R, dry deposition is implemented in a new manner, 
@@ -400,7 +401,7 @@ large than 1 percentile between excel and R when Test=TRUE.
 ## Compare steady state emissions
 
 The steady state masses in R and Excel were compared by calculating the
-relative differences between the masses in R and Excel (Figure 5). The
+relative differences between the masses in R and Excel (Figure 7). The
 figure shows that all masses between R and Excel relatively differ less
 than 1 percentile.
 
@@ -456,7 +457,7 @@ merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by=c("Abbr", "Species"), suffix
 #Diff per "to" compartment
 ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
   geom_boxplot() +
-  ggtitle(paste0("Figure 5: Relative differences between steady state masses in excel and R (SB1solve) - ", substance)) +
+  ggtitle(paste0("Figure 7: Relative differences between steady state masses in excel and R (SB1solve) - ", substance)) +
   geom_hline(yintercept = 0.001, color="red") +
   geom_hline(yintercept = -0.001, color="red") +
   custom_theme() + 

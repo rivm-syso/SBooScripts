@@ -1,7 +1,7 @@
 Microplastic verification
 ================
 Anne Hids & Valerie de Rijk
-2024-08-05
+2024-08-06
 
 This vignette demonstrates the verification process of the particulate
 version of Simplebox, in this case for microplastics. First, the k’s are
@@ -50,6 +50,8 @@ sum of the removal process k’s (i.e. degradation or burial).
 
 ![](Microplastic_verification_files/figure-gfm/Plot%20diagonal%20differences-1.png)<!-- -->![](Microplastic_verification_files/figure-gfm/Plot%20diagonal%20differences-2.png)<!-- -->
 
+#### Dry deposition
+
 As can be seen in Figure 2 above, the only relative differences between
 the diagonal k’s in excel and R are in the air compartment. This is
 caused by a difference in the dry deposition process. In R, dry
@@ -94,7 +96,7 @@ difference large than 1 percentile between excel and R when Test=TRUE.
 ## Compare steady state emissions
 
 The steady state masses in R and Excel were compared by calculating the
-relative differences between the masses in R and Excel (Figure 5). The
+relative differences between the masses in R and Excel (Figure 7). The
 figure shows that all masses between R and Excel relatively differ less
 than 1 percentile.
 
