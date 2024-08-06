@@ -32,7 +32,8 @@ we will show the version of the model that was adjusted to match the excel versi
 This adjusted version should yield the same results as the model in excel, except 
 for rounding differences. 
 
-## Test = TRUE
+## Run the model without adjustments
+
 ```{r Initialize,include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 substance <- "nAg_10nm"
 
@@ -409,7 +410,7 @@ large than 1 percentile between excel and R when Test=TRUE.
 ## Compare steady state emissions
 
 The steady state masses in R and Excel were compared by calculating the
-relative differences between the masses in R and Excel (Figure 5). The
+relative differences between the masses in R and Excel (Figure 7). The
 figure shows that all masses between R and Excel relatively differ less
 than 1 percentile.
 
@@ -465,7 +466,7 @@ merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by=c("Abbr", "Species"), suffix
 #Diff per "to" compartment
 ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
   geom_boxplot() +
-  ggtitle(paste0("Figure 5: Relative differences between steady state masses in excel and R (SB1solve) - ", substance)) +
+  ggtitle(paste0("Figure 7: Relative differences between steady state masses in excel and R (SB1solve) - ", substance)) +
   geom_hline(yintercept = 0.001, color="red") +
   geom_hline(yintercept = -0.001, color="red") +
   custom_theme() + 

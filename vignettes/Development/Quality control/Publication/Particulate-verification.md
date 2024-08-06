@@ -1,7 +1,7 @@
 Particulate verification
 ================
 Anne Hids & Valerie de Rijk
-2024-08-05
+2024-08-06
 
 This vignette demonstrates the verification process of the particulate
 version of Simplebox, in this case for a particle that is not a
@@ -17,7 +17,7 @@ Consequently, we will show the version of the model that was adjusted to
 match the excel version. This adjusted version should yield the same
 results as the model in excel, except for rounding differences.
 
-## Test = TRUE
+## Run the model without adjustments
 
 ``` r
 substance <- "nAg_10nm"
@@ -106,7 +106,7 @@ difference large than 1 percentile between excel and R when Test=TRUE.
 ## Compare steady state emissions
 
 The steady state masses in R and Excel were compared by calculating the
-relative differences between the masses in R and Excel (Figure 5). The
+relative differences between the masses in R and Excel (Figure 7). The
 figure shows that all masses between R and Excel relatively differ less
 than 1 percentile.
 
