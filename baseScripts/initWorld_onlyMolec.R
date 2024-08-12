@@ -24,7 +24,7 @@ if (is.na(World$fetchData("pKa"))) {
 }
 
 # if substance is set; pKa and other substance properties will be set according the table, see
-World$substance <- "(4-Chloro-2-methylphenoxy)acetic acid compd. with N-Methylmethanamine (1:1)"
+#sWorld$substance <- "(4-Chloro-2-methylphenoxy)acetic acid compd. with N-Methylmethanamine (1:1)"
 World$fetchData("pKa")
 
 if (World$fetchData("ChemClass")==("")) {
@@ -51,7 +51,7 @@ World$VarsFromprocesses()
 
 World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
 
-#World$UpdateKaas()
+World$UpdateKaas()
 
 # for solving, as an example
 # emissions <- data.frame(Abbr = "aRU", Emis = 1000)

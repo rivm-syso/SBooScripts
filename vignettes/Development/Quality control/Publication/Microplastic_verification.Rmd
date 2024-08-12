@@ -38,9 +38,7 @@ for rounding differences.
 Substance <- "microplastic"
 source("baseScripts/initWorld_onlyPlastics.R")
 
-World$SetConst(substance = Substance)
-
-World$UpdateKaas()
+World$substance <- Substance
 
 substance <- World$fetchData("substance")
 
