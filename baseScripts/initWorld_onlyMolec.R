@@ -9,6 +9,8 @@ ClassicStateModule <- ClassicNanoWorld$new("data") #by default Substance = "defa
 #with this data we create an instance of the central "core" object,
 World <- SBcore$new(ClassicStateModule)
 
+World$filterStates <- list(SpeciesName = "Molecular")
+
 # To proceed with testing we set
 if (is.na(World$fetchData("kdis"))) {
   warning("kdis is missing, setting kdis = 1e-20")
@@ -24,8 +26,6 @@ if (is.na(World$fetchData("pKa"))) {
 # if substance is set; pKa and other substance properties will be set according the table, see
 World$substance <- "(4-Chloro-2-methylphenoxy)acetic acid compd. with N-Methylmethanamine (1:1)"
 World$fetchData("pKa")
-
-World$filterStates(SpeciesName = "Molecular")
 
 if (World$fetchData("ChemClass")==("")) {
   warning("ChemClass is needed but missing, setting to neutral")
@@ -51,9 +51,9 @@ World$VarsFromprocesses()
 
 World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
 
-World$UpdateKaas()
+#World$UpdateKaas()
 
-#for solving, as an example 
+# for solving, as an example
 # emissions <- data.frame(Abbr = "aRU", Emis = 1000)
 # 
 # World$NewSolver("SB1Solve")

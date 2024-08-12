@@ -42,11 +42,12 @@ Substance <- Potential_substances[2]
 
 source("baseScripts/initWorld_onlyMolec.R")
 
-World$SetConst(substance = Substance)
 
-World$UpdateKaas()
+World$substance <- Substance
 
-substance <- World$fetchData("substance")
+World$UpdateDirty()
+
+substance <- World$substance
 ```
 
 ```{r data xlsx and R, echo=FALSE, warning=FALSE}

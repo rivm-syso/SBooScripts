@@ -35,8 +35,15 @@ for rounding differences.
 ## Run the model without adjustments
 
 ```{r Initialize,include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
-substance <- "microplastic"
+Substance <- "microplastic"
 source("baseScripts/initWorld_onlyPlastics.R")
+
+World$SetConst(substance = Substance)
+
+World$UpdateKaas()
+
+substance <- World$fetchData("substance")
+
 ```
 
 ```{r comparison of fluxes with test FALSE, message=FALSE, include=TRUE, echo=FALSE, warning=FALSE}
