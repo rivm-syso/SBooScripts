@@ -38,6 +38,8 @@ substance <- "GO-Chitosan"
 source("baseScripts/initWorld_onlyParticulate.R")
 #source("baseScripts/initworld_onlyMolec.R")
 
+World$substance <- substance
+
 length(unique(World$kaas$process))
 
 ProcessNanoFunctions <- c("k_Advection", "k_Burial",

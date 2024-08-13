@@ -1,7 +1,7 @@
 Microplastic verification
 ================
 Anne Hids & Valerie de Rijk
-2024-08-06
+2024-08-13
 
 This vignette demonstrates the verification process of the particulate
 version of Simplebox, in this case for microplastics. First, the k’s are
@@ -22,16 +22,18 @@ results as the model in excel, except for rounding differences.
 ``` r
 substance <- "microplastic"
 source("baseScripts/initWorld_onlyPlastics.R")
+
+World$substance <- substance
 ```
 
 ## Compare k’s
 
 When comparing k’s between R and excel, the goal is that the relative
-difference is less than 1 percentile for each k. The reason is that
-smaller differences often are a result of differences in rounding values
-between excel and R, and not the result of mistakes in calculations or
-different input values. In this vignette two types of k’s are compared:
-diagonal k’s and from-to k’s.
+difference is less than 0.001 for each k. The reason is that smaller
+differences often are a result of differences in rounding values between
+excel and R, and not the result of mistakes in calculations or different
+input values. In this vignette two types of k’s are compared: diagonal
+k’s and from-to k’s.
 
 At the time of this verification, some improvements were already made in
 the R version versus the excel version. This meant that some k’s differ
@@ -91,13 +93,13 @@ difference in k’s between excel and R can be tested again:
 ![](Microplastic_verification_files/figure-gfm/Plots%20test%20TRUE-1.png)<!-- -->![](Microplastic_verification_files/figure-gfm/Plots%20test%20TRUE-2.png)<!-- -->
 
 As can be seen in Figures 5 and 6, there are no k’s with a relative
-difference large than 1 percentile between excel and R when Test=TRUE.
+difference large than 0.001 between excel and R when Test=TRUE.
 
 ## Compare steady state emissions
 
 The steady state masses in R and Excel were compared by calculating the
 relative differences between the masses in R and Excel (Figure 7). The
 figure shows that all masses between R and Excel relatively differ less
-than 1 percentile.
+than 0.001.
 
 ![](Microplastic_verification_files/figure-gfm/comparison%20of%20steady%20state%20emissions%20using%20SB1Solve-1.png)<!-- -->

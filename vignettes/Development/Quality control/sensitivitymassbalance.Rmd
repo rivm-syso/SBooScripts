@@ -64,6 +64,9 @@ for (solver in solvers) {
     
     # Initialize the world with the current substance
     source("baseScripts/initWorld_onlyMolec.R")
+    
+    World$substance <- substance
+    
     World$NewSolver(solver)
   
     # Solve for the steady solution
