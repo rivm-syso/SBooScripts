@@ -423,6 +423,8 @@ MW <- World$fetchData("MW")
 emissions <- emissions |>
   mutate(Emis = Emis*1000/(365*24*60*60))
 
+is.data.frame(emissions)
+
 SSsolve.R <- World$Solve(emissions)
 
 SSsolve.excel <- read.xlsx(SBExcelName,
