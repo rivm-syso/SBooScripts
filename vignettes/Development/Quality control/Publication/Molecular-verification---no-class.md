@@ -24,7 +24,7 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "Sb(III)" # metal
                           ) 
               
-substance <- Potential_substances[4]
+substance <- Potential_substances[1]
 
 source("baseScripts/initWorld_onlyMolec.R")
 

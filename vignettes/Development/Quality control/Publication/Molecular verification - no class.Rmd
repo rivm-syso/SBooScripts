@@ -44,9 +44,6 @@ substance <- Potential_substances[1]
 source("baseScripts/initWorld_onlyMolec.R")
 
 World$substance <- substance
-
-World$SetConst(ChemClass= "neutral")
-World$UpdateKaas(mergeExisting = FALSE)
 ```
 
 ```{r data xlsx and R, echo=FALSE, warning=FALSE}
