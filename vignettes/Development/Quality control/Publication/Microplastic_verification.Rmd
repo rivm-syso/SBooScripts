@@ -40,7 +40,7 @@ source("baseScripts/initWorld_onlyPlastics.R")
 
 World$substance <- Substance
 
-substance <- World$fetchData("substance")
+substance <- World$substance
 
 ```
 
@@ -156,7 +156,7 @@ mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)
 ## Compare k's
 
 When comparing k's between R and excel, the goal is that the relative difference
-is less than 1 percentile for each k. The reason is that smaller
+is less than 0.001 for each k. The reason is that smaller
 differences often are a result of differences in rounding values between
 excel and R, and not the result of mistakes in calculations or different
 input values. In this vignette two types of k's are compared: diagonal
@@ -386,7 +386,7 @@ ggplot(sorted_diff, aes(x = from, y = reldif)) +
   ggtitle(paste0("Figure 5: Relative differences removal k's between R and excel for ", substance)) +
   geom_hline(yintercept = 0.001, color = "red") +
   geom_hline(yintercept = -0.001, color = "red") +
-  custom_theme()+
+  #custom_theme()+
   labs(x = "from", y = "Relative diff")
 
 ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) + 
@@ -401,14 +401,14 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
 ```
 
 As can be seen in Figures 5 and 6, there are no k's with a relative difference
-large than 1 percentile between excel and R when Test=TRUE.
+large than 0.001 between excel and R when Test=TRUE.
 
 ## Compare steady state emissions
 
 The steady state masses in R and Excel were compared by calculating the
 relative differences between the masses in R and Excel (Figure 7). The
 figure shows that all masses between R and Excel relatively differ less
-than 1 percentile.
+than 0.001.
 
 ```{r comparison of steady state emissions using SB1Solve, include= TRUE, echo= FALSE, warning=FALSE}
 
