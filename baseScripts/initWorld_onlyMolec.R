@@ -17,20 +17,6 @@ if (is.na(World$fetchData("kdis"))) {
   World$SetConst(kdis = 0)
 }
 
-# To proceed with testing we set pKa
-if (is.na(World$fetchData("pKa"))) {
-  warning("pKa is needed but missing, setting pKa=7")
-  World$SetConst(pKa = 7)
-}
-
-# if substance is set; pKa and other substance properties will be set according the table, see
-#sWorld$substance <- "(4-Chloro-2-methylphenoxy)acetic acid compd. with N-Methylmethanamine (1:1)"
-World$fetchData("pKa")
-
-if (World$fetchData("ChemClass")==("")) {
-  warning("ChemClass is needed but missing, setting to neutral")
-  World$SetConst(ChemClass = "neutral")
-}
 World$SetConst(DragMethod = "Original")
 AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
