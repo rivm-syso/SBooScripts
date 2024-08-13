@@ -17,6 +17,11 @@ if (is.na(World$fetchData("kdis"))) {
   World$SetConst(kdis = 0)
 }
 
+if (World$fetchData("ChemClass")==("")) {
+  warning("ChemClass is needed but missing, setting to neutral")
+  World$SetConst(ChemClass = "neutral")
+}
+
 World$SetConst(DragMethod = "Original")
 AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")

@@ -39,13 +39,14 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "Sb(III)" # metal
                           ) 
               
-Substance <- Potential_substances[1]
+substance <- Potential_substances[1]
 
 source("baseScripts/initWorld_onlyMolec.R")
 
-World$substance <- Substance
+World$substance <- substance
 
-substance <- World$substance
+World$SetConst(ChemClass= "neutral")
+World$UpdateKaas(mergeExisting = FALSE)
 ```
 
 ```{r data xlsx and R, echo=FALSE, warning=FALSE}

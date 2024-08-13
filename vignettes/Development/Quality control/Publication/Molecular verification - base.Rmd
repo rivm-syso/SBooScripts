@@ -37,14 +37,11 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "Sb(III)" # metal
                           ) 
               
-Substance <- Potential_substances[3]
+substance <- Potential_substances[3]
 
 source("baseScripts/initWorld_onlyMolec.R")
 
-World$substance <- Substance
-
-substance <- World$substance
-
+World$substance <- substance
 ```
 
 ```{r data xlsx and R, echo=FALSE, warning=FALSE}

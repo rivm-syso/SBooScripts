@@ -35,13 +35,10 @@ for rounding differences.
 ## Run the model without adjustments
 
 ```{r Initialize,include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
-Substance <- "microplastic"
+substance <- "microplastic"
 source("baseScripts/initWorld_onlyPlastics.R")
 
-World$substance <- Substance
-
-substance <- World$substance
-
+World$substance <- substance
 ```
 
 ```{r comparison of fluxes with test FALSE, message=FALSE, include=TRUE, echo=FALSE, warning=FALSE}
@@ -422,8 +419,6 @@ MW <- World$fetchData("MW")
 
 emissions <- emissions |>
   mutate(Emis = Emis*1000/(365*24*60*60))
-
-is.data.frame(emissions)
 
 SSsolve.R <- World$Solve(emissions)
 
