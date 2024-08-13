@@ -43,7 +43,7 @@ We need the following properties for the GO-Chitosan related particles:
 
 -   Other 'unknown' variables, such as attachment efficiency, etc.
 
-| Property             | GO-Chitosan     | GO              | Chitoson         |
+| Property             | GO-Chitosan     | GO              | Chitosan         |
 |----------------------|-----------------|-----------------|------------------|
 | Shape                | Sheet-like      | Flake           | Fragment         |
 | Size - square (LxB)  | 70 - 90 (80) um | 70 - 90 (80) um | 100-200 (150) nm |
@@ -437,6 +437,7 @@ plot(Solution$time,Solution$aCS)
 
 ```
 
+## Prepping of removal as input for other particles
 To be able to solve for seperate GO or Chitosan, we need to obtain the fluxes representing the removal processes. We first need to use the engine to get the processes (k) from and to each compartment with usable abbreviations. 
 ```{r getting fluxes/prepping kaas}
 World$kaas
@@ -480,10 +481,77 @@ kaas <- kaas |> mutate(from =  paste0(accronym_map[fromSubCompart],
 
 ```
 
+Now, we transpose are solution and combine it with the k's so that we can obtain fluxes (in kg/s) of the processes. We will use the degradation rate to further determine the fate of GO and Chitosan
 ```{r}
-solution_transposed <- t(Solution)
+solution_transposed <- as.data.frame(t(Solution))
 colnames(solution_transposed) <- solution_transposed[1, ]
+solution_transposed$from <- rownames(solution_transposed)
 # Remove the first row as it's now the column names
 solution_transposed <- solution_transposed[-1, ]
+kaas_time <- merge(kaas, solution_transposed, by = "from")
+
+kaas_time <- kaas_time |>
+  # Step 1: Multiply numeric columns by the 'k' column
+  mutate(across(where(is.numeric), ~ . * k)) |>
+  # Step 2: Make values negative if 'from' and 'to' abbreviations are the same
+  mutate(across(where(is.numeric), ~ if_else(from == to, -., .)))
+
+removal <- kaas_time |>
+  # Filter rows where 'from' and 'to' columns are the same
+  filter(from == to)
+degradation <- kaas_time |>
+  # Filter rows where 'process' is 'k_degradation' and 'from' and 'to' are the same
+  filter(process == "k_Degradation", from == to)
+```
+
+We will assume that 15% of the mass degrades directly into products that will not be followed. The other 85% will degrade into both Graphene Oxide and Chitosan. For that, we will follow the earlier assumption made: : The density of GO-chitosan is approximated by 1/8 \* dens_Graphene + 7/8 \* dens_Chitosan.As such, we assume that this is also the distribution the degraded substances will follow, e.g. 1/8 will be Graphene and 7/8 Chitosan.
+ 
+We will use the resulting fluxes as input 'emission' for the next stage
+
+```{r distribution of degradation}
+#15% is totally degraded
+degradation_remaining <-  degradation |>
+  mutate(across(where(is.numeric), ~ . * 0.85))
+degradation_GO <- degradation |> 
+   mutate(across(where(is.numeric), ~ . * 1/8))
+degradation_Chit <- degradation |> 
+   mutate(across(where(is.numeric), ~ . * 7/8))
+
+```
+
+## Solving of Chitosan
+
+```{r new initialisation of World}
+World$substance <- "Chitosan"
+is_numeric_name <- function(name) {
+  !is.na(suppressWarnings(as.numeric(name))) && nzchar(name)
+}
+
+# Create a vector of column names to keep
+columns_to_keep <- names(degradation_Chit) |>
+  sapply(is_numeric_name) |>
+  `|`(names(degradation_Chit) == 'from') |>
+  names(degradation_Chit)[.]
+
+# Select only these columns
+degradation_Chit_filtered <- degradation_Chit |>
+  select(all_of(columns_to_keep))
+
+long_filtered <- degradation_Chit_filtered %>%
+  pivot_longer(cols = -from, names_to = "time", values_to = "value")
+
+
+emissions_chit <- as.data.frame(t(degradation_Chit_filtered))
+colnames(emissions_chit) <- solution_transposed[, ]
+Emissions_Chit <-
+  group_by(from) |> 
+  summarise(n=n(),
+            EmisFun = list(
+              approxfun(
+                data.frame(time_s = c(0,time), 
+                           emis_kg=c(0,value)),
+                rule = 1:1)
+            )
+  )
 
 ```

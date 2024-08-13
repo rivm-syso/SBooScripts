@@ -45,6 +45,7 @@ FluxDefFunctions <- names(AllF) %>% startsWith("x_")
 sapply(names(AllF)[FluxDefFunctions], World$NewFlow)
 World$SetConst(Test = "FALSE")
 #derive needed variables
+World$SetConst(kdis = 0)
 World$VarsFromprocesses()
 
 World$SetConst(Ksw = 47500) #default, not used for particle behavior
