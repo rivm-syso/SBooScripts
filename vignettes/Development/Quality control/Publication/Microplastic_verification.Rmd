@@ -22,7 +22,7 @@ This vignette demonstrates the verification process of SBoo and
 SBooScripts using Simplebox4plastics, in this case for microplastics.
 The 1^st^ order rate constants (k's) are compared between SimpleBox in R
 and Excel^TM^ and subsequently the steady state masses are compared
-between the two implementations of the model.
+between the two implementations of the model v.
 
 The world needs to be initialized for a substance. In this case, that
 substance is microplastic, which has a default radius of 2.5e-5 m.
