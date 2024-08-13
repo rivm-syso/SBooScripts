@@ -492,13 +492,7 @@ kaas_time <- merge(kaas, solution_transposed, by = "from")
 
 kaas_time <- kaas_time |>
   # Step 1: Multiply numeric columns by the 'k' column
-  mutate(across(where(is.numeric), ~ . * k)) |>
-  # Step 2: Make values negative if 'from' and 'to' abbreviations are the same
-  mutate(across(where(is.numeric), ~ if_else(from == to, -., .)))
-
-removal <- kaas_time |>
-  # Filter rows where 'from' and 'to' columns are the same
-  filter(from == to)
+  mutate(across(where(is.numeric), ~ . * k)) 
 degradation <- kaas_time |>
   # Filter rows where 'process' is 'k_degradation' and 'from' and 'to' are the same
   filter(process == "k_Degradation", from == to)
@@ -526,12 +520,18 @@ World$substance <- "Chitosan"
 is_numeric_name <- function(name) {
   !is.na(suppressWarnings(as.numeric(name))) && nzchar(name)
 }
+is_numeric_name <- function(name) {
+  !is.na(suppressWarnings(as.numeric(name))) && nzchar(name)
+}
 
-# Create a vector of column names to keep
-columns_to_keep <- names(degradation_Chit) |>
-  sapply(is_numeric_name) |>
-  `|`(names(degradation_Chit) == 'from') |>
-  names(degradation_Chit)[.]
+# Create a logical vector for numeric column names
+numeric_columns <- sapply(names(degradation_Chit), is_numeric_name)
+
+# Combine this logical vector with the condition for the column 'from'
+keep_columns <- numeric_columns | names(degradation_Chit) == 'from'
+
+# Get the column names to keep
+columns_to_keep <- names(degradation_Chit)[keep_columns]
 
 # Select only these columns
 degradation_Chit_filtered <- degradation_Chit |>
@@ -540,10 +540,7 @@ degradation_Chit_filtered <- degradation_Chit |>
 long_filtered <- degradation_Chit_filtered %>%
   pivot_longer(cols = -from, names_to = "time", values_to = "value")
 
-
-emissions_chit <- as.data.frame(t(degradation_Chit_filtered))
-colnames(emissions_chit) <- solution_transposed[, ]
-Emissions_Chit <-
+Emissions_Chit <- long_filtered |>
   group_by(from) |> 
   summarise(n=n(),
             EmisFun = list(
@@ -553,5 +550,25 @@ Emissions_Chit <-
                 rule = 1:1)
             )
   )
+funlist_Chit <- Emissions_Chit$EmisFun
+names(funlist_Chit) <- Emissions_Chit$from
+CompartmentInterestChit <- "w1CS"
+time_s = c(0,(long_filtered |> filter(from == CompartmentInterestChit) |> pull(time)))
+emis_kg = c(0,(long_filtered |> filter(from == CompartmentInterestChit) |> pull(value)))
 
+PlotEmisFun = funlist_Chit[[CompartmentInterestChit]]
+
+plot(time_s,
+     emis_kg)
+curve(PlotEmisFun,
+      add = TRUE)
+
+```
+
+```{r re-initialization of the ODE solver}
+rm(Solution)
+Solution_Chit <- SBsolve4(tmax = 24*(365.25*24*3600),
+nTIMES = 130,
+Engine = World$exportEngineR(),
+funlist = funlist_Chit)
 ```
