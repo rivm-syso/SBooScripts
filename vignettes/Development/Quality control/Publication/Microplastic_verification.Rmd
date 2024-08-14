@@ -192,7 +192,7 @@ Diagonal k's are k's that are on the diagonal of the k matrix. They are
 calculated as the sum of all the k's leaving the subcompartment plus the
 sum of the removal process k's (i.e. degradation or burial).
 
-```{r PlotsDiagonalk_1, fig.cap="Figure 1: Relative differences removal k's between R and excel", echo=FALSE, warning=FALSE}
+```{r PlotsDiagonalk_1, echo=FALSE, fig.cap="Figure 1: Relative differences removal k's between R and excel", warning=FALSE}
 
 custom_theme <- function() {
   theme(
@@ -215,7 +215,7 @@ custom_theme <- function() {
 #   labs(x = "from-Subcompartment Code", y = "Absolute diff")
 
 # Plot of relative differences of the diagonals per compartment
-Figure1 <- ggplot(sorted_diff, aes(x = from, y = reldif)) +
+ggplot(sorted_diff, aes(x = from, y = reldif)) +
   geom_boxplot() +
   ggtitle(paste0(substance)) +
   geom_hline(yintercept = 0.001, color = "red") +

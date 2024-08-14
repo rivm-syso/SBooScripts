@@ -68,6 +68,14 @@ Diagonal k’s are k’s that are on the diagonal of the k matrix. They are
 calculated as the sum of all the k’s leaving the subcompartment plus the
 sum of the removal process k’s (i.e. degradation or burial).
 
+<figure>
+<img
+src="Microplastic_verification_files/figure-gfm/PlotsDiagonalk_1-1.png"
+alt="Figure 1: Relative differences removal k’s between R and excel" />
+<figcaption aria-hidden="true">Figure 1: Relative differences removal
+k’s between R and excel</figcaption>
+</figure>
+
 #### Dry deposition
 
 As can be seen in Figure 2 above, the only relative differences between
