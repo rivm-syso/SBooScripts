@@ -192,7 +192,9 @@ Diagonal k's are k's that are on the diagonal of the k matrix. They are
 calculated as the sum of all the k's leaving the subcompartment plus the
 sum of the removal process k's (i.e. degradation or burial).
 
-```{r PlotsDiagonalk_1, echo=FALSE, fig.cap="Figure 1: Relative differences removal k's between R and excel", warning=FALSE}
+```{r PlotsDiagonalk_1, echo=FALSE, warning=FALSE}
+
+#|fig.cap = "Figure 1: Relative differences sum of from-k's between SimpleBox implemented in R and spreadsheet for paste0(substance)"
 
 custom_theme <- function() {
   theme(
@@ -228,7 +230,7 @@ ggplot(sorted_diff, aes(x = from, y = reldif)) +
 
 #### Dry deposition {#sec-dry-deposition}
 
-As can be seen in Figure 2 above, the only relative differences between
+As can be seen in Figure 2 above, the only relative differences larger than 0.1% are between
 the diagonal k's in excel and R are in the air compartment. This is
 caused by a difference in the dry deposition process. In R, dry
 deposition is implemented in a new manner, according to the Loteur v2

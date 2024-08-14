@@ -68,21 +68,16 @@ Diagonal k’s are k’s that are on the diagonal of the k matrix. They are
 calculated as the sum of all the k’s leaving the subcompartment plus the
 sum of the removal process k’s (i.e. degradation or burial).
 
-<figure>
-<img
-src="Microplastic_verification_files/figure-gfm/PlotsDiagonalk_1-1.png"
-alt="Figure 1: Relative differences removal k’s between R and excel" />
-<figcaption aria-hidden="true">Figure 1: Relative differences removal
-k’s between R and excel</figcaption>
-</figure>
+![](Microplastic_verification_files/figure-gfm/PlotsDiagonalk_1-1.png)<!-- -->
 
 #### Dry deposition
 
-As can be seen in Figure 2 above, the only relative differences between
-the diagonal k’s in excel and R are in the air compartment. This is
-caused by a difference in the dry deposition process. In R, dry
-deposition is implemented in a new manner, according to the Loteur v2
-reference guide. See v.2.2002 <https://www.rivm.nl/lotos-euros>.
+As can be seen in Figure 2 above, the only relative differences larger
+than 0.1% are between the diagonal k’s in excel and R are in the air
+compartment. This is caused by a difference in the dry deposition
+process. In R, dry deposition is implemented in a new manner, according
+to the Loteur v2 reference guide. See v.2.2002
+<https://www.rivm.nl/lotos-euros>.
 
 When using Test=TRUE, the implementation of dry deposition in R is
 temporarily set to the old implementation that was used in excel.
