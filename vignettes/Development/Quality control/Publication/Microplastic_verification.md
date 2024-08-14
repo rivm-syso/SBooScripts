@@ -1,54 +1,72 @@
-Microplastic verification
+Verification of SimpleBox4Plastics - spreadsheet versus R implementation
 ================
-Anne Hids & Valerie de Rijk
-2024-08-06
+Anne Hids, Valerie de Rijk, Matthis Hof and Joris Quik
+2024-08-14
 
-This vignette demonstrates the verification process of the particulate
-version of Simplebox, in this case for microplastics. First, the k’s are
-compared between R and excel and consequently the steady state masses
-are compared.
+This vignette demonstrates the verification process of SimpleBox
+implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
+spreadsheet (xl4plastic v4.0.5). To do this the 1<sup>st</sup> order
+rate constants (k’s) and steady state masses are compared between the
+two model implementations. The differences should be negligible and only
+based on rounding errors. In this case we choose a relative difference
+of the k’s or masses between the models to not exceed 0.1%.
 
-The world needs to be initialized for a substance. In this case, that
-substance is microplastic, which has a default radius of 2.5e-5 m.
-
-We will first show the version of the model without adjustments to match
-the excel version. This will show the differences between excel and R.
-Consequently, we will show the version of the model that was adjusted to
-match the excel version. This adjusted version should yield the same
-results as the model in excel, except for rounding differences.
-
-## Run the model without adjustments
+# Verification method
 
 ``` r
 substance <- "microplastic"
 source("baseScripts/initWorld_onlyPlastics.R")
 ```
 
-## Compare k’s
+The SBoo world is initialized for a substance. In this case, that
+substance is ``` r``World$fetchData("Substance") ```, which has a
+default radius of 25 µm.
 
-When comparing k’s between R and excel, the goal is that the relative
-difference is less than 1 percentile for each k. The reason is that
-smaller differences often are a result of differences in rounding values
-between excel and R, and not the result of mistakes in calculations or
-different input values. In this vignette two types of k’s are compared:
-diagonal k’s and from-to k’s.
+At release already improvements or developments have been implemented in
+the R version of SimpleBox (SBoo) which are not implemented in Excel
+which will result in differences between the spreadsheet and R
+implementation. For this reason a TEST variable has been introduced to
+the changed algorithms in R in order to verify the outcome of SimpleBox
+in R with the original implementation in the spreadsheet version. So,
+TEST variable is a boolean, that can be used to calculate some processes
+in R the same way as in excel for the verification without removing the
+improvements that are made. For this reason we show the verification in
+two steps:
 
-At the time of this verification, some improvements were already made in
-the R version versus the excel version. This meant that some k’s differ
-between R and excel, but not because the calculations or input values
-are wrong. In order to still be able to compare the two versions, the
-‘Test’ variable was created. This variable is a boolean, that can be
-used to calculate some processes in R the same way as in excel for the
-verification without removing the improvements that are made. When this
-test variable was used and why will be explained below.
+1.  Compare k’s and steady state masses of SBoo with updates to the
+    spreadsheet.
 
-### Diagonal k’s
+2.  Compare k’s and steady state masses of adapted SBoo using TEST
+    variable to the spreadsheet.
+
+When comparing k’s and steady state masses between SimpleBox in R and
+Excel<sup>TM</sup>, the goal is that the relative difference is less
+than 0.1 percent for each k and steady state mass. The reason is that
+smaller differences are almost inevitable due to differences in rounding
+values between excel and R, and not the result of mistakes in
+calculations or input values.
+
+## Step 1. Compare SBoo (incl. updates) to spreadsheet
+
+## Compare first order rate constants
+
+Two approaches are taken to comparing the ‘engine’ matrix of k’s. First
+only the diagonal is taken and compared because this consists of all the
+k’s relevant for that ‘from’ compartment including the removal
+processes. Second, the separate k’s are compared per ‘from’ and ‘to’
+compartment.
+
+In summary k’s are compared using:
+
+1.  The diagonal sum of k’s (from + removal)
+
+2.  The separate from-to k’s
+
+### Diagonal sum of ‘from’ k’s
 
 Diagonal k’s are k’s that are on the diagonal of the k matrix. They are
 calculated as the sum of all the k’s leaving the subcompartment plus the
 sum of the removal process k’s (i.e. degradation or burial).
-
-![](Microplastic_verification_files/figure-gfm/Plot%20diagonal%20differences-1.png)<!-- -->![](Microplastic_verification_files/figure-gfm/Plot%20diagonal%20differences-2.png)<!-- -->
 
 #### Dry deposition
 

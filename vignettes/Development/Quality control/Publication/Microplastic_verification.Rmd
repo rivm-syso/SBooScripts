@@ -1,5 +1,5 @@
 ---
-title: "Microplastic verification"
+title: "Verification of SimpleBox4Plastics - spreadsheet versus R implementation"
 author: "Anne Hids, Valerie de Rijk, Matthis Hof and Joris Quik"
 date: "`r Sys.Date()`"
 output: github_document
@@ -10,38 +10,61 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", "..", "..", "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+# knitr::knit_meta()
+# knitr::opts_chunk$set(echo = TRUE)
+# projectRoot <- paste(getwd(), "..", "..", "..", "..", sep = "/")
+# knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 options(dplyr.summarise.inform=FALSE)
 knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 10)
 ```
 
-# Introduction
+This vignette demonstrates the verification process of SimpleBox
+implemented in R (version 2024.8.0) and in an Excel^TM^ spreadsheet
+(xl4plastic v4.0.5). To do this the 1^st^ order rate constants (k's) and
+steady state masses are compared between the two model implementations.
+The differences should be negligible and only based on rounding errors.
+In this case we choose a relative difference of the k's or masses
+between the models to not exceed 0.1%.
 
-This vignette demonstrates the verification process of the particulate
-version of Simplebox, in this case for microplastics. First, the k's are
-compared between R and excel and consequently the steady state masses
-are compared.
+# Verification method
 
-The world needs to be initialized for a substance. In this case, that
-substance is microplastic, which has a default radius of 2.5e-5 m.
-
-We will first show the version of the model without adjustments to match
-the excel version. This will show the differences between excel and R.
-Consequently, we will show the version of the model that was adjusted to
-match the excel version. This adjusted version should yield the same
-results as the model in excel, except for rounding differences.
-
-## Run the model without adjustments
-
-```{r Initialize,include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+```{r InitializeSBoo, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 substance <- "microplastic"
 source("baseScripts/initWorld_onlyPlastics.R")
+
 ```
 
-```{r comparison of fluxes with test FALSE, message=FALSE, include=TRUE, echo=FALSE, warning=FALSE}
+The SBoo world is initialized for a substance. In this case, that
+substance is `r``World$fetchData("Substance")`, which has a default
+radius of `r World$fetchData("RadS")*1e6` µm.
+
+At release already improvements or developments have been implemented in
+the R version of SimpleBox (SBoo) which are not implemented in Excel
+which will result in differences between the spreadsheet and R
+implementation. For this reason a TEST variable has been introduced to
+the changed algorithms in R in order to verify the outcome of SimpleBox
+in R with the original implementation in the spreadsheet version. So,
+TEST variable is a boolean, that can be used to calculate some processes
+in R the same way as in excel for the verification without removing the
+improvements that are made. For this reason we show the verification in
+two steps:
+
+1.  Compare k's and steady state masses of SBoo with updates to the
+    spreadsheet.
+
+2.  Compare k's and steady state masses of adapted SBoo using TEST
+    variable to the spreadsheet.
+
+When comparing k's and steady state masses between SimpleBox in R and
+Excel^TM^, the goal is that the relative difference is less than 0.1
+percent for each k and steady state mass. The reason is that smaller
+differences are almost inevitable due to differences in rounding values
+between excel and R, and not the result of mistakes in calculations or
+input values.
+
+## Step 1. Compare SBoo (incl. updates) to spreadsheet
+
+```{r comparison_1, message=FALSE, include=TRUE, echo=FALSE, warning=FALSE}
 
 library(openxlsx)
 library(tidyverse)
@@ -122,14 +145,13 @@ kaas2$fromto <- paste(sep = "_", kaas2$from, kaas2$to)
 diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] #all the diagonals in excel are negative values -> sums of all the "froms" of that compartment
 
 #filter out dissolved and gas processes
-
 filtered_excel <- diagonal_excel[!endsWith(diagonal_excel$from, "D"), ]
 filtered_excel <- filtered_excel[!endsWith(filtered_excel$from, "G"), ]
 
-#filter out molecular (unbound) state
-#R model has k values per process, not per box. For the "diagonal" ("from = to") boxes, this is different than in the excel version. summing all the "froms" here to be able to compare them with excel matrix. This should result in one value for each compartment (scale-subcomp-species combo)
-
+# R model has k values per process, not per box. For the "diagonal" ("from = to") boxes, this is different than in the excel version. summing all the "froms" here to be able to compare them with excel matrix. This should result in one value for each compartment (scale-subcomp-species combo)
 diagonal_R <-aggregate(k ~ from, data = kaas, FUN = sum) 
+
+# filter out molecular (unbound) state
 filtered_R <- diagonal_R[!endsWith(diagonal_R$from, "U"), ]
       
 #Single dataframe with both the R and excel diagonals
@@ -150,31 +172,27 @@ mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)
 
 ```
 
-## Compare k's
+## Compare first order rate constants
 
-When comparing k's between R and excel, the goal is that the relative
-difference is less than 1 percentile for each k. The reason is that
-smaller differences often are a result of differences in rounding values
-between excel and R, and not the result of mistakes in calculations or
-different input values. In this vignette two types of k's are compared:
-diagonal k's and from-to k's.
+Two approaches are taken to comparing the 'engine' matrix of k's. First
+only the diagonal is taken and compared because this consists of all the
+k's relevant for that 'from' compartment including the removal
+processes. Second, the separate k's are compared per 'from' and 'to'
+compartment.
 
-At the time of this verification, some improvements were already made in
-the R version versus the excel version. This meant that some k's differ
-between R and excel, but not because the calculations or input values
-are wrong. In order to still be able to compare the two versions, the
-'Test' variable was created. This variable is a boolean, that can be
-used to calculate some processes in R the same way as in excel for the
-verification without removing the improvements that are made. When this
-test variable was used and why will be explained below.
+In summary k's are compared using:
 
-### Diagonal k's
+1.  The diagonal sum of k's (from + removal)
+
+2.  The separate from-to k's
+
+### Diagonal sum of 'from' k's
 
 Diagonal k's are k's that are on the diagonal of the k matrix. They are
 calculated as the sum of all the k's leaving the subcompartment plus the
 sum of the removal process k's (i.e. degradation or burial).
 
-```{r Plot diagonal differences, echo=FALSE, warning=FALSE}
+```{r PlotsDiagonalk_1, fig.cap="Figure 1: Relative differences removal k's between R and excel", echo=FALSE, warning=FALSE}
 
 custom_theme <- function() {
   theme(
@@ -188,25 +206,27 @@ custom_theme <- function() {
 } 
 
 # Plot of differences of the diagonals per compartment
-ggplot(sorted_diff, aes(x = from, y = diff)) +
-  geom_boxplot() +
-  ggtitle(paste0("Figure 1: Absolute differences removal k's between R and excel for ", substance)) +
-  geom_hline(yintercept = 0.001, color = "red") +
-  geom_hline(yintercept = -0.001, color = "red") +
-  custom_theme()+
-  labs(x = "from", y = "Absolute diff")
+# ggplot(sorted_diff, aes(x = from, y = diff)) +
+#   geom_boxplot() +
+#   ggtitle(paste0("Figure 1: Absolute differences removal k's between R and excel for ", substance)) +
+#   geom_hline(yintercept = 0.001, color = "red") +
+#   geom_hline(yintercept = -0.001, color = "red") +
+#   custom_theme()+
+#   labs(x = "from-Subcompartment Code", y = "Absolute diff")
 
 # Plot of relative differences of the diagonals per compartment
-ggplot(sorted_diff, aes(x = from, y = reldif)) +
+Figure1 <- ggplot(sorted_diff, aes(x = from, y = reldif)) +
   geom_boxplot() +
-  ggtitle(paste0("Figure 2: Relative differences removal k's between R and excel for ", substance)) +
+  ggtitle(paste0(substance)) +
   geom_hline(yintercept = 0.001, color = "red") +
   geom_hline(yintercept = -0.001, color = "red") +
   custom_theme()+
-  labs(x = "from", y = "Relative diff")
+  labs(x = "from-Subcompartment Code", y = "Relative diff")
+
+
 ```
 
-#### Dry deposition
+#### Dry deposition {#sec-dry-deposition}
 
 As can be seen in Figure 2 above, the only relative differences between
 the diagonal k's in excel and R are in the air compartment. This is
@@ -383,6 +403,8 @@ mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)
 
 ```{r Plots test TRUE, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 # Plot of relative differences of the diagonals per compartment
+
+
 ggplot(sorted_diff, aes(x = from, y = reldif)) +
   geom_boxplot() +
   ggtitle(paste0("Figure 5: Relative differences removal k's between R and excel for ", substance)) +
@@ -400,6 +422,7 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
     axis.text.x = element_text(angle = 90, hjust = 1, size = 8), 
     plot.margin = margin(t = 10, r = 10, b = 30, l = 10)
   )
+
 ```
 
 As can be seen in Figures 5 and 6, there are no k's with a relative
