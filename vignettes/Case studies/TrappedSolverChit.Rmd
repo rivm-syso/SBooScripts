@@ -26,6 +26,7 @@ We assume you have the input data for a substance or material of interest and al
 library(dplyr)
 substance <-  "GO-Chitosan"
 source("baseScripts/initWorld_onlyParticulate.R")
+#World$substance <- "GO-Chitosan"
 
 ```
 
@@ -415,23 +416,11 @@ nTIMES = 130,
 Engine = World$exportEngineR(),
 funlist = funlist)
 
-# Solution <- SBsolve4(tmax = 25*(365.25*24*3600), 
-#                      nTIMES = 130,
-#                      Engine = as.matrix(K.Matrix),
-#                      funlist = funlist)
+
 
 Solution <- as.data.frame(Solution)
 
-# Same plot of emission as above
-plot(Solution$time,Solution$emis2s2CS)
 
-plot(Solution$time,Solution$w1CS)
-
-plot(Solution$time,Solution$s2CS)
-plot(Solution$time,Solution$s2CA)
-plot(Solution$time,Solution$s2CP)
-
-plot(Solution$time,Solution$aCS)
 
 
 
@@ -513,62 +502,425 @@ degradation_Chit <- degradation |>
 
 ```
 
-## Solving of Chitosan
+## Solving for Graphene Oxide and Chitosan
+We will now solve for the two remaining substances, Graphene Oxide and Chitosan. 
+```{r loop for solving of remaining substances}
 
-```{r new initialisation of World}
-World$substance <- "Chitosan"
-is_numeric_name <- function(name) {
-  !is.na(suppressWarnings(as.numeric(name))) && nzchar(name)
+process_substance <- function(substance_name, degradation_data, compartment_interest) {
+  # Re-initialize world for Graphene Oxide and Chitosan 
+  World$substance <- substance_name
+  
+  # Check for numeric column names
+  is_numeric_name <- function(name) {
+    !is.na(suppressWarnings(as.numeric(name))) && nzchar(name)
+  }
+  
+  # Create a logical vector for numeric column names
+  numeric_columns <- sapply(names(degradation_data), is_numeric_name)
+  
+  # Combine this logical vector with the condition for the column 'from'
+  keep_columns <- numeric_columns | names(degradation_data) == 'from'
+  
+  # Get the column names to keep
+  columns_to_keep <- names(degradation_data)[keep_columns]
+  
+  # Select only these columns
+  degradation_filtered <- degradation_data |>
+    select(all_of(columns_to_keep))
+  
+  # Pivot to long format
+  long_filtered <- degradation_filtered |>
+    pivot_longer(cols = -from, names_to = "time", values_to = "value") |>
+    mutate(time = as.numeric(time))
+  
+  # Summarize to get emission functions
+  emissions <- long_filtered |>
+    group_by(from) |>
+    summarise(n = n(),
+              EmisFun = list(
+                approxfun(
+                  data.frame(time = time, value = value),
+                  rule = 1
+                )
+              ))
+  
+  funlist <- emissions$EmisFun
+  names(funlist) <- emissions$from
+  
+  # Extract time and emission values for plotting
+  time_s <- c(0, long_filtered |> filter(from == compartment_interest) |> pull(time))
+  emis_kg <- c(0, long_filtered |> filter(from == compartment_interest) |> pull(value))
+  
+  PlotEmisFun <- funlist[[compartment_interest]]
+  
+  # Plot
+  plot(time_s, emis_kg)
+  curve(PlotEmisFun, from = min(time_s), to = max(time_s), add = TRUE)
+  
+  # Return the function list for ODE solving
+  return(funlist)
 }
-is_numeric_name <- function(name) {
-  !is.na(suppressWarnings(as.numeric(name))) && nzchar(name)
-}
 
-# Create a logical vector for numeric column names
-numeric_columns <- sapply(names(degradation_Chit), is_numeric_name)
+# Process Chitosan
+funlist_Chit <- process_substance("Chitosan", degradation_Chit, "w1CA")
 
-# Combine this logical vector with the condition for the column 'from'
-keep_columns <- numeric_columns | names(degradation_Chit) == 'from'
+# Solve ODE for Chitosan
+Solution_Chit <- SBsolve4(
+  tmax = 24 * (365.25 * 24 * 3600),
+  nTIMES = 130,
+  Engine = World$exportEngineR(),
+  funlist = funlist_Chit
+)
 
-# Get the column names to keep
-columns_to_keep <- names(degradation_Chit)[keep_columns]
+# Process Graphene Oxide
+funlist_GO <- process_substance("Graphene Oxide", degradation_GO, "w1CA")
 
-# Select only these columns
-degradation_Chit_filtered <- degradation_Chit |>
-  select(all_of(columns_to_keep))
+# Solve ODE for Graphene Oxide
+Solution_GO <- SBsolve4(
+  tmax = 24 * (365.25 * 24 * 3600),
+  nTIMES = 130,
+  Engine = World$exportEngineR(),
+  funlist = funlist_GO
+)
+```
 
-long_filtered <- degradation_Chit_filtered %>%
-  pivot_longer(cols = -from, names_to = "time", values_to = "value")
+## Probabilistic dynamic 
 
-Emissions_Chit <- long_filtered |>
-  group_by(from) |> 
+We now want to try to run this for all input data, e.g. not only for average emission data and for a distribution of parameters. We need to load in the emission data again.  
+
+```{r}
+file_paths <- 
+  list.files("data/emissions",recursive = TRUE)
+Emissions <-
+  read_csv(paste0("data/emissions/",file_paths), id="file_name", col_names = c("RUN",0:24),skip = 1)
+
+Emissions <- 
+  Emissions |>
+  pivot_longer(
+    cols = !c(file_name,RUN),
+    names_to = "year",
+    values_to = "emission_t" ) |> mutate_at('year',as.numeric)
+
+Emissions <- 
+  Emissions |> 
+  mutate(compartment = 
+           case_when(str_detect(file_name, "(?i)Air") ~ "Air",
+                     str_detect(file_name, "(?i)Soil") ~ "SludgeTreatedSoil",
+                     str_detect(file_name, "(?i)Water") ~ "SurfaceWater",
+                     str_detect(file_name, "(?i)Subsurface") ~ "Subsurface",
+                     TRUE ~ "Other"),
+         scale = 
+           case_when(str_detect(file_name, "(?i)EU") ~ "EU_average",
+                     str_detect(file_name, "(?i)Ireland") ~ "EU_STsoil",
+                     str_detect(file_name, "(?i)Switzerland") ~ "EU_noSTsoil",
+                     TRUE ~ "Other"),
+         Substance = "GO-Chitosan",
+  )
+
+Emissions_run <- 
+  Emissions |> mutate(
+    Abr_comp =  case_match(compartment,
+                           "Air" ~ "a",
+                           "SludgeTreatedSoil" ~ "s2",
+                           "SurfaceWater" ~ "w1",
+                           .default = NA
+    ),
+    Abr_scale =  case_match(scale,
+                            "EU_average" ~ "C",
+                            .default = NA
+    ),
+    Abr_species = "S"
+    
+  ) |> drop_na() 
+
+Emissions_run_filtered <-  
+  Emissions_run |> rbind(
+    Emissions_run |> 
+      mutate(
+        Abr_scale =  case_match(Abr_scale,
+                                "C" ~ "R",
+                                .default = NA
+        ),
+        scale = "EU_average"
+      )
+  ) |> full_join(FracRC) |> 
+  
+  mutate(Abr = paste0(Abr_comp,Abr_scale,Abr_species)) |>
+  filter(RUN >= 0 & RUN <= 10)
+
+Emission_run_approx <- 
+  Emissions_run_filtered |> 
+  mutate(time_s = year*(365.25*24*60*60)+(365.25*24*60*60)) |> ungroup() |> 
+  group_by(Abr,RUN ) |> 
   summarise(n=n(),
             EmisFun = list(
               approxfun(
-                data.frame(time_s = c(0,time), 
-                           emis_kg=c(0,value)),
+                data.frame(time_s = c(0,time_s), 
+                           emis_kg=c(0,emission_t*1000/(365.25*24*3600))),
                 rule = 1:1)
             )
   )
-funlist_Chit <- Emissions_Chit$EmisFun
-names(funlist_Chit) <- Emissions_Chit$from
-CompartmentInterestChit <- "w1CS"
-time_s = c(0,(long_filtered |> filter(from == CompartmentInterestChit) |> pull(time)))
-emis_kg = c(0,(long_filtered |> filter(from == CompartmentInterestChit) |> pull(value)))
 
-PlotEmisFun = funlist_Chit[[CompartmentInterestChit]]
-
-plot(time_s,
-     emis_kg)
-curve(PlotEmisFun,
-      add = TRUE)
 
 ```
 
-```{r re-initialization of the ODE solver}
-rm(Solution)
-Solution_Chit <- SBsolve4(tmax = 24*(365.25*24*3600),
-nTIMES = 130,
-Engine = World$exportEngineR(),
-funlist = funlist_Chit)
+We assign the relevant approxfunctions per run and solve for each run, as defined above.
+```{r solver loop}
+results_list <- list()
+
+# Get the unique runs from your Emission_run_approx data
+unique_runs <- unique(Emission_run_approx$RUN)
+
+# Loop through each run
+for (run in unique_runs) {
+  print(run)
+  # Extract the appropriate approxfun objects for the current run
+  approxfuns <- Emission_run_approx %>%
+    filter(RUN == run) |>
+    pull(EmisFun)
+  
+  # Define the funlist based on the approxfuns
+  funlist <- approxfuns
+  names(funlist) <- Emission_run_approx |>
+    filter(RUN == run) |>
+    pull(Abr)
+  
+  # Solve using SBsolve4 and store the result in the results list
+  result <- SBsolve4(
+    tmax = 24 * (365.25 * 24 * 3600),
+    nTIMES = 100,
+    Engine = World$exportEngineR(),
+    funlist = funlist
+  )
+  
+  # Store the result in the results list
+  results_list[[as.character(run)]] <- result
+}
+```
+
+Here, we present the output for the solver based on the runs done above for GO-Chitosan only. 
+```{r solver results}
+
+# Define the variable of interest
+interest <- "w1RA"
+
+# Assuming `results_list` is populated as per your provided code
+
+# Step 1: Extract the variable of interest for each run over time
+variable_data <- data.frame()
+
+for (run in names(results_list)) {
+  result <- results_list[[run]]
+  
+  # Dynamically extract the relevant data based on the variable of interest
+  variable_values <- result[[interest]]
+  time_values <- result$time
+  
+  # Combine into a data frame
+  run_data <- data.frame(Time = time_values, Value = variable_values, Run = run)
+  
+  # Append to the overall data frame
+  variable_data <- rbind(variable_data, run_data)
+}
+
+# Step 2: Calculate mean and confidence intervals at each time point
+summary_stats <- variable_data |>
+  group_by(Time) |>
+  summarise(
+    Mean_Value = mean(Value),
+    SD_Value = sd(Value),
+    Lower_CI = Mean_Value - 1.96 * SD_Value / sqrt(n()),
+    Upper_CI = Mean_Value + 1.96 * SD_Value / sqrt(n())
+  )
+
+# Step 3: Plot with ggplot2
+ggplot(summary_stats, aes(x = Time, y = Mean_Value)) +
+  geom_line(color = "blue", size = 1) +
+  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2, fill = "blue") +
+  labs(title = paste("Mean mass in", interest, "with Uncertainty Bands Over Time for GO-Chitosan"),
+       x = "Time [s]",
+       y = paste("mass of", interest, "[kg]")) +
+  theme_minimal()
+
+```
+
+```{r plot}
+
+
+```
+```{r obtain rates of degradation for Graphene Oxide and Chitosan} 
+
+processed_results_list <- list()
+
+for (run in names(results_list)) {
+  # Extract the result for the current run
+  solution <- results_list[[run]]
+  
+  # Transpose the solution and adjust column names and row names
+  solution_transposed <- as.data.frame(t(solution))
+  colnames(solution_transposed) <- solution_transposed[1, ]
+  solution_transposed$from <- rownames(solution_transposed)
+  
+  # Remove the first row as it's now the column names
+  solution_transposed <- solution_transposed[-1, ]
+  
+  # Merge with `kaas` dataframe
+  kaas_time <- merge(kaas, solution_transposed, by = "from")
+  
+  # Multiply numeric columns by the 'k' column
+  kaas_time <- kaas_time |>
+    mutate(across(where(is.numeric), ~ . * k)) 
+  
+  # Filter rows where 'process' is 'k_Degradation' and 'from' and 'to' are the same
+  degradation <- kaas_time |>
+    filter(process == "k_Degradation", from == to)
+  
+  # Store the processed result in a list
+  processed_results_list[[run]] <- degradation
+}
+
+```
+
+```{r compute solutions for Graphene Oxide and Chitosan}
+library(dplyr)
+library(tidyr)
+
+# Function to process each substance
+process_substance <- function(substance_name, degradation_data, compartment_interest) {
+  World$substance <- substance_name
+  
+  is_numeric_name <- function(name) {
+    !is.na(suppressWarnings(as.numeric(name))) && nzchar(name)
+  }
+  
+  numeric_columns <- sapply(names(degradation_data), is_numeric_name)
+  keep_columns <- numeric_columns | names(degradation_data) == 'from'
+  columns_to_keep <- names(degradation_data)[keep_columns]
+  
+  degradation_filtered <- degradation_data |>
+    select(all_of(columns_to_keep))
+  
+  long_filtered <- degradation_filtered |>
+    pivot_longer(cols = -from, names_to = "time", values_to = "value") |>
+    mutate(time = as.numeric(time))
+  
+  emissions <- long_filtered |>
+    group_by(from) |>
+    summarise(n = n(),
+              EmisFun = list(
+                approxfun(
+                  data.frame(time = time, value = value),
+                  rule = 1
+                )
+              ))
+  
+  funlist <- emissions$EmisFun
+  names(funlist) <- emissions$from
+  
+  
+  
+  return(funlist)
+}
+
+# List to store results for all runs
+final_results_list <- list()
+
+for (run in names(results_list)) {
+  print(run)
+  degradation <- processed_results_list[[run]]  # Assume processed_results_list contains preprocessed data for each run
+  
+  # Apply the degradation calculations
+  degradation_remaining <-  degradation |>
+    mutate(across(where(is.numeric), ~ . * 0.85))
+  degradation_GO <- degradation |>
+    mutate(across(where(is.numeric), ~ . * 1/8))
+  degradation_Chit <- degradation |>
+    mutate(across(where(is.numeric), ~ . * 7/8))
+  
+  # Process and solve for Chitosan
+  funlist_Chit <- process_substance("Chitosan", degradation_Chit, "w1CA")
+  Solution_Chit <- SBsolve4(
+    tmax = 24 * (365.25 * 24 * 3600),
+    nTIMES = 100,
+    Engine = World$exportEngineR(),
+    funlist = funlist_Chit
+  )
+  
+  # Process and solve for Graphene Oxide
+  funlist_GO <- process_substance("Graphene Oxide", degradation_GO, "w1CA")
+  Solution_GO <- SBsolve4(
+    tmax = 24 * (365.25 * 24 * 3600),
+    nTIMES = 100,
+    Engine = World$exportEngineR(),
+    funlist = funlist_GO
+  )
+  
+  # Store solutions in final results list
+  final_results_list[[paste(run, "Chitosan", sep = "_")]] <- Solution_Chit
+  final_results_list[[paste(run, "GO", sep = "_")]] <- Solution_GO
+}
+```
+
+```{r Plotting results }
+# Define the variable of interest
+interest <- "w1RA"
+
+# Assuming `results_list` is populated as per your provided code
+
+# Step 1: Extract the variable of interest for each run over time for GO-Chitosan
+variable_data <- data.frame()
+
+for (run in names(results_list)) {
+  result <- results_list[[run]]
+  
+  # Dynamically extract the relevant data based on the variable of interest
+  variable_values <- result[[interest]]
+  time_values <- result$time
+  
+  # Combine into a data frame
+  run_data <- data.frame(Time = time_values, Value = variable_values, Run = run, Substance = "GO-Chitosan")
+  
+  # Append to the overall data frame
+  variable_data <- rbind(variable_data, run_data)
+}
+
+# Step 2: Extract and add data for Chitosan and Graphene Oxide
+# Assuming Solution_Chit and Solution_GO are available from the previous processing
+for (substance_name in c("Chitosan", "Graphene Oxide")) {
+  solution <- if (substance_name == "Chitosan") Solution_Chit else Solution_GO
+  
+  # Extract the relevant data for each substance
+  substance_values <- solution[[interest]]
+  time_values <- solution$time
+  
+  # Combine into a data frame
+  substance_data <- data.frame(Time = time_values, Value = substance_values, Run = "Simulated", Substance = substance_name)
+  
+  # Append to the overall data frame
+  variable_data <- rbind(variable_data, substance_data)
+}
+
+# Step 3: Calculate mean and confidence intervals at each time point, grouped by Substance
+summary_stats <- variable_data |>
+  group_by(Time, Substance) |>
+  summarise(
+    Mean_Value = mean(Value),
+    SD_Value = sd(Value),
+    Lower_CI = Mean_Value - 1.96 * SD_Value / sqrt(n()),
+    Upper_CI = Mean_Value + 1.96 * SD_Value / sqrt(n())
+  ) |>
+  ungroup()
+
+# Step 4: Plot with ggplot2
+ggplot(summary_stats, aes(x = Time, y = Mean_Value, color = Substance, fill = Substance)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2) +
+  labs(title = paste("Mean mass in", interest, "with uncertainty over time"),
+       x = "Time [s]",
+       y = paste("Mass of substance in ", interest, "[kg] - log scale")) +
+  theme_minimal() +
+  scale_color_manual(values = c("blue", "red", "green")) +  # Customize colors for each substance
+  scale_fill_manual(values = c("blue", "red", "green"))  +
+  scale_y_log10()
+
 ```
