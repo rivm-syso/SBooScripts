@@ -68,48 +68,112 @@ Diagonal k’s are k’s that are on the diagonal of the k matrix. They are
 calculated as the sum of all the k’s leaving the subcompartment plus the
 sum of the removal process k’s (i.e. degradation or burial).
 
-![](Microplastic_verification_files/figure-gfm/PlotsDiagonalk_1-1.png)<!-- -->
-
-#### Dry deposition
-
-As can be seen in Figure 2 above, the only relative differences larger
-than 0.1% are between the diagonal k’s in excel and R are in the air
-compartment. This is caused by a difference in the dry deposition
-process. In R, dry deposition is implemented in a new manner, according
-to the Loteur v2 reference guide. See v.2.2002
-<https://www.rivm.nl/lotos-euros>.
-
-When using Test=TRUE, the implementation of dry deposition in R is
-temporarily set to the old implementation that was used in excel.
+<figure>
+<img
+src="Microplastic_verification_files/figure-gfm/PlotsDiagonalk_1-1.png"
+alt="Figure 1: Relative differences sum of from-k’s between R and Spreadsheet implementation of SimpleBox (Test=FALSE)" />
+<figcaption aria-hidden="true">Figure 1: Relative differences sum of
+from-k’s between R and Spreadsheet implementation of SimpleBox
+(Test=FALSE)</figcaption>
+</figure>
 
 ### From-to k’s
 
-![](Microplastic_verification_files/figure-gfm/Plot%20k%20differences-1.png)<!-- -->![](Microplastic_verification_files/figure-gfm/Plot%20k%20differences-2.png)<!-- -->
+<figure>
+<img
+src="Microplastic_verification_files/figure-gfm/PlotFromTok_1-1.png"
+alt="Figure 2: Relative differences from-to k’s between R and Spreadsheet implementation of SimpleBox (Test=FALSE)" />
+<figcaption aria-hidden="true">Figure 2: Relative differences from-to
+k’s between R and Spreadsheet implementation of SimpleBox
+(Test=FALSE)</figcaption>
+</figure>
 
 #### Dry deposition
 
-As can be seen in Figure 4, the largest relative differences in k’s
-between R and excel are in the k’s from air to soil and water. These
-differences can also be attributed to the different implementation of
-the dry deposition process between excel and R.
+As can be seen in Figure 1 and 2 above, the only relative differences
+larger than 0.1% (e.g. for the diagonal k’s in excel and R) are in the
+air compartment. This is caused by a difference in the implementation of
+the dry deposition process. In R, dry deposition is implemented in a new
+manner, according to the Loteur v2 reference guide. See v.2.2002
+<https://www.rivm.nl/lotos-euros>. Whereas in the spreadsheet
+implementation a slightly more simplified approach was taken.
 
-#### Thermal velocity heteroagglomeration
+Below Test=TRUE will be used, setting the implementation of dry
+deposition in R temporarily to the old implementation that was used in
+the Spreadsheet implementation of SimpleBox.
 
-A smaller difference that was found between the k’s in R and excel is
-the value for thermal velocity in heteroagglomeration. In excel, a
-constant value of 285K was used. In R, this value was updated by
-calculating the value specifically for the temperature of the current
-scale.
+We can filter out the exact k’s that have a relative difference larger
+than 0.1%:
 
-## Run again with Test=TRUE
+| from | to   |          k_R | fromto_R |      k_Excel | fromto_Excel |          diff |     relDif |
+|:-----|:-----|-------------:|:---------|-------------:|:-------------|--------------:|-----------:|
+| aRS  | w0RS | 2.440030e-07 | aRS_w0RS | 2.754229e-07 | aRS_w0RS     | -3.141987e-08 | 0.12876839 |
+| aRS  | w1RS | 2.684033e-06 | aRS_w1RS | 3.029651e-06 | aRS_w1RS     | -3.456186e-07 | 0.12876839 |
+| aCS  | w0CS | 1.186619e-07 | aCS_w0CS | 1.339418e-07 | aCS_w0CS     | -1.527990e-08 | 0.12876839 |
+| aCS  | w1CS | 1.305281e-06 | aCS_w1CS | 1.473360e-06 | aCS_w1CS     | -1.680789e-07 | 0.12876839 |
+| aRA  | w1RA | 2.684033e-06 | aRA_w1RA | 3.029651e-06 | aRA_w1RA     | -3.456185e-07 | 0.12876837 |
+| aRA  | w0RA | 2.440030e-07 | aRA_w0RA | 2.754229e-07 | aRA_w0RA     | -3.141987e-08 | 0.12876837 |
+| aCA  | w0CA | 1.186619e-07 | aCA_w0CA | 1.339418e-07 | aCA_w0CA     | -1.527990e-08 | 0.12876837 |
+| aCA  | w1CA | 1.305281e-06 | aCA_w1CA | 1.473360e-06 | aCA_w1CA     | -1.680789e-07 | 0.12876837 |
+| aRS  | s3RS | 1.010625e-05 | aRS_s3RS | 1.102032e-05 | aRS_s3RS     | -9.140716e-07 | 0.09044616 |
+| aCS  | s3CS | 4.914804e-06 | aCS_s3CS | 5.359329e-06 | aCS_s3CS     | -4.445251e-07 | 0.09044616 |
+| aRA  | s3RA | 1.010625e-05 | aRA_s3RA | 1.102032e-05 | aRA_s3RA     | -9.140714e-07 | 0.09044614 |
+| aCA  | s3CA | 4.914804e-06 | aCA_s3CA | 5.359329e-06 | aCA_s3CA     | -4.445250e-07 | 0.09044614 |
+| aTS  | w2TS | 6.861974e-05 | aTS_w2TS | 7.362872e-05 | aTS_w2TS     | -5.008982e-06 | 0.07299623 |
+| aTA  | w2TA | 6.861974e-05 | aTA_w2TA | 7.362872e-05 | aTA_w2TA     | -5.008981e-06 | 0.07299621 |
+| aCS  | w2CS | 5.056345e-05 | aCS_w2CS | 5.425372e-05 | aCS_w2CS     | -3.690272e-06 | 0.07298300 |
+| aMS  | w2MS | 4.901410e-05 | aMS_w2MS | 5.259130e-05 | aMS_w2MS     | -3.577196e-06 | 0.07298300 |
+| aCA  | w2CA | 5.056345e-05 | aCA_w2CA | 5.425372e-05 | aCA_w2CA     | -3.690271e-06 | 0.07298297 |
+| aMA  | w2MA | 4.901410e-05 | aMA_w2MA | 5.259130e-05 | aMA_w2MA     | -3.577195e-06 | 0.07298297 |
+| aRS  | w2RS | 4.270079e-07 | aRS_w2RS | 4.581722e-07 | aRS_w2RS     | -3.116430e-08 | 0.07298296 |
+| aRA  | w2RA | 4.270079e-07 | aRA_w2RA | 4.581722e-07 | aRA_w2RA     | -3.116429e-08 | 0.07298294 |
+| aAS  | w2AS | 5.881692e-05 | aAS_w2AS | 6.310790e-05 | aAS_w2AS     | -4.290977e-06 | 0.07295481 |
+| aAA  | w2AA | 5.881692e-05 | aAA_w2AA | 6.310790e-05 | aAA_w2AA     | -4.290976e-06 | 0.07295478 |
+| aRS  | s2RS | 6.416688e-05 | aRS_s2RS | 6.612193e-05 | aRS_s2RS     | -1.955058e-06 | 0.03046833 |
+| aCS  | s2CS | 3.120520e-05 | aCS_s2CS | 3.215597e-05 | aCS_s2CS     | -9.507705e-07 | 0.03046833 |
+| aRA  | s2RA | 6.416688e-05 | aRA_s2RA | 6.612193e-05 | aRA_s2RA     | -1.955057e-06 | 0.03046831 |
+| aCA  | s2CA | 3.120520e-05 | aCA_s2CA | 3.215597e-05 | aCA_s2CA     | -9.507699e-07 | 0.03046831 |
+| aTS  | sTS  | 3.241292e-05 | aTS_sTS  | 3.320588e-05 | aTS_sTS      | -7.929539e-07 | 0.02446413 |
+| aTA  | sTA  | 3.241292e-05 | aTA_sTA  | 3.320588e-05 | aTA_sTA      | -7.929533e-07 | 0.02446411 |
+| aRS  | s1RS | 2.904455e-05 | aRS_s1RS | 2.975487e-05 | aRS_s1RS     | -7.103179e-07 | 0.02445615 |
+| aMS  | sMS  | 5.402152e-05 | aMS_sMS  | 5.534268e-05 | aMS_sMS      | -1.321158e-06 | 0.02445615 |
+| aCS  | s1CS | 1.412475e-05 | aCS_s1CS | 1.447019e-05 | aCS_s1CS     | -3.454370e-07 | 0.02445615 |
+| aRA  | s1RA | 2.904455e-05 | aRA_s1RA | 2.975487e-05 | aRA_s1RA     | -7.103173e-07 | 0.02445613 |
+| aMA  | sMA  | 5.402153e-05 | aMA_sMA  | 5.534268e-05 | aMA_sMA      | -1.321157e-06 | 0.02445613 |
+| aCA  | s1CA | 1.412475e-05 | aCA_s1CA | 1.447019e-05 | aCA_s1CA     | -3.454367e-07 | 0.02445613 |
+| aAS  | sAS  | 4.321720e-05 | aAS_sAS  | 4.427339e-05 | aAS_sAS      | -1.056192e-06 | 0.02443915 |
+| aAA  | sAA  | 4.321720e-05 | aAA_sAA  | 4.427339e-05 | aAA_sAA      | -1.056191e-06 | 0.02443913 |
 
-Now the value for the Test variable can be changed to TRUE, and the
-difference in k’s between excel and R can be tested again:
+### Steadystate mass
+
+The differences in k’s drives the model output: the steady state mass.
+So a final check is to see how much the steady state masses differ
+between both implementations of SimpleBox (Figure 3).
+
+<figure>
+<img
+src="Microplastic_verification_files/figure-gfm/PlotSteadyState_1-1.png"
+alt="Figure 3: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=FALSE)" />
+<figcaption aria-hidden="true">Figure 3: Relative differences in steady
+state mass per compartment between R (SB1solve) and Spreadsheet
+implementation of SimpleBox (Test=FALSE)</figcaption>
+</figure>
+
+## Step 2. Compare SBoo and Spreadsheet excluding updates (Test=TRUE)
+
+The verification’s goal is to make sure no mistakes are made in porting
+SimpleBox from the spreadsheet implementation to R. For this reason the
+Test variable was included in algorithms that already implemented
+changes for specific variables or processes in SimpleBox. With the Test
+variable changed to TRUE the difference in k’s and steady state masses
+is shown again in relation to the intended 0.1% cut-off.
 
     ##       x Test
     ## 1 FALSE TRUE
 
-![](Microplastic_verification_files/figure-gfm/Plots%20test%20TRUE-1.png)<!-- -->![](Microplastic_verification_files/figure-gfm/Plots%20test%20TRUE-2.png)<!-- -->
+![](Microplastic_verification_files/figure-gfm/PlotDiagonalk_2-1.png)<!-- -->
+
+![](Microplastic_verification_files/figure-gfm/PlotFromTok_2-1.png)<!-- -->
 
 As can be seen in Figures 5 and 6, there are no k’s with a relative
 difference large than 1 percentile between excel and R when Test=TRUE.

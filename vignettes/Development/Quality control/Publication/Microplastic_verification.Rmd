@@ -192,10 +192,7 @@ Diagonal k's are k's that are on the diagonal of the k matrix. They are
 calculated as the sum of all the k's leaving the subcompartment plus the
 sum of the removal process k's (i.e. degradation or burial).
 
-```{r PlotsDiagonalk_1, echo=FALSE, warning=FALSE}
-
-#|fig.cap = "Figure 1: Relative differences sum of from-k's between SimpleBox implemented in R and spreadsheet for paste0(substance)"
-
+```{r PlotsDiagonalk_1,fig.cap = "Figure 1: Relative differences sum of from-k's between R and Spreadsheet implementation of SimpleBox (Test=FALSE)", echo=FALSE, warning=FALSE}
 custom_theme <- function() {
   theme(
     axis.text.y = element_text(size = 12),
@@ -228,35 +225,24 @@ ggplot(sorted_diff, aes(x = from, y = reldif)) +
 
 ```
 
-#### Dry deposition {#sec-dry-deposition}
-
-As can be seen in Figure 2 above, the only relative differences larger than 0.1% are between
-the diagonal k's in excel and R are in the air compartment. This is
-caused by a difference in the dry deposition process. In R, dry
-deposition is implemented in a new manner, according to the Loteur v2
-reference guide. See v.2.2002 <https://www.rivm.nl/lotos-euros>.
-
-When using Test=TRUE, the implementation of dry deposition in R is
-temporarily set to the old implementation that was used in excel.
-
 ### From-to k's
 
-```{r Plot k differences, echo=FALSE, warning=FALSE}
+```{r PlotFromTok_1, echo=FALSE, warning=FALSE, fig.cap="Figure 2: Relative differences from-to k's between R and Spreadsheet implementation of SimpleBox (Test=FALSE)"}
 # "To" and "from" in one plot
-ggplot(mergedkaas, aes(x = to, y = from, color = abs(diff))) + 
-  geom_point() +
-  scale_color_gradient(low = "green", high = "red", trans = "log10") +
-  ggtitle(paste0("Figure 3: Absolute differences k's between R and excel for ", substance)) +
-  theme(
-    axis.text.y = element_text(hjust = 1, size = 8),
-    axis.text.x = element_text(angle = 90, hjust = 1, size = 8), 
-    plot.margin = margin(t = 10, r = 10, b = 30, l = 10)
-  )
+# ggplot(mergedkaas, aes(x = to, y = from, color = abs(diff))) + 
+#   geom_point() +
+#   scale_color_gradient(low = "green", high = "red", trans = "log10") +
+#   ggtitle(paste0("Figure 3: Absolute differences k's between R and excel for ", substance)) +
+#   theme(
+#     axis.text.y = element_text(hjust = 1, size = 8),
+#     axis.text.x = element_text(angle = 90, hjust = 1, size = 8), 
+#     plot.margin = margin(t = 10, r = 10, b = 30, l = 10)
+#   )
 
 ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) + 
   geom_point() +
   scale_color_gradient(low = "green", high = "red") +
-  ggtitle(paste0("Figure 4: Relative differences k's between R and excel for ", substance)) +
+  ggtitle(paste0(substance)) +
   theme(
     axis.text.y = element_text(size = 8),
     axis.text.x = element_text(angle = 90, hjust = 1, size = 8), 
@@ -264,34 +250,87 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
   )
 ```
 
-```{r filter large differences, include=FALSE, echo=FALSE}
-large_differences <- mergedkaas |>
+#### Dry deposition {#sec-dry-deposition}
+
+As can be seen in Figure 1 and 2 above, the only relative differences larger than 0.1% (e.g. for
+the diagonal k's in excel and R) are in the air compartment. This is
+caused by a difference in the implementation of the dry deposition process. In R, dry
+deposition is implemented in a new manner, according to the Loteur v2
+reference guide. See v.2.2002 <https://www.rivm.nl/lotos-euros>. Whereas in the spreadsheet implementation a slightly more simplified approach was taken.
+
+Below Test=TRUE will be used, setting the implementation of dry deposition in R temporarily to the old implementation that was used in the Spreadsheet implementation of SimpleBox.
+
+We can filter out the exact k's that have a relative difference larger than 0.1%:
+
+```{r TableDifferences, echo=FALSE, message=FALSE, warning=FALSE, paged.print=TRUE}
+mergedkaas |>
   mutate(relDif = abs(relDif)) |>
   filter(relDif > 0.001) |>
-  arrange(desc(relDif))
+  arrange(desc(relDif)) |> knitr::kable(digits = 30)
 ```
 
-#### Dry deposition
+### Steadystate mass
+The differences in k's drives the model output: the steady state mass. So a final check is to see how much the steady state masses differ between both implementations of SimpleBox (Figure 3).
 
-As can be seen in Figure 4, the largest relative differences in k's
-between R and excel are in the k's from air to soil and water. These
-differences can also be attributed to the different implementation of
-the dry deposition process between excel and R.
+```{r PlotSteadyState_1, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 3: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=FALSE)"}
+library(stringi)
+World$NewSolver("SB1Solve")
+emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), Emis = c(10000, 10000, 10000) ) # convert 1 t/y to si units: kg/s
+emissions <- emissions |>
+  mutate(Emis = Emis*1000/(365*24*60*60))
 
-#### Thermal velocity heteroagglomeration
+SSsolve.R <- World$Solve(emissions)
+SSsolve.excel <- read.xlsx(SBExcelName,
+                             sheet=8,
+                             colNames=TRUE,
+                             rows=c(167,169))
 
-A smaller difference that was found between the k's in R and excel is
-the value for thermal velocity in heteroagglomeration. In excel, a
-constant value of 285K was used. In R, this value was updated by
-calculating the value specifically for the temperature of the current
-scale.
+SSsolve.excel <- SSsolve.excel |>
+  select(-c(STEADY.STATE)) |>
+  pivot_longer(names_to = "Abbr", values_to = "EqMass", cols = everything())  |>
+  mutate(Species = case_when(
+    substr(Abbr, nchar(Abbr), nchar(Abbr)) == "G" ~ "Gas",
+    substr(Abbr, nchar(Abbr), nchar(Abbr)) == "D" ~ "Dissolved",
+    substr(Abbr, nchar(Abbr), nchar(Abbr)) == "P" ~ "Large",
+    substr(Abbr, nchar(Abbr), nchar(Abbr)) == "A" ~ "Small",
+    substr(Abbr, nchar(Abbr), nchar(Abbr)) == "U" ~ "Unbound",
+    substr(Abbr, nchar(Abbr), nchar(Abbr)) == "S" ~ "Solid",
+    TRUE ~ "Other"
+  )) |>
+  filter(EqMass != 0) |>
+  mutate(Abbr = str_sub(Abbr, 1, -2))
 
-## Run again with Test=TRUE
+SSsolve.R <- SSsolve.R |> mutate(Abbr =  paste0(accronym_map[SubCompart], 
+                            accronym_map2[Scale])) |>
+  filter(EqMass != 0)
 
-Now the value for the Test variable can be changed to TRUE, and the
-difference in k's between excel and R can be tested again:
+merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by=c("Abbr", "Species"), suffixes = c(".R", ".Excel")) |>
+  mutate(absdiff = EqMass.R-EqMass.Excel) |>
+  mutate(reldiff = absdiff/EqMass.R) |>
+  mutate(Abbr = case_when(
+    Species == "Large" ~ paste0(Abbr,"P"),
+    Species == "Small" ~ paste0(Abbr,"A"),
+    Species == "Solid" ~ paste0(Abbr,"S"),
+    TRUE ~ "Other"
+  ))
 
-```{r include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+#Diff per "to" compartment
+ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
+  geom_boxplot() +
+  ggtitle(paste0(substance)) +
+  geom_hline(yintercept = 0.001, color="red") +
+  geom_hline(yintercept = -0.001, color="red") +
+  custom_theme() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
+
+```
+
+
+## Step 2. Compare SBoo and Spreadsheet excluding updates (Test=TRUE)
+The verification's goal is to make sure no mistakes are made in porting SimpleBox from the spreadsheet implementation to R. For this reason the Test variable was included in algorithms that already implemented changes for specific variables or processes in SimpleBox. With the Test variable changed to TRUE the
+difference in k's and steady state masses is shown again in relation to the intended 0.1% cut-off.
+
+```{r comparison_2, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 World$SetConst(Test = "TRUE")
 World$UpdateKaas(mergeExisting = FALSE)
 
@@ -403,10 +442,8 @@ mergedkaas$diff <- mergedkaas$k_R - mergedkaas$k_Excel #compare R k to Excel K
 mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)  
 ```
 
-```{r Plots test TRUE, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+```{r PlotDiagonalk_2, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 # Plot of relative differences of the diagonals per compartment
-
-
 ggplot(sorted_diff, aes(x = from, y = reldif)) +
   geom_boxplot() +
   ggtitle(paste0("Figure 5: Relative differences removal k's between R and excel for ", substance)) +
@@ -415,6 +452,10 @@ ggplot(sorted_diff, aes(x = from, y = reldif)) +
   custom_theme()+
   labs(x = "from", y = "Relative diff")
 
+```
+
+
+```{r PlotFromTok_2, echo=FALSE, warning=FALSE, message=FALSE}
 ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) + 
   geom_point() +
   scale_color_gradient(low = "green", high = "red") +
@@ -424,7 +465,6 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
     axis.text.x = element_text(angle = 90, hjust = 1, size = 8), 
     plot.margin = margin(t = 10, r = 10, b = 30, l = 10)
   )
-
 ```
 
 As can be seen in Figures 5 and 6, there are no k's with a relative
@@ -445,7 +485,7 @@ World$NewSolver("SB1Solve")
 
 emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), Emis = c(10000, 10000, 10000) ) # convert 1 t/y to si units: kg/s
 
-MW <- World$fetchData("MW")
+# MW <- World$fetchData("MW")
 
 emissions <- emissions |>
   mutate(Emis = Emis*1000/(365*24*60*60))
@@ -494,4 +534,5 @@ ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
   geom_hline(yintercept = -0.001, color="red") +
   custom_theme() + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
+
 ```
