@@ -1,7 +1,7 @@
 Verification of SimpleBox4Plastics - spreadsheet versus R implementation
 ================
 Anne Hids, Valerie de Rijk, Matthis Hof and Joris Quik
-2024-08-14
+2024-08-15
 
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
@@ -146,10 +146,6 @@ than 0.1%:
 
 ### Steadystate mass
 
-The differences in k’s drives the model output: the steady state mass.
-So a final check is to see how much the steady state masses differ
-between both implementations of SimpleBox (Figure 3).
-
 <figure>
 <img
 src="Microplastic_verification_files/figure-gfm/PlotSteadyState_1-1.png"
@@ -159,6 +155,12 @@ state mass per compartment between R (SB1solve) and Spreadsheet
 implementation of SimpleBox (Test=FALSE)</figcaption>
 </figure>
 
+The differences in k’s drives the model output: the steady state mass.
+So a final check is to see how much the steady state masses differ
+between both implementations of SimpleBox (Figure 3). From this it is
+clear that there are differences up to 6.4%. This is larger than the
+level we can consider negligible.
+
 ## Step 2. Compare SBoo and Spreadsheet excluding updates (Test=TRUE)
 
 The verification’s goal is to make sure no mistakes are made in porting
@@ -166,23 +168,50 @@ SimpleBox from the spreadsheet implementation to R. For this reason the
 Test variable was included in algorithms that already implemented
 changes for specific variables or processes in SimpleBox. With the Test
 variable changed to TRUE the difference in k’s and steady state masses
-is shown again in relation to the intended 0.1% cut-off.
+is shown again in relation to the intended 0.1% verification level.
 
-    ##       x Test
-    ## 1 FALSE TRUE
+<figure>
+<img
+src="Microplastic_verification_files/figure-gfm/PlotDiagonalk_2-1.png"
+alt="Figure 4: Relative differences sum of from-k’s between R and Spreadsheet implementation of SimpleBox (Test=TRUE)" />
+<figcaption aria-hidden="true">Figure 4: Relative differences sum of
+from-k’s between R and Spreadsheet implementation of SimpleBox
+(Test=TRUE)</figcaption>
+</figure>
 
-![](Microplastic_verification_files/figure-gfm/PlotDiagonalk_2-1.png)<!-- -->
+<figure>
+<img
+src="Microplastic_verification_files/figure-gfm/PlotFromTok_2-1.png"
+alt="Figure 5: Relative differences from-to k’s between R and Spreadsheet implementation of SimpleBox (Test=TRUE)" />
+<figcaption aria-hidden="true">Figure 5: Relative differences from-to
+k’s between R and Spreadsheet implementation of SimpleBox
+(Test=TRUE)</figcaption>
+</figure>
 
-![](Microplastic_verification_files/figure-gfm/PlotFromTok_2-1.png)<!-- -->
+As can be seen in Figures 4 and 5, there are no k’s with a relative
+difference large than 0.1% between excel and R when Test=TRUE. Several
+k’s have a relative difference between 0.1 and 0.01%. These are related
+to: Heteroagglomeration in porous media between particulate (S) and
+large heteroagglomerate/attached (P) species. Deposition from air to
+water/soil Erosion from soil to water
 
-As can be seen in Figures 5 and 6, there are no k’s with a relative
-difference large than 1 percentile between excel and R when Test=TRUE.
+### Steadystate mass
 
-## Compare steady state emissions
+<figure>
+<img
+src="Microplastic_verification_files/figure-gfm/comparison%20of%20steady%20state%20emissions%20using%20SB1Solve-1.png"
+alt="Figure 6: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=TRUE)" />
+<figcaption aria-hidden="true">Figure 6: Relative differences in steady
+state mass per compartment between R (SB1solve) and Spreadsheet
+implementation of SimpleBox (Test=TRUE)</figcaption>
+</figure>
 
-The steady state masses in R and Excel were compared by calculating the
-relative differences between the masses in R and Excel (Figure 7). The
-figure shows that all masses between R and Excel relatively differ less
-than 1 percentile.
+    ## [1] 0.03
 
-![](Microplastic_verification_files/figure-gfm/comparison%20of%20steady%20state%20emissions%20using%20SB1Solve-1.png)<!-- -->
+To test if the small differences (\<0.1%) in first order rate constants
+is negligible (Figures 4 and 5), the steady state masses should also not
+differ by more than 0.1% between the R and Spreadsheet implementations
+of SimpleBox. This is indeed the case (Figure 6) as the max difference
+in now only 0.03%. This proves that the port of SimpleBox4Plastics to R
+is successful in reproducing the results from the original spreadsheet
+implementation.

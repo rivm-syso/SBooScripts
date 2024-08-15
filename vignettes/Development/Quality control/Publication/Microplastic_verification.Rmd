@@ -241,7 +241,7 @@ ggplot(sorted_diff, aes(x = from, y = reldif)) +
 
 ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) + 
   geom_point() +
-  scale_color_gradient(low = "green", high = "red") +
+  scale_color_gradient(low = "green", high = "red", limits = c(0, 0.001)) +
   ggtitle(paste0(substance)) +
   theme(
     axis.text.y = element_text(size = 8),
@@ -270,8 +270,6 @@ mergedkaas |>
 ```
 
 ### Steadystate mass
-The differences in k's drives the model output: the steady state mass. So a final check is to see how much the steady state masses differ between both implementations of SimpleBox (Figure 3).
-
 ```{r PlotSteadyState_1, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 3: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=FALSE)"}
 library(stringi)
 World$NewSolver("SB1Solve")
@@ -323,14 +321,17 @@ ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
   custom_theme() + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
 
+
+
 ```
 
+The differences in k's drives the model output: the steady state mass. So a final check is to see how much the steady state masses differ between both implementations of SimpleBox (Figure 3). From this it is clear that there  are differences up to `r merged_SS_SB1$reldiff |> max() |> round(digits=3)*100`%. This is larger than the level we can consider negligible.
 
 ## Step 2. Compare SBoo and Spreadsheet excluding updates (Test=TRUE)
 The verification's goal is to make sure no mistakes are made in porting SimpleBox from the spreadsheet implementation to R. For this reason the Test variable was included in algorithms that already implemented changes for specific variables or processes in SimpleBox. With the Test variable changed to TRUE the
-difference in k's and steady state masses is shown again in relation to the intended 0.1% cut-off.
+difference in k's and steady state masses is shown again in relation to the intended 0.1% verification level.
 
-```{r comparison_2, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+```{r comparison_2, message=FALSE, warning=FALSE, include=FALSE}
 World$SetConst(Test = "TRUE")
 World$UpdateKaas(mergeExisting = FALSE)
 
@@ -442,11 +443,11 @@ mergedkaas$diff <- mergedkaas$k_R - mergedkaas$k_Excel #compare R k to Excel K
 mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)  
 ```
 
-```{r PlotDiagonalk_2, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+```{r PlotDiagonalk_2, fig.cap = "Figure 4: Relative differences sum of from-k's between R and Spreadsheet implementation of SimpleBox (Test=TRUE)", include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 # Plot of relative differences of the diagonals per compartment
 ggplot(sorted_diff, aes(x = from, y = reldif)) +
   geom_boxplot() +
-  ggtitle(paste0("Figure 5: Relative differences removal k's between R and excel for ", substance)) +
+  ggtitle(paste0(substance)) +
   geom_hline(yintercept = 0.001, color = "red") +
   geom_hline(yintercept = -0.001, color = "red") +
   custom_theme()+
@@ -455,11 +456,11 @@ ggplot(sorted_diff, aes(x = from, y = reldif)) +
 ```
 
 
-```{r PlotFromTok_2, echo=FALSE, warning=FALSE, message=FALSE}
+```{r PlotFromTok_2, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="Figure 5: Relative differences from-to k's between R and Spreadsheet implementation of SimpleBox (Test=TRUE)"}
 ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) + 
   geom_point() +
-  scale_color_gradient(low = "green", high = "red") +
-  ggtitle(paste0("Figure 6: Relative differences k's between R and excel for ", substance)) +
+  scale_color_gradient(low = "green", high = "red", limits = c(0, 0.001)) +
+  ggtitle(paste0(substance)) +
   theme(
     axis.text.y = element_text(size = 8),
     axis.text.x = element_text(angle = 90, hjust = 1, size = 8), 
@@ -467,17 +468,22 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
   )
 ```
 
-As can be seen in Figures 5 and 6, there are no k's with a relative
-difference large than 1 percentile between excel and R when Test=TRUE.
+As can be seen in Figures 4 and 5, there are no k's with a relative
+difference large than 0.1% between excel and R when Test=TRUE. Several k's have a relative difference between 0.1 and 0.01%. These are related to:
+Heteroagglomeration in porous media between particulate (S) and large heteroagglomerate/attached (P) species.
+Deposition from air to water/soil
+Erosion from soil to water
 
-## Compare steady state emissions
+```{r TableDifferences_2, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
+mergedkaas |>
+  mutate(relDif = abs(relDif)) |>
+  filter(relDif > 0.0001) |>
+  arrange(desc(relDif)) |> knitr::kable(digits = 30)
+```
 
-The steady state masses in R and Excel were compared by calculating the
-relative differences between the masses in R and Excel (Figure 7). The
-figure shows that all masses between R and Excel relatively differ less
-than 1 percentile.
 
-```{r comparison of steady state emissions using SB1Solve, include= TRUE, echo= FALSE, warning=FALSE}
+### Steadystate mass
+```{r comparison of steady state emissions using SB1Solve, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 6: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=TRUE)"}
 
 library(stringi)
 
@@ -529,10 +535,14 @@ merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by=c("Abbr", "Species"), suffix
 #Diff per "to" compartment
 ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
   geom_boxplot() +
-  ggtitle(paste0("Figure 7: Relative differences between steady state masses in excel and R (SB1solve) - ", substance)) +
+  ggtitle(paste0(substance)) +
   geom_hline(yintercept = 0.001, color="red") +
   geom_hline(yintercept = -0.001, color="red") +
   custom_theme() + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
 
+merged_SS_SB1$reldiff |> max() |> round(digits=4)*100
+
 ```
+
+To test if the small differences (<0.1%) in first order rate constants is negligible (Figures 4 and 5), the steady state masses should also not differ by more than 0.1% between the R and Spreadsheet implementations of SimpleBox. This is indeed the case (Figure 6) as the max difference in now only `r merged_SS_SB1$reldiff |> max() |> round(digits=4)*100`%. This proves that the port of SimpleBox4Plastics to R is successful in reproducing the results from the original spreadsheet implementation.
