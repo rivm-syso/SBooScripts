@@ -71,7 +71,7 @@ input values.
 
 # Step 1. Compare SBoo (incl. updates) to spreadsheet
 
-```{r data xlsx and R, echo=FALSE, warning=FALSE}
+```{r comparison_1, echo=FALSE, warning=FALSE}
 #Comparing K's from R model to K's from excel model
 library(openxlsx)
 library(tidyverse)
@@ -262,13 +262,6 @@ the formula used in excel for the resuspension ans sedimentation processes (K_re
 and k_Sedimentation). This solves the differences in diagonal k's related to 
 resuspension or sedimentation.
 
-#### Degradation
-For some substances, the bulk standard degradation rate constant for air/water/soil/sediment (kdeg) 
-has an input value, while for other substances this value is calculated. When an input value is
-available, this value has 2 decimals in R but more decimals in excel. This can cause slight 
-differences the k's where this value is used. Therefore, these values were rounded in the 
-excel files that were used for comparison to the R output. 
-
 ### From-to k's
 
 ```{r PlotFromTok_1, echo=FALSE, warning=FALSE, fig.cap="Figure 2: Relative differences from-to k's between R and Spreadsheet implementation of SimpleBox (Test=FALSE)"}
@@ -296,15 +289,15 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
 
 
 ```{r kDifferences, include=FALSE, echo=FALSE}
-large_differences <- mergedkaas |>
+mergedkaas |>
   mutate(relDif = abs(relDif)) |>
   filter(relDif > 0.001) |>
-  arrange(desc(relDif))
+  arrange(desc(relDif)) |> knitr::kable()
 ```
 
 #### Sedimentation and resuspension
-As can be seen in Figure 4 above, the k's that have a relative difference larger
-than 1 percentile go from water to sediment or from sediment to water. Changing 
+As can be seen in Figure 2 and the table above, the k's that have a relative difference larger
+than 0.1% go from water to sediment or from sediment to water. Changing 
 the formula for calculating settling velocity when Test = TRUE for the sedimentation
 and resuspension processes (explained above under 'Settling velocity') also solves these differences.
 
@@ -479,9 +472,6 @@ solved the large differences in k's between R and excel for both the diagonal an
 from-to k's. All relative differences are now smaller than 1 percentile. 
 
 ## Steadystate mass
-
-The steady state masses in R and Excel were compared by calculating the relative differences
-between the masses in R and Excel (Figure 7). The figure shows that all masses between R and Excel relatively differ less than 1 percentile. 
 
 ```{r PlotSteadyState_2, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 6: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=TRUE)"}
 

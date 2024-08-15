@@ -1,5 +1,5 @@
 Verification of SimpleBox - spreadsheet versus R implementation for
-metals
+organic chemicals without ChemClass specified
 ================
 Anne Hids, Valerie de Rijk, Matthis Hof and Joris Quik
 2024-08-15
@@ -14,8 +14,22 @@ of the k’s or masses between the models to not exceed 0.1%.
 
 # Verification method
 
+``` r
+# Create a list with the names of substances
+Potential_substances <- c("1-aminoanthraquinone", # no class
+                          "1-HYDROXYANTHRAQUINONE", # acid
+                          "1-Hexadecanamine, N,N-dimethyl-", # base
+                          "1-Chloro-2-nitro-propane", # neutral
+                          "Sb(III)" # metal
+                          ) 
+              
+substance <- Potential_substances[1]
+
+source("baseScripts/initWorld_onlyMolec.R")
+```
+
 The SBoo world is initialized for a substance. In this case, that
-substance is Sb(III), which is of class: metal.
+substance is 1-aminoanthraquinone, which is of class: neutral.
 
 At release already improvements or developments have been implemented in
 the R version of SimpleBox (SBoo) which are not implemented in Excel
@@ -61,7 +75,7 @@ used to calculate some processes in R the same way as in excel for the
 verification without removing the improvements that are made. When this
 test variable was used and why will be explained below.
 
-### Diagonal sum of ‘from’ k’s
+### Diagonal k’s
 
 Diagonal k’s are k’s that are on the diagonal of the k matrix. They are
 calculated as the sum of all the k’s leaving the subcompartment plus the
@@ -69,15 +83,16 @@ sum of the removal process k’s (i.e. degradation or burial).
 
 <figure>
 <img
-src="Molecular_verification_metal_files/figure-gfm/PlotsDiagonalk_1-1.png"
+src="Molecular_verification_no_class_files/figure-gfm/PlotsDiagonalk_1-1.png"
 alt="Figure 1: Relative differences sum of from-k’s between R and Spreadsheet implementation of SimpleBox (Test=FALSE)" />
 <figcaption aria-hidden="true">Figure 1: Relative differences sum of
 from-k’s between R and Spreadsheet implementation of SimpleBox
 (Test=FALSE)</figcaption>
 </figure>
 
-As can be seen in Figure 1, relative differences larger than 0.1% are in
-the lake and sediment subcompartments.
+Figure 1 above shows the absolute and relative differences in diagonal
+k’s between R and excel. The relative differences larger than 0.1% are
+in the lake and sediment subcompartments.
 
 #### Lake difference
 
@@ -108,11 +123,23 @@ sedimentation processes (K_resuspension and k_Sedimentation). This
 solves the differences in diagonal k’s related to resuspension or
 sedimentation.
 
+#### Degradation
+
+For some substances, the bulk standard degradation rate constant for
+air/water/soil/sediment (kdeg) has an input value, while for other
+substances this value is calculated. When an input value is available,
+this value has 2 decimals in R but more decimals in excel. This can
+cause slight differences the k’s where this value is used. Therefore,
+these values were rounded in the test files that were used for
+comparison to the R output. There is an
+[issue](https://github.com/rivm-syso/SBoo/issues/158) to fix this in a
+future SBooScript update.
+
 ### From-to k’s
 
 <figure>
 <img
-src="Molecular_verification_metal_files/figure-gfm/PlotFromTok_1-1.png"
+src="Molecular_verification_no_class_files/figure-gfm/PlotFromTok_1-1.png"
 alt="Figure 2: Relative differences from-to k’s between R and Spreadsheet implementation of SimpleBox (Test=FALSE)" />
 <figcaption aria-hidden="true">Figure 2: Relative differences from-to
 k’s between R and Spreadsheet implementation of SimpleBox
@@ -132,7 +159,7 @@ differences.
 
 <figure>
 <img
-src="Molecular_verification_metal_files/figure-gfm/PlotSteadyState_1-1.png"
+src="Molecular_verification_no_class_files/figure-gfm/PlotSteadyState_1-1.png"
 alt="Figure 3: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=FALSE)" />
 <figcaption aria-hidden="true">Figure 3: Relative differences in steady
 state mass per compartment between R (SB1solve) and Spreadsheet
@@ -142,7 +169,7 @@ implementation of SimpleBox (Test=FALSE)</figcaption>
 The differences in k’s drives the model output: the steady state mass.
 So a final check is to see how much the steady state masses differ
 between both implementations of SimpleBox (Figure 3). From this it is
-clear that there are differences up to 4.5%.
+clear that there are differences up to 0.1%.
 
 # Step 2. Compare SBoo and Spreadsheet excluding updates (Test=TRUE)
 
@@ -156,7 +183,7 @@ difference in k’s between excel and R can be tested again:
 
 <figure>
 <img
-src="Molecular_verification_metal_files/figure-gfm/PlotDiagonalk_2-1.png"
+src="Molecular_verification_no_class_files/figure-gfm/PlotDiagonalk_2-1.png"
 alt="Figure 4: Relative differences sum of from-k’s between R and Spreadsheet implementation of SimpleBox (Test=TRUE)" />
 <figcaption aria-hidden="true">Figure 4: Relative differences sum of
 from-k’s between R and Spreadsheet implementation of SimpleBox
@@ -165,7 +192,7 @@ from-k’s between R and Spreadsheet implementation of SimpleBox
 
 <figure>
 <img
-src="Molecular_verification_metal_files/figure-gfm/PlotFromTok_2-1.png"
+src="Molecular_verification_no_class_files/figure-gfm/PlotFromTok_2-1.png"
 alt="Figure 5: Relative differences from-to k’s between R and Spreadsheet implementation of SimpleBox (Test=TRUE)" />
 <figcaption aria-hidden="true">Figure 5: Relative differences from-to
 k’s between R and Spreadsheet implementation of SimpleBox
@@ -179,19 +206,12 @@ now smaller than 1 percentile.
 
 ## Steadystate mass
 
-<figure>
-<img
-src="Molecular_verification_metal_files/figure-gfm/PlotSteadyState_2-1.png"
-alt="Figure 6: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=TRUE)" />
-<figcaption aria-hidden="true">Figure 6: Relative differences in steady
-state mass per compartment between R (SB1solve) and Spreadsheet
-implementation of SimpleBox (Test=TRUE)</figcaption>
-</figure>
+![](Molecular_verification_no_class_files/figure-gfm/comparison%20of%20steady%20state%20emissions%20using%20SB1Solve-1.png)<!-- -->
 
 To test if the small differences (\<0.1%) in first order rate constants
 is negligible (Figures 4 and 5), the steady state masses should also not
 differ by more than 0.1% between the R and Spreadsheet implementations
 of SimpleBox. This is indeed the case (Figure 6) as the max difference
-in now only 0.07%. This proves that the port of SimpleBox to R is
+in now only 0%. This proves that the port of SimpleBox to R is
 successful in reproducing the results from the original spreadsheet
-implementation for chemicals of class metal.
+implementation for chemicals of class neutral.
