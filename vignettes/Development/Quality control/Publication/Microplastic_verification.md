@@ -206,8 +206,6 @@ state mass per compartment between R (SB1solve) and Spreadsheet
 implementation of SimpleBox (Test=TRUE)</figcaption>
 </figure>
 
-    ## [1] 0.03
-
 To test if the small differences (\<0.1%) in first order rate constants
 is negligible (Figures 4 and 5), the steady state masses should also not
 differ by more than 0.1% between the R and Spreadsheet implementations

@@ -241,7 +241,7 @@ ggplot(sorted_diff, aes(x = from, y = reldif)) +
 
 ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) + 
   geom_point() +
-  scale_color_gradient(low = "green", high = "red", limits = c(0, 0.001)) +
+  scale_color_gradient(low = "green", high = "red") +
   ggtitle(paste0(substance)) +
   theme(
     axis.text.y = element_text(size = 8),
@@ -540,8 +540,6 @@ ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
   geom_hline(yintercept = -0.001, color="red") +
   custom_theme() + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
-
-merged_SS_SB1$reldiff |> max() |> round(digits=4)*100
 
 ```
 
