@@ -71,7 +71,7 @@ library(tidyverse)
 library (ggplot2)
 library(plotly)
 
-SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4plastics_rev009-1_",substance,".xlsx") 
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/20240815 SimpleBox4plastics.xlsx") 
 
 SBexcel.K <- read.xlsx(SBExcelName,
                   colNames = FALSE,
