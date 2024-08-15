@@ -12,4 +12,5 @@ emissions <- emissions |>
 
 World$NewSolver("SB1Solve")
 
-solved <- World$Solve(emissions)
+solved2 <- World$Solve(emissions, needdebug = F)
+
