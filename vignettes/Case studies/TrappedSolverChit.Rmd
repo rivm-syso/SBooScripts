@@ -744,10 +744,6 @@ ggplot(summary_stats, aes(x = Time, y = Mean_Value)) +
 
 ```
 
-```{r plot}
-
-
-```
 ```{r obtain rates of degradation for Graphene Oxide and Chitosan} 
 
 processed_results_list <- list()
@@ -922,5 +918,460 @@ ggplot(summary_stats, aes(x = Time, y = Mean_Value, color = Substance, fill = Su
   scale_color_manual(values = c("blue", "red", "green")) +  # Customize colors for each substance
   scale_fill_manual(values = c("blue", "red", "green"))  +
   scale_y_log10()
+
+```
+
+## Introducing variable uncertainty
+```{r introducing uncertainty with LHS}
+library(lhs)
+num_combinations <- 2
+
+# Generate 10 LHS samples for each distribution
+set.seed(123)  # For reproducibility
+fw_lhs_samples <- randomLHS(num_combinations, 1)
+ma_lhs_samples <- randomLHS(num_combinations, 1)
+
+# Scale LHS samples to the log-uniform distribution range
+fw_alpha_values <-  10^(fw_lhs_samples * (log10(fwa_max) - log10(fwa_min)) + log10(fwa_min))
+ma_alpha_values <- 10^(ma_lhs_samples * (log10(ma_max) - log10(ma_min)) + log10(ma_min))
+
+
+combinations_list <- vector("list", num_combinations)
+
+# Assign alpha values to each compartment for each combination
+for (i in 1:num_combinations) {
+  # Freshwater compartments
+  fw_alpha_df <- data.frame(
+    SubCompart = subcomparts,
+    alpha = rep(fw_alpha_values[i], length(subcomparts))
+  )
+  
+  # Marine compartments
+  ma_alpha_df <- data.frame(
+    SubCompart = subcompartsmarine,
+    alpha = rep(ma_alpha_values[i], length(subcompartsmarine))
+  )
+  
+  # Combine freshwater and marine data frames
+  combination_df <- rbind(fw_alpha_df, ma_alpha_df)
+  
+  # Store the combination in the list
+  combinations_list[[i]] <- combination_df
+}
+
+# Print the list of combinations
+print(combinations_list)
+```
+
+```{r creating solver strategy for uncertainty in parameters and emissions} 
+
+library(tidyverse)
+
+# Get the unique runs from your Emission_run_approx data
+unique_runs <- unique(Emission_run_approx$RUN)
+
+# Initialize an empty list to store nested results
+nested_results <- list()
+kaas_list <- list()
+# Loop through each combination in combinations_list
+for (i in seq_along(combinations_list)) {
+  alpha <- combinations_list[[i]]
+  alpha_fw <- alpha |> filter(SubCompart == "river") |> pull(alpha)
+  alpha_mw <- alpha |> filter(SubCompart == "sea") |> pull(alpha)
+  # Process the combination to generate the appropriate dataframe
+  dfs <- map_df(list(alpha), function(x) {
+    varName <- names(x)[!names(x) %in% The3D]
+    stopifnot(length(varName) == 1)
+    pivot_longer(x, cols = all_of(varName), names_to = "varName", values_to = "Waarde")
+  })
+  
+  # Update the World object with the new dataframe
+  World$mutateVars(dfs)
+  World$UpdateKaas(mergeExisting = FALSE)
+  kaas <- World$kaas
+  kaas_list[[paste0(i)]] <- list(
+    alpha_fw = alpha_fw,
+    alpha_mw = alpha_mw,
+    kaas = kaas
+  )
+  
+  # Collect results for the current alpha
+  alpha_results <- map(unique_runs, function(run) {
+    # Extract the appropriate approxfun objects for the current run
+    # Print progress information
+    print(paste("Processing alpha index", i, "and run", run))
+  
+    approxfuns <- Emission_run_approx |>
+      filter(RUN == run) |>
+      pull(EmisFun)
+    
+    # Define the funlist based on the approxfuns
+    funlist <- approxfuns
+    names(funlist) <- Emission_run_approx |>
+      filter(RUN == run) |>
+      pull(Abr)
+    
+    # Solve using SBsolve4
+    result <- SBsolve4(
+      tmax = 24 * (365.25 * 24 * 3600),
+      nTIMES = 100,
+      Engine = World$exportEngineR(),
+      funlist = funlist
+    )
+    
+    # Return a tibble with the run and the result
+    tibble(
+      run = run,
+      result = list(result)
+    )
+  })
+  
+  # Nest the results for the current alpha
+  nested_results[[i]] <- tibble(
+    alpha_fw = alpha_fw,
+    alpha_mw = alpha_mw,
+    data = list(bind_rows(alpha_results))
+  )
+}
+
+# Combine all alpha results into a single nested tibble
+nested_results_df <- bind_rows(nested_results)
+
+# The resulting `nested_results_df` has columns `alpha` and `data`
+
+
+```
+
+```{r plotting of solver}
+
+# Define the variable of interest
+interest <- "w1RA"
+
+# Initialize an empty dataframe to hold all extracted data
+all_variable_data <- data.frame()
+
+# Loop through each row of the nested results
+for (i in seq_len(nrow(nested_results_df))) {
+  # Extract alpha_fw and alpha_mw for labeling
+  alpha_fw <- nested_results_df$alpha_fw[i]
+  alpha_mw <- nested_results_df$alpha_mw[i]
+  
+  # Extract the nested data
+  nested_data <- nested_results_df$data[[i]]
+  
+  # Loop through each run in the nested data
+  for (j in seq_len(nrow(nested_data))) {
+    run <- nested_data$run[j]
+    result <- nested_data$result[[j]]
+    
+    # Extract the variable of interest and time values
+    variable_values <- result[[interest]]
+    time_values <- result$time
+    
+    # Combine into a data frame
+    run_data <- data.frame(
+      Time = time_values,
+      Value = variable_values,
+      Run = run,
+      Alpha_FW = alpha_fw,
+      Alpha_MW = alpha_mw
+    )
+    
+    # Append to the overall data frame
+    all_variable_data <- rbind(all_variable_data, run_data)
+  }
+}
+
+# Step 2: Calculate mean and confidence intervals at each time point across all alphas
+summary_stats <- all_variable_data |>
+  group_by(Time) |>
+  summarise(
+    Mean_Value = mean(Value, na.rm = TRUE),
+    SD_Value = sd(Value, na.rm = TRUE),
+    Lower_CI = Mean_Value - 1.96 * SD_Value / sqrt(n()),
+    Upper_CI = Mean_Value + 1.96 * SD_Value / sqrt(n())
+  ) |>
+  ungroup()
+
+# Step 3: Plot with ggplot2 without faceting
+ggplot(summary_stats, aes(x = Time, y = Mean_Value)) +
+  geom_line(color = "blue", size = 1) +
+  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2, fill = "blue") +
+  labs(title = paste("Mean mass in", interest, "with Uncertainty Bands Over Time"),
+       x = "Time [s]",
+       y = paste("Mass of compound in compartment", interest, "[kg]")) +
+  theme_minimal()
+
+```
+
+## Propagation of uncertainty
+
+```{r degradation data}
+# Initialize an empty list to store the final results
+final_processed_results_list <- list()
+
+# Iterate over each row in nested_results_df
+for (i in seq_len(nrow(nested_results_df))) {
+  # Extract the alpha values and results for the current row
+  alpha_fw <- nested_results_df$alpha_fw[i]
+  alpha_mw <- nested_results_df$alpha_mw[i]
+  alpha_results <- nested_results_df$data[[i]]
+  kaas_run <- kaas_list[[which(sapply(kaas_list, function(x) x$alpha_fw == alpha_fw & x$alpha_mw == alpha_mw))]]
+  kaas <- kaas_run$kaas
+  kaas <- kaas |> mutate(from =  paste0(accronym_map[fromSubCompart], 
+                            accronym_map2[fromScale], 
+                            accronym_map3[fromSpecies]),
+               to = paste0(accronym_map[toSubCompart], 
+                           accronym_map2[toScale], 
+                           accronym_map3[toSpecies]))
+  print(kaas)
+  
+  # Process each result for the current alpha combination
+  processed_results <- map_df(alpha_results$run, function(run) {
+    # Extract the result for the current run
+    result <- alpha_results$result[[which(alpha_results$run == run)]]
+    
+    # Convert the result into a dataframe, transpose it, and adjust column and row names
+    solution_transposed <- as.data.frame(t(result))
+    colnames(solution_transposed) <- solution_transposed[1, ]
+    solution_transposed$from <- rownames(solution_transposed)
+    
+    # Remove the first row as it's now the column names
+    solution_transposed <- solution_transposed[-1, ]
+    
+    # Merge with `kaas` dataframe
+    kaas_time <- merge(kaas, solution_transposed, by = "from")
+    
+    # Multiply numeric columns by the 'k' column
+    kaas_time <- kaas_time |> 
+      mutate(across(where(is.numeric), ~ . * k))
+    
+    # Filter rows where 'process' is 'k_Degradation' and 'from' and 'to' are the same
+    degradation <- kaas_time |> 
+    filter(process == "k_Degradation", from == to)
+    
+    # Return a tibble with the run and the processed result
+    tibble(
+      alpha_fw = alpha_fw,
+      alpha_mw = alpha_mw,
+      run = run,
+      degradation = list(degradation)
+    )
+  })
+  
+  # Store the processed results for the current alpha combination
+  final_processed_results_list[[i]] <- processed_results
+}
+
+# Combine all processed results into a single dataframe
+final_processed_results_df <- bind_rows(final_processed_results_list)
+
+
+```
+
+```{r trial}
+# Initialize a list to store final results
+final_results_list <- list()
+process_substance <- function(substance_name, degradation_data, compartment_interest) {
+  World$substance <- substance_name
+  
+  is_numeric_name <- function(name) {
+    !is.na(suppressWarnings(as.numeric(name))) && nzchar(name)
+  }
+  
+  numeric_columns <- sapply(names(degradation_data), is_numeric_name)
+  keep_columns <- numeric_columns | names(degradation_data) == 'from'
+  columns_to_keep <- names(degradation_data)[keep_columns]
+  
+  degradation_filtered <- degradation_data |>
+    select(all_of(columns_to_keep))
+  
+  long_filtered <- degradation_filtered |>
+    pivot_longer(cols = -from, names_to = "time", values_to = "value") |>
+    mutate(time = as.numeric(time))
+  
+  emissions <- long_filtered |>
+    group_by(from) |>
+    summarise(n = n(),
+              EmisFun = list(
+                approxfun(
+                  data.frame(time = time, value = value),
+                  rule = 1
+                )
+              ))
+  
+  funlist <- emissions$EmisFun
+  names(funlist) <- emissions$from
+  
+  
+  
+  return(funlist)
+}
+# Iterate over each row in final_processed_results_df
+for (i in seq_len(nrow(final_processed_results_df))) {
+  # Extract relevant data for the current row
+  row_data <- final_processed_results_df[i, ]
+  alpha_fw <- row_data$alpha_fw
+  alpha_mw <- row_data$alpha_mw
+  run <- row_data$run
+  print(run)
+  degradation <- row_data$degradation[[1]]  # Extract the tibble from the list
+  
+  # Apply the degradation calculations
+  degradation_remaining <- degradation %>%
+    mutate(across(where(is.numeric), ~ . * 0.85))
+  
+  degradation_GO <- degradation %>%
+    mutate(across(where(is.numeric), ~ . * 1/8))
+  
+  degradation_Chit <- degradation %>%
+    mutate(across(where(is.numeric), ~ . * 7/8))
+  print ("degradation done")
+  # Process and solve for Chitosan
+  funlist_Chit <- process_substance("Chitosan", degradation_Chit, "w1CA")
+  print("funlist done")
+  Solution_Chit <- SBsolve4(
+    tmax = 24 * (365.25 * 24 * 3600),
+    nTIMES = 100,
+    Engine = World$exportEngineR(),
+    funlist = funlist_Chit
+  )
+  print("chit done")
+  
+  # Process and solve for Graphene Oxide
+  funlist_GO <- process_substance("Graphene Oxide", degradation_GO, "w1CA")
+  Solution_GO <- SBsolve4(
+    tmax = 24 * (365.25 * 24 * 3600),
+    nTIMES = 100,
+    Engine = World$exportEngineR(),
+    funlist = funlist_GO
+  )
+  print("GO done")
+  # Store solutions in final results list
+  final_results_list[[paste0(run, "_Chitosan")]] <- Solution_Chit
+  final_results_list[[paste0(run, "_GO")]] <- Solution_GO
+}
+
+# Optionally, if you want to convert the final_results_list to a dataframe
+# Convert the list to a dataframe with named elements
+final_results_df <- bind_rows(
+  lapply(names(final_results_list), function(name) {
+    tibble(
+      name = name,
+      solution = list(final_results_list[[name]])
+    )
+  })
+)
+
+
+```
+
+```{r using results of uncertain GO-Chitosan for GO and Chitosan with newly added uncertainty}
+
+# Function to process each substance
+process_substance <- function(substance_name, degradation_data) {
+  World$substance <- substance_name
+  
+  is_numeric_name <- function(name) {
+    !is.na(suppressWarnings(as.numeric(name))) && nzchar(name)
+  }
+  
+  numeric_columns <- sapply(names(degradation_data), is_numeric_name)
+  keep_columns <- numeric_columns | names(degradation_data) == 'from'
+  columns_to_keep <- names(degradation_data)[keep_columns]
+  
+  degradation_filtered <- degradation_data |>
+    select(all_of(columns_to_keep))
+  
+  long_filtered <- degradation_filtered %>%
+    pivot_longer(cols = -from, names_to = "time", values_to = "value") %>%
+    mutate(time = as.numeric(time))
+  
+  emissions <- long_filtered %>%
+    group_by(from) %>%
+    summarise(n = n(),
+              EmisFun = list(
+                approxfun(
+                  data.frame(time = time, value = value),
+                  rule = 1
+                )
+              ))
+  
+  funlist <- emissions$EmisFun
+  names(funlist) <- emissions$from
+  
+  return(funlist)
+}
+
+# Initialize an empty list to store the final nested results
+final_nested_results <- list()
+
+# Process each combination in the nested_results_df
+for (i in seq_len(nrow(nested_results_df))) {
+  # Extract the current alpha combination and nested data
+  alpha_fw <- nested_results_df$alpha_fw[i]
+  alpha_mw <- nested_results_df$alpha_mw[i]
+  nested_data <- nested_results_df$data[[i]]
+  
+  # Initialize lists to store results for each substance
+  results_Chitosan <- list()
+  results_GO <- list()
+  
+  for (run in unique(nested_data$run)) {
+    # Extract the data for the current run
+    run_data <- nested_data %>%
+      filter(run == !!run)
+    
+    # Apply the degradation calculations
+    degradation_remaining <- run_data$result[[1]] %>%
+      mutate(across(where(is.numeric), ~ . * 0.85))
+    degradation_GO <- run_data$result[[1]] %>%
+      mutate(across(where(is.numeric), ~ . * 1/8))
+    degradation_Chit <- run_data$result[[1]] %>%
+      mutate(across(where(is.numeric), ~ . * 7/8))
+    
+    # Process and solve for Chitosan
+    funlist_Chit <- process_substance("Chitosan", degradation_Chit)
+    Solution_Chit <- SBsolve4(
+      tmax = 24 * (365.25 * 24 * 3600),
+      nTIMES = 100,
+      Engine = World$exportEngineR(),
+      funlist = funlist_Chit
+    )
+    
+    # Process and solve for Graphene Oxide
+    funlist_GO <- process_substance("Graphene Oxide", degradation_GO)
+    Solution_GO <- SBsolve4(
+      tmax = 24 * (365.25 * 24 * 3600),
+      nTIMES = 100,
+      Engine = World$exportEngineR(),
+      funlist = funlist_GO
+    )
+    
+    # Store solutions for the current run
+    results_Chitosan[[run]] <- Solution_Chit
+    results_GO[[run]] <- Solution_GO
+  }
+  
+  # Combine results for Chitosan and Graphene Oxide into a single dataframe
+  final_results <- tibble(
+    Chitosan_results = list(bind_rows(
+      map2(names(results_Chitosan), results_Chitosan, ~ tibble(run = .x, result = list(.y)))
+    )),
+    GO_results = list(bind_rows(
+      map2(names(results_GO), results_GO, ~ tibble(run = .x, result = list(.y)))
+    ))
+  )
+  
+  # Nest the results for the current alpha combination
+  final_nested_results[[i]] <- tibble(
+    alpha_fw = alpha_fw,
+    alpha_mw = alpha_mw,
+    results = list(final_results)
+  )
+}
+
+# Combine all alpha results into a single nested tibble
+final_nested_results_df <- bind_rows(final_nested_results)
 
 ```
