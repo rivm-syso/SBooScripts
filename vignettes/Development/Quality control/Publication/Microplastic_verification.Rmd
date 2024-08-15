@@ -35,7 +35,7 @@ source("baseScripts/initWorld_onlyPlastics.R")
 ```
 
 The SBoo world is initialized for a substance. In this case, that
-substance is `r``World$fetchData("Substance")`, which has a default
+substance is `r World$fetchData("Substance")`, which has a default
 radius of `r World$fetchData("RadS")*1e6` µm.
 
 At release already improvements or developments have been implemented in
@@ -62,7 +62,7 @@ differences are almost inevitable due to differences in rounding values
 between excel and R, and not the result of mistakes in calculations or
 input values.
 
-## Step 1. Compare SBoo (incl. updates) to spreadsheet
+# Step 1. Compare SBoo (incl. updates) to spreadsheet
 
 ```{r comparison_1, message=FALSE, include=TRUE, echo=FALSE, warning=FALSE}
 
@@ -327,7 +327,7 @@ ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
 
 The differences in k's drives the model output: the steady state mass. So a final check is to see how much the steady state masses differ between both implementations of SimpleBox (Figure 3). From this it is clear that there  are differences up to `r merged_SS_SB1$reldiff |> max() |> round(digits=3)*100`%. This is larger than the level we can consider negligible.
 
-## Step 2. Compare SBoo and Spreadsheet excluding updates (Test=TRUE)
+# Step 2. Compare SBoo and Spreadsheet excluding updates (Test=TRUE)
 The verification's goal is to make sure no mistakes are made in porting SimpleBox from the spreadsheet implementation to R. For this reason the Test variable was included in algorithms that already implemented changes for specific variables or processes in SimpleBox. With the Test variable changed to TRUE the
 difference in k's and steady state masses is shown again in relation to the intended 0.1% verification level.
 
@@ -443,6 +443,8 @@ mergedkaas$diff <- mergedkaas$k_R - mergedkaas$k_Excel #compare R k to Excel K
 mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)  
 ```
 
+## Compare first order rate constants
+
 ```{r PlotDiagonalk_2, fig.cap = "Figure 4: Relative differences sum of from-k's between R and Spreadsheet implementation of SimpleBox (Test=TRUE)", include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 # Plot of relative differences of the diagonals per compartment
 ggplot(sorted_diff, aes(x = from, y = reldif)) +
@@ -482,8 +484,8 @@ mergedkaas |>
 ```
 
 
-### Steadystate mass
-```{r comparison of steady state emissions using SB1Solve, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 6: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=TRUE)"}
+## Steadystate mass
+```{r PlotSteadyState_2, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 6: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=TRUE)"}
 
 library(stringi)
 

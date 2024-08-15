@@ -19,8 +19,7 @@ source("baseScripts/initWorld_onlyPlastics.R")
 ```
 
 The SBoo world is initialized for a substance. In this case, that
-substance is ``` r``World$fetchData("Substance") ```, which has a
-default radius of 25 µm.
+substance is microplastic, which has a default radius of 25 µm.
 
 At release already improvements or developments have been implemented in
 the R version of SimpleBox (SBoo) which are not implemented in Excel
@@ -46,7 +45,7 @@ smaller differences are almost inevitable due to differences in rounding
 values between excel and R, and not the result of mistakes in
 calculations or input values.
 
-## Step 1. Compare SBoo (incl. updates) to spreadsheet
+# Step 1. Compare SBoo (incl. updates) to spreadsheet
 
 ## Compare first order rate constants
 
@@ -161,7 +160,7 @@ between both implementations of SimpleBox (Figure 3). From this it is
 clear that there are differences up to 6.4%. This is larger than the
 level we can consider negligible.
 
-## Step 2. Compare SBoo and Spreadsheet excluding updates (Test=TRUE)
+# Step 2. Compare SBoo and Spreadsheet excluding updates (Test=TRUE)
 
 The verification’s goal is to make sure no mistakes are made in porting
 SimpleBox from the spreadsheet implementation to R. For this reason the
@@ -169,6 +168,8 @@ Test variable was included in algorithms that already implemented
 changes for specific variables or processes in SimpleBox. With the Test
 variable changed to TRUE the difference in k’s and steady state masses
 is shown again in relation to the intended 0.1% verification level.
+
+## Compare first order rate constants
 
 <figure>
 <img
@@ -195,11 +196,11 @@ to: Heteroagglomeration in porous media between particulate (S) and
 large heteroagglomerate/attached (P) species. Deposition from air to
 water/soil Erosion from soil to water
 
-### Steadystate mass
+## Steadystate mass
 
 <figure>
 <img
-src="Microplastic_verification_files/figure-gfm/comparison%20of%20steady%20state%20emissions%20using%20SB1Solve-1.png"
+src="Microplastic_verification_files/figure-gfm/PlotSteadyState_2-1.png"
 alt="Figure 6: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=TRUE)" />
 <figcaption aria-hidden="true">Figure 6: Relative differences in steady
 state mass per compartment between R (SB1solve) and Spreadsheet
