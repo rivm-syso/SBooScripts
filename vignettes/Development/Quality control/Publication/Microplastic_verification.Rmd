@@ -35,7 +35,7 @@ source("baseScripts/initWorld_onlyPlastics.R")
 ```
 
 The SBoo world is initialized for a substance. In this case, that
-substance is `r World$fetchData("Substance")`, which has a default
+substance is `r World$fetchData("Substance")`, which is of class: `r World$fetchData("ChemClass")` and a default
 radius of `r World$fetchData("RadS")*1e6` µm.
 
 At release already improvements or developments have been implemented in

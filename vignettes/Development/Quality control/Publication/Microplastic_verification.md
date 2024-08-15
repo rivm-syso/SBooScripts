@@ -19,7 +19,8 @@ source("baseScripts/initWorld_onlyPlastics.R")
 ```
 
 The SBoo world is initialized for a substance. In this case, that
-substance is microplastic, which has a default radius of 25 µm.
+substance is microplastic, which is of class: particle and a default
+radius of 25 µm.
 
 At release already improvements or developments have been implemented in
 the R version of SimpleBox (SBoo) which are not implemented in Excel

@@ -1,7 +1,7 @@
 Molecular verification - metal
 ================
 Anne Hids
-2024-08-05
+2024-08-15
 
 This vignette demonstrates the verification process of the molecular
 version of Simplebox for a substance of class ‘metal’. First, the k’s
