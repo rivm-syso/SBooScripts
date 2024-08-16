@@ -2,7 +2,7 @@ Verification of SimpleBox - spreadsheet versus R implementation for
 metals
 ================
 Anne Hids, Valerie de Rijk, Matthis Hof and Joris Quik
-2024-08-15
+2024-08-16
 
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
@@ -103,7 +103,7 @@ While in R, an improved version of this formula is used:
 `SetVel <- 2*(radius^2*(rhoParticle-rhoWater)*GN) / (9*DynViscWaterStandard)`
 
 Using the Test variable, the settling velocity formula is temporarily
-changed to the formula used in excel for the resuspension ans
+changed to the formula used in excel for the resuspension and
 sedimentation processes (K_resuspension and k_Sedimentation). This
 solves the differences in diagonal k’s related to resuspension or
 sedimentation.
@@ -192,6 +192,6 @@ To test if the small differences (\<0.1%) in first order rate constants
 is negligible (Figures 4 and 5), the steady state masses should also not
 differ by more than 0.1% between the R and Spreadsheet implementations
 of SimpleBox. This is indeed the case (Figure 6) as the max difference
-in now only 0.07%. This proves that the port of SimpleBox to R is
+in now only 0.1%. This proves that the port of SimpleBox to R is
 successful in reproducing the results from the original spreadsheet
 implementation for chemicals of class metal.

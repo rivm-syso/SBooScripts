@@ -1,8 +1,8 @@
 Verification of SimpleBox - spreadsheet versus R implementation for
-organic chemicals without ChemClass specified
+neutral organic chemicals or ChemClass not specified
 ================
 Anne Hids, Valerie de Rijk, Matthis Hof and Joris Quik
-2024-08-15
+2024-08-16
 
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
@@ -206,7 +206,14 @@ now smaller than 1 percentile.
 
 ## Steadystate mass
 
-![](Molecular_verification_no_class_files/figure-gfm/comparison%20of%20steady%20state%20emissions%20using%20SB1Solve-1.png)<!-- -->
+<figure>
+<img
+src="Molecular_verification_no_class_files/figure-gfm/PlotSteadyState_2-1.png"
+alt="Figure 6: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=TRUE)" />
+<figcaption aria-hidden="true">Figure 6: Relative differences in steady
+state mass per compartment between R (SB1solve) and Spreadsheet
+implementation of SimpleBox (Test=TRUE)</figcaption>
+</figure>
 
 To test if the small differences (\<0.1%) in first order rate constants
 is negligible (Figures 4 and 5), the steady state masses should also not

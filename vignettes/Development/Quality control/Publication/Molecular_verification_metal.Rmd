@@ -83,7 +83,7 @@ ProcessMolFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
                          "k_Volatilisation")
 
 #read in K matrix from excel
-SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.04_20240723_",substance,".xlsm") 
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.05_20240816_",substance,".xlsm") 
 
 SBexcel.K <- read.xlsx(SBExcelName,
                   colNames = FALSE,
@@ -258,7 +258,7 @@ While in R, an improved version of this formula is used:
 `SetVel <- 2*(radius^2*(rhoParticle-rhoWater)*GN) / (9*DynViscWaterStandard)`
 
 Using the Test variable, the settling velocity formula is temporarily changed to 
-the formula used in excel for the resuspension ans sedimentation processes (K_resuspension
+the formula used in excel for the resuspension and sedimentation processes (K_resuspension
 and k_Sedimentation). This solves the differences in diagonal k's related to 
 resuspension or sedimentation.
 
@@ -445,7 +445,7 @@ mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)
 # Plot of relative differences of the diagonals per compartment
 ggplot(merged_diagonal, aes(x = from, y = reldif)) +
   geom_boxplot() +
-  ggtitle(paste0("Figure 5: Relative differences removal k's between R and excel for ", substance)) +
+  ggtitle(paste0(substance)) +
   geom_hline(yintercept = 0.001, color = "red") +
   geom_hline(yintercept = -0.001, color = "red") +
   custom_theme()+
@@ -516,7 +516,7 @@ merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by="Abbr", suffixes = c(".R", "
 #Diff per "to" compartment
 ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
   geom_boxplot() +
-  ggtitle(paste0("Figure 7: Relative differences between steady state masses in excel and R (SB1solve) - ", substance)) +
+  ggtitle(paste0(substance)) +
   geom_hline(yintercept = 0.001, color="red") +
   geom_hline(yintercept = -0.001, color="red") +
   custom_theme()

@@ -1,5 +1,5 @@
 ---
-title: "Verification of SimpleBox - spreadsheet versus R implementation for organic chemicals without ChemClass specified"
+title: "Verification of SimpleBox - spreadsheet versus R implementation for neutral organic chemicals or ChemClass not specified"
 author: "Anne Hids, Valerie de Rijk, Matthis Hof and Joris Quik"
 date: "`r Sys.Date()`"
 output: github_document
@@ -84,7 +84,7 @@ ProcessMolFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
                          "k_Volatilisation")
 
 #read in K matrix from excel
-SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.04_20240723_",substance,".xlsm") 
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.05_20240816_",substance,".xlsm") 
 
 SBexcel.K <- read.xlsx(SBExcelName,
                   colNames = FALSE,
@@ -297,7 +297,7 @@ future SBooScript update.
 ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) + 
   geom_point() +
   scale_color_gradient(low = "green", high = "red") +
-  ggtitle(paste0("Figure 4: Relative differences k's between R and excel for ", substance)) +
+  ggtitle(paste0( substance)) +
   theme(
     axis.text.y = element_text(size = 12),
     axis.text.x = element_text(angle = 45, hjust = 1, size = 12), 
@@ -464,7 +464,7 @@ mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)
 # Plot of relative differences of the diagonals per compartment
 ggplot(merged_diagonal, aes(x = from, y = reldif)) +
   geom_boxplot() +
-  ggtitle(paste0("Figure 5: Relative differences removal k's between R and excel for ", substance)) +
+  ggtitle(paste0(substance)) +
   geom_hline(yintercept = 0.001, color = "red") +
   geom_hline(yintercept = -0.001, color = "red") +
   custom_theme()+
@@ -494,7 +494,7 @@ from-to k's. All relative differences are now smaller than 1 percentile.
 ## Steadystate mass
 
 
-```{r comparison of steady state emissions using SB1Solve, include=TRUE, echo=FALSE, warning=FALSE}
+```{r PlotSteadyState_2, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 6: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=TRUE)"}
 
 library(stringi)
 
@@ -537,7 +537,7 @@ merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by="Abbr", suffixes = c(".R", "
 #Diff per "to" compartment
 ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
   geom_boxplot() +
-  ggtitle(paste0("Figure 7: Relative differences between steady state masses in excel and R (SB1solve) - ", substance)) +
+  ggtitle(paste0( substance)) +
   geom_hline(yintercept = 0.001, color="red") +
   geom_hline(yintercept = -0.001, color="red") +
   custom_theme()
