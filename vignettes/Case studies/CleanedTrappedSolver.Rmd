@@ -307,8 +307,8 @@ for (i in 1:num_combinations) {
 print(combinations_list)
 ```
 ## Computation  of concentration
+We define this function to compute the concentration per compartment. For soil and sediment, we compute the output in mass per wet weight. For now, all units are kg/m3. 
 ```{r function to get concentration}
-
 
 # Define the function to adjust concentrations
 adjust_concentrations <- function(Result, Volume, FRACw, FRACa, Rho) {
@@ -346,7 +346,7 @@ adjust_concentrations <- function(Result, Volume, FRACw, FRACa, Rho) {
   
   # Adjust concentrations for combined soil and sediment
   f_adjust_concentration <- function(CompConc, Fracw, Fraca, RHOsolid, RhoWater_value) {
-    CompConc * 1000 / (Fracw * RhoWater_value + (1 - Fracw - Fraca) * RHOsolid)
+    CompConc  / (Fracw * RhoWater_value + (1 - Fracw - Fraca) * RHOsolid)
   }
   
   # Get RhoWater value for river compartment
@@ -381,7 +381,7 @@ adjust_concentrations <- function(Result, Volume, FRACw, FRACa, Rho) {
 ```
 
 ## Computation for GO-Chitosan
-In this chunk we start solving for GO-Chitosan
+In this chunk we start solving for GO-Chitosan, we compute both the mass and concentration per compartment. 
 ```{r compute for GO-Chitosan}
 # Initialize lists to store nested results for mass and concentration
 nested_results_mass <- list()
@@ -477,10 +477,11 @@ nested_results_df_GoChit_concentration <- bind_rows(nested_results_concentration
 
 
 ```
-We plot the results for GO-Chitosan below. We create uncertaincy bands around our mean prediction based on Confidence Intervals. 
+## Plot of GO-Chitosan
+We plot the results for GO-Chitosan below. We create uncertaincy bands around our mean prediction based on 95% Confidence Intervals. 
 ```{r plotting of solver}
 
-# Define the variable of interest
+# Define the compartment of interest
 interest <- "w1RA"
 
 # Initialize an empty dataframe to hold all extracted data
@@ -503,10 +504,6 @@ for (i in seq_len(nrow(nested_results_df_GoChit))) {
     # Extract the variable of interest and time values
     variable_values <- result[[interest]]
     time_values <- result$time
-    cat("Length of variable_values:", length(variable_values), "\n")
-    cat("Length of time_values:", length(time_values), "\n")
-    cat("Sample variable_values:", head(variable_values), "\n")
-    cat("Sample time_values:", head(time_values), "\n")
     
     # Combine into a data frame
     run_data <- data.frame(
@@ -533,7 +530,7 @@ summary_stats <- all_variable_data |>
   ) |>
   ungroup()
 
-# Step 3: Plot with ggplot2 without faceting
+# Step 3: Plot
 ggplot(summary_stats, aes(x = Time, y = Mean_Value)) +
   geom_line(color = "blue", size = 1) +
   geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2, fill = "blue") +
@@ -645,130 +642,8 @@ final_processed_results_df <- do.call(rbind, final_processed_results_list)
 
 ## Graphene Oxide and Chitosan computation 
 We now use the generated input data above as 'emission' input. We solve the system, once again, for all combinations of attachment efficiencies and predicted degradation rates per run. 
-```{r Go and Chit computation}
 
-
-## Initialize lists to store results
-nested_results <- list()
-kaas_list <- list()
-
-# Function to process substances and solve the system
-process_substance <- function(substance_name, degradation_data) {
-  World$substance <- substance_name
-  
-  is_numeric_name <- function(name) {
-    !is.na(suppressWarnings(as.numeric(name))) && nzchar(name)
-  }
-  
-  numeric_columns <- sapply(names(degradation_data), is_numeric_name)
-  keep_columns <- numeric_columns | names(degradation_data) == 'from'
-  columns_to_keep <- names(degradation_data)[keep_columns]
-  
-  degradation_filtered <- degradation_data |>
-    select(all_of(columns_to_keep))
-  
-  long_filtered <- degradation_filtered |>
-    pivot_longer(cols = -from, names_to = "time", values_to = "value") |>
-    mutate(time = as.numeric(time))
-  
-  emissions <- long_filtered |>
-    group_by(from) |>
-    summarise(n = n(),
-              EmisFun = list(
-                approxfun(
-                  data.frame(time = time, value = value),
-                  rule = 1
-                )
-              ))
-  
-  funlist <- emissions$EmisFun
-  names(funlist) <- emissions$from
-  
-  return(funlist)
-}
-
-# Iterate over each combination in combinations_list
-for (i in seq_along(combinations_list)) {
-  alpha <- combinations_list[[i]]
-  alpha_fw <- alpha |> filter(SubCompart == "river") |> pull(alpha)
-  alpha_mw <- alpha |> filter(SubCompart == "sea") |> pull(alpha)
-  
-  # Process the combination to generate the appropriate dataframe
-  dfs <- map_df(list(alpha), function(x) {
-    varName <- names(x)[!names(x) %in% The3D]
-    stopifnot(length(varName) == 1)
-    pivot_longer(x, cols = all_of(varName), names_to = "varName", values_to = "Waarde")
-  })
-  
-  # Update the World object with the new dataframe
-  World$mutateVars(dfs)
-  World$UpdateKaas(mergeExisting = FALSE)
-  kaas <- World$kaas
-  kaas_list[[paste0(i)]] <- list(
-    alpha_fw = alpha_fw,
-    alpha_mw = alpha_mw,
-    kaas = kaas
-  )
-  
-  # Initialize a list to store results for the current alpha
-  alpha_results <- list()
-  
-  # Collect results for the current alpha
-  for (Run in unique_runs) {
-    print(paste("Processing alpha index", i, "and run", Run))
-
-    # Extract the relevant data for the current row in final_processed_results_df
-    row_data <- final_processed_results_df |> filter(run == Run)
-    
-    # Extract the degradation data
-    degradation <- row_data$degradation[[1]]
-    
-    # Apply degradation calculations
-    degradation_GO <- degradation |> mutate(across(where(is.numeric), ~ . * 1/8))
-    degradation_Chit <- degradation |> mutate(across(where(is.numeric), ~ . * 7/8))
-    print("degradation fetched")
-    # Process and solve for Chitosan
-    funlist_Chit <- process_substance("Chitosan", degradation_Chit)
-    Solution_Chit <- SBsolve4(
-      tmax = 24 * (365.25 * 24 * 3600),
-      nTIMES = 20,
-      Engine = World$exportEngineR(),
-      funlist = funlist_Chit
-    )
-    print("Chitosan complete")
-    # Process and solve for Graphene Oxide
-    funlist_GO <- process_substance("Graphene Oxide", degradation_GO)
-    Solution_GO <- SBsolve4(
-      tmax = 24 * (365.25 * 24 * 3600),
-      nTIMES = 100,
-      Engine = World$exportEngineR(),
-      funlist = funlist_GO
-    )
-    
-    # Store results for the current run using named list indexing
-    alpha_results[[as.character(Run)]] <- tibble(
-      run = Run,
-      Solution_Chitosan = list(Solution_Chit),
-      Solution_Graphene_Oxide = list(Solution_GO)
-    )
-  }
-  print("GO complete")
-  
-  # Nest the results for the current alpha
-  nested_results[[i]] <- tibble(
-    alpha_fw = alpha_fw,
-    alpha_mw = alpha_mw,
-    data = list(bind_rows(alpha_results))
-  )
-}
-
-# Combine all alpha results into a single nested tibble
-nested_results_df_GOandChit <- bind_rows(nested_results)
-
-
-```
-
-```{r with concentration}
+```{r Concentration and mass computation for Graphene Oxide and Chitosan}
 
 # Initialize lists to store results
 nested_results <- list()
@@ -777,8 +652,8 @@ kaas_list <- list()
 # Iterate over each combination in combinations_list
 for (i in seq_along(combinations_list)) {
   alpha <- combinations_list[[i]]
-  alpha_fw <- alpha %>% filter(SubCompart == "river") %>% pull(alpha)
-  alpha_mw <- alpha %>% filter(SubCompart == "sea") %>% pull(alpha)
+  alpha_fw <- alpha |> filter(SubCompart == "river") |> pull(alpha)
+  alpha_mw <- alpha |> filter(SubCompart == "sea") |> pull(alpha)
   
   # Process the combination to generate the appropriate dataframe
   dfs <- map_df(list(alpha), function(x) {
@@ -806,21 +681,21 @@ for (i in seq_along(combinations_list)) {
     print(paste("Processing alpha index", i, "and run", Run))
     
     # Extract the relevant data for the current row in final_processed_results_df
-    row_data <- final_processed_results_df %>% filter(run == Run)
+    row_data <- final_processed_results_df |> filter(run == Run)
     
     # Extract the degradation data
     degradation <- row_data$degradation[[1]]
     
     # Apply degradation calculations
-    degradation_GO <- degradation %>% mutate(across(where(is.numeric), ~ . * 1/8))
-    degradation_Chit <- degradation %>% mutate(across(where(is.numeric), ~ . * 7/8))
+    degradation_GO <- degradation |> mutate(across(where(is.numeric), ~ . * 1/8))
+    degradation_Chit <- degradation |> mutate(across(where(is.numeric), ~ . * 7/8))
     print("Degradation fetched")
     
     # Process and solve for Chitosan
     funlist_Chit <- process_substance("Chitosan", degradation_Chit)
     Solution_Chit <- SBsolve4(
       tmax = 24 * (365.25 * 24 * 3600),
-      nTIMES = 20,
+      nTIMES = 100,
       Engine = World$exportEngineR(),
       funlist = funlist_Chit
     )
@@ -841,23 +716,14 @@ for (i in seq_along(combinations_list)) {
       Solution_Chitosan = list(Solution_Chit),
       Solution_Graphene_Oxide = list(Solution_GO)
     )
-    concentrations <- adjust_concentrations(
-      Result = result,  # Assuming 'result' is the CompartmentsConc
-      Volume = World$fetchData("Volume"),
-      FRACw = World$fetchData("FRACw"),
-      FRACa = World$fetchData("FRACa"),
-      Rho = World$fetchData("rhoMatrix")
-    )
+    
     # Adjust concentrations for Chitosan
     volumes <- World$fetchData("Volume")
     concentrations_Chit <- adjust_concentrations(Solution_Chit, volumes, 
                                                  FRACw = World$fetchData("FRACw"), 
                                                  FRACa = World$fetchData("FRACa"), 
                                                  Rho = World$fetchData("rhoMatrix"))
-    alpha_results_conc[[as.character(Run)]] <- tibble(
-      run = Run,
-      Concentrations_Chitosan = list(concentrations_Chit)
-    )
+    
     
     # Adjust concentrations for Graphene Oxide
     concentrations_GO <- adjust_concentrations(Solution_GO, volumes, 
@@ -865,8 +731,9 @@ for (i in seq_along(combinations_list)) {
                                                  FRACa = World$fetchData("FRACa"), 
                                                  Rho = World$fetchData("rhoMatrix"))
     alpha_results_conc[[as.character(Run)]] <- tibble(
-      run = Run,
-      Concentrations_Graphene_Oxide = list(concentrations_GO)
+  run = Run,
+  Concentrations_Chitosan = list(concentrations_Chit),
+  Concentrations_Graphene_Oxide = list(concentrations_GO)
     )
   }
   print("GO complete")
@@ -884,26 +751,26 @@ for (i in seq_along(combinations_list)) {
 nested_results_df_GOandChit <- bind_rows(nested_results)
 
 # Separate dataframes for mass and concentration
-mass_results_df <- nested_results_df_GOandChit %>%
-  select(alpha_fw, alpha_mw, mass_data) %>%
+mass_results_df_GoandChit <- nested_results_df_GOandChit |>
+  select(alpha_fw, alpha_mw, mass_data) |>
   unnest(cols = c(mass_data))
 
-concentration_results_df <- nested_results_df_GOandChit %>%
-  select(alpha_fw, alpha_mw, concentration_data) %>%
+concentration_results_df_GoandChit <- nested_results_df_GOandChit |>
+  select(alpha_fw, alpha_mw, concentration_data) |>
   unnest(cols = c(concentration_data))
 
 
 
 ```
 ## final plots 
-We now plot the final results for all three substances. 
-```{r final plots}
 
+We now plot the final results for all three substances. We plot the mass distribution here. 
+```{r plots}
 # Initialize an empty dataframe to hold all extracted data
 all_variable_data <- data.frame()
 
 # Function to extract data from a nested dataframe
-extract_data <- function(nested_results_df, substance_name) {
+extract_data <- function(nested_results_df, substance_name, data_type) {
   data <- data.frame()
   
   for (i in seq_len(nrow(nested_results_df))) {
@@ -911,18 +778,19 @@ extract_data <- function(nested_results_df, substance_name) {
     alpha_fw <- nested_results_df$alpha_fw[i]
     alpha_mw <- nested_results_df$alpha_mw[i]
     
-    # Extract the nested data
-    nested_data <- nested_results_df$data[[i]]
+    # Extract the nested data (mass_data or concentration_data)
+    nested_data <- nested_results_df[[data_type]][[i]]
     
     # Loop through each run in the nested data
     for (j in seq_len(nrow(nested_data))) {
       run <- nested_data$run[j]
-      result <- if(substance_name == "GO-Chitosan") {
-        nested_data$mass[[j]]  # Extract GO-Chitosan result
-      } else if(substance_name == "Chitosan") {
-        nested_data$Solution_Chitosan[[j]]  # Extract Chitosan result
-      } else {
-        nested_data$Solution_Graphene_Oxide[[j]]  # Extract GO result
+      
+      if(substance_name == "Chitosan") {
+        result <- nested_data$Solution_Chitosan[[j]]  # Extract Chitosan result
+      } else if(substance_name == "Graphene Oxide") {
+        result <- nested_data$Solution_Graphene_Oxide[[j]]  # Extract GO result
+      } else if(substance_name == "GO-Chitosan") {
+        result <- nested_data$mass[[j]]  # Extract GO-Chitosan result
       }
       
       # Extract the variable of interest and time values
@@ -950,14 +818,14 @@ extract_data <- function(nested_results_df, substance_name) {
 # Extract data from Chitosan and GO results in nested_results_df
 all_variable_data <- rbind(
   all_variable_data, 
-  extract_data(nested_results_df_GOandChit, "Chitosan"),
-  extract_data(nested_results_df_GOandChit, "Graphene Oxide")
+  extract_data(nested_results_df_GOandChit, "Chitosan", "mass_data"),
+  extract_data(nested_results_df_GOandChit, "Graphene Oxide", "mass_data")
 )
 
 # Extract data from GO-Chitosan results in nested_results_df_GoChit
 all_variable_data <- rbind(
   all_variable_data, 
-  extract_data(nested_results_df_GoChit, "GO-Chitosan")
+  extract_data(nested_results_df_GoChit, "GO-Chitosan", "data")
 )
 
 # Step 2: Calculate mean and confidence intervals at each time point across all alphas
@@ -971,7 +839,7 @@ summary_stats <- all_variable_data |>
   ) |>
   ungroup()
 
-# Step 3: Plot with ggplot2, adding a color distinction for Chitosan, GO, and GO-Chitosan
+# Step 3: Plot 
 ggplot(summary_stats, aes(x = Time, y = Mean_Value, color = Substance)) +
   geom_line(size = 1) +
   geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI, fill = Substance), alpha = 0.2) +
@@ -985,7 +853,6 @@ ggplot(summary_stats, aes(x = Time, y = Mean_Value, color = Substance)) +
 
 filtered_stats <- summary_stats |> filter(Substance != "GO-Chitosan")
 
-# Create the plot with the filtered data
 ggplot(filtered_stats, aes(x = Time, y = Mean_Value, color = Substance, fill = Substance)) +
   geom_line(size = 1) +
   geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2) +
@@ -993,6 +860,103 @@ ggplot(filtered_stats, aes(x = Time, y = Mean_Value, color = Substance, fill = S
        x = "Time [s]",
        y = paste("Mass of substance in ", interest, "[kg] - log scale")) +
   theme_minimal() +
+  scale_color_manual(values = c("red", "blue"))  
+```
+```{r plots for concentration}
+# Initialize an empty dataframe to hold all extracted data for concentration
+all_concentration_data <- data.frame()
+
+# Function to extract concentration data from a nested dataframe
+extract_concentration_data <- function(nested_results_df, substance_name, data_type) {
+  data <- data.frame()
+  
+  for (i in seq_len(nrow(nested_results_df))) {
+    # Extract alpha_fw and alpha_mw for labeling
+    alpha_fw <- nested_results_df$alpha_fw[i]
+    alpha_mw <- nested_results_df$alpha_mw[i]
+    
+    # Extract the nested data (concentration_data)
+    nested_data <- nested_results_df[[data_type]][[i]]
+    
+    # Loop through each run in the nested data
+    for (j in seq_len(nrow(nested_data))) {
+      run <- nested_data$run[j]
+      
+      if(substance_name == "Chitosan") {
+        result <- nested_data$Concentrations_Chitosan[[j]]  # Extract Chitosan concentration
+      } else if(substance_name == "Graphene Oxide") {
+        result <- nested_data$Concentrations_Graphene_Oxide[[j]]  # Extract GO concentration
+      } else if(substance_name == "GO-Chitosan") {
+        result <- nested_data$concentrations[[j]]  # Extract GO-Chitosan concentration
+      }
+      
+      # Extract the variable of interest and time values
+      variable_values <- result[[interest]]
+      time_values <- result$time
+      
+      # Combine into a data frame
+      run_data <- data.frame(
+        Time = time_values,
+        Value = variable_values,
+        Run = run,
+        Alpha_FW = alpha_fw,
+        Alpha_MW = alpha_mw,
+        Substance = substance_name
+      )
+      
+      # Append to the overall data frame
+      data <- rbind(data, run_data)
+    }
+  }
+  
+  return(data)
+}
+
+# Extract concentration data from Chitosan and GO results in nested_results_df
+all_concentration_data <- rbind(
+  all_concentration_data, 
+  extract_concentration_data(nested_results_df_GOandChit, "Chitosan", "concentration_data"),
+  extract_concentration_data(nested_results_df_GOandChit, "Graphene Oxide", "concentration_data")
+)
+
+# Extract concentration data from GO-Chitosan results in nested_results_df_GoChit_concentration
+all_concentration_data <- rbind(
+  all_concentration_data, 
+  extract_concentration_data(nested_results_df_GoChit_concentration, "GO-Chitosan", "data")
+)
+
+# Step 2: Calculate mean and confidence intervals at each time point across all alphas
+summary_stats_concentration <- all_concentration_data |>
+  group_by(Time, Substance) |>
+  summarise(
+    Mean_Value = mean(Value, na.rm = TRUE),
+    SD_Value = sd(Value, na.rm = TRUE),
+    Lower_CI = Mean_Value - 1.96 * SD_Value / sqrt(n()),
+    Upper_CI = Mean_Value + 1.96 * SD_Value / sqrt(n())
+  ) |>
+  ungroup()
+
+# Step 3: Plot with ggplot2, adding a color distinction for Chitosan, GO, and GO-Chitosan
+ggplot(summary_stats_concentration, aes(x = Time, y = Mean_Value, color = Substance)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI, fill = Substance), alpha = 0.2) +
+  labs(title = paste("Mean concentration in", interest, "with Uncertainty Bands Over Time"),
+       x = "Time [s]",
+       y = paste("Concentration of compound in compartment", interest, "[kg m-3]"),
+       color = "Substance",
+       fill = "Substance") +
+  theme_minimal() + 
+  scale_y_log10() 
+
+filtered_stats_concentration <- summary_stats_concentration |> filter(Substance != "GO-Chitosan")
+
+# Create the plot with the filtered data
+ggplot(filtered_stats_concentration, aes(x = Time, y = Mean_Value, color = Substance, fill = Substance)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2) +
+  labs(title = paste("Mean concentration in", interest, "with uncertainty over time only GO and Chit"),
+       x = "Time [s]",
+       y = paste("Concentration of substance in ", interest, "[kg m-3] - log scale")) +
+  theme_minimal() +
   scale_color_manual(values = c("red", "blue"))   # Customize colors for each 
 ```
-
