@@ -1195,7 +1195,7 @@ library(tidyr)
 library(purrr)
 library(tibble)
 
-# Initiapurrr# Initialize lists to store results
+## Initialize lists to store results
 nested_results <- list()
 kaas_list <- list()
 
@@ -1257,28 +1257,18 @@ for (i in seq_along(combinations_list)) {
     kaas = kaas
   )
   
+  # Initialize a list to store results for the current alpha
+  alpha_results <- list()
+  
   # Collect results for the current alpha
-  for (run in unique_runs) {
-    print(paste("Processing alpha index", i, "and run", run))
+  for (Run in unique_runs) {
+    print(paste("Processing alpha index", i, "and run", Run))
 
     # Extract the relevant data for the current row in final_processed_results_df
-    row_data <- final_processed_results_df %>% filter(run == run)
-    
-    if (nrow(row_data) == 0) {
-      warning(paste("No data found for run", run))
-      alpha_results[[run]] <- tibble(
-        run = run,
-        Solution_Chitosan = list(NULL),
-        Solution_Graphene_Oxide = list(NULL)
-      )
-      next
-    }
-    
-    print(row_data)
+    row_data <- final_processed_results_df |> filter(run == Run)
     
     # Extract the degradation data
     degradation <- row_data$degradation[[1]]
-    print(head(degradation))
     
     # Apply degradation calculations
     degradation_GO <- degradation |> mutate(across(where(is.numeric), ~ . * 1/8))
@@ -1302,9 +1292,9 @@ for (i in seq_along(combinations_list)) {
       funlist = funlist_GO
     )
     
-    # Store results for the current run
-    alpha_results[[run]] <- tibble(
-      run = run,
+    # Store results for the current run using named list indexing
+    alpha_results[[as.character(Run)]] <- tibble(
+      run = Run,
       Solution_Chitosan = list(Solution_Chit),
       Solution_Graphene_Oxide = list(Solution_GO)
     )
@@ -1320,6 +1310,7 @@ for (i in seq_along(combinations_list)) {
 
 # Combine all alpha results into a single nested tibble
 nested_results_df_GOandChit <- bind_rows(nested_results)
+
 
 ```
 
@@ -1419,6 +1410,5 @@ ggplot(filtered_stats, aes(x = Time, y = Mean_Value, color = Substance, fill = S
        x = "Time [s]",
        y = paste("Mass of substance in ", interest, "[kg] - log scale")) +
   theme_minimal() +
-  scale_color_manual(values = c("blue", "red", "green")) +  # Customize colors for each substance
-  scale_fill_manual(values = c("blue", "red", "green")) 
+  scale_color_manual(values = c("red", "blue"))   # Customize colors for each 
 ```
