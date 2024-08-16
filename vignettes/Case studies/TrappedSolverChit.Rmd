@@ -26,7 +26,6 @@ We assume you have the input data for a substance or material of interest and al
 library(dplyr)
 substance <-  "GO-Chitosan"
 source("baseScripts/initWorld_onlyParticulate.R")
-#World$substance <- "GO-Chitosan"
 
 ```
 
@@ -400,7 +399,7 @@ SBsolve4 <- function( tmax = 1e10, nTIMES = 100, Engine, funlist) {
     times = SBtime ,
     func = SimpleBoxODE,
     parms = list(K = SB.K, SBNames=SBNames, funlist=funlist),
-    rtol = 1e-10, atol = 1e-2)
+    rtol = 1e-6, atol = 1e-1)
   #if(as.character(class(deS)[1])!="data.frame") return (list(errorstate="error", deS))
   colnames(out)[1:length(SBNames)+1] <- SBNames
   colnames(out)[grep("signal",colnames(out))] <- paste("emis",SBNames,sep = "2")
@@ -862,42 +861,40 @@ for (run in names(results_list)) {
 interest <- "w1RA"
 
 # Assuming `results_list` is populated as per your provided code
-
+variable_data_All_Variables <- data.frame()
 # Step 1: Extract the variable of interest for each run over time for GO-Chitosan
-variable_data <- data.frame()
-
 for (run in names(results_list)) {
   result <- results_list[[run]]
   
-  # Dynamically extract the relevant data based on the variable of interest
+  # Extract and process data for "GO-Chitosan"
   variable_values <- result[[interest]]
   time_values <- result$time
   
-  # Combine into a data frame
+  # Combine into a data frame for this run
   run_data <- data.frame(Time = time_values, Value = variable_values, Run = run, Substance = "GO-Chitosan")
   
   # Append to the overall data frame
-  variable_data <- rbind(variable_data, run_data)
-}
-
-# Step 2: Extract and add data for Chitosan and Graphene Oxide
-# Assuming Solution_Chit and Solution_GO are available from the previous processing
-for (substance_name in c("Chitosan", "Graphene Oxide")) {
-  solution <- if (substance_name == "Chitosan") Solution_Chit else Solution_GO
+  variable_data_All_Variables <- rbind(variable_data_All_Variables, run_data)
   
-  # Extract the relevant data for each substance
-  substance_values <- solution[[interest]]
-  time_values <- solution$time
-  
-  # Combine into a data frame
-  substance_data <- data.frame(Time = time_values, Value = substance_values, Run = "Simulated", Substance = substance_name)
-  
-  # Append to the overall data frame
-  variable_data <- rbind(variable_data, substance_data)
+  # Step 2: Process data for Chitosan and Graphene Oxide for this run
+  for (substance_name in c("Chitosan", "GO")) {
+    # Access the specific data for the current run and substance
+    substance_result <- final_results_list[[paste(run, substance_name, sep = "_")]]
+    
+    # Extract the relevant data for each substance
+    substance_values <- substance_result[[interest]]
+    time_values <- substance_result$time
+    
+    # Combine into a data frame
+    substance_data <- data.frame(Time = time_values, Value = substance_values, Run = run, Substance = substance_name)
+    
+    # Append to the overall data frame
+    variable_data_All_Variables <- rbind(variable_data_All_Variables, substance_data)
+  }
 }
 
 # Step 3: Calculate mean and confidence intervals at each time point, grouped by Substance
-summary_stats <- variable_data |>
+summary_stats <- variable_data_All_Variables |>
   group_by(Time, Substance) |>
   summarise(
     Mean_Value = mean(Value),
@@ -918,6 +915,20 @@ ggplot(summary_stats, aes(x = Time, y = Mean_Value, color = Substance, fill = Su
   scale_color_manual(values = c("blue", "red", "green")) +  # Customize colors for each substance
   scale_fill_manual(values = c("blue", "red", "green"))  +
   scale_y_log10()
+
+filtered_stats <- summary_stats |> filter(Substance != "GO-Chitosan")
+
+# Create the plot with the filtered data
+ggplot(filtered_stats, aes(x = Time, y = Mean_Value, color = Substance, fill = Substance)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2) +
+  labs(title = paste("Mean mass in", interest, "with uncertainty over time only GO and Chit"),
+       x = "Time [s]",
+       y = paste("Mass of substance in ", interest, "[kg] - log scale")) +
+  theme_minimal() +
+  scale_color_manual(values = c("blue", "red", "green")) +  # Customize colors for each substance
+  scale_fill_manual(values = c("blue", "red", "green")) 
+
 
 ```
 
@@ -1035,9 +1046,9 @@ for (i in seq_along(combinations_list)) {
 }
 
 # Combine all alpha results into a single nested tibble
-nested_results_df <- bind_rows(nested_results)
+nested_results_df_GoChit <- bind_rows(nested_results)
 
-# The resulting `nested_results_df` has columns `alpha` and `data`
+# The resulting `nested_results_df_GOChit` has columns `alpha` and `data`
 
 
 ```
@@ -1051,13 +1062,13 @@ interest <- "w1RA"
 all_variable_data <- data.frame()
 
 # Loop through each row of the nested results
-for (i in seq_len(nrow(nested_results_df))) {
+for (i in seq_len(nrow(nested_results_df_GoChit))) {
   # Extract alpha_fw and alpha_mw for labeling
-  alpha_fw <- nested_results_df$alpha_fw[i]
-  alpha_mw <- nested_results_df$alpha_mw[i]
+  alpha_fw <- nested_results_df_GoChit$alpha_fw[i]
+  alpha_mw <- nested_results_df_GoChit$alpha_mw[i]
   
   # Extract the nested data
-  nested_data <- nested_results_df$data[[i]]
+  nested_data <- nested_results_df_GoChit$data[[i]]
   
   # Loop through each run in the nested data
   for (j in seq_len(nrow(nested_data))) {
@@ -1107,72 +1118,89 @@ ggplot(summary_stats, aes(x = Time, y = Mean_Value)) +
 ## Propagation of uncertainty
 
 ```{r degradation data}
-# Initialize an empty list to store the final results
+# Initialize an empty list to store the final processed results
 final_processed_results_list <- list()
 
-# Iterate over each row in nested_results_df
-for (i in seq_len(nrow(nested_results_df))) {
+# Iterate over each row in nested_results_df_GoChit
+for (i in seq_len(nrow(nested_results_df_GoChit))) {
   # Extract the alpha values and results for the current row
-  alpha_fw <- nested_results_df$alpha_fw[i]
-  alpha_mw <- nested_results_df$alpha_mw[i]
-  alpha_results <- nested_results_df$data[[i]]
+  alpha_fw <- nested_results_df_GoChit$alpha_fw[i]
+  alpha_mw <- nested_results_df_GoChit$alpha_mw[i]
+  alpha_results <- nested_results_df_GoChit$data[[i]]
+  
+  # Find the matching kaas_run based on alpha_fw and alpha_mw
   kaas_run <- kaas_list[[which(sapply(kaas_list, function(x) x$alpha_fw == alpha_fw & x$alpha_mw == alpha_mw))]]
   kaas <- kaas_run$kaas
-  kaas <- kaas |> mutate(from =  paste0(accronym_map[fromSubCompart], 
-                            accronym_map2[fromScale], 
-                            accronym_map3[fromSpecies]),
-               to = paste0(accronym_map[toSubCompart], 
-                           accronym_map2[toScale], 
-                           accronym_map3[toSpecies]))
-  print(kaas)
   
-  # Process each result for the current alpha combination
-  processed_results <- map_df(alpha_results$run, function(run) {
-    # Extract the result for the current run
-    result <- alpha_results$result[[which(alpha_results$run == run)]]
+  # Update 'from' and 'to' columns in kaas dataframe
+  kaas$from <- paste0(accronym_map[kaas$fromSubCompart], 
+                      accronym_map2[kaas$fromScale], 
+                      accronym_map3[kaas$fromSpecies])
+  kaas$to <- paste0(accronym_map[kaas$toSubCompart], 
+                    accronym_map2[kaas$toScale], 
+                    accronym_map3[kaas$toSpecies])
+  
+  # Initialize an empty list to store results for each run
+  run_results_list <- list()
+  
+  # Iterate over each run in alpha_results
+  for (j in seq_along(alpha_results$run)) {
+    run <- alpha_results$run[j]
+    result <- alpha_results$result[[j]]
     
-    # Convert the result into a dataframe, transpose it, and adjust column and row names
+    # Convert the result to a dataframe, transpose it, and adjust column and row names
     solution_transposed <- as.data.frame(t(result))
     colnames(solution_transposed) <- solution_transposed[1, ]
     solution_transposed$from <- rownames(solution_transposed)
-    
-    # Remove the first row as it's now the column names
     solution_transposed <- solution_transposed[-1, ]
     
-    # Merge with `kaas` dataframe
+    # Merge with kaas dataframe
     kaas_time <- merge(kaas, solution_transposed, by = "from")
     
     # Multiply numeric columns by the 'k' column
-    kaas_time <- kaas_time |> 
-      mutate(across(where(is.numeric), ~ . * k))
+    k <- kaas_time$k[1]  # Assuming k is the same for all rows in kaas_time
+    numeric_cols <- sapply(kaas_time, is.numeric)
+    kaas_time[numeric_cols] <- kaas_time[numeric_cols] * k
     
     # Filter rows where 'process' is 'k_Degradation' and 'from' and 'to' are the same
-    degradation <- kaas_time |> 
-    filter(process == "k_Degradation", from == to)
+    degradation <- kaas_time[kaas_time$process == "k_Degradation" & kaas_time$from == kaas_time$to, ]
     
-    # Return a tibble with the run and the processed result
-    tibble(
+    # Store the processed result for the current run
+    run_results_list[[j]] <- data.frame(
       alpha_fw = alpha_fw,
       alpha_mw = alpha_mw,
       run = run,
-      degradation = list(degradation)
+      degradation = I(list(degradation))
     )
-  })
+  }
+  
+  # Combine results for all runs into a single dataframe
+  processed_results <- do.call(rbind, run_results_list)
   
   # Store the processed results for the current alpha combination
   final_processed_results_list[[i]] <- processed_results
 }
 
 # Combine all processed results into a single dataframe
-final_processed_results_df <- bind_rows(final_processed_results_list)
+final_processed_results_df <- do.call(rbind, final_processed_results_list)
 
 
 ```
 
-```{r trial}
-# Initialize a list to store final results
-final_results_list <- list()
-process_substance <- function(substance_name, degradation_data, compartment_interest) {
+
+
+
+```{r Go and Chit computation}
+library(tidyr)
+library(purrr)
+library(tibble)
+
+# Initiapurrr# Initialize lists to store results
+nested_results <- list()
+kaas_list <- list()
+
+# Function to process substances and solve the system
+process_substance <- function(substance_name, degradation_data) {
   World$substance <- substance_name
   
   is_numeric_name <- function(name) {
@@ -1203,138 +1231,64 @@ process_substance <- function(substance_name, degradation_data, compartment_inte
   funlist <- emissions$EmisFun
   names(funlist) <- emissions$from
   
-  
-  
   return(funlist)
 }
-# Iterate over each row in final_processed_results_df
-for (i in seq_len(nrow(final_processed_results_df))) {
-  # Extract relevant data for the current row
-  row_data <- final_processed_results_df[i, ]
-  alpha_fw <- row_data$alpha_fw
-  alpha_mw <- row_data$alpha_mw
-  run <- row_data$run
-  print(run)
-  degradation <- row_data$degradation[[1]]  # Extract the tibble from the list
-  
-  # Apply the degradation calculations
-  degradation_remaining <- degradation %>%
-    mutate(across(where(is.numeric), ~ . * 0.85))
-  
-  degradation_GO <- degradation %>%
-    mutate(across(where(is.numeric), ~ . * 1/8))
-  
-  degradation_Chit <- degradation %>%
-    mutate(across(where(is.numeric), ~ . * 7/8))
-  print ("degradation done")
-  # Process and solve for Chitosan
-  funlist_Chit <- process_substance("Chitosan", degradation_Chit, "w1CA")
-  print("funlist done")
-  Solution_Chit <- SBsolve4(
-    tmax = 24 * (365.25 * 24 * 3600),
-    nTIMES = 100,
-    Engine = World$exportEngineR(),
-    funlist = funlist_Chit
-  )
-  print("chit done")
-  
-  # Process and solve for Graphene Oxide
-  funlist_GO <- process_substance("Graphene Oxide", degradation_GO, "w1CA")
-  Solution_GO <- SBsolve4(
-    tmax = 24 * (365.25 * 24 * 3600),
-    nTIMES = 100,
-    Engine = World$exportEngineR(),
-    funlist = funlist_GO
-  )
-  print("GO done")
-  # Store solutions in final results list
-  final_results_list[[paste0(run, "_Chitosan")]] <- Solution_Chit
-  final_results_list[[paste0(run, "_GO")]] <- Solution_GO
-}
 
-# Optionally, if you want to convert the final_results_list to a dataframe
-# Convert the list to a dataframe with named elements
-final_results_df <- bind_rows(
-  lapply(names(final_results_list), function(name) {
-    tibble(
-      name = name,
-      solution = list(final_results_list[[name]])
-    )
+# Iterate over each combination in combinations_list
+for (i in seq_along(combinations_list)) {
+  alpha <- combinations_list[[i]]
+  alpha_fw <- alpha |> filter(SubCompart == "river") |> pull(alpha)
+  alpha_mw <- alpha |> filter(SubCompart == "sea") |> pull(alpha)
+  
+  # Process the combination to generate the appropriate dataframe
+  dfs <- map_df(list(alpha), function(x) {
+    varName <- names(x)[!names(x) %in% The3D]
+    stopifnot(length(varName) == 1)
+    pivot_longer(x, cols = all_of(varName), names_to = "varName", values_to = "Waarde")
   })
-)
+  
+  # Update the World object with the new dataframe
+  World$mutateVars(dfs)
+  World$UpdateKaas(mergeExisting = FALSE)
+  kaas <- World$kaas
+  kaas_list[[paste0(i)]] <- list(
+    alpha_fw = alpha_fw,
+    alpha_mw = alpha_mw,
+    kaas = kaas
+  )
+  
+  # Collect results for the current alpha
+  for (run in unique_runs) {
+    print(paste("Processing alpha index", i, "and run", run))
 
-
-```
-
-```{r using results of uncertain GO-Chitosan for GO and Chitosan with newly added uncertainty}
-
-# Function to process each substance
-process_substance <- function(substance_name, degradation_data) {
-  World$substance <- substance_name
-  
-  is_numeric_name <- function(name) {
-    !is.na(suppressWarnings(as.numeric(name))) && nzchar(name)
-  }
-  
-  numeric_columns <- sapply(names(degradation_data), is_numeric_name)
-  keep_columns <- numeric_columns | names(degradation_data) == 'from'
-  columns_to_keep <- names(degradation_data)[keep_columns]
-  
-  degradation_filtered <- degradation_data |>
-    select(all_of(columns_to_keep))
-  
-  long_filtered <- degradation_filtered %>%
-    pivot_longer(cols = -from, names_to = "time", values_to = "value") %>%
-    mutate(time = as.numeric(time))
-  
-  emissions <- long_filtered %>%
-    group_by(from) %>%
-    summarise(n = n(),
-              EmisFun = list(
-                approxfun(
-                  data.frame(time = time, value = value),
-                  rule = 1
-                )
-              ))
-  
-  funlist <- emissions$EmisFun
-  names(funlist) <- emissions$from
-  
-  return(funlist)
-}
-
-# Initialize an empty list to store the final nested results
-final_nested_results <- list()
-
-# Process each combination in the nested_results_df
-for (i in seq_len(nrow(nested_results_df))) {
-  # Extract the current alpha combination and nested data
-  alpha_fw <- nested_results_df$alpha_fw[i]
-  alpha_mw <- nested_results_df$alpha_mw[i]
-  nested_data <- nested_results_df$data[[i]]
-  
-  # Initialize lists to store results for each substance
-  results_Chitosan <- list()
-  results_GO <- list()
-  
-  for (run in unique(nested_data$run)) {
-    # Extract the data for the current run
-    run_data <- nested_data %>%
-      filter(run == !!run)
+    # Extract the relevant data for the current row in final_processed_results_df
+    row_data <- final_processed_results_df %>% filter(run == run)
     
-    # Apply the degradation calculations
-    degradation_remaining <- run_data$result[[1]] %>%
-      mutate(across(where(is.numeric), ~ . * 0.85))
-    degradation_GO <- run_data$result[[1]] %>%
-      mutate(across(where(is.numeric), ~ . * 1/8))
-    degradation_Chit <- run_data$result[[1]] %>%
-      mutate(across(where(is.numeric), ~ . * 7/8))
+    if (nrow(row_data) == 0) {
+      warning(paste("No data found for run", run))
+      alpha_results[[run]] <- tibble(
+        run = run,
+        Solution_Chitosan = list(NULL),
+        Solution_Graphene_Oxide = list(NULL)
+      )
+      next
+    }
+    
+    print(row_data)
+    
+    # Extract the degradation data
+    degradation <- row_data$degradation[[1]]
+    print(head(degradation))
+    
+    # Apply degradation calculations
+    degradation_GO <- degradation |> mutate(across(where(is.numeric), ~ . * 1/8))
+    degradation_Chit <- degradation |> mutate(across(where(is.numeric), ~ . * 7/8))
     
     # Process and solve for Chitosan
     funlist_Chit <- process_substance("Chitosan", degradation_Chit)
     Solution_Chit <- SBsolve4(
       tmax = 24 * (365.25 * 24 * 3600),
-      nTIMES = 100,
+      nTIMES = 20,
       Engine = World$exportEngineR(),
       funlist = funlist_Chit
     )
@@ -1348,30 +1302,123 @@ for (i in seq_len(nrow(nested_results_df))) {
       funlist = funlist_GO
     )
     
-    # Store solutions for the current run
-    results_Chitosan[[run]] <- Solution_Chit
-    results_GO[[run]] <- Solution_GO
+    # Store results for the current run
+    alpha_results[[run]] <- tibble(
+      run = run,
+      Solution_Chitosan = list(Solution_Chit),
+      Solution_Graphene_Oxide = list(Solution_GO)
+    )
   }
   
-  # Combine results for Chitosan and Graphene Oxide into a single dataframe
-  final_results <- tibble(
-    Chitosan_results = list(bind_rows(
-      map2(names(results_Chitosan), results_Chitosan, ~ tibble(run = .x, result = list(.y)))
-    )),
-    GO_results = list(bind_rows(
-      map2(names(results_GO), results_GO, ~ tibble(run = .x, result = list(.y)))
-    ))
-  )
-  
-  # Nest the results for the current alpha combination
-  final_nested_results[[i]] <- tibble(
+  # Nest the results for the current alpha
+  nested_results[[i]] <- tibble(
     alpha_fw = alpha_fw,
     alpha_mw = alpha_mw,
-    results = list(final_results)
+    data = list(bind_rows(alpha_results))
   )
 }
 
 # Combine all alpha results into a single nested tibble
-final_nested_results_df <- bind_rows(final_nested_results)
+nested_results_df_GOandChit <- bind_rows(nested_results)
 
+```
+
+```{r final plots}
+
+# Initialize an empty dataframe to hold all extracted data
+all_variable_data <- data.frame()
+
+# Function to extract data from a nested dataframe
+extract_data <- function(nested_results_df, substance_name) {
+  data <- data.frame()
+  
+  for (i in seq_len(nrow(nested_results_df))) {
+    # Extract alpha_fw and alpha_mw for labeling
+    alpha_fw <- nested_results_df$alpha_fw[i]
+    alpha_mw <- nested_results_df$alpha_mw[i]
+    
+    # Extract the nested data
+    nested_data <- nested_results_df$data[[i]]
+    
+    # Loop through each run in the nested data
+    for (j in seq_len(nrow(nested_data))) {
+      run <- nested_data$run[j]
+      result <- if(substance_name == "GO-Chitosan") {
+        nested_data$result[[j]]  # Extract GO-Chitosan result
+      } else if(substance_name == "Chitosan") {
+        nested_data$Solution_Chitosan[[j]]  # Extract Chitosan result
+      } else {
+        nested_data$Solution_Graphene_Oxide[[j]]  # Extract GO result
+      }
+      
+      # Extract the variable of interest and time values
+      variable_values <- result[[interest]]
+      time_values <- result$time
+      
+      # Combine into a data frame
+      run_data <- data.frame(
+        Time = time_values,
+        Value = variable_values,
+        Run = run,
+        Alpha_FW = alpha_fw,
+        Alpha_MW = alpha_mw,
+        Substance = substance_name
+      )
+      
+      # Append to the overall data frame
+      data <- rbind(data, run_data)
+    }
+  }
+  
+  return(data)
+}
+
+# Extract data from Chitosan and GO results in nested_results_df
+all_variable_data <- rbind(
+  all_variable_data, 
+  extract_data(nested_results_df_GOandChit, "Chitosan"),
+  extract_data(nested_results_df_GOandChit, "Graphene Oxide")
+)
+
+# Extract data from GO-Chitosan results in nested_results_df_GoChit
+all_variable_data <- rbind(
+  all_variable_data, 
+  extract_data(nested_results_df_GoChit, "GO-Chitosan")
+)
+
+# Step 2: Calculate mean and confidence intervals at each time point across all alphas
+summary_stats <- all_variable_data |>
+  group_by(Time, Substance) |>
+  summarise(
+    Mean_Value = mean(Value, na.rm = TRUE),
+    SD_Value = sd(Value, na.rm = TRUE),
+    Lower_CI = Mean_Value - 1.96 * SD_Value / sqrt(n()),
+    Upper_CI = Mean_Value + 1.96 * SD_Value / sqrt(n())
+  ) |>
+  ungroup()
+
+# Step 3: Plot with ggplot2, adding a color distinction for Chitosan, GO, and GO-Chitosan
+ggplot(summary_stats, aes(x = Time, y = Mean_Value, color = Substance)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI, fill = Substance), alpha = 0.2) +
+  labs(title = paste("Mean mass in", interest, "with Uncertainty Bands Over Time"),
+       x = "Time [s]",
+       y = paste("Mass of compound in compartment", interest, "[kg]"),
+       color = "Substance",
+       fill = "Substance") +
+  theme_minimal() + 
+  scale_y_log10() 
+
+filtered_stats <- summary_stats |> filter(Substance != "GO-Chitosan")
+
+# Create the plot with the filtered data
+ggplot(filtered_stats, aes(x = Time, y = Mean_Value, color = Substance, fill = Substance)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2) +
+  labs(title = paste("Mean mass in", interest, "with uncertainty over time only GO and Chit"),
+       x = "Time [s]",
+       y = paste("Mass of substance in ", interest, "[kg] - log scale")) +
+  theme_minimal() +
+  scale_color_manual(values = c("blue", "red", "green")) +  # Customize colors for each substance
+  scale_fill_manual(values = c("blue", "red", "green")) 
 ```
