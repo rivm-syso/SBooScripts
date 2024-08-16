@@ -1,7 +1,7 @@
 Verification of SimpleBox4Plastics - spreadsheet versus R implementation
 ================
 Anne Hids, Valerie de Rijk, Matthis Hof and Joris Quik
-2024-08-15
+2024-08-16
 
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
@@ -212,6 +212,6 @@ To test if the small differences (\<0.1%) in first order rate constants
 is negligible (Figures 4 and 5), the steady state masses should also not
 differ by more than 0.1% between the R and Spreadsheet implementations
 of SimpleBox. This is indeed the case (Figure 6) as the max difference
-in now only 0.03%. This proves that the port of SimpleBox4Plastics to R
+in now only 0.06%. This proves that the port of SimpleBox4Plastics to R
 is successful in reproducing the results from the original spreadsheet
 implementation.
