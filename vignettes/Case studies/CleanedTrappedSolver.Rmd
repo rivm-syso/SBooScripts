@@ -956,7 +956,7 @@ ggplot(filtered_stats_concentration, aes(x = Time, y = Mean_Value, color = Subst
   geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2) +
   labs(title = paste("Mean concentration in", interest, "with uncertainty over time only GO and Chit"),
        x = "Time [s]",
-       y = paste("Concentration of substance in ", interest, "[kg m-3] - log scale")) +
+       y = paste("Concentration of substance in ", interest, "[kg m-3]")) +
   theme_minimal() +
   scale_color_manual(values = c("red", "blue"))   # Customize colors for each 
 ```
