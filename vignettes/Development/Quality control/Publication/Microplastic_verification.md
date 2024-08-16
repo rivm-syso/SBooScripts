@@ -1,6 +1,6 @@
 Verification of SimpleBox4Plastics - spreadsheet versus R implementation
 ================
-Anne Hids, Valerie de Rijk, Matthis Hof and Joris Quik
+Valerie de Rijk, Anne Hids, Matthias Hof and Joris Quik
 2024-08-16
 
 This vignette demonstrates the verification process of SimpleBox

@@ -1,6 +1,6 @@
 ---
 title: "Verification of SimpleBox4Plastics - spreadsheet versus R implementation"
-author: "Anne Hids, Valerie de Rijk, Matthis Hof and Joris Quik"
+author: "Valerie de Rijk, Anne Hids, Matthias Hof and Joris Quik"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 

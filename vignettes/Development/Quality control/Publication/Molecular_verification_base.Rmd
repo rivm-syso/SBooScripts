@@ -301,7 +301,7 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
 mergedkaas |>
   mutate(relDif = abs(relDif)) |>
   filter(relDif > 0.001) |>
-  arrange(desc(relDif)) |> knitr::kable()
+  arrange(desc(relDif)) |> knitr::kable(digits = 30)
 ```
 
 #### Sedimentation and resuspension
