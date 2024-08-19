@@ -56,6 +56,8 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
 substance <- Potential_substances[2]
 source("baseScripts/initWorld_onlyMolec.R")
 
+World$substance <- substance
+
 length(unique(World$kaas$process))
 
 ProcessMolFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",

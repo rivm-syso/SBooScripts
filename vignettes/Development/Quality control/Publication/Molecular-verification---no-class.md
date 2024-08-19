@@ -1,7 +1,7 @@
 Molecular verification - neutral and no class
 ================
 Anne Hids
-2024-08-05
+2024-08-13
 
 This vignette demonstrates the verification process of the molecular
 version of Simplebox for a substance with a neutral class or without a
@@ -27,16 +27,18 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
 substance <- Potential_substances[1]
 
 source("baseScripts/initWorld_onlyMolec.R")
+
+World$substance <- substance
 ```
 
 ## Compare k’s
 
 When comparing k’s between R and excel, the goal is that the relative
-difference is less than 1 percentile for each k. The reason is that
-smaller differences often are a result of differences in rounding values
-between excel and R, and not the result of mistakes in calculations or
-different input values. In this vignette two types of k’s are compared:
-diagonal k’s and from-to k’s.
+difference is less than 0.001 for each k. The reason is that smaller
+differences often are a result of differences in rounding values between
+excel and R, and not the result of mistakes in calculations or different
+input values. In this vignette two types of k’s are compared: diagonal
+k’s and from-to k’s.
 
 At the time of this verification, some improvements were already made in
 the R version versus the excel version. This meant that some k’s differ
@@ -57,7 +59,7 @@ sum of the removal process k’s (i.e. degradation or burial).
 
 Figures 1 and 2 above show the absolute and relative differences in
 diagonal k’s between R and excel. As can be seen in Figure 2, relative
-differences larger than 1 percentile are in the lake and sediment
+differences larger than 0.001 are in the lake and sediment
 subcompartments.
 
 #### Lake difference
@@ -106,11 +108,10 @@ comparison to the R output.
 #### Sedimentation and resuspension
 
 As can be seen in Figure 4 above, the k’s that have a relative
-difference larger than 1 percentile go from water to sediment or from
-sediment to water. Changing the formula for calculating settling
-velocity when Test = TRUE for the sedimentation and resuspension
-processes (explained abovo under ‘Settling velocity’) also solves these
-differences.
+difference larger than 0.001 go from water to sediment or from sediment
+to water. Changing the formula for calculating settling velocity when
+Test = TRUE for the sedimentation and resuspension processes (explained
+abovo under ‘Settling velocity’) also solves these differences.
 
 ## Run again with Test=TRUE
 
@@ -125,13 +126,13 @@ difference in k’s between excel and R can be tested again:
 As can be seen in Figures 5 and 6, the temporary changes made using the
 Test variable solved the large differences in k’s between R and excel
 for both the diagonal and the from-to k’s. All relative differences are
-now smaller than 1 percentile.
+now smaller than 0.001.
 
 ## Compare steady state emissions
 
 The steady state masses in R and Excel were compared by calculating the
 relative differences between the masses in R and Excel (Figure 7). The
 figure shows that all masses between R and Excel relatively differ less
-than 1 percentile.
+than 0.001.
 
 ![](Molecular-verification---no-class_files/figure-gfm/comparison%20of%20steady%20state%20emissions%20using%20SB1Solve-1.png)<!-- -->
