@@ -644,6 +644,51 @@ final_processed_results_df <- do.call(rbind, final_processed_results_list)
 We now use the generated input data above as 'emission' input. We solve the system, once again, for all combinations of attachment efficiencies and predicted degradation rates per run. 
 
 ```{r Concentration and mass computation for Graphene Oxide and Chitosan}
+process_substance <- function(substance_name, degradation_data) {
+  # Re-initialize world for Graphene Oxide and Chitosan 
+  World$substance <- substance_name
+  
+  # Check for numeric column names
+  is_numeric_name <- function(name) {
+    !is.na(suppressWarnings(as.numeric(name))) && nzchar(name)
+  }
+  
+  # Create a logical vector for numeric column names
+  numeric_columns <- sapply(names(degradation_data), is_numeric_name)
+  
+  # Combine this logical vector with the condition for the column 'from'
+  keep_columns <- numeric_columns | names(degradation_data) == 'from'
+  
+  # Get the column names to keep
+  columns_to_keep <- names(degradation_data)[keep_columns]
+  
+  # Select only these columns
+  degradation_filtered <- degradation_data |>
+    select(all_of(columns_to_keep))
+  
+  # Pivot to long format
+  long_filtered <- degradation_filtered |>
+    pivot_longer(cols = -from, names_to = "time", values_to = "value") |>
+    mutate(time = as.numeric(time))
+  
+  # Summarize to get emission functions
+  emissions <- long_filtered |>
+    group_by(from) |>
+    summarise(n = n(),
+              EmisFun = list(
+                approxfun(
+                  data.frame(time = time, value = value),
+                  rule = 1
+                )
+              ))
+  
+  funlist <- emissions$EmisFun
+  names(funlist) <- emissions$from
+  
+  
+  # Return the function list for ODE solving
+  return(funlist)
+}
 
 # Initialize lists to store results
 nested_results <- list()
@@ -862,6 +907,7 @@ ggplot(filtered_stats, aes(x = Time, y = Mean_Value, color = Substance, fill = S
   theme_minimal() +
   scale_color_manual(values = c("red", "blue"))  
 ```
+Here, we plot the concentrations per one specific compartment for all three substances. we adjust the concentrations to represent ug/L
 ```{r plots for concentration}
 # Initialize an empty dataframe to hold all extracted data for concentration
 all_concentration_data <- data.frame()
@@ -929,8 +975,8 @@ all_concentration_data <- rbind(
 summary_stats_concentration <- all_concentration_data |>
   group_by(Time, Substance) |>
   summarise(
-    Mean_Value = mean(Value, na.rm = TRUE),
-    SD_Value = sd(Value, na.rm = TRUE),
+    Mean_Value = mean(Value, na.rm = TRUE) *1e6,
+    SD_Value = sd(Value, na.rm = TRUE) * 1e6,
     Lower_CI = Mean_Value - 1.96 * SD_Value / sqrt(n()),
     Upper_CI = Mean_Value + 1.96 * SD_Value / sqrt(n())
   ) |>
