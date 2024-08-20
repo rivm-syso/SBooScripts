@@ -1,8 +1,8 @@
 Verification of SimpleBox - spreadsheet versus R implementation for base
 organic chemicals
 ================
-Anne Hids, Valerie de Rijk, Matthis Hof and Joris Quik
-2024-08-16
+Anne Hids, Valerie de Rijk, Matthias Hof and Joris Quik
+2024-08-20
 
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
@@ -158,6 +158,38 @@ alt="Figure 2: Relative differences from-to k’s between R and Spreadsheet impl
 k’s between R and Spreadsheet implementation of SimpleBox
 (Test=FALSE)</figcaption>
 </figure>
+
+We can filter out the exact k’s that have a relative difference larger
+than 0.1%:
+
+| from | to   |          k_R | fromto_R |      k_Excel | fromto_Excel |          diff |      relDif |
+|:-----|:-----|-------------:|:---------|-------------:|:-------------|--------------:|------------:|
+| aC   | s2C  | 1.882858e-06 | aC_s2C   | 2.115478e-06 | aC_s2C       | -2.326199e-07 | 0.123546170 |
+| aC   | s3C  | 3.138096e-07 | aC_s3C   | 3.525796e-07 | aC_s3C       | -3.876998e-08 | 0.123546170 |
+| aR   | s2R  | 4.009689e-06 | aR_s2R   | 4.490172e-06 | aR_s2R       | -4.804829e-07 | 0.119830457 |
+| aR   | s3R  | 6.682815e-07 | aR_s3R   | 7.483620e-07 | aR_s3R       | -8.008048e-08 | 0.119830457 |
+| aC   | w2C  | 3.482307e-06 | aC_w2C   | 3.645614e-06 | aC_w2C       | -1.633070e-07 | 0.046896211 |
+| aR   | w2R  | 3.041425e-08 | aR_w2R   | 3.180905e-08 | aR_w2R       | -1.394798e-09 | 0.045860033 |
+| w1C  | sd1C | 4.670018e-06 | w1C_sd1C | 4.596199e-06 | w1C_sd1C     |  7.381927e-08 | 0.015807062 |
+| w1R  | sd1R | 4.670018e-06 | w1R_sd1R | 4.596199e-06 | w1R_sd1R     |  7.381927e-08 | 0.015807062 |
+| w3A  | sdA  | 4.646497e-09 | w3A_sdA  | 4.573050e-09 | w3A_sdA      |  7.344677e-11 | 0.015806912 |
+| w3M  | sdM  | 4.646497e-09 | w3M_sdM  | 4.573050e-09 | w3M_sdM      |  7.344677e-11 | 0.015806912 |
+| w3T  | sdT  | 4.646497e-09 | w3T_sdT  | 4.573050e-09 | w3T_sdT      |  7.344677e-11 | 0.015806912 |
+| w2C  | sd2C | 6.969745e-08 | w2C_sd2C | 6.859575e-08 | w2C_sd2C     |  1.101702e-09 | 0.015806912 |
+| w2R  | sd2R | 1.393949e-06 | w2R_sd2R | 1.371915e-06 | w2R_sd2R     |  2.203403e-08 | 0.015806912 |
+| sd1R | w1R  | 3.589714e-08 | sd1R_w1R | 3.542520e-08 | sd1R_w1R     |  4.719476e-10 | 0.013147219 |
+| sd1C | w1C  | 3.591828e-08 | sd1C_w1C | 3.544634e-08 | sd1C_w1C     |  4.719460e-10 | 0.013139437 |
+| sd2R | w2R  | 1.707893e-08 | sd2R_w2R | 1.691711e-08 | sd2R_w2R     |  1.618205e-10 | 0.009474862 |
+| sd2C | w2C  | 1.827893e-08 | sd2C_w2C | 1.811615e-08 | sd2C_w2C     |  1.627804e-10 | 0.008905358 |
+| sdM  | w3M  | 1.918928e-08 | sdM_w3M  | 1.902746e-08 | sdM_w3M      |  1.618205e-10 | 0.008432860 |
+| sdA  | w3A  | 1.919015e-08 | sdA_w3A  | 1.902833e-08 | sdA_w3A      |  1.618205e-10 | 0.008432477 |
+| sdT  | w3T  | 1.919015e-08 | sdT_w3T  | 1.902833e-08 | sdT_w3T      |  1.618205e-10 | 0.008432477 |
+| aR   | w0R  | 1.813573e-08 | aR_w0R   | 1.817648e-08 | aR_w0R       | -4.075162e-11 | 0.002247034 |
+| aR   | w1R  | 1.994931e-07 | aR_w1R   | 1.999413e-07 | aR_w1R       | -4.482678e-10 | 0.002247034 |
+| aR   | s1R  | 2.016178e-06 | aR_s1R   | 2.020577e-06 | aR_s1R       | -4.399213e-09 | 0.002181957 |
+| aC   | w0C  | 8.540034e-09 | aC_w0C   | 8.555497e-09 | aC_w0C       | -1.546263e-11 | 0.001810605 |
+| aC   | w1C  | 9.394038e-08 | aC_w1C   | 9.411047e-08 | aC_w1C       | -1.700889e-10 | 0.001810605 |
+| aC   | s1C  | 9.502960e-07 | aC_s1C   | 9.519650e-07 | aC_s1C       | -1.669010e-09 | 0.001756306 |
 
 #### Sedimentation and resuspension
 

@@ -1,6 +1,6 @@
 ---
 title: "Verification of SimpleBox - spreadsheet versus R implementation for metals"
-author: "Anne Hids, Valerie de Rijk, Matthis Hof and Joris Quik"
+author: "Anne Hids, Valerie de Rijk, Matthias Hof and Joris Quik"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
@@ -10,10 +10,10 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-# knitr::knit_meta()
-# knitr::opts_chunk$set(echo = TRUE)
-# projectRoot <- paste(getwd(), "..", "..", "..", "..", sep = "/")
-# knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", "..", "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 options(dplyr.summarise.inform=FALSE)
 knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 8)
 ```
@@ -287,12 +287,13 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
   )
 ```
 
+We can filter out the exact k's that have a relative difference larger than 0.1%:
 
-```{r kDifferences, include=FALSE, echo=FALSE}
+```{r TableDifferences, echo=FALSE, message=FALSE, warning=FALSE, paged.print=TRUE}
 mergedkaas |>
   mutate(relDif = abs(relDif)) |>
   filter(relDif > 0.001) |>
-  arrange(desc(relDif)) |> knitr::kable()
+  arrange(desc(relDif)) |> knitr::kable(digits = 30)
 ```
 
 #### Sedimentation and resuspension

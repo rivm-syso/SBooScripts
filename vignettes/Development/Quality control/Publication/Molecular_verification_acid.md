@@ -1,8 +1,8 @@
 Verification of SimpleBox - spreadsheet versus R implementation for acid
 organic chemicals
 ================
-Anne Hids, Valerie de Rijk, Matthis Hof and Joris Quik
-2024-08-16
+Anne Hids, Valerie de Rijk, Matthias Hof and Joris Quik
+2024-08-20
 
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
@@ -146,6 +146,26 @@ alt="Figure 2: Relative differences from-to k’s between R and Spreadsheet impl
 k’s between R and Spreadsheet implementation of SimpleBox
 (Test=FALSE)</figcaption>
 </figure>
+
+We can filter out the exact k’s that have a relative difference larger
+than 0.1%:
+
+| from | to   |          k_R | fromto_R |      k_Excel | fromto_Excel |         diff |      relDif |
+|:-----|:-----|-------------:|:---------|-------------:|:-------------|-------------:|------------:|
+| w1C  | sd1C | 2.673785e-08 | w1C_sd1C | 2.645311e-08 | w1C_sd1C     | 2.847406e-10 | 0.010649346 |
+| w1R  | sd1R | 2.673785e-08 | w1R_sd1R | 2.645311e-08 | w1R_sd1R     | 2.847406e-10 | 0.010649346 |
+| sd1R | w1R  | 6.124599e-08 | sd1R_w1R | 6.075580e-08 | sd1R_w1R     | 4.901842e-10 | 0.008003531 |
+| sd1C | w1C  | 6.126713e-08 | sd1C_w1C | 6.077694e-08 | sd1C_w1C     | 4.901826e-10 | 0.008000744 |
+| w2C  | sd2C | 2.493298e-10 | w2C_sd2C | 2.474618e-10 | w2C_sd2C     | 1.868073e-12 | 0.007492375 |
+| w2R  | sd2R | 4.986597e-09 | w2R_sd2R | 4.949236e-09 | w2R_sd2R     | 3.736145e-11 | 0.007492375 |
+| w3A  | sdA  | 1.662199e-11 | w3A_sdA  | 1.649745e-11 | w3A_sdA      | 1.245382e-13 | 0.007492375 |
+| w3M  | sdM  | 1.662199e-11 | w3M_sdM  | 1.649745e-11 | w3M_sdM      | 1.245382e-13 | 0.007492375 |
+| w3T  | sdT  | 1.662199e-11 | w3T_sdT  | 1.649745e-11 | w3T_sdT      | 1.245382e-13 | 0.007492375 |
+| sd2R | w2R  | 4.266413e-08 | sd2R_w2R | 4.248390e-08 | sd2R_w2R     | 1.802271e-10 | 0.004224324 |
+| sd2C | w2C  | 4.386413e-08 | sd2C_w2C | 4.368294e-08 | sd2C_w2C     | 1.811870e-10 | 0.004130642 |
+| sdM  | w3M  | 4.477448e-08 | sdM_w3M  | 4.459425e-08 | sdM_w3M      | 1.802271e-10 | 0.004025219 |
+| sdA  | w3A  | 4.477535e-08 | sdA_w3A  | 4.459512e-08 | sdA_w3A      | 1.802271e-10 | 0.004025141 |
+| sdT  | w3T  | 4.477535e-08 | sdT_w3T  | 4.459512e-08 | sdT_w3T      | 1.802271e-10 | 0.004025141 |
 
 #### Sedimentation and resuspension
 

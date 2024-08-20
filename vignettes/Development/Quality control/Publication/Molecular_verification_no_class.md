@@ -1,8 +1,8 @@
 Verification of SimpleBox - spreadsheet versus R implementation for
 neutral organic chemicals or ChemClass not specified
 ================
-Anne Hids, Valerie de Rijk, Matthis Hof and Joris Quik
-2024-08-16
+Anne Hids, Valerie de Rijk, Matthias Hof and Joris Quik
+2024-08-20
 
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
@@ -146,6 +146,26 @@ k’s between R and Spreadsheet implementation of SimpleBox
 (Test=FALSE)</figcaption>
 </figure>
 
+We can filter out the exact k’s that have a relative difference larger
+than 0.1%:
+
+| from | to   |          k_R | fromto_R |      k_Excel | fromto_Excel |         diff |      relDif |
+|:-----|:-----|-------------:|:---------|-------------:|:-------------|-------------:|------------:|
+| w1C  | sd1C | 1.042890e-08 | w1C_sd1C | 1.040244e-08 | w1C_sd1C     | 2.645966e-11 | 0.002537148 |
+| w1R  | sd1R | 1.042890e-08 | w1R_sd1R | 1.040244e-08 | w1R_sd1R     | 2.645966e-11 | 0.002537148 |
+| sd1R | w1R  | 3.636282e-07 | sd1R_w1R | 3.629205e-07 | sd1R_w1R     | 7.077253e-10 | 0.001946288 |
+| sd1C | w1C  | 3.636493e-07 | sd1C_w1C | 3.629416e-07 | sd1C_w1C     | 7.077237e-10 | 0.001946171 |
+| w3A  | sdA  | 9.676489e-12 | w3A_sdA  | 9.661945e-12 | w3A_sdA      | 1.454392e-14 | 0.001503016 |
+| w3M  | sdM  | 9.676489e-12 | w3M_sdM  | 9.661945e-12 | w3M_sdM      | 1.454392e-14 | 0.001503016 |
+| w3T  | sdT  | 9.676489e-12 | w3T_sdT  | 9.661945e-12 | w3T_sdT      | 1.454392e-14 | 0.001503016 |
+| w2C  | sd2C | 1.451473e-10 | w2C_sd2C | 1.449292e-10 | w2C_sd2C     | 2.181588e-13 | 0.001503016 |
+| w2R  | sd2R | 2.902947e-09 | w2R_sd2R | 2.898583e-09 | w2R_sd2R     | 4.363177e-12 | 0.001503016 |
+| sd2R | w2R  | 3.448100e-07 | sd2R_w2R | 3.444124e-07 | sd2R_w2R     | 3.975982e-10 | 0.001153094 |
+| sd2C | w2C  | 3.460100e-07 | sd2C_w2C | 3.456114e-07 | sd2C_w2C     | 3.985581e-10 | 0.001151869 |
+| sdM  | w3M  | 3.469203e-07 | sdM_w3M  | 3.465227e-07 | sdM_w3M      | 3.975982e-10 | 0.001146079 |
+| sdA  | w3A  | 3.469212e-07 | sdA_w3A  | 3.465236e-07 | sdA_w3A      | 3.975982e-10 | 0.001146076 |
+| sdT  | w3T  | 3.469212e-07 | sdT_w3T  | 3.465236e-07 | sdT_w3T      | 3.975982e-10 | 0.001146076 |
+
 #### Sedimentation and resuspension
 
 As can be seen in Figure 2 and the table above, the k’s that have a
@@ -219,6 +239,6 @@ To test if the small differences (\<0.1%) in first order rate constants
 is negligible (Figures 4 and 5), the steady state masses should also not
 differ by more than 0.1% between the R and Spreadsheet implementations
 of SimpleBox. This is indeed the case (Figure 6) as the max difference
-in now only 0%. This proves that the port of SimpleBox to R is
+in now only 0.01%. This proves that the port of SimpleBox to R is
 successful in reproducing the results from the original spreadsheet
 implementation for chemicals of class neutral.
