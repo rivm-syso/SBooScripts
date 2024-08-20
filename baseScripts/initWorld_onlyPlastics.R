@@ -17,22 +17,6 @@ World <- SBcore$new(ClassicStateModule)
 
 # We are interested in the particulate species only, so no need to filter like in the Molecular initWorld
 
-# To proceed with testing we set
-
-if (is.na(World$fetchData("pKa"))) {
-  warning("pKa is needed but missing, setting pKa=7")
-  World$SetConst(pKa = 7)
-}
-
-if (World$fetchData("ChemClass")==("")) {
-  warning("ChemClass is needed but missing, setting to particle")
-  World$SetConst(ChemClass = "particle") #????
-}
-
-if (is.na(World$fetchData("Pvap25"))) {
-  warning("Pvap is missing but not used, setting constant")
-  World$SetConst(Pvap25 = 1e-7)
-}
 World$SetConst(DragMethod = "Original")
 World$SetConst(Test = "FALSE")
 AllF <- ls() %>% sapply(FUN = get)
@@ -50,9 +34,4 @@ sapply(names(AllF)[FluxDefFunctions], World$NewFlow)
 #derive needed variables
 World$VarsFromprocesses()
 
-World$SetConst(Ksw = 47500) #default, not used for particle behavior")
-
-#World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
-
 World$UpdateKaas()
-# World$UpdateKaas()(debugAt = list()

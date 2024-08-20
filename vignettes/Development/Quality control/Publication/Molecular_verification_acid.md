@@ -26,10 +26,12 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
 substance <- Potential_substances[2]
 
 source("baseScripts/initWorld_onlyMolec.R")
+
+World$substance <- substance
 ```
 
 The SBoo world is initialized for a substance. In this case, that
-substance is 1-HYDROXYANTHRAQUINONE, which is of class: acid.
+substance is NA, which is of class: acid.
 
 At release already improvements or developments have been implemented in
 the R version of SimpleBox (SBoo) which are not implemented in Excel

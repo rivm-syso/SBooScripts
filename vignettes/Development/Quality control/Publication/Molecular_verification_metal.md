@@ -15,7 +15,7 @@ of the k’s or masses between the models to not exceed 0.1%.
 # Verification method
 
 The SBoo world is initialized for a substance. In this case, that
-substance is Sb(III), which is of class: metal.
+substance is NA, which is of class: metal.
 
 At release already improvements or developments have been implemented in
 the R version of SimpleBox (SBoo) which are not implemented in Excel

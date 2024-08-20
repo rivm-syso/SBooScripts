@@ -1,7 +1,7 @@
 Verification of SimpleBox4Nano - spreadsheet versus R implementation
 ================
 Valerie de Rijk, Anne Hids, Matthias Hof and Joris Quik
-2024-08-16
+2024-08-20
 
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
@@ -17,11 +17,13 @@ of the k’s or masses between the models to not exceed 0.1%.
 substance <- "nAg_10nm"
 
 source("baseScripts/initWorld_onlyParticulate.R")
+
+World$substance <- substance
 ```
 
 The SBoo world is initialized for a substance. In this case, that
-substance is nAg_10nm, which is of class: particle and a default radius
-of 5 nm.
+substance is NA, which is of class: particle and a default radius of 5
+nm.
 
 At release already improvements or developments have been implemented in
 the R version of SimpleBox (SBoo) which are not implemented in Excel
