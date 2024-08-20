@@ -54,11 +54,11 @@ We provide two steady-state solvers: SB1Solve and SBsteady.
 SB1Solve solves using base-R's solve which solves our matrix through solving the equation a %*% x = b for x, where b is our matrix and we assume x = 0. 
 SBsteady takes a different approach and runs the system of first-order kinetics at the rates determined by the matrix of rate constants. The function runs the simulation until the system reaches a steady state, where the amounts in each compartment no longer change over time.
 
-For non-extreme parameter values, we assume that these outputs are relatively similar.
+For non-extreme parameter values, we assume that these outputs are relatively similar, as can be seen below. 
 
 We initialize and solve for the two solvers in the following way: 
 
-```{r Steady State Solving}
+```{r Steady State Solving, paged.print=TRUE}
 World$NewSolver("SB1Solve")
 SB1Solve_output <- World$Solve(emissions)
 World$NewSolver("SBsteady")
@@ -73,16 +73,36 @@ SBsteady_output <- SBsteady_output |>
   rename(Eqmass_SBsteady = y)
 
 SB1Solve_output <- SB1Solve_output |>
-  mutate(Eqmass_SBsteady = SBsteady_output$Eqmass_SBsteady)
+  mutate(Eqmass_SBsteady = SBsteady_output$Eqmass_SBsteady) 
 
-# Display the updated SB1Solve_output table
-print(SB1Solve_output)
+knitr::kable(SB1Solve_output)
 
-
-# Create the markdown table
-markdown_table <- knitr::kable(SB1Solve_output)
-
-# Print the markdown table
-cat(markdown_table)
 ```
 
+
+## Dynamic solving 
+
+Multiple ways exist to solve the system dynamically. This means that, in addition to emission data per compartment, you have emission data per compartment and time. There's two main differences of solving this kind of input data: 
+
+i) Event-solving: With this type of solver you assume all the emission is emitted at once (per year or given timestep), effectively creating multiple point emissions
+
+ii) Approximation functions: This type of solver assumes continuous emissions, based on interpolation between data-points. This is deemed more realistic and recommended for normal use. You can choose to provide the emissions as a dataframe with time or to create these functions yourself. 
+
+Examples of both solvers are given in the following chunks: 
+
+### Dynamic Event Solving
+
+For this solver, it is important you do not divide the provided emissions per second (as it is only injected at one point in time). However, you should take care that the time-datapoints are expected in seconds. So, if your emission is assumed to be at 1 year, this should be timestep 1* 365.25 * 24 * 60  *60.  The required format of the dataframe is three columns:Abbr (for compartments), Emis (for emission pulse) and Timed (for timepoints). In the example below we have three emission points (100  tonnes in aRs at year 1, etc.)
+```{r i Event-solving}
+# Voorbeeld met dataframe
+emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), Emis = c(100, 100, 100), Timed = c(1, 2, 3) ) # convert 1 t/y to si units: kg/s
+
+
+emissions <- emissions |>
+  mutate(Emis = Emis*1000) |>           # Don't divide the emissions by seconds when using this solver!!
+  mutate(Timed = (Timed*(365*24*60*60)))
+
+World$NewSolver("EventSolver")
+
+solved <- World$Solve(emissions, needdebug = T)
+```
