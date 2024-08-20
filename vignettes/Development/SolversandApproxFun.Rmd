@@ -1,0 +1,88 @@
+---
+title: "Solvers and Approxfun"
+author: "Valerie de Rijk"
+date: "`r Sys.Date()`"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+options(dplyr.summarise.inform=FALSE)
+knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 8)
+```
+
+# Different ways of solving
+
+SimpleBox offers various solving techniques tailored to different scenarios, currently categorized into two core types:
+
+i) Steady-State
+ii) Dynamic
+
+Each strategy provides unique possibilities for solving problems. In this vignette, we will explore the use of these techniques and highlight the differences between them.
+
+## Steady State Solving
+
+We will first demonstrate solving the system assuming steady state. This means we will obtain one output: the assumed equilibrium mass in each compartment. We first initialize the world, in this case for a molecular substance, after which we will creaty dummy input emission data. 
+
+```{r Initialize,include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+Potential_substances <- c("1-aminoanthraquinone", # no class
+                          "1-HYDROXYANTHRAQUINONE", # acid
+                          "1-Hexadecanamine, N,N-dimethyl-", # base
+                          "1-Chloro-2-nitro-propane", # neutral
+                          "Sb(III)" # metal
+                          ) 
+              
+substance <- Potential_substances[3]
+
+source("baseScripts/initWorld_onlyMolec.R")
+
+World$substance <- substance
+```
+
+For Steady State solving the emissions need to be provided in a dataframe consisting of two columns ($Abr (for abbreviation of the compartment) and Emis (the emission to the compartment)). This dataframe cannot be time-dependent, as this goes against the principles for solving steady state. We will now create our dummy data. 
+
+The emissions are assumed to be going into the model as kg/s. In theory, you can choose any mass/s (like tonnes or mol) unit; what you put in is what you get out, as long as you are careful with unit conversions. However, since the rate constants within the model are within seconds, you should always adhere to the time unit of seconds. 
+
+```{r Steady State Emission data}
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10, 10, 10) ) 
+```
+
+We provide two steady-state solvers: SB1Solve and SBsteady. 
+
+SB1Solve solves using base-R's solve which solves our matrix through solving the equation a %*% x = b for x, where b is our matrix and we assume x = 0. 
+SBsteady takes a different approach and runs the system of first-order kinetics at the rates determined by the matrix of rate constants. The function runs the simulation until the system reaches a steady state, where the amounts in each compartment no longer change over time.
+
+For non-extreme parameter values, we assume that these outputs are relatively similar.
+
+We initialize and solve for the two solvers in the following way: 
+
+```{r Steady State Solving}
+World$NewSolver("SB1Solve")
+SB1Solve_output <- World$Solve(emissions)
+World$NewSolver("SBsteady")
+SBsteady_output <- World$Solve(emissions)
+
+
+# Rename columns
+SB1Solve_output <- SB1Solve_output |>
+  rename(Eqmass_SB1Solve = EqMass)
+
+SBsteady_output <- SBsteady_output |>
+  rename(Eqmass_SBsteady = y)
+
+SB1Solve_output <- SB1Solve_output |>
+  mutate(Eqmass_SBsteady = SBsteady_output$Eqmass_SBsteady)
+
+# Display the updated SB1Solve_output table
+print(SB1Solve_output)
+
+
+# Create the markdown table
+markdown_table <- knitr::kable(SB1Solve_output)
+
+# Print the markdown table
+cat(markdown_table)
+```
+
