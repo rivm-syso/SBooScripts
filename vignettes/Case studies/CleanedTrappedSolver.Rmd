@@ -26,7 +26,7 @@ We assume you have the input data for a substance or material of interest and al
 library(dplyr)
 substance <-  "GO-Chitosan"
 source("baseScripts/initWorld_onlyParticulate.R")
-
+World$substance <- "GO-Chitosan"
 ```
 
 ##Solve to get matrix 
