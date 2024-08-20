@@ -93,9 +93,11 @@ Examples of both solvers are given in the following chunks:
 ### Dynamic Event Solving
 
 For this solver, it is important you do not divide the provided emissions per second (as it is only injected at one point in time). However, you should take care that the time-datapoints are expected in seconds. So, if your emission is assumed to be at 1 year, this should be timestep 1* 365.25 * 24 * 60  *60.  The required format of the dataframe is three columns:Abbr (for compartments), Emis (for emission pulse) and Timed (for timepoints). In the example below we have three emission points (100  tonnes in aRs at year 1, etc.)
+
+We solve the system for 4 years. As you can see, we obtain a dataframe with the mass per compartment for every timestep.There is only mass in the compartments as soon as the first emission point is reached. Unfortunately, a relational solution (such as for steady state), is hard to obtain here. As such, we use abbrevations of the compartments. 
 ```{r i Event-solving}
 # Voorbeeld met dataframe
-emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), Emis = c(100, 100, 100), Timed = c(1, 2, 3) ) # convert 1 t/y to si units: kg/s
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(100, 100, 100), Timed = c(1, 2, 3) ) # convert 1 t/y to si units: kg/s
 
 
 emissions <- emissions |>
@@ -104,5 +106,81 @@ emissions <- emissions |>
 
 World$NewSolver("EventSolver")
 
-solved <- World$Solve(emissions, needdebug = T)
+EventSolved  <- World$Solve(emissions, needdebug = F, tmax = 4*365.25*24*3600, nTIMES = 20)
+knitr::kable(EventSolved)
+```
+
+### Dynamic Approxfun solving 
+
+As mentioned before, this solving strategy creates an approximation between known datapoints through interpolation. Two options exist here: providing a dataframe with datapoints (as for event-solving) and providing the approximation functions itself. We will first show the latter option. 
+
+The chunk below shows how to create an emission function yourself before using it to solve. A couple of noteworthy points: 
+
+- For each compartment, the emission data should contain at least two datapoints in order for the function to work. 
+- All data should be in mass/s (preferably kg/s) in order for it to produce wanted results.
+- Approximation function rule [2](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/approxfun) allows extrapolation, in that it will take the most extreme (left/right) values and continue this trend in the respective way. Rule 1 only allows for interpolation. If you do not want any extending of data that does not exist, you should ensure that the datapoints exceed the tmax of the system, else the system will not work. 
+- Other functions are also able to be implemented to the core, but its structure should be the same as the 'funlist' below.
+
+Once again, we run the model for 4 years. The output is in a quite similar structure as the Event solving, but also provides columns in which the emission data is specified. This allows for more convenient checks on the output that thas been created. Below, we also plot our approximation function for the hypothetical scenario of 25 years. As the emission data for the compartment we plot (s2RU) only runs until the 5th year, you can clearly see the assumed continuation of this last value for the remaining years. 
+
+
+```{r ii Approximation function}
+
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU","aRU", "s2RU", "w1RU"), Emis = c(10, 10, 10,20, 20, 20), Timed = c(1, 2, 3, 4, 5, 6)) # convert 1 t/y to si units: kg/s
+
+emissions <- emissions |>
+  mutate(Timed = Timed*(365.25*24*60*60)) |> ungroup()
+
+SBEmissions3 <- 
+  emissions |> 
+  group_by(Abbr) |> 
+  summarise(n=n(),
+            EmisFun = list(
+              approxfun(
+                data.frame(Timed = c(0,Timed), 
+                           Emis=c(0,Emis)),
+                rule = 2) # Change to rule 1:1 for no extrapolation
+            )
+  )
+
+funlist <- SBEmissions3$EmisFun
+names(funlist) <- SBEmissions3$Abbr
+
+tmax <- 365.25*24*60*60*4
+times <- seq(0, tmax, length.out = 10)
+
+World$NewSolver("DynApproxSolve")
+DynApproxSolved <- World$Solve(tmax = 4*365.25*24*3600, funlist, needdebug = F, nTIMES = 20 )
+
+
+
+# Plot approxfun
+times <- seq(0, 25*365.25*24*3600, by=10000)
+PlotEmis <- funlist[["s2RU"]]
+values <- sapply(times, PlotEmis)
+
+plot(times, values, type = "l", lwd=2)
+
+knitr::kable(DynApproxSolved)
+```
+
+If you, as a user, do not want to create the approximation functions yourself, the opportunity exists to solely provide a dataframe with timed emission data. The rest of the solver copies the same behavior as the one above. As you can observe, the output is also the same.
+
+```{r ii Approximation with only a dataframe, warning= FALSE}
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU", "aRU", "s2RU", "w1RU"), Emis = c(10, 10, 10,20, 20, 20), Timed = c(1, 2, 3, 4, 5, 6)) # convert 1 t/y to si units: kg/s
+
+emissions <- emissions |>
+  mutate(Timed = Timed*(365.25*24*60*60)) |> ungroup()
+
+tmax <- 365.25*24*60*60*10
+times <- seq(0, tmax, length.out = 10)
+rm(World)
+source("baseScripts/initWorld_onlyMolec.R")
+
+World$substance <- substance
+World$NewSolver("DynApproxSolve")
+
+DynApproxDFSolved<- World$Solve( emissions = emissions, tmax =4*365.25*24*3600, needdebug = F, nTIMES = 20 )
+
+knitr::kable(DynApproxDFSolved)
 ```
