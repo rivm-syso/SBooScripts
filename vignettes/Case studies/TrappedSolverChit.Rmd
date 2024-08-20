@@ -24,8 +24,10 @@ We assume you have the input data for a substance or material of interest and al
 
 ```{r message=FALSE, warning=FALSE, paged.print=TRUE}
 library(dplyr)
-substance <-  "GO-Chitosan"
 source("baseScripts/initWorld_onlyParticulate.R")
+World$SetConst(kdis = 0)
+World$UpdateKaas()
+World$substance <- substance
 
 ```
 
