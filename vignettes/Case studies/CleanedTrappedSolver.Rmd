@@ -971,23 +971,23 @@ all_concentration_data <- rbind(
   extract_concentration_data(nested_results_df_GoChit_concentration, "GO-Chitosan", "data")
 )
 
-# Step 2: Calculate mean and confidence intervals at each time point across all alphas
+# Step 2: Calculate mean and confidence intervals at each time point across all alphas, convert to ug/L
 summary_stats_concentration <- all_concentration_data |>
   group_by(Time, Substance) |>
   summarise(
-    Mean_Value = mean(Value, na.rm = TRUE) *1e6,
-    SD_Value = sd(Value, na.rm = TRUE) * 1e6,
+    Mean_Value = mean(Value, na.rm = TRUE) *1e3,
+    SD_Value = sd(Value, na.rm = TRUE) * 1e3,
     Lower_CI = Mean_Value - 1.96 * SD_Value / sqrt(n()),
     Upper_CI = Mean_Value + 1.96 * SD_Value / sqrt(n())
   ) |>
   ungroup()
 
-# Step 3: Plot with ggplot2, adding a color distinction for Chitosan, GO, and GO-Chitosan
-ggplot(summary_stats_concentration, aes(x = Time, y = Mean_Value, color = Substance)) +
+# Step 
+ggplot(summary_stats_concentration, aes(x = Time/(365.25*24*3600), y = Mean_Value, color = Substance)) +
   geom_line(size = 1) +
   geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI, fill = Substance), alpha = 0.2) +
   labs(title = paste("Mean concentration in", interest, "with Uncertainty Bands Over Time"),
-       x = "Time [s]",
+       x = "Time [y]",
        y = paste("Concentration of compound in compartment", interest, "[kg m-3]"),
        color = "Substance",
        fill = "Substance") +
