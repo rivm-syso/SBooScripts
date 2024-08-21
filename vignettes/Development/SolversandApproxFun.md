@@ -20,7 +20,7 @@ the differences between them.
 We will first demonstrate solving the system assuming steady state. This
 means we will obtain one output: the assumed equilibrium mass in each
 compartment. We first initialize the world, in this case for a molecular
-substance, after which we will creaty dummy input emission data.
+substance, after which we will create dummy input emission data.
 
 ``` r
 Potential_substances <- c("1-aminoanthraquinone", # no class
