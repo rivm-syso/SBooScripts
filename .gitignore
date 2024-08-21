@@ -97,4 +97,4 @@ Backup of *.doc*
 *.~vsd*
 
 # more can be added from https://github.com/github/gitignore/tree/main/Global
-*.png
+
