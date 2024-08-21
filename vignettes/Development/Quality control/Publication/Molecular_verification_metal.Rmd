@@ -167,7 +167,7 @@ mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)
 
 ## Compare first order rate constants
 When comparing k's between R and excel, the goal is that the relative difference is less
-than 1 percentile for each k. The reason is that smaller differences often are 
+than 0.001 for each k. The reason is that smaller differences often are 
 a result of differences in rounding values between excel and R, and not the result
 of mistakes in calculations or different input values. In this vignette two types of 
 k's are compared: diagonal k's and from-to k's.
@@ -472,12 +472,11 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
 
 As can be seen in Figures 4 and 5, the temporary changes made using the Test variable 
 solved the large differences in k's between R and excel for both the diagonal and the 
-from-to k's. All relative differences are now smaller than 1 percentile. 
+from-to k's. All relative differences are now smaller than 0.001. 
 
 ## Steadystate mass
 
 ```{r PlotSteadyState_2, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 6: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=TRUE)"}
-
 library(stringi)
 
 World$NewSolver("SB1Solve")

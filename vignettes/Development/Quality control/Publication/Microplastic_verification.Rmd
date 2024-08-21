@@ -31,6 +31,7 @@ between the models to not exceed 0.1%.
 ```{r InitializeSBoo, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 substance <- "microplastic"
 source("baseScripts/initWorld_onlyPlastics.R")
+
 World$substance <- substance
 ```
 
@@ -452,7 +453,7 @@ ggplot(sorted_diff, aes(x = from, y = reldif)) +
   ggtitle(paste0(substance)) +
   geom_hline(yintercept = 0.001, color = "red") +
   geom_hline(yintercept = -0.001, color = "red") +
-  custom_theme()+
+  #custom_theme()+
   labs(x = "from", y = "Relative diff")
 
 ```
@@ -482,7 +483,6 @@ mergedkaas |>
   filter(relDif > 0.0001) |>
   arrange(desc(relDif)) |> knitr::kable(digits = 30)
 ```
-
 
 ## Steadystate mass
 ```{r PlotSteadyState_2, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 6: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=TRUE)"}

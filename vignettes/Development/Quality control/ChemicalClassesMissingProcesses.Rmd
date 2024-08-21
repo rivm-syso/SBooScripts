@@ -19,6 +19,8 @@ substance <- Potential_substances[1]
 
 source("/baseScripts/initWorld.R")
 
+World$substance <- substance
+
 #List of all processes apllicable to molecular substances
 ProcessMolFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
                           "k_Degradation", "k_Deposition", "k_Desorption",

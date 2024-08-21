@@ -2,7 +2,7 @@ Verification of SimpleBox - spreadsheet versus R implementation for
 neutral organic chemicals or ChemClass not specified
 ================
 Anne Hids, Valerie de Rijk, Matthias Hof and Joris Quik
-2024-08-20
+2024-08-21
 
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
@@ -224,7 +224,7 @@ k’s between R and Spreadsheet implementation of SimpleBox
 As can be seen in Figures 4 and 5, the temporary changes made using the
 Test variable solved the large differences in k’s between R and excel
 for both the diagonal and the from-to k’s. All relative differences are
-now smaller than 1 percentile.
+now smaller than 0.001.
 
 ## Steadystate mass
 

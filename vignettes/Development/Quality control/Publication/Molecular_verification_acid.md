@@ -2,7 +2,7 @@ Verification of SimpleBox - spreadsheet versus R implementation for acid
 organic chemicals
 ================
 Anne Hids, Valerie de Rijk, Matthias Hof and Joris Quik
-2024-08-20
+2024-08-21
 
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
@@ -62,11 +62,11 @@ calculations or input values.
 ## Compare k’s
 
 When comparing k’s between R and excel, the goal is that the relative
-difference is less than 1 percentile for each k. The reason is that
-smaller differences often are a result of differences in rounding values
-between excel and R, and not the result of mistakes in calculations or
-different input values. In this vignette two types of k’s are compared:
-diagonal k’s and from-to k’s.
+difference is less than 0.001 for each k. The reason is that smaller
+differences often are a result of differences in rounding values between
+excel and R, and not the result of mistakes in calculations or different
+input values. In this vignette two types of k’s are compared: diagonal
+k’s and from-to k’s.
 
 At the time of this verification, some improvements were already made in
 the R version versus the excel version. This meant that some k’s differ
@@ -94,8 +94,8 @@ from-k’s between R and Spreadsheet implementation of SimpleBox
 
 Figures 1 and 2 above show the absolute and relative differences in
 diagonal k’s between R and excel. As can be seen in Figure 2, relative
-differences larger than 1 percentile are in the lake, freshwater and
-sediment subcompartments.
+differences larger than 0.001 are in the lake, freshwater and sediment
+subcompartments.
 
 #### Lake difference
 
@@ -225,7 +225,7 @@ k’s between R and Spreadsheet implementation of SimpleBox
 As can be seen in Figures 4 and 5, the temporary changes made using the
 Test variable solved the large differences in k’s between R and excel
 for both the diagonal and the from-to k’s. All relative differences are
-now smaller than 1 percentile.
+now smaller than 0.001.
 
 ## Steadystate mass
 
