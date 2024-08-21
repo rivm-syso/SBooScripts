@@ -1,7 +1,7 @@
 Solvers and Approxfun
 ================
 Valerie de Rijk
-2024-08-20
+2024-08-21
 
 # Different ways of solving
 
@@ -38,10 +38,10 @@ World$substance <- substance
 ```
 
 For Steady State solving the emissions need to be provided in a
-dataframe consisting of two columns (\$Abr (for abbreviation of the
-compartment) and Emis (the emission to the compartment)). This dataframe
-cannot be time-dependent, as this goes against the principles for
-solving steady state. We will now create our dummy data.
+dataframe consisting of two columns (**Abr** (for abbreviation of the
+compartment) and **Emis** (the *constant* emission to the compartment)).
+This dataframe cannot be time-dependent, as this goes against the
+principles for solving steady state. We will now create our dummy data.
 
 The emissions are assumed to be going into the model as kg/s. In theory,
 you can choose any mass/s (like tonnes or mol) unit; what you put in is
@@ -55,13 +55,17 @@ emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10, 10, 10) )
 
 We provide two steady-state solvers: SB1Solve and SBsteady.
 
-SB1Solve solves using base-R’s solve which solves our matrix through
-solving the equation a %\*% x = b for x, where b is our matrix and we
-assume x = 0. SBsteady takes a different approach and runs the system of
-first-order kinetics at the rates determined by the matrix of rate
-constants. The function runs the simulation until the system reaches a
-steady state, where the amounts in each compartment no longer change
-over time.
+SB1Solve solves using base-R’s
+[solve](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/solve)
+which solves our matrix through solving the equation a %\*% x = b for x,
+where b is our matrix and we assume x = 0.
+
+SBsteady takes a different approach and runs the system of first-order
+kinetics at the rates determined by the matrix of rate constants using
+rootSolve’s
+[runsteady](https://www.rdocumentation.org/packages/rootSolve/versions/1.8.2.4/topics/runsteady).
+The function runs the simulation until the system reaches a steady
+state, where the amounts in each compartment no longer change over time.
 
 For non-extreme parameter values, we assume that these outputs are
 relatively similar, as can be seen below.
@@ -328,7 +332,10 @@ knitr::kable(DynApproxSolved)
 If you, as a user, do not want to create the approximation functions
 yourself, the opportunity exists to solely provide a dataframe with
 timed emission data. The rest of the solver copies the same behavior as
-the one above. As you can observe, the output is also the same.
+the one above. This means that extrapolation (taking the most extreme
+value and continuing this as a constant emission) is automatically done,
+as else the solver will crash. As you can observe, the output is also
+the same.
 
 ``` r
 emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU", "aRU", "s2RU", "w1RU"), Emis = c(10, 10, 10,20, 20, 20), Timed = c(1, 2, 3, 4, 5, 6)) # convert 1 t/y to si units: kg/s
