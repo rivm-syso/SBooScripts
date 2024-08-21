@@ -2,7 +2,7 @@ Verification of SimpleBox - spreadsheet versus R implementation for
 neutral organic chemicals or ChemClass not specified
 ================
 Anne Hids, Valerie de Rijk, Matthias Hof and Joris Quik
-2024-08-20
+2024-08-21
 
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
