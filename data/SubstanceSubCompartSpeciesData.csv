@@ -314,6 +314,9 @@
 "kfrag","air","Large","microplastic",0,NA,NA
 "kfrag","air","Small","microplastic",0,NA,NA
 "kfrag","air","Solid","microplastic",0,"kfragS.a",NA
+"kfrag","deepocean","Large","microplastic",2.7e-08,NA,NA
+"kfrag","deepocean","Small","microplastic",2.7e-08,NA,NA
+"kfrag","deepocean","Solid","microplastic",2.7e-08,"kfragS.w3",NA
 "kfrag","freshwatersediment","Large","microplastic",2.7e-08,NA,NA
 "kfrag","freshwatersediment","Small","microplastic",2.7e-08,NA,NA
 "kfrag","freshwatersediment","Solid","microplastic",2.7e-08,"kfragS.sd",NA
@@ -344,6 +347,9 @@
 "kmpdeg","air","Large","microplastic",0,NA,NA
 "kmpdeg","air","Small","microplastic",0,NA,NA
 "kmpdeg","air","Solid","microplastic",0,"kmpdeg.a",NA
+"kmpdeg","deepocean","Large","microplastic",1e-10,NA,NA
+"kmpdeg","deepocean","Small","microplastic",1e-10,NA,NA
+"kmpdeg","deepocean","Solid","microplastic",1e-10,"kmpdeg.w3",NA
 "kmpdeg","freshwatersediment","Large","microplastic",3e-11,NA,NA
 "kmpdeg","freshwatersediment","Small","microplastic",3e-11,NA,NA
 "kmpdeg","freshwatersediment","Solid","microplastic",3e-11,"kmpdeg.sd",NA
@@ -364,7 +370,7 @@
 "kmpdeg","othersoil","Solid","microplastic",3e-11,"kmpdeg.s",NA
 "kmpdeg","river","Large","microplastic",1e-10,NA,NA
 "kmpdeg","river","Small","microplastic",1e-10,NA,NA
-"kmpdeg","river","Solid","microplastic",1e-10,"kmpdeg.w2",NA
+"kmpdeg","river","Solid","microplastic",1e-10,"kmpdeg.w1",NA
 "kmpdeg","sea","Large","microplastic",1e-10,NA,NA
 "kmpdeg","sea","Small","microplastic",1e-10,NA,NA
-"kmpdeg","sea","Solid","microplastic",1e-10,"kmpdeg.w3",NA
+"kmpdeg","sea","Solid","microplastic",1e-10,"kmpdeg.w2",NA
