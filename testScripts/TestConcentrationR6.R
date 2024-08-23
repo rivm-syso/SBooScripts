@@ -15,4 +15,5 @@ World$NewSolver("SB1Solve")
 solved2 <- World$Solve(emissions, needdebug = F)
 
 sol <- World$Solution()
-World$GetConcentration(sol)
+World$GetConcentration()
+
