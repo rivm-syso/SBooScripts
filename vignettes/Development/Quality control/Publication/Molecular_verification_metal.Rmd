@@ -181,7 +181,7 @@ With these exceptions, we expect our matrix to be 60- 25 = 35 rows. This script 
 
 ii) We expect all processes to be included in Processes4SpeciesTp.csv to also be calculated. Therefore, we compare the calculated unique processes with the processes defined in this csv. 
 
-```{r check if matrix is 155x155, include=TRUE, echo=FALSE, warning=FALSE}}
+```{r check if matrix is 155x155, include=TRUE, echo=FALSE, warning=FALSE}
 dims <- dim(diagonal_R)
 
 # Check if the matrix is 155x155
