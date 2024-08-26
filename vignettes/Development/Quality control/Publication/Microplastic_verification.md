@@ -1,7 +1,7 @@
 Verification of SimpleBox4Plastics - spreadsheet versus R implementation
 ================
 Valerie de Rijk, Anne Hids, Matthias Hof and Joris Quik
-2024-08-21
+2024-08-26
 
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
@@ -48,6 +48,38 @@ values between excel and R, and not the result of mistakes in
 calculations or input values.
 
 # Step 1. Compare SBoo (incl. updates) to spreadsheet
+
+## preliminary matrix check
+
+In the chunk below we check if our matrix is as large as we expect it to
+be.
+
+1)  Matrix The SimpleBox model operates over 5 scales, 12
+    subcompartments and 4 different speciations. As such, we would
+    expect our matrix to have 5 \* 12 \* 4 = 240 rows. However, some
+    exceptions exist within our SB world:
+
+- The Regional and Continental scale do now have a deepocean layer (w3),
+  reducing the matrix by 2 \* 1 \* 4 = 8 rows.
+- The Global Scales (Arctic, Moderate, Tropic) only have one type of
+  soil instead of 3, reducing the matrix by 3 \* 2 \* 4 = 24 rows.
+- The Global Scales (Arctic, Moderate, Tropic) only have one type of
+  sediment instead of 3, reducing the matrix by 3 \* 2 \* 4 = 24 rows.
+- The Global Scales (Arctic, Moderate, Tropic) only have one type of
+  water instead of 3, reducing the matrix by 3 \* 2 \* 4 = 24 rows.
+- Cloudwater (compartment) does not have any values, reducing our matrix
+  by 5 \* 1 \* 1 = 5 rows.
+
+With these exceptions, we expect our matrix to be 240-85 = 155 rows.
+This script will stop running if this is not the case.
+
+2)  We expect all processes to be included in Processes4SpeciesTp.csv to
+    also be calculated. Therefore, we compare the calculated unique
+    processes with the processes defined in this csv.
+
+<!-- -->
+
+    ## character(0)
 
 ## Compare first order rate constants
 
