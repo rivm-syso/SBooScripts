@@ -63,7 +63,7 @@ var3$c <- var3$EROSIONsoil         # Mode (peak)
 #################### Make a tibble with the parameters #########################
 
 params <- tibble(
-  VarName = c(var1Name, var2Name, var3Name),
+  varName = c(var1Name, var2Name, var3Name),
   Scale = c(var1$Scale, var2$Scale, var3$Scale),
   SubCompart = c(var1$SubCompart, var2$SubCompart, var3$SubCompart),
   data = list(
