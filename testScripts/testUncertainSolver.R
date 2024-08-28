@@ -63,9 +63,9 @@ var3$c <- var3$EROSIONsoil         # Mode (peak)
 #################### Make a tibble with the parameters #########################
 
 params <- tibble(
-  varname = c(var1Name, var2Name, var3Name),
-  scale = c(var1$Scale, var2$Scale, var3$Scale),
-  subcompart = c(var1$SubCompart, var2$SubCompart, var3$SubCompart),
+  VarName = c(var1Name, var2Name, var3Name),
+  Scale = c(var1$Scale, var2$Scale, var3$Scale),
+  SubCompart = c(var1$SubCompart, var2$SubCompart, var3$SubCompart),
   data = list(
     tibble(id = c("a", "b", "c"), value = c(var1$a, var1$b, var1$c)),
     tibble(id = c("a", "b", "c"), value = c(var2$a, var2$b, var2$c)),
@@ -97,19 +97,23 @@ World$Solve(emissions, needdebug = T, sample_df)
 
 
 
+
+
+
+
 ######################### Find way to reach the values again ###################
 
 # Get all values corresponding to a var
-df$data[1]
+sample_df$data[1]
 
 # Get one instance
-df$data[[1]]
+sample_df$data[[1]]
 
 # Get first value of first df in data
-first_value <- map(df$data[1], ~ .x$value[1])[[1]]
+first_value <- map(sample_df$data[1], ~ .x$value[1])[[1]]
 
 # Get first value of all dfs in data
-first_values <- map(df$data, ~ .x$value[1])
+first_values <- map(sample_df$data, ~ .x$value[1])
 
 ## Test if the data really is triangularly distributed
 test <- sample_df$data[[1]]
