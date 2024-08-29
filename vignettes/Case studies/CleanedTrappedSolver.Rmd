@@ -255,7 +255,8 @@ Emission_run_approx <-
 ```
 
 ## Introducing variable uncertainty
-We also want to include uncertainty within our parameters. In this case, we examine the influence of different attachment efficiencies (alpha's) We create combinations with LHS and base this on a log-normal distribution to represent a more truthful representation of attachment efficiencies in nature. 
+We also want to include uncertainty within our parameters. In this case, we examine the influence of different attachment efficiencies (alpha's) We create combinations with Latin Hypercube Sampling and base this on a log-normal distribution to apply a more truthful representation of the attachment efficiency between natural and the nanomaterial particles.
+
 ```{r introducing uncertainty with LHS}
 library(lhs)
 num_combinations <- 2
@@ -266,11 +267,19 @@ fwa_max<- 0.1
 ma_min <- 1e-3 
 ma_max <- 1
 
+randomLHS(num_combinations, 1)
+
 
 # Generate 10 LHS samples for each distribution
 set.seed(123)  # For reproducibility
 fw_lhs_samples <- randomLHS(num_combinations, 1)
 ma_lhs_samples <- randomLHS(num_combinations, 1)
+
+Variables <- c("FreshWater","Marine")
+
+alphaSamples <-  randomLHS(num_combinations, length(Variables))
+
+# qunif()
 
 # Scale LHS samples to the log-uniform distribution range
 fw_alpha_values <-  10^(fw_lhs_samples * (log10(fwa_max) - log10(fwa_min)) + log10(fwa_min))
@@ -408,7 +417,7 @@ for (i in seq_along(combinations_list)) {
   
   # Update the World object with the new dataframe
   World$mutateVars(dfs)
-  World$UpdateKaas(mergeExisting = FALSE)
+  World$UpdateKaas(mergeExisting = FALSE) #TODO use updateDirty
   kaas <- World$kaas
   kaas_list[[paste0(i)]] <- list(
     alpha_fw = alpha_fw,
@@ -430,6 +439,8 @@ for (i in seq_along(combinations_list)) {
     names(funlist) <- Emission_run_approx |>
       filter(RUN == run) |>
       pull(Abr)
+    
+    
     
     # Solve using SBsolve4
     result <- SBsolve4(
