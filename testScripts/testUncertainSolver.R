@@ -12,7 +12,7 @@ emissions <- emissions |>
   mutate(Emis = Emis*1000/(365*24*60*60)) 
 
 # Define the number of samples and the number of variables
-n_samples <- 10
+n_samples <- 4
 n_vars <- 3
 n_comps <- 2
 
@@ -156,7 +156,7 @@ for (i in 1:n_comps) {
 ################################## Solve #######################################
 
 World$NewSolver("UncertainSolver")
-solved <- World$Solve(emis_df, needdebug = T, sample_df)
+solved <- World$Solve(emissions, needdebug = F, sample_df)
 
 
 
@@ -174,10 +174,12 @@ nrow(sample_df$data[1])
 nrow(sample_df$data[[1]])
 
 # Get first value of first df in data
-first_value <- map(sample_df$data[1], ~ .x$value[1])[[1]]
+first_value <- map(emis_df$Emis[1], ~ .x$value[1])[[1]]
 
 # Get first value of all dfs in data
-first_values <- map(sample_df$data, ~ .x$value[1])
+first_values <- map(emis_df$Emis, ~ .x$value[1])
+
+first_values <- map_dfr(emis_df$Emis, ~ tibble(Emis = .x$value[1]))
 
 ## Test if the data really is triangularly distributed
 test <- sample_df$data[[1]]
