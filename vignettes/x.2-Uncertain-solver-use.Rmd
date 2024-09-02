@@ -57,6 +57,8 @@ The lhs samples are pulled from a uniform distribution between 0 and 1. So these
 
 Define triangular distribution function:
 ```{r Define triangular distribution function, warning=FALSE, message=FALSE}
+#TODO provide definition of function variables.
+
 triangular_cdf_inv <- function(u, a, b, c) {
   ifelse(u < (c-a)/(b-a),
          a + sqrt(u * (b-a) * (c-a)),
