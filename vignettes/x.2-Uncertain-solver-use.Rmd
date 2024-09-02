@@ -41,10 +41,10 @@ The first step is to determine the number of uncertain variables, the number of 
 
 ```{r Create samples, warning=FALSE, message=FALSE}
 n_vars <- 3 # The number of variables you want to create a distribution for
-n_comps <- 2 # The number of compartments that have emissions
+n_emiscomps <- 2 # The number of compartments that have emissions
 n_samples <- 10 # The number of samples you want to pull from the distributions for each variable
 
-n_lhs <- n_vars + n_comps # Total number of vectors to create with latin hypercube sampling (lhs)
+n_lhs <- n_vars + n_emiscomps # Total number of vectors to create with latin hypercube sampling (lhs)
 
 lhs_samples <- randomLHS(n_samples, n_lhs) # Generate numbers between 0 and 1 using lhs
 
@@ -207,7 +207,7 @@ params <- tibble(
 emis_df <- params
 
 # Transform each LHS sample column to the corresponding triangular distribution
-for (i in 1:n_comps) {
+for (i in 1:n_emiscomps) {
   a <- filter(params$Emis[[i]], id == "a") %>% pull(value)
   b <- filter(params$Emis[[i]], id == "b") %>% pull(value)
   c <- filter(params$Emis[[i]], id == "c") %>% pull(value)
