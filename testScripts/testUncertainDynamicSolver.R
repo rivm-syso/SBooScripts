@@ -96,8 +96,8 @@ for (i in 1:n_vars) {
 }
 
 # Solve with dynamic uncertain solver
-# World$NewSolver("UncertainDynamicSolver")
-# solved <- World$Solve(emissions, sample_df, tmax = tmax, needdebug = T)
+World$NewSolver("UncertainDynamicSolver")
+solved_emis_df <- World$Solve(emissions, sample_df, tmax = tmax, needdebug = F)
 
 # sol1 <- solved$Mass[[1]]
 ############################ Test with one funlist as input ####################
@@ -121,7 +121,7 @@ tmax <- 365.25*24*60*60*10
 times <- seq(0, tmax, length.out = 10)
 
 World$NewSolver("UncertainDynamicSolver")
-solved <- World$Solve(funlist, sample_df, tmax = tmax, needdebug = T)
+solved_funlist <- World$Solve(funlist, sample_df, tmax = tmax, needdebug = F)
 
 ################################################################################
 
@@ -134,16 +134,6 @@ emissions <- emissions |>
 
 tmax <- 365.25*24*60*60*10
 times <- seq(0, tmax, length.out = 10)
-
-
-
-
-
-
-
-
-
-
 
 # Define the number of samples and the number of variables
 n_samples <- 10
@@ -235,52 +225,130 @@ for (i in 1:n_vars) {
 ################################### emissions ##################################
 lhs_samples_emis <- lhs_samples[, (n_vars + 1):ncol(lhs_samples)]
 
-# Function to define triangular distribution parameters
-define_triangular_params <- function(data) {
-  data %>%
-    mutate(a = Emis * 0.7,
-           b = Emis * 1.3,
-           c = Emis) %>%
-    select(Timed, Abbr, a, b, c)
+# Define the names of the uncertain variables
+comp1Name <- "aRU"
+
+comp1 <-  emissions |>
+  filter(Abbr == comp1Name)
+
+# Set the parameters for the triangular distribution
+comp1$a <- comp1$Emis*0.7    # Minimum value
+comp1$b <- comp1$Emis*1.3    # Maximum value
+comp1$c <- comp1$Emis        # Mode (peak)
+
+comp1 <- comp1 |>
+  select(-Emis)
+
+# Define the names of the uncertain variables
+comp2Name <- "s2RU"
+
+comp2 <-  emissions |>
+  filter(Abbr == comp2Name)
+
+# Set the parameters for the triangular distribution
+comp2$a <- comp2$Emis*0.7    # Minimum value
+comp2$b <- comp2$Emis*1.3    # Maximum value
+comp2$c <- comp2$Emis        # Mode (peak)
+
+comp2 <- comp2 |>
+  select(-Emis)
+
+# Define the names of the uncertain variables
+comp3Name <- "w1RU"
+
+comp3 <-  emissions |>
+  filter(Abbr == comp3Name)
+
+# Set the parameters for the triangular distribution
+comp3$a <- comp3$Emis*0.7    # Minimum value
+comp3$b <- comp3$Emis*1.3    # Maximum value
+comp3$c <- comp3$Emis        # Mode (peak)
+
+comp3 <- comp3 |>
+  select(-Emis)
+
+params <- rbind(comp1, comp2, comp3)
+
+emis_df <- params
+
+# Transform each LHS sample column to the corresponding triangular distribution
+for (i in 1:nrow(params)) {
+  a <- params$a[i]
+  b <- params$b[i]
+  c <- params$c[i]
+  
+  samples <- triangular_cdf_inv(lhs_samples_emis[, i], a, b, c)
+  
+  # Create a new tibble for 'data' with samples replacing original values
+  new_data <- tibble(value = samples)
+  
+  # Update the data column in the sample_df
+  emis_df$Emis[[i]] <- new_data
 }
 
-# Define triangular parameters for each unique combination of Timed and Abbr
-params <- emissions %>%
-  group_by(Timed, Abbr) %>%
-  do(define_triangular_params(.)) %>%
-  ungroup()
+emis_df <- emis_df |>
+  select(Abbr, Timed, Emis)
 
-# Create a list of parameters for each unique combination
-params_list <- split(params, list(params$Timed, params$Abbr))
+World$NewSolver("UncertainDynamicSolver")
+solved_nested_emis_df <- World$Solve(emis_df, sample_df, tmax = tmax, needdebug = T)
 
-# Function to apply triangular CDF inverse transformation
-triangular_transform <- function(lhs_samples, params) {
-  lapply(seq_along(params), function(i) {
-    param_set <- params[[i]]
-    a <- param_set$a
-    b <- param_set$b
-    c <- param_set$c
-    
-    samples <- triangular_cdf_inv(lhs_samples[, i], a, b, c)
-    tibble(value = samples)
-  })
+######################## Make funlist from emissions ###########################
+
+fun_tibble <- tibble(
+  Abbr = character(),
+  EmisFun = list(),
+  RUN = integer()
+)
+
+for(i in 1:nrow(lhs_samples_emis)){
+  fun_df <- emis_df |>
+    select(-Emis)
+  print(i)
+  fun_df$Emis <- map(emis_df$Emis, ~ .x$value[i])
+  
+  SBEmissions3 <- 
+    fun_df |> 
+    group_by(Abbr) |> 
+    summarise(n=n(),
+              EmisFun = list(
+                approxfun(
+                  data.frame(Timed = c(0,Timed), 
+                             Emis=c(0,Emis)),
+                  rule = 2) # Change to rule 1:1 for no extrapolation
+              )
+    ) |>
+    select(-n)
+  
+  fun_tibble <- bind_rows(empty_tibble, SBEmissions3) |>
+    filter(!is.na(RUN))
 }
 
-# Apply the transformation for each combination of Timed and Abbr
-emis_df_list <- lapply(params_list, function(param_set) {
-  timed_abbr <- unique(param_set[c("Timed", "Abbr")])
-  lhs_samples_filtered <- lhs_samples_emis %>% 
-    select(which(names(lhs_samples_emis) %in% colnames(param_set)))
-  
-  transformed_samples <- triangular_transform(lhs_samples_filtered, param_set)
-  
-  # Combine transformed samples with Timed and Abbr
-  tibble(Timed = timed_abbr$Timed, Abbr = timed_abbr$Abbr, Emis = transformed_samples)
-})
+final_fun_tibble <- fun_tibble |>
+  group_by(Abbr) |>
+  summarize(Funlist = list(EmisFun))
 
-# Combine all transformed data into a single data frame
-emis_df <- bind_rows(emis_df_list)
+# 
+#   funlist <- SBEmissions3$EmisFun
+#   names(funlist) <- SBEmissions3$Abbr
 
 ################################## Solve #######################################
 World$NewSolver("UncertainDynamicSolver")
-solved <- World$Solve(emissions, needdebug = T, sample_df)
+solved_nested_funlist<- World$Solve(final_fun_tibble, needdebug = T, sample_df)
+
+
+
+
+
+
+# Get the first function of every nested list
+first_elements <- final_fun_tibble |>
+  mutate(EmisFun = map(Funlist, ~ .x[[1]])) |>
+  select(-Funlist)
+
+
+
+
+
+
+
+
