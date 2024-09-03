@@ -57,13 +57,10 @@ The lhs samples are pulled from a uniform distribution between 0 and 1. So these
 
 Define triangular distribution function:
 ```{r Define triangular distribution function, warning=FALSE, message=FALSE}
-#TODO provide definition of function variables.
-
-
-
-triangular_cdf_inv <- function(u, # ?Probability?
+# Triangular distribution function
+triangular_cdf_inv <- function(u, # LH scaling factor
                                a, # Minimum
-                               b, # Maximym
+                               b, # Maximum
                                c) { # Peak value
   ifelse(u < (c-a)/(b-a),
          a + sqrt(u * (b-a) * (c-a)),
@@ -89,7 +86,7 @@ var1Name <- "Area"
 var1 <- World$fetchData(var1Name) |>
   filter(Scale == "Regional") |>
   filter(SubCompart == "sea")
-  
+
 # Set the parameters for the triangular distribution
 var1$a <- var1$Area*0.7    # Minimum value
 var1$b <- var1$Area*1.3    # Maximum value
@@ -231,10 +228,55 @@ for (i in 1:n_emiscomps) {
 ```
 
 #### Solve 
+The UncertainSolver is needed to apply simplebox probabilistically using a tibble with nested samples.
 
 ```{r Solve, warning=FALSE, message=FALSE}
 World$NewSolver("UncertainSolver")
-solved <- World$Solve(emissions, needdebug = F, sample_df)
+solved <- World$Solve(emis_df, needdebug = F, sample_df)
+# warnings()
+# class(solved)
+
+```
+
+
+```{r example output plots}
+Input_Variables <- 
+  solved$Input_Variables |> unnest(data) 
+Input_Emission <- 
+  solved$Input_Emission |> unnest(Emis) 
+
+Input_Variables_wide <- 
+  Plot_data <- Input_Variables |> 
+  pivot_wider(names_from = c(varName,Scale,SubCompart), values_from = value) |> 
+  full_join(solved$SteadyStateMass)
+
+p1 <- ggplot(Plot_data, mapping = aes(x=EROSIONsoil_NA_agriculturalsoil, y = EqMass)) +
+  geom_point() + facet_wrap(vars(Abbr)) +
+  scale_y_continuous(trans = 'log10')
+p1
+
+p2_data <-
+  Plot_data |> pivot_longer(c(Area_Regional_sea,Area_Regional_river ,EROSIONsoil_NA_agriculturalsoil),
+                            values_to = "Variable value",
+                            names_to = "Variable") |> 
+  filter(SubCompart == "river")
+
+p2 <-  ggplot(p2_data, mapping = aes(x=`Variable value`, y = EqMass)) +
+  geom_point() + facet_wrap(vars(Scale,SubCompart,Variable)) +
+  scale_y_continuous(trans = 'log10')
+p2
+
+p3_data <- 
+  Input_Emission |> pivot_wider(names_from = Abbr, names_glue = "{Abbr}_Emis",
+                                values_from = value) |> 
+  full_join(solved$SteadyStateMass) |>   filter(SubCompart == "river") |> 
+  pivot_longer(c(aRU_Emis,s2RU_Emis), values_to = "Emission",names_to = "EmisComp")
+
+p3 <-  ggplot(p3_data, mapping = aes(x=Emission, y = EqMass)) +
+  geom_point() + facet_wrap(vars(Scale,SubCompart,EmisComp)) 
+p3
+
+
 ```
 
 ### Use solver with uncertain variables but one set of emissions
@@ -258,7 +300,7 @@ var1Name <- "Area"
 var1 <- World$fetchData(var1Name) |>
   filter(Scale == "Regional") |>
   filter(SubCompart == "sea")
-  
+
 # Set the parameters for the triangular distribution
 var1$a <- var1$Area*0.7    # Minimum value
 var1$b <- var1$Area*1.3    # Maximum value
@@ -337,5 +379,7 @@ emissions <- emissions |>
 
 ```{r Solve 2, warning=FALSE, message=FALSE}
 World$NewSolver("UncertainSolver")
+
+World$Solve()
 solved <- World$Solve(emissions, needdebug = F, sample_df)
 ```
