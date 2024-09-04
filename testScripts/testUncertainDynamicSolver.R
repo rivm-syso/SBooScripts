@@ -4,7 +4,8 @@ library(tidyverse)
 #create World as SBcore
 source("baseScripts/initWorld_onlyMolec.R")
 
-########################## Single emission df example ##########################
+##### Solve with single emission df example
+
 # Make emission df with timed column
 emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU","aRU", "s2RU", "w1RU"), Emis = c(10, 10, 10,20, 20, 20), Timed = c(1, 2, 3, 4, 5, 6)) # convert 1 t/y to si units: kg/s
 
@@ -99,8 +100,10 @@ for (i in 1:n_vars) {
 World$NewSolver("UncertainDynamicSolver")
 solved_emis_df <- World$Solve(emissions, sample_df, tmax = tmax, needdebug = F)
 
-# sol1 <- solved$Mass[[1]]
-############################ Test with one funlist as input ####################
+# Access one solution df
+sol1 <- solved$Mass[[1]]
+
+##### Solve with one funlist as input 
 
 SBEmissions3 <- 
   emissions |> 
@@ -123,7 +126,7 @@ times <- seq(0, tmax, length.out = 10)
 World$NewSolver("UncertainDynamicSolver")
 solved_funlist <- World$Solve(funlist, sample_df, tmax = tmax, needdebug = F)
 
-################################################################################
+##### Solve with nested emission dataframe 
 
 # Make emission df with timed column
 emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU","aRU", "s2RU", "w1RU"), Emis = c(10, 10, 10,20, 20, 20), Timed = c(1, 2, 3, 4, 5, 6)) # convert 1 t/y to si units: kg/s
@@ -152,8 +155,6 @@ triangular_cdf_inv <- function(u, a, b, c) {
          a + sqrt(u * (b-a) * (c-a)),
          b - sqrt((1-u) * (b-a) * (b-c)))
 }
-
-######################## Get min, max, mode for each var #######################
 
 lhs_samples_vars <- lhs_samples[, 1:n_vars]
 
@@ -222,7 +223,6 @@ for (i in 1:n_vars) {
   sample_df$data[[i]] <- new_data
 }
 
-################################### emissions ##################################
 lhs_samples_emis <- lhs_samples[, (n_vars + 1):ncol(lhs_samples)]
 
 # Define the names of the uncertain variables
@@ -290,9 +290,9 @@ emis_df <- emis_df |>
   select(Abbr, Timed, Emis)
 
 World$NewSolver("UncertainDynamicSolver")
-solved_nested_emis_df <- World$Solve(emis_df, sample_df, tmax = tmax, needdebug = T)
+solved_nested_emis_df <- World$Solve(emis_df, sample_df, tmax = tmax, needdebug = F)
 
-######################## Make funlist from emissions ###########################
+##### Solve with nested tibble containing approxfuns 
 
 fun_tibble <- tibble(
   Abbr = character(),
@@ -319,7 +319,9 @@ for(i in 1:nrow(lhs_samples_emis)){
     ) |>
     select(-n)
   
-  fun_tibble <- bind_rows(empty_tibble, SBEmissions3) |>
+  SBEmissions3$RUN <- i
+  
+  fun_tibble <- rbind(fun_tibble, SBEmissions3) |>
     filter(!is.na(RUN))
 }
 
@@ -327,28 +329,8 @@ final_fun_tibble <- fun_tibble |>
   group_by(Abbr) |>
   summarize(Funlist = list(EmisFun))
 
-# 
-#   funlist <- SBEmissions3$EmisFun
-#   names(funlist) <- SBEmissions3$Abbr
-
-################################## Solve #######################################
+# Solve
 World$NewSolver("UncertainDynamicSolver")
-solved_nested_funlist<- World$Solve(final_fun_tibble, needdebug = T, sample_df)
-
-
-
-
-
-
-# Get the first function of every nested list
-first_elements <- final_fun_tibble |>
-  mutate(EmisFun = map(Funlist, ~ .x[[1]])) |>
-  select(-Funlist)
-
-
-
-
-
-
+solved_nested_funlist<- World$Solve(final_fun_tibble, sample_df, tmax = tmax, needdebug = F)
 
 
