@@ -6,8 +6,6 @@ source("baseScripts/initWorld_onlyMolec.R")
 
 emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: kg/s
 
-MW <- World$fetchData("MW")
-
 emissions <- emissions |>
   mutate(Emis = Emis*1000/(365*24*60*60)) 
 
@@ -45,17 +43,19 @@ var1$b <- var1$Area*1.3    # Maximum value
 var1$c <- var1$Area         # Mode (peak)
 
 # Define the names of the uncertain variables
-var2Name <- "Area"
+var2Name <- "MW"
 
-var2 <- World$fetchData(var2Name) |>
-  filter(Scale == "Regional") |>
-  filter(SubCompart == "river")
+var2 <- World$fetchData(var2Name) 
+
+var2 <- data.frame(MW = var2) |>
+  mutate(MW = MW*1000) |> # Convert kg/mol to g/mol 
+  mutate(Scale = NA) |>
+  mutate(SubCompart = NA)
 
 # Set the parameters for the triangular distribution
-var2$a <- var2$Area*0.7    # Minimum value
-var2$b <- var2$Area*1.3    # Maximum value
-var2$c <- var2$Area         # Mode (peak)
-
+var2$a <- var2$MW*0.7    # Minimum value
+var2$b <- var2$MW*1.3    # Maximum value
+var2$c <- var2$MW         # Mode (peak)
 
 # Define the names of the uncertain variables
 var3Name <- "EROSIONsoil"
@@ -156,7 +156,7 @@ for (i in 1:n_comps) {
 ################################## Solve #######################################
 
 World$NewSolver("UncertainSolver")
-solved <- World$Solve(emissions, needdebug = T, sample_df)
+solved <- World$Solve(emissions, needdebug = F, sample_df)
 
 
 
