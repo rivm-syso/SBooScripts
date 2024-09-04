@@ -27,7 +27,3 @@ kaas3 <- kaas3 |>
   mutate(diff = k.y-k.x)
 
 
-ur <- list(MW = list(5000.0))
-ur[[1]] <- ur[[1]][[1]]
-
-ur$MW <- ur$MW[[1]]
