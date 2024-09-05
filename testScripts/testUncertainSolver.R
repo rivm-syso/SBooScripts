@@ -19,7 +19,7 @@ n_comps <- 2
 n_lhs <- n_vars+n_comps
 
 # Generate LHS
-lhs_samples <- randomLHS(n_samples, n_lhs)
+lhs_samples <- optimumLHS(n_samples, n_lhs)
 
 # Define triangular distribution function
 triangular_cdf_inv <- function(u, a, b, c) {

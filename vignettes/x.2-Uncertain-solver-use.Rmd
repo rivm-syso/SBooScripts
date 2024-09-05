@@ -46,7 +46,7 @@ n_samples <- 10 # The number of samples you want to pull from the distributions 
 
 n_lhs <- n_vars + n_emiscomps # Total number of vectors to create with latin hypercube sampling (lhs)
 
-lhs_samples <- randomLHS(n_samples, n_lhs) # Generate numbers between 0 and 1 using lhs
+lhs_samples <- optimumLHS(n_samples, n_lhs) # Generate numbers between 0 and 1 using lhs
 
 # Separate the samples for the variable and emission distributions from each other:
 lhs_samples_vars <- lhs_samples[, 1:n_vars] 
@@ -286,7 +286,7 @@ Because we only use one set of emissions, we only have to create samples for the
 n_vars <- 3 # The number of variables you want to create a distribution for
 n_samples <- 10 # The number of samples you want to pull from the distributions for each variable
 
-lhs_samples <- randomLHS(n_samples, n_vars) # Generate numbers between 0 and 1 using lhs
+lhs_samples <- optimumLHS(n_samples, n_vars) # Generate numbers between 0 and 1 using lhs
 ```
 
 The rest of the steps to create the dataframe with samples are the same as for method 1. 
