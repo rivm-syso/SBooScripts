@@ -232,9 +232,7 @@ The UncertainSolver is needed to apply simplebox probabilistically using a tibbl
 
 ```{r Solve, warning=FALSE, message=FALSE}
 World$NewSolver("UncertainSolver")
-solved <- World$Solve(emis_df, needdebug = F, sample_df)
-# warnings()
-# class(solved)
+solved <- World$Solve(emis_df, needdebug = T, sample_df)
 
 ```
 
@@ -380,6 +378,37 @@ emissions <- emissions |>
 ```{r Solve 2, warning=FALSE, message=FALSE}
 World$NewSolver("UncertainSolver")
 
-World$Solve()
 solved <- World$Solve(emissions, needdebug = F, sample_df)
 ```
+
+#### Make plots
+
+```{r example output plots}
+Input_Variables <- 
+  solved$Input_Variables |> unnest(data) 
+Input_Emission <- 
+  solved$Input_Emission |> unnest(Emis) 
+
+Input_Variables_wide <- 
+  Plot_data <- Input_Variables |> 
+  pivot_wider(names_from = c(varName,Scale,SubCompart), values_from = value) |> 
+  full_join(solved$SteadyStateMass)
+
+p1 <- ggplot(Plot_data, mapping = aes(x=EROSIONsoil_NA_agriculturalsoil, y = EqMass)) +
+  geom_point() + facet_wrap(vars(Abbr)) +
+  scale_y_continuous(trans = 'log10')
+p1
+
+p2_data <-
+  Plot_data |> pivot_longer(c(Area_Regional_sea,Area_Regional_river ,EROSIONsoil_NA_agriculturalsoil),
+                            values_to = "Variable value",
+                            names_to = "Variable") |> 
+  filter(SubCompart == "river")
+
+p2 <-  ggplot(p2_data, mapping = aes(x=`Variable value`, y = EqMass)) +
+  geom_point() + facet_wrap(vars(Scale,SubCompart,Variable)) +
+  scale_y_continuous(trans = 'log10')
+p2
+
+```
+
