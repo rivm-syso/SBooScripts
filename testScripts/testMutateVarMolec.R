@@ -9,11 +9,9 @@ print(df)
 sample_df <- data.frame(varName = "MW",
                         Waarde = 1) # In g/mol, will be converted to SI unit (kg/mol) in the core. 
 
-
 uniqvNames <- unique(sample_df$varName)
 World$mutateVars(sample_df)
 World$UpdateDirty(uniqvNames)
-#World$UpdateKaas(mergeExisting = F)
 
 val2 <- World$fetchData("MW")
 
@@ -26,4 +24,4 @@ kaas3 <- merge(kaas1, kaas2, by = c("process", "fromScale", "fromSubCompart", "f
 kaas3 <- kaas3 |>
   mutate(diff = k.y-k.x)
 
-
+data <- World$exportMetadata
