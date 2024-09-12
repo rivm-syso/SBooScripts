@@ -19,7 +19,7 @@ n_comps <- 2
 n_lhs <- n_vars+n_comps
 
 # Generate LHS
-lhs_samples <- randomLHS(n_samples, n_lhs)
+lhs_samples <- optimumLHS(n_samples, n_lhs)
 
 # Define triangular distribution function
 triangular_cdf_inv <- function(u, a, b, c) {
@@ -156,12 +156,14 @@ for (i in 1:n_comps) {
 ################################## Solve #######################################
 
 World$NewSolver("UncertainSolver")
-solved <- World$Solve(emissions, needdebug = F, sample_df)
+solved <- World$Solve(emis_df, needdebug = F, sample_df)
 
 
 
 
-
+masses <- solved$SteadyStateMass
+emis <- solved$Input_Emission
+vars <- solved$Input_Variables
 
 
 
@@ -181,7 +183,4 @@ first_values <- map(emis_df$Emis, ~ .x$value[1])
 
 first_values <- map_dfr(emis_df$Emis, ~ tibble(Emis = .x$value[1]))
 
-## Test if the data really is triangularly distributed
-test <- sample_df$data[[1]]
-hist(test$value)
 
