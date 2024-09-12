@@ -232,7 +232,7 @@ The UncertainSolver is needed to apply simplebox probabilistically using a tibbl
 
 ```{r Solve, warning=FALSE, message=FALSE}
 World$NewSolver("UncertainSolver")
-solved <- World$Solve(emis_df, needdebug = T, sample_df)
+solved <- World$Solve(emis_df, needdebug = F, sample_df)
 
 ```
 
@@ -243,18 +243,21 @@ Input_Variables <-
 Input_Emission <- 
   solved$Input_Emission |> unnest(Emis) 
 
-Input_Variables_wide <- 
-  Plot_data <- Input_Variables |> 
-  pivot_wider(names_from = c(varName,Scale,SubCompart), values_from = value) |> 
+Plot_data <- 
+  Input_Variables |> 
+# some units missing resulting in NA
+  pivot_wider(names_from = c(varName,Scale,SubCompart,Unit), values_from = value) |> 
   full_join(solved$SteadyStateMass)
 
-p1 <- ggplot(Plot_data, mapping = aes(x=EROSIONsoil_NA_agriculturalsoil, y = EqMass)) +
+p1 <- ggplot(Plot_data, mapping = aes(x=`EROSIONsoil_NA_agriculturalsoil_m.s-1`, y = EqMass)) +
   geom_point() + facet_wrap(vars(Abbr)) +
   scale_y_continuous(trans = 'log10')
 p1
 
 p2_data <-
-  Plot_data |> pivot_longer(c(Area_Regional_sea,Area_Regional_river ,EROSIONsoil_NA_agriculturalsoil),
+  Plot_data |> pivot_longer(c(Area_Regional_sea_NA,
+                              Area_Regional_river_NA ,
+                              `EROSIONsoil_NA_agriculturalsoil_m.s-1`),
                             values_to = "Variable value",
                             names_to = "Variable") |> 
   filter(SubCompart == "river")
@@ -265,12 +268,12 @@ p2 <-  ggplot(p2_data, mapping = aes(x=`Variable value`, y = EqMass)) +
 p2
 
 p3_data <- 
-  Input_Emission |> pivot_wider(names_from = Abbr, names_glue = "{Abbr}_Emis",
+  Input_Emission |> pivot_wider(names_from = c(Abbr,Unit), names_glue = "{Abbr}_Emis_{Unit}",
                                 values_from = value) |> 
   full_join(solved$SteadyStateMass) |>   filter(SubCompart == "river") |> 
-  pivot_longer(c(aRU_Emis,s2RU_Emis), values_to = "Emission",names_to = "EmisComp")
+  pivot_longer(c(`aRU_Emis_kg.s-1`,`s2RU_Emis_kg.s-1`), values_to = "Emission_kg.s-1",names_to = "EmisComp")
 
-p3 <-  ggplot(p3_data, mapping = aes(x=Emission, y = EqMass)) +
+p3 <-  ggplot(p3_data, mapping = aes(x=`Emission_kg.s-1`, y = EqMass)) +
   geom_point() + facet_wrap(vars(Scale,SubCompart,EmisComp)) 
 p3
 
