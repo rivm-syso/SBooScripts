@@ -101,7 +101,7 @@ World$NewSolver("UncertainDynamicSolver")
 solved_emis_df <- World$Solve(emissions, sample_df, tmax = tmax, needdebug = F)
 
 # Access one solution df
-sol1 <- solved$Mass[[1]]
+sol1 <- solved_emis_df$Mass[[1]]
 
 ##### Solve with one funlist as input 
 
