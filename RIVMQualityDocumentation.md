@@ -30,7 +30,7 @@ SimpleBox is a level 3 and 4 model, meaning that SimpleBox can calculate concent
 #### Table 1. Overview of the levels of environmental fate models, as defined by Mackay.
 
 | Level   | Description                                                                                                                                            | Use                                                                                                                                                                                                                                                                                      |
-|--------------|-----------------------------|-----------------------------|
+|-----------------|----------------------------|----------------------------|
 | Level 1 | Closed system in equilibrium. No degradation or removal processes, does not include input (immission) or output (degradation, transport) of a chemical | Provides insight into how a chemical partitions across environmental compartments at equilibrium                                                                                                                                                                                         |
 | Level 2 | Open system, steady state at equilibrium. Constant in- and output                                                                                      | Long-term environmental fate under constant emissions                                                                                                                                                                                                                                    |
 | Level 3 | Open system, steady state, but non-equilibrium. Constant in- and output.                                                                               | Long term environmental fate under constant emissions. More realistic than level 2, can account for differences in concentration between scales (e.g. regional, continental) in the same type of compartment (e.g. water or soil) as it does not assume equilibrium between compartments |
@@ -112,7 +112,7 @@ Table x.
 Sensitivity analyses performed on previous SimpleBox versions
 
 | SimpleBox version      | Source                                                                                       | Page numbers or chapter |
-|-------------------------|------------------|-----------------------------|
+|-------------------------|-------------------|-----------------------------|
 | SimpleBox4nano 4.01    | [OECD, 2021](https://one.oecd.org/document/ENV/CBC/MONO(2021)23/En/pdf)                      | 62-67                   |
 | SimpleBox 4.0          | [Wang et al., 2020](https://www.sciencedirect.com/science/article/abs/pii/S0048969720310901) | 2.3 and                 |
 | SimpleBox4nano Concept | Meesters et al. 2019                                                                         |                         |
@@ -133,7 +133,7 @@ Table x.
 Uncertainty analyses performed on previous SimpleBox versions
 
 | SimpleBox version      | Source                                                                  | Page numbers or chapter |
-|-------------------------|------------------|-----------------------------|
+|-------------------------|-------------------|-----------------------------|
 | SimpleBox4nano v.4.01  | [OECD, 2021](https://one.oecd.org/document/ENV/CBC/MONO(2021)23/En/pdf) | 58-61                   |
 | SimpleBox4nano Concept | Meesters et.al. 2016                                                    |                         |
 |                        | SimpleBox 2.0                                                           | Bakker et al., 2003     |
@@ -164,7 +164,7 @@ Discrepancies between estimations and measurements may be attributed to the vari
 To do: aanvullen
 
 | Use                                                       | Where/By who           | Type        | Reference                                                                                                                    |
-|---------------|------------------------|-------------------|---------------|
+|-----------------|----------------------|-----------------|-----------------|
 | Environmental exposure estimation within EUSES            | ECHA, REACH applicants | Regulatory  | [ECHA, 2012](https://www.rivm.nl/documenten/guidance-on-information-requirements-and-chemical-safety-assessment-chapter-r16) |
 | Comparative exposure assessment in Life Cycle Assessments | USEtox                 | Scientific? | [USEtox](https://usetox.org/)                                                                                                |
 | Environmenal stock modelling for socio-economic analysis  | RIVM                   | Scientific  |                                                                                                                              |
@@ -188,13 +188,15 @@ Hieronder wat in het excelbestand vh kwaliteitskader staat:
 -Timeline of major SB releases, including reference to supporting document.
 To do: SB4nano and microplastics toevoegen
 
-| Version        | Year | Software | Reference                                                                                                                                                           |
-|----------------|----------------|-------------------|---------------------|
-| SimpleBox      | 1986 | ??       | [van de Meent, 1993](https://www.rivm.nl/publicaties/simplebox-a-generic-multimedia-fate-evaluation-model)                                                          |
-| SiimpleBox 2.0 | 1996 | Excel    | [Brandes, den Hollander, van de Meent, 1996](https://www.rivm.nl/publicaties/simplebox-20-a-nested-multimedia-fate-model-for-evaluating-environmental-fate-of)      |
-| SimpleBox 3.0  | 2004 | Excel    | [den Hollander, van Eijkeren, van de Meent, 2004](https://www.rivm.nl/en/simplebox-30-multimedia-mass-balance-model-for-evaluating-fate-of-chemical-in-environment) |
-| SimpleBox 4.0  | 2015 | Excel    | [Schoorl, Hollander, van de Meent, 2015](https://www.rivm.nl/publicaties/simplebox-40-a-multimedia-mass-balance-model-for-evaluating-fate-of-chemical-substances)   |
-| 5.0            | 2024 | R        | to be determined                                                                                                                                                    |
+| Version            | Year | Software   | Reference                                                                                                                                                           |
+|-----------------|-----------------|------------------|--------------------|
+| SimpleBox          | 1986 | ??         | [van de Meent, 1993](https://www.rivm.nl/publicaties/simplebox-a-generic-multimedia-fate-evaluation-model)                                                          |
+| SiimpleBox 2.0     | 1996 | Excel      | [Brandes, den Hollander, van de Meent, 1996](https://www.rivm.nl/publicaties/simplebox-20-a-nested-multimedia-fate-model-for-evaluating-environmental-fate-of)      |
+| SimpleBox 3.0      | 2004 | Excel      | [den Hollander, van Eijkeren, van de Meent, 2004](https://www.rivm.nl/en/simplebox-30-multimedia-mass-balance-model-for-evaluating-fate-of-chemical-in-environment) |
+| SimpleBox 4.0      | 2015 | Excel + R  | [Schoorl, Hollander, van de Meent, 2015](https://www.rivm.nl/publicaties/simplebox-40-a-multimedia-mass-balance-model-for-evaluating-fate-of-chemical-substances)   |
+| SimpleBox4nano     | 2014 |  Excel + R | [Meesters et al., 2014](https://doi.org/10.1021/es500548h)                                                                                                          |
+| SimpleBox4Plastics | 2023 | Excel + R  | [Quik, Meesters, Koelmans, 2023](https://doi.org/10.1016/j.scitotenv.2023.163437)                                                                                   |
+| 5.0                | 2024 | R          | to be determined                                                                                                                                                    |
 
 # 6. Organisation
 
@@ -204,11 +206,11 @@ Contact: simplebox\@rivm.nl
 
 RIVM leads the development in collaboration with others
 
-RIVM team: names?
+<!--# Mention names? Github users? -->
 
 Institutes that have contributed:
 
--   Radboud University - Department of ENvironmental sciences
+-   Radboud University - Department of Environmental sciences
 
 -   Wageningen University - Department of Aquatic Ecology and Water Quality management
 
@@ -253,4 +255,4 @@ Multiple other vignettes are useful if aiming to develop, such as [CSV-reorderin
 
 ## License
 
-\*TODO add license
+EUROPEAN UNION PUBLIC LICENCE v. 1.2
