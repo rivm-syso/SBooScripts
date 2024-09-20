@@ -1,5 +1,4 @@
 ##################### Example with data frame as input #########################
-
 substance <- "microplastic"
 source("baseScripts/initWorld_onlyPlastics.R")
 World$substance <- substance
@@ -15,11 +14,6 @@ times <- seq(0, tmax, length.out = 10)
 
 World$NewSolver("DynApproxSolve")
 solved <- World$Solve(tmax = tmax, emissions, needdebug = F)
-
-
-
-
-
 
 ################## Example with list of functions as input #####################
 
