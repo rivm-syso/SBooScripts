@@ -18,3 +18,11 @@ sourced <- lapply(Rfiles, function(x) {
   if (exists("verbose") && verbose) cat(Rfilename, "\n")
   source(Rfilename)
 })
+
+
+#### relevant packages ######
+# library(constants) # needed for graviational acceleration etc.
+# library(errors)
+# library(units)
+# library(quantities)
+# library(deSolve)
