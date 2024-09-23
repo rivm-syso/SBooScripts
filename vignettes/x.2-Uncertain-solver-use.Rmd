@@ -1,5 +1,5 @@
 ---
-title: "Uncertain solver use"
+title: "Probabilistic use of SimpleBox"
 author: "Anne Hids, Valerie de Rijk, Joris Quik, Jaap Slootweg"
 date: "`r Sys.Date()`"
 output: github_document
@@ -7,39 +7,38 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r setup, include=FALSE, warning=FALSE, message=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
+SimpleBox (SBoo) has specific solvers available that allow running the model deterministic or probabilistic. We assume you already understand the basics of using SimpleBox and have an idea of what input variables or emissions you want to input with a certain degree of uncertainty or variability. There are basically to types of solvers to use here:
 
-## Initialize World
-First, we will load the neccesary packages and initialize the world for molecules
+1.  UncertainSolver for running the model n times calculating steady state output (mass/concentration)
+2.  UncertainDynamicSolver for running the model n times calculating dynamic output
+
+For both the world needs to be initialized first, in this case for only the Molecular species.
 
 ```{r Initialize World, warning=FALSE, message=FALSE}
-library(lhs)
+
 library(tidyverse)
 
 source("baseScripts/initWorld_onlyMolec.R")
 ```
 
-## Use of the steady state uncertain solver 
+## 1. Probabilistic Solver - Steady state
 
-There are two ways to use the UncertainSolver: 
+There are two ways to use the UncertainSolver:
 
-1. With uncertain variables and variable emissions. 
-2. With uncertain variables but one set of emissions
+1.  With uncertain variables and variable emissions.
+2.  With uncertain variables but one set of emissions
 
-Method 1 will be explained first, then method 2. 
+Method 1 will be explained first, then method 2.
 
-### Use the solver with uncertain variables and variable emissions
+### 1.1 Uncertain variables and variable emissions case
 
 #### Create tibble with samples for uncertain variables
 
 The first step is to determine the number of uncertain variables, the number of compartments that have emissions and the number of runs.
 
 ```{r Create samples, warning=FALSE, message=FALSE}
+library(lhs)
+
 n_vars <- 3 # The number of variables you want to create a distribution for
 n_emiscomps <- 2 # The number of compartments that have emissions
 n_samples <- 10 # The number of samples you want to pull from the distributions for each variable
@@ -53,9 +52,10 @@ lhs_samples_vars <- lhs_samples[, 1:n_vars]
 lhs_samples_emis <- lhs_samples[, (n_vars + 1):ncol(lhs_samples)]
 ```
 
-The lhs samples are pulled from a uniform distribution between 0 and 1. So these numbers have to be scaled to the real values you want to use, and it is possible to transform this uniform distribution to a different distribution. In this example, a triangular distribution will be used. 
+The lhs samples are pulled from a uniform distribution between 0 and 1. So these numbers have to be scaled to the real values you want to use, and it is possible to transform this uniform distribution to a different distribution. In this example, a triangular distribution will be used.
 
 Define triangular distribution function:
+
 ```{r Define triangular distribution function, warning=FALSE, message=FALSE}
 # Triangular distribution function
 triangular_cdf_inv <- function(u, # LH scaling factor
@@ -69,13 +69,14 @@ triangular_cdf_inv <- function(u, # LH scaling factor
 ```
 
 ##### Prepare variable samples
-Now we are ready to prepare the variable data and define the min, max and peak value of the distribution for each variable. 
 
-In this example the following three variables are used: 
+Now we are ready to prepare the variable data and define the min, max and peak value of the distribution for each variable.
 
-1. Area for regional sea
-2. Area for regional river
-3. Erosion of agricultural soil
+In this example the following three variables are used:
+
+1.  Area for regional sea
+2.  Area for regional river
+3.  Erosion of agricultural soil
 
 In the chunk below, the name, scale, subcompartment, min, max and peak value are defined for each variable.
 
@@ -118,7 +119,7 @@ var3$b <- var3$EROSIONsoil*1.3    # Maximum value
 var3$c <- var3$EROSIONsoil         # peak value (peak)
 ```
 
-Now this data needs to be combined into a tibble, and the function for the triangular distribution written earlier is applied to the tibble. The result is a nested tibble, containing the name, scale and subcompartment for each variable, and the sample data is nested. 
+Now this data needs to be combined into a tibble, and the function for the triangular distribution written earlier is applied to the tibble. The result is a nested tibble, containing the name, scale and subcompartment for each variable, and the sample data is nested.
 
 ```{r Scale the samples to the distributions, warning=FALSE, message=FALSE}
 params <- tibble(
@@ -152,9 +153,7 @@ for (i in 1:n_vars) {
 
 ##### Prepare emission data
 
-In this example, we will take a steady state emission data frame as the starting 
-point for creating the triangular distributions. You could also directly enter the
-min, max and peak values if you have them.
+In this example, we will take a steady state emission data frame as the starting point for creating the triangular distributions. You could also directly enter the min, max and peak values if you have them.
 
 ```{r Create steady state emission dataframe, warning=FALSE, message=FALSE}
 # Create the steady state emission dataframe
@@ -227,7 +226,8 @@ for (i in 1:n_emiscomps) {
 
 ```
 
-#### Solve 
+#### Solve
+
 The UncertainSolver is needed to apply simplebox probabilistically using a tibble with nested samples.
 
 ```{r Solve, warning=FALSE, message=FALSE}
@@ -235,7 +235,6 @@ World$NewSolver("UncertainSolver")
 solved <- World$Solve(emis_df, needdebug = F, sample_df)
 
 ```
-
 
 ```{r example output plots}
 Input_Variables <- 
@@ -280,11 +279,12 @@ p3
 
 ```
 
-### Use solver with uncertain variables but one set of emissions
+### 1.2 Uncertain variables and deterministic emission case
 
 #### Create tibble with samples for uncertain variables
 
 Because we only use one set of emissions, we only have to create samples for the number of variables we want to use.
+
 ```{r Create samples 2, warning=FALSE, message=FALSE}
 n_vars <- 3 # The number of variables you want to create a distribution for
 n_samples <- 10 # The number of samples you want to pull from the distributions for each variable
@@ -292,7 +292,7 @@ n_samples <- 10 # The number of samples you want to pull from the distributions 
 lhs_samples <- optimumLHS(n_samples, n_vars) # Generate numbers between 0 and 1 using lhs
 ```
 
-The rest of the steps to create the dataframe with samples are the same as for method 1. 
+The rest of the steps to create the dataframe with samples are the same as for method 1.
 
 ```{r Get min, max and peak value of variable values 2, warning=FALSE, message=FALSE}
 # Define the names of the uncertain variables
@@ -376,7 +376,7 @@ emissions <- emissions |>
 
 ```
 
-#### Solve 
+#### Solve
 
 ```{r Solve 2, warning=FALSE, message=FALSE}
 World$NewSolver("UncertainSolver")
@@ -415,3 +415,4 @@ p2
 
 ```
 
+## 2. Probabilistic Dynamic Solver 
