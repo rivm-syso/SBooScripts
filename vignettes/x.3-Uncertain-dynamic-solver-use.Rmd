@@ -1,0 +1,478 @@
+---
+title: "Uncertain dynamic solver use"
+author: "Anne Hids, Valerie de Rijk, Joris Quik, Jaap Slootweg"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+## Initialize World
+First, we will load the neccesary packages and initialize the world for molecules
+
+```{r Initialize World, warning=FALSE, message=FALSE}
+library(lhs)
+library(tidyverse)
+
+source("baseScripts/initWorld_onlyMolec.R")
+```
+
+## Use of the dynamic uncertain solver 
+
+There are four ways to use the UncertainDynamicSolver: 
+
+1. With uncertain variables but one set of emissions as a dataframe
+2. With uncertain variables but one set of emissions as a list of functions
+3. With uncertain variables and variable emissions as a dataframe
+4. With uncertain variables and variable emissions as lists of functions
+
+The methods will be explained in the order of the list above.
+
+### 1: Use the solver with uncertain variables and one set of emissions as a dataframe
+
+#### Create tibble with samples for uncertain variables
+
+The first step is to determine the number of uncertain variables and the number of runs.
+
+```{r Create samples, warning=FALSE, message=FALSE}
+# Define the number of samples and the number of variables
+n_samples <- 10
+n_vars <- 3
+
+# Generate LHS
+lhs_samples_vars <- randomLHS(n_samples, n_vars)
+```
+
+The lhs samples are pulled from a uniform distribution between 0 and 1. So these numbers have to be scaled to the real values you want to use, and it is possible to transform this uniform distribution to a different distribution. In this example, a triangular distribution will be used. 
+
+Define triangular distribution function:
+```{r Define triangular distribution function, warning=FALSE, message=FALSE}
+# Triangular distribution function
+triangular_cdf_inv <- function(u, # LH scaling factor
+                               a, # Minimum
+                               b, # Maximum
+                               c) { # Peak value
+  ifelse(u < (c-a)/(b-a),
+         a + sqrt(u * (b-a) * (c-a)),
+         b - sqrt((1-u) * (b-a) * (b-c)))
+}
+```
+
+##### Prepare variable samples
+Now we are ready to prepare the variable data and define the min, max and peak value of the distribution for each variable. 
+
+In this example the following three variables are used: 
+
+1. Area for regional sea
+2. Area for regional river
+3. Erosion of agricultural soil
+
+In the chunk below, the name, scale, subcompartment, min, max and peak value are defined for each variable.
+
+```{r Get min, max and peak value of variable values, warning=FALSE, message=FALSE}
+# Define the names of the uncertain variables
+var1Name <- "Area"
+
+var1 <- World$fetchData(var1Name) |>
+  filter(Scale == "Regional") |>
+  filter(SubCompart == "sea")
+
+# Set the parameters for the triangular distribution
+var1$a <- var1$Area*0.7    # Minimum value
+var1$b <- var1$Area*1.3    # Maximum value
+var1$c <- var1$Area         # peak value (peak)
+
+# Define the names of the uncertain variables
+var2Name <- "Area"
+
+var2 <- World$fetchData(var2Name) |>
+  filter(Scale == "Regional") |>
+  filter(SubCompart == "river")
+
+# Set the parameters for the triangular distribution
+var2$a <- var2$Area*0.7    # Minimum value
+var2$b <- var2$Area*1.3    # Maximum value
+var2$c <- var2$Area         # peak value (peak)
+
+
+# Define the names of the uncertain variables
+var3Name <- "EROSIONsoil"
+
+var3 <- World$fetchData(var3Name) |>
+  filter(SubCompart == "agriculturalsoil") |>
+  mutate(Scale = NA)
+
+# Set the parameters for the triangular distribution
+var3$a <- var3$EROSIONsoil*0.7    # Minimum value
+var3$b <- var3$EROSIONsoil*1.3    # Maximum value
+var3$c <- var3$EROSIONsoil         # peak value (peak)
+```
+
+Now this data needs to be combined into a tibble, and the function for the triangular distribution written earlier is applied to the tibble. The result is a nested tibble, containing the name, scale and subcompartment for each variable, and the sample data is nested. 
+
+```{r Scale the samples to the distributions, warning=FALSE, message=FALSE}
+params <- tibble(
+  varName = c(var1Name, var2Name, var3Name),
+  Scale = c(var1$Scale, var2$Scale, var3$Scale),
+  SubCompart = c(var1$SubCompart, var2$SubCompart, var3$SubCompart),
+  data = list(
+    tibble(id = c("a", "b", "c"), value = c(var1$a, var1$b, var1$c)),
+    tibble(id = c("a", "b", "c"), value = c(var2$a, var2$b, var2$c)),
+    tibble(id = c("a", "b", "c"), value = c(var3$a, var3$b, var3$c))
+  )
+)
+
+sample_df <- params
+
+# Transform each LHS sample column to the corresponding triangular distribution
+for (i in 1:n_vars) {
+  a <- filter(params$data[[i]], id == "a") %>% pull(value)
+  b <- filter(params$data[[i]], id == "b") %>% pull(value)
+  c <- filter(params$data[[i]], id == "c") %>% pull(value)
+  
+  samples <- triangular_cdf_inv(lhs_samples_vars[, i], a, b, c)
+  
+  # Create a new tibble for 'data' with samples replacing original values
+  new_data <- tibble(value = samples)
+  
+  # Update the data column in the sample_df
+  sample_df$data[[i]] <- new_data
+}
+```
+
+##### Prepare emission data
+
+In this example, we will use a dataframe with the emissions for several compartments at several times. These emissions are converted to a list of functions in the solver, so that emissions at other times can be estimated.
+
+```{r Create dynamic emission dataframe, warning=FALSE, message=FALSE}
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU","aRU", "s2RU", "w1RU"), Emis = c(10, 10, 10,20, 20, 20), Timed = c(1, 2, 3, 4, 5, 6)) # convert 1 t/y to si units: kg/s
+
+emissions <- emissions |>
+  mutate(Timed = Timed*(365.25*24*60*60)) |> ungroup() |>
+  mutate(Emis = Emis*1000/(365*24*60*60)) 
+
+tmax <- 365.25*24*60*60*10
+times <- seq(0, tmax, length.out = 10)
+```
+
+#### Solve 
+The UncertainDynamicSolver is needed to apply simplebox probabilistically using a tibble with nested samples.
+
+```{r Solve, warning=FALSE, message=FALSE}
+World$NewSolver("UncertainDynamicSolver")
+solved <- World$Solve(emissions, sample_df, tmax = tmax, needdebug = F)
+
+```
+
+#### Plot outcome
+```{r example output plots}
+Input_Variables <- 
+  solved$Input_Variables |> unnest(data) 
+Input_Emission <- 
+  solved$Input_Emission |> unnest(Emis) 
+
+inputcomps <- unique(emissions$Abbr)
+
+masses_long <- solved$DynamicMass |>
+    rename_with(
+    .fn = ~ paste0("mass_", .x),              # Function to add "_new" to column names
+    .cols = !c("time", "RUN", "Unit") & !starts_with("emis")  # Select columns to modify
+  ) |>
+  pivot_longer(cols = starts_with("mass_"),
+               names_to = "Abbr",
+               values_to = "EqMass") |>
+  select("time", "Abbr", "EqMass", "Unit", "RUN") |>
+  mutate(Abbr =  str_remove(Abbr, "mass_")) |>
+  filter(Abbr %in% inputcomps)
+
+Plot_data <- 
+  Input_Variables |> 
+# some units missing resulting in NA
+  pivot_wider(names_from = c(varName,Scale,SubCompart,Unit), values_from = value) |> 
+  full_join(masses_long)
+
+datatmax <- Plot_data |>
+  filter(time == tmax) |>
+  left_join(solved$States)
+
+p0 <- ggplot(Plot_data, mapping = aes(x = EqMass, y = time)) +
+  geom_point(aes(colour = `EROSIONsoil_NA_agriculturalsoil_m.s-1`), size = 4, alpha = 0.2) + scale_colour_gradient(low = "yellow", high = "red", na.value = NA) + facet_wrap(vars(Abbr))
+p0
+
+p1 <- ggplot(datatmax, mapping = aes(x=`EROSIONsoil_NA_agriculturalsoil_m.s-1`, y = EqMass)) +
+  geom_point() + facet_wrap(vars(Abbr)) +
+  scale_y_continuous(trans = 'log10')
+p1
+
+p2_data <-
+  datatmax |> pivot_longer(c(Area_Regional_sea_NA,
+                              Area_Regional_river_NA ,
+                              `EROSIONsoil_NA_agriculturalsoil_m.s-1`),
+                            values_to = "Variable value",
+                            names_to = "Variable") |> 
+  filter(SubCompart == "river")
+
+p2 <-  ggplot(p2_data, mapping = aes(x=`Variable value`, y = EqMass)) +
+  geom_point() + facet_wrap(vars(Scale,SubCompart,Variable)) +
+  scale_y_continuous(trans = 'log10')
+p2
+
+```
+
+
+### 2. With uncertain variables but one set of emissions as a list of functions
+
+To demonstrate method 2, we can use the same set of uncertain variable samples as in method 1.
+
+##### Prepare emission data
+
+Instead of using the dataframe with emissions like in method 1, we will convert this dataframe into a list of functions.
+```{r Create dynamic emission dataframe, warning=FALSE, message=FALSE}
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU","aRU", "s2RU", "w1RU"), Emis = c(10, 10, 10,20, 20, 20), Timed = c(1, 2, 3, 4, 5, 6)) # convert 1 t/y to si units: kg/s
+
+emissions <- emissions |>
+  mutate(Timed = Timed*(365.25*24*60*60)) |> ungroup() |>
+  mutate(Emis = Emis*1000/(365*24*60*60)) 
+
+tmax <- 365.25*24*60*60*10
+times <- seq(0, tmax, length.out = 10)
+
+SBEmissions3 <- 
+  emissions |> 
+  group_by(Abbr) |> 
+  summarise(n=n(),
+            EmisFun = list(
+              approxfun(
+                data.frame(Timed = c(0,Timed), 
+                           Emis=c(0,Emis)),
+                rule = 2) # Change to rule 1:1 for no extrapolation
+            )
+  )
+
+funlist <- SBEmissions3$EmisFun
+names(funlist) <- SBEmissions3$Abbr
+
+```
+
+#### Solve
+```{r Solve, warning=FALSE, message=FALSE}
+World$NewSolver("UncertainDynamicSolver")
+solved <- World$Solve(funlist, sample_df, tmax = tmax, needdebug = F)
+
+```
+
+#### Plot outcome
+```{r example output plots}
+Input_Variables <- 
+  solved$Input_Variables |> unnest(data) 
+
+inputcomps <- unique(emissions$Abbr)
+
+Input_Emission <- solved$DynamicMass |>
+  select(starts_with("emis2"), "time", "RUN") |>
+  rename_with(
+    .fn = ~ str_remove(.x, "emis2"),              # Function to add "_new" to column names
+    .cols = !c("time", "RUN")  # Select columns to modify
+  ) |>
+  pivot_longer(cols = -c("time", "RUN"),
+               names_to = "Abbr",
+               values_to = "Emis") 
+
+masses_long <- solved$DynamicMass |>
+  select(!starts_with("emis2")) |>
+    rename_with(
+    .fn = ~ paste0("mass_", .x),              # Function to add "_new" to column names
+    .cols = !c("time", "RUN", "Unit") & !starts_with("emis")  # Select columns to modify
+  ) |>
+  pivot_longer(cols = starts_with("mass_"),
+               names_to = "Abbr",
+               values_to = "EqMass") |>
+  mutate(Abbr =  str_remove(Abbr, "mass_")) |>
+  filter(Abbr %in% inputcomps) |>
+  left_join(Input_Emission, by = c("Abbr", "time", "RUN")) |>
+  left_join(solved$States, by = "Abbr")
+
+Plot_data <- 
+  Input_Variables |> 
+# some units missing resulting in NA
+  pivot_wider(names_from = c(varName,Scale,SubCompart,Unit), values_from = value) |> 
+  full_join(masses_long)
+
+datatmax <- Plot_data |>
+  filter(time == tmax) |>
+  left_join(solved$States)
+
+p0 <- ggplot(Plot_data, mapping = aes(x = EqMass, y = time)) +
+  geom_point(aes(colour = `EROSIONsoil_NA_agriculturalsoil_m.s-1`), size = 4, alpha = 0.2) + scale_colour_gradient(low = "yellow", high = "red", na.value = NA) + facet_wrap(vars(Abbr))
+p0
+
+p1 <- ggplot(datatmax, mapping = aes(x=`EROSIONsoil_NA_agriculturalsoil_m.s-1`, y = EqMass)) +
+  geom_point() + facet_wrap(vars(Abbr)) +
+  scale_y_continuous(trans = 'log10')
+p1
+
+p2_data <-
+  datatmax |> pivot_longer(c(Area_Regional_sea_NA,
+                              Area_Regional_river_NA ,
+                              `EROSIONsoil_NA_agriculturalsoil_m.s-1`),
+                            values_to = "Variable value",
+                            names_to = "Variable") |> 
+  filter(SubCompart == "river")
+
+p2 <-  ggplot(p2_data, mapping = aes(x=`Variable value`, y = EqMass)) +
+  geom_point() + facet_wrap(vars(Scale,SubCompart,Variable)) +
+  scale_y_continuous(trans = 'log10')
+p2
+
+```
+
+
+
+
+
+
+
+
+
+### Use solver with uncertain variables but one set of emissions
+
+#### Create tibble with samples for uncertain variables
+
+Because we only use one set of emissions, we only have to create samples for the number of variables we want to use.
+```{r Create samples 2, warning=FALSE, message=FALSE}
+n_vars <- 3 # The number of variables you want to create a distribution for
+n_samples <- 10 # The number of samples you want to pull from the distributions for each variable
+
+lhs_samples <- optimumLHS(n_samples, n_vars) # Generate numbers between 0 and 1 using lhs
+```
+
+The rest of the steps to create the dataframe with samples are the same as for method 1. 
+
+```{r Get min, max and peak value of variable values 2, warning=FALSE, message=FALSE}
+# Define the names of the uncertain variables
+var1Name <- "Area"
+
+var1 <- World$fetchData(var1Name) |>
+  filter(Scale == "Regional") |>
+  filter(SubCompart == "sea")
+
+# Set the parameters for the triangular distribution
+var1$a <- var1$Area*0.7    # Minimum value
+var1$b <- var1$Area*1.3    # Maximum value
+var1$c <- var1$Area         # peak value (peak)
+
+# Define the names of the uncertain variables
+var2Name <- "Area"
+
+var2 <- World$fetchData(var2Name) |>
+  filter(Scale == "Regional") |>
+  filter(SubCompart == "river")
+
+# Set the parameters for the triangular distribution
+var2$a <- var2$Area*0.7    # Minimum value
+var2$b <- var2$Area*1.3    # Maximum value
+var2$c <- var2$Area         # peak value (peak)
+
+
+# Define the names of the uncertain variables
+var3Name <- "EROSIONsoil"
+
+var3 <- World$fetchData(var3Name) |>
+  filter(SubCompart == "agriculturalsoil") |>
+  mutate(Scale = NA)
+
+# Set the parameters for the triangular distribution
+var3$a <- var3$EROSIONsoil*0.7    # Minimum value
+var3$b <- var3$EROSIONsoil*1.3    # Maximum value
+var3$c <- var3$EROSIONsoil         # peak value (peak)
+
+params <- tibble(
+  varName = c(var1Name, var2Name, var3Name),
+  Scale = c(var1$Scale, var2$Scale, var3$Scale),
+  SubCompart = c(var1$SubCompart, var2$SubCompart, var3$SubCompart),
+  data = list(
+    tibble(id = c("a", "b", "c"), value = c(var1$a, var1$b, var1$c)),
+    tibble(id = c("a", "b", "c"), value = c(var2$a, var2$b, var2$c)),
+    tibble(id = c("a", "b", "c"), value = c(var3$a, var3$b, var3$c))
+  )
+)
+
+sample_df <- params
+
+# Transform each LHS sample column to the corresponding triangular distribution
+for (i in 1:n_vars) {
+  a <- filter(params$data[[i]], id == "a") %>% pull(value)
+  b <- filter(params$data[[i]], id == "b") %>% pull(value)
+  c <- filter(params$data[[i]], id == "c") %>% pull(value)
+  
+  samples <- triangular_cdf_inv(lhs_samples[, i], a, b, c)
+  
+  # Create a new tibble for 'data' with samples replacing original values
+  new_data <- tibble(value = samples)
+  
+  # Update the data column in the sample_df
+  sample_df$data[[i]] <- new_data
+}
+```
+
+#### Prepare emission data
+
+When using this method, all we need is one steady state dataframe with emissions.
+
+```{r Create steady state emission dataframe 2, warning=FALSE, message=FALSE}
+# Create the steady state emission dataframe
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: kg/s
+
+MW <- World$fetchData("MW")
+
+emissions <- emissions |>
+  mutate(Emis = Emis*1000/(365*24*60*60)) 
+
+```
+
+#### Solve 
+
+```{r Solve 2, warning=FALSE, message=FALSE}
+World$NewSolver("UncertainSolver")
+
+solved <- World$Solve(emissions, needdebug = F, sample_df)
+```
+
+#### Make plots
+
+```{r example output plots}
+Input_Variables <- 
+  solved$Input_Variables |> unnest(data) 
+Input_Emission <- 
+  solved$Input_Emission |> unnest(Emis) 
+
+Input_Variables_wide <- 
+  Plot_data <- Input_Variables |> select(-Unit) |> 
+  pivot_wider(names_from = c(varName,Scale,SubCompart), values_from = value) |> 
+  full_join(solved$SteadyStateMass)
+
+p1 <- ggplot(Plot_data, mapping = aes(x=EROSIONsoil_NA_agriculturalsoil, y = EqMass)) +
+  geom_point() + facet_wrap(vars(Abbr)) +
+  scale_y_continuous(trans = 'log10')
+p1
+
+p2_data <-
+  Plot_data |> pivot_longer(c(Area_Regional_sea,Area_Regional_river ,EROSIONsoil_NA_agriculturalsoil),
+                            values_to = "Variable value",
+                            names_to = "Variable") |> 
+  filter(SubCompart == "river")
+
+p2 <-  ggplot(p2_data, mapping = aes(x=`Variable value`, y = EqMass)) +
+  geom_point() + facet_wrap(vars(Scale,SubCompart,Variable)) +
+  scale_y_continuous(trans = 'log10')
+p2
+
+```
+
