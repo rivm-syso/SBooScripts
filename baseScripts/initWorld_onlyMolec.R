@@ -3,6 +3,10 @@
 #script to faking the future library(SBoo)
 source("baseScripts/fakeLib.R")
 
+library(parallel)
+library(doParallel)
+library(foreach)
+
 #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
 ClassicStateModule <- ClassicNanoWorld$new("data") #by default Substance = "default substance"
 
