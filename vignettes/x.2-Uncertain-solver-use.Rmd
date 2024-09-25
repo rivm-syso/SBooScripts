@@ -41,8 +41,8 @@ The first step is to determine the number of uncertain variables, the number of 
 
 ```{r Create samples, warning=FALSE, message=FALSE}
 n_vars <- 3 # The number of variables you want to create a distribution for
-n_emiscomps <- 2 # The number of compartments that have emissions
-n_samples <- 10 # The number of samples you want to pull from the distributions for each variable
+n_emiscomps <- 3 # The number of compartments that have emissions
+n_samples <- 100 # The number of samples you want to pull from the distributions for each variable
 
 n_lhs <- n_vars + n_emiscomps # Total number of vectors to create with latin hypercube sampling (lhs)
 
@@ -81,41 +81,40 @@ In the chunk below, the name, scale, subcompartment, min, max and peak value are
 
 ```{r Get min, max and peak value of variable values, warning=FALSE, message=FALSE}
 # Define the names of the uncertain variables
-var1Name <- "Area"
+var1Name <- "kdeg"
 
 var1 <- World$fetchData(var1Name) |>
-  filter(Scale == "Regional") |>
-  filter(SubCompart == "sea")
-
-# Set the parameters for the triangular distribution
-var1$a <- var1$Area*0.7    # Minimum value
-var1$b <- var1$Area*1.3    # Maximum value
-var1$c <- var1$Area         # peak value (peak)
-
-# Define the names of the uncertain variables
-var2Name <- "Area"
-
-var2 <- World$fetchData(var2Name) |>
-  filter(Scale == "Regional") |>
+  mutate(Scale = NA) |>
   filter(SubCompart == "river")
 
 # Set the parameters for the triangular distribution
-var2$a <- var2$Area*0.7    # Minimum value
-var2$b <- var2$Area*1.3    # Maximum value
-var2$c <- var2$Area         # peak value (peak)
-
+var1$a <- var1$kdeg*0.5    # Minimum value
+var1$b <- var1$kdeg*1.5    # Maximum value
+var1$c <- var1$kdeg        # peak value (peak)
 
 # Define the names of the uncertain variables
-var3Name <- "EROSIONsoil"
+var2Name <- "kdeg"
+
+var2 <- World$fetchData(var2Name) |>
+  mutate(Scale = NA) |>
+  filter(SubCompart == "air")
+
+# Set the parameters for the triangular distribution
+var2$a <- var2$kdeg*0.5    # Minimum value
+var2$b <- var2$kdeg*1.5    # Maximum value
+var2$c <- var2$kdeg         # peak value (peak)
+
+# Define the names of the uncertain variables
+var3Name <- "kdeg"
 
 var3 <- World$fetchData(var3Name) |>
   filter(SubCompart == "agriculturalsoil") |>
   mutate(Scale = NA)
 
 # Set the parameters for the triangular distribution
-var3$a <- var3$EROSIONsoil*0.7    # Minimum value
-var3$b <- var3$EROSIONsoil*1.3    # Maximum value
-var3$c <- var3$EROSIONsoil         # peak value (peak)
+var3$a <- var3$kdeg*0.5    # Minimum value
+var3$b <- var3$kdeg*1.5    # Maximum value
+var3$c <- var3$kdeg         # peak value (peak)
 ```
 
 Now this data needs to be combined into a tibble, and the function for the triangular distribution written earlier is applied to the tibble. The result is a nested tibble, containing the name, scale and subcompartment for each variable, and the sample data is nested. 
@@ -177,7 +176,6 @@ comp1Name <- "aRU"
 comp1 <-  emissions |>
   filter(Abbr == comp1Name)
 
-
 # Set the parameters for the triangular distribution
 comp1$a <- comp1$Emis*0.7    # Minimum value
 comp1$b <- comp1$Emis*1.3    # Maximum value
@@ -200,11 +198,26 @@ comp2$c <- comp2$Emis        # peak value (peak)
 comp2 <- comp2 |>
   select(-Emis)
 
+# Define the names of the uncertain variables
+comp3Name <- "w1RU"
+
+comp3 <-  emissions |>
+  filter(Abbr == comp3Name)
+
+# Set the parameters for the triangular distribution
+comp3$a <- comp3$Emis*0.7    # Minimum value
+comp3$b <- comp3$Emis*1.3    # Maximum value
+comp3$c <- comp3$Emis        # peak value (peak)
+
+comp3 <- comp3 |>
+  select(-Emis)
+
 params <- tibble(
-  Abbr = c(comp1Name, comp2Name),
+  Abbr = c(comp1Name, comp2Name, comp3Name),
   Emis = list(
     tibble(id = c("a", "b", "c"), value = c(comp1$a, comp1$b, comp1$c)),
-    tibble(id = c("a", "b", "c"), value = c(comp2$a, comp2$b, comp2$c))
+    tibble(id = c("a", "b", "c"), value = c(comp2$a, comp2$b, comp2$c)),
+    tibble(id = c("a", "b", "c"), value = c(comp3$a, comp3$b, comp3$c))
   )
 )
 
@@ -236,8 +249,9 @@ solved <- World$Solve(emis_df, needdebug = F, sample_df)
 
 ```
 
+# Make plots for every variable
 
-```{r example output plots}
+```{r Data preparation for plots}
 Input_Variables <- 
   solved$Input_Variables |> unnest(data) 
 Input_Emission <- 
@@ -247,19 +261,33 @@ Plot_data <-
   Input_Variables |> 
 # some units missing resulting in NA
   pivot_wider(names_from = c(varName,Scale,SubCompart,Unit), values_from = value) |> 
-  full_join(solved$SteadyStateMass)
+  full_join(solved$SteadyStateMass) |>
+  full_join(Input_Emission, by = c("Abbr", "RUN"))
 
-p1 <- ggplot(Plot_data, mapping = aes(x=`EROSIONsoil_NA_agriculturalsoil_m.s-1`, y = EqMass)) +
+varnames <- colnames(Plot_data)[2:(1+n_vars)]
+
+plot_theme <-  theme(
+    axis.title.x = element_text(size = 14),    
+    axis.title.y = element_text(size = 14),    
+    axis.text.x = element_text(size = 12, angle = 45, hjust = 1),     
+    axis.text.y = element_text(size = 12),
+    title = element_text(size=20)
+  )
+
+emiscomps <- unique(solved$Input_Emission$Abbr)
+
+```
+
+```{r Plots}
+p1 <- ggplot(Plot_data, mapping = aes(x=varnames[1], y = EqMass)) +
   geom_point() + facet_wrap(vars(Abbr)) +
   scale_y_continuous(trans = 'log10')
 p1
 
 p2_data <-
-  Plot_data |> pivot_longer(c(Area_Regional_sea_NA,
-                              Area_Regional_river_NA ,
-                              `EROSIONsoil_NA_agriculturalsoil_m.s-1`),
+  Plot_data |> pivot_longer(varnames,
                             values_to = "Variable value",
-                            names_to = "Variable") |> 
+                            names_to = "Variable") |>
   filter(SubCompart == "river")
 
 p2 <-  ggplot(p2_data, mapping = aes(x=`Variable value`, y = EqMass)) +
@@ -267,16 +295,45 @@ p2 <-  ggplot(p2_data, mapping = aes(x=`Variable value`, y = EqMass)) +
   scale_y_continuous(trans = 'log10')
 p2
 
-p3_data <- 
-  Input_Emission |> pivot_wider(names_from = c(Abbr,Unit), names_glue = "{Abbr}_Emis_{Unit}",
-                                values_from = value) |> 
-  full_join(solved$SteadyStateMass) |>   filter(SubCompart == "river") |> 
-  pivot_longer(c(`aRU_Emis_kg.s-1`,`s2RU_Emis_kg.s-1`), values_to = "Emission_kg.s-1",names_to = "EmisComp")
+# p3_data <-
+#   Input_Emission |> pivot_wider(names_from = c(Abbr,Unit), names_glue = "{Abbr}_Emis_{Unit}",
+#                                 values_from = Emis) |>
+#   full_join(solved$SteadyStateMass) |>   filter(SubCompart == "river") |>
+#   pivot_longer(c(`aRU_Emis_kg.s-1`,`s2RU_Emis_kg.s-1`), values_to = "Emission_kg.s-1",names_to = "EmisComp")
+# 
+# p3 <-  ggplot(p3_data, mapping = aes(x=`Emission_kg.s-1`, y = EqMass)) +
+#   geom_point() + facet_wrap(vars(Scale,SubCompart,EmisComp))
+# p3
 
-p3 <-  ggplot(p3_data, mapping = aes(x=`Emission_kg.s-1`, y = EqMass)) +
-  geom_point() + facet_wrap(vars(Scale,SubCompart,EmisComp)) 
-p3
+plots_data <- Plot_data |>
+  filter(Abbr %in% emiscomps)
 
+for(i in varnames) {
+  p2 <- ggplot(plots_data, mapping = aes(x = .data[[i]], y = EqMass)) +
+  geom_point() + 
+  facet_wrap(vars(Abbr)) + 
+  ggtitle("Mass in compartment at year ") + 
+  labs(subtitle = "Uncertain emissions",
+       x = i,  
+       y = "Mass (kg)") +
+  plot_theme                 
+print(p2)
+}
+
+# Filter the plot data for the compartments that received emissions
+EM_data <- Plot_data |>
+  filter(Abbr %in% emiscomps)
+
+# Plot the emissions against the masses for these compartments
+EM_p1 <- ggplot(EM_data, mapping = aes(x = value, y = EqMass)) +
+  geom_point() + 
+  facet_wrap(vars(Abbr)) +
+  ggtitle("Relation between emissions and mass") + 
+  labs(subtitle = "Uncertain emissions",
+       x = "Emissions (kg/s)",
+       y = "Mass (kg)") + 
+  plot_theme
+EM_p1
 
 ```
 
@@ -287,51 +344,54 @@ p3
 Because we only use one set of emissions, we only have to create samples for the number of variables we want to use.
 ```{r Create samples 2, warning=FALSE, message=FALSE}
 n_vars <- 3 # The number of variables you want to create a distribution for
-n_samples <- 10 # The number of samples you want to pull from the distributions for each variable
+n_samples <- 100 # The number of samples you want to pull from the distributions for each variable
 
 lhs_samples <- optimumLHS(n_samples, n_vars) # Generate numbers between 0 and 1 using lhs
 ```
 
 The rest of the steps to create the dataframe with samples are the same as for method 1. 
 
-```{r Get min, max and peak value of variable values 2, warning=FALSE, message=FALSE}
+```{r Get min, max and peak value of variable values, warning=FALSE, message=FALSE}
 # Define the names of the uncertain variables
-var1Name <- "Area"
+var1Name <- "kdeg"
 
 var1 <- World$fetchData(var1Name) |>
-  filter(Scale == "Regional") |>
-  filter(SubCompart == "sea")
-
-# Set the parameters for the triangular distribution
-var1$a <- var1$Area*0.7    # Minimum value
-var1$b <- var1$Area*1.3    # Maximum value
-var1$c <- var1$Area         # peak value (peak)
-
-# Define the names of the uncertain variables
-var2Name <- "Area"
-
-var2 <- World$fetchData(var2Name) |>
-  filter(Scale == "Regional") |>
+  mutate(Scale = NA) |>
   filter(SubCompart == "river")
 
 # Set the parameters for the triangular distribution
-var2$a <- var2$Area*0.7    # Minimum value
-var2$b <- var2$Area*1.3    # Maximum value
-var2$c <- var2$Area         # peak value (peak)
-
+var1$a <- var1$kdeg*0.5    # Minimum value
+var1$b <- var1$kdeg*1.5    # Maximum value
+var1$c <- var1$kdeg        # peak value (peak)
 
 # Define the names of the uncertain variables
-var3Name <- "EROSIONsoil"
+var2Name <- "kdeg"
+
+var2 <- World$fetchData(var2Name) |>
+  mutate(Scale = NA) |>
+  filter(SubCompart == "air")
+
+# Set the parameters for the triangular distribution
+var2$a <- var2$kdeg*0.5    # Minimum value
+var2$b <- var2$kdeg*1.5    # Maximum value
+var2$c <- var2$kdeg         # peak value (peak)
+
+# Define the names of the uncertain variables
+var3Name <- "kdeg"
 
 var3 <- World$fetchData(var3Name) |>
   filter(SubCompart == "agriculturalsoil") |>
   mutate(Scale = NA)
 
 # Set the parameters for the triangular distribution
-var3$a <- var3$EROSIONsoil*0.7    # Minimum value
-var3$b <- var3$EROSIONsoil*1.3    # Maximum value
-var3$c <- var3$EROSIONsoil         # peak value (peak)
+var3$a <- var3$kdeg*0.5    # Minimum value
+var3$b <- var3$kdeg*1.5    # Maximum value
+var3$c <- var3$kdeg         # peak value (peak)
+```
 
+Now this data needs to be combined into a tibble, and the function for the triangular distribution written earlier is applied to the tibble. The result is a nested tibble, containing the name, scale and subcompartment for each variable, and the sample data is nested. 
+
+```{r Scale the samples to the distributions, warning=FALSE, message=FALSE}
 params <- tibble(
   varName = c(var1Name, var2Name, var3Name),
   Scale = c(var1$Scale, var2$Scale, var3$Scale),
@@ -351,7 +411,7 @@ for (i in 1:n_vars) {
   b <- filter(params$data[[i]], id == "b") %>% pull(value)
   c <- filter(params$data[[i]], id == "c") %>% pull(value)
   
-  samples <- triangular_cdf_inv(lhs_samples[, i], a, b, c)
+  samples <- triangular_cdf_inv(lhs_samples_vars[, i], a, b, c)
   
   # Create a new tibble for 'data' with samples replacing original values
   new_data <- tibble(value = samples)
@@ -386,32 +446,73 @@ solved <- World$Solve(emissions, needdebug = F, sample_df)
 
 #### Make plots
 
-```{r example output plots}
+```{r Data preparation for plots}
 Input_Variables <- 
   solved$Input_Variables |> unnest(data) 
 Input_Emission <- 
   solved$Input_Emission |> unnest(Emis) 
 
-Input_Variables_wide <- 
-  Plot_data <- Input_Variables |> select(-Unit) |> 
-  pivot_wider(names_from = c(varName,Scale,SubCompart), values_from = value) |> 
+Plot_data <- 
+  Input_Variables |> 
+# some units missing resulting in NA
+  pivot_wider(names_from = c(varName,Scale,SubCompart,Unit), values_from = value) |> 
   full_join(solved$SteadyStateMass)
 
-p1 <- ggplot(Plot_data, mapping = aes(x=EROSIONsoil_NA_agriculturalsoil, y = EqMass)) +
+varnames <- colnames(Plot_data)[2:(1+n_vars)]
+
+plot_theme <-  theme(
+    axis.title.x = element_text(size = 14),    
+    axis.title.y = element_text(size = 14),    
+    axis.text.x = element_text(size = 12,angle = 45, hjust = 1),     
+    axis.text.y = element_text(size = 12),
+    title = element_text(size=20)
+  )
+
+emiscomps <- unique(solved$Input_Emission$Abbr)
+
+```
+
+```{r Plots}
+p1 <- ggplot(Plot_data, mapping = aes(x=varnames[1], y = EqMass)) +
   geom_point() + facet_wrap(vars(Abbr)) +
   scale_y_continuous(trans = 'log10')
 p1
 
 p2_data <-
-  Plot_data |> pivot_longer(c(Area_Regional_sea,Area_Regional_river ,EROSIONsoil_NA_agriculturalsoil),
+  Plot_data |> pivot_longer(varnames,
                             values_to = "Variable value",
-                            names_to = "Variable") |> 
+                            names_to = "Variable") |>
   filter(SubCompart == "river")
 
 p2 <-  ggplot(p2_data, mapping = aes(x=`Variable value`, y = EqMass)) +
   geom_point() + facet_wrap(vars(Scale,SubCompart,Variable)) +
   scale_y_continuous(trans = 'log10')
 p2
+
+# p3_data <-
+#   Input_Emission |> pivot_wider(names_from = c(Abbr,Unit), names_glue = "{Abbr}_Emis_{Unit}",
+#                                 values_from = Emis) |>
+#   full_join(solved$SteadyStateMass, by = "Abbr") |>   filter(SubCompart == "river") |>
+#   pivot_longer(c(`aRU_Emis_kg.s-1`,`s2RU_Emis_kg.s-1`), values_to = "Emission_kg.s-1",names_to = "EmisComp")
+# 
+# p3 <-  ggplot(p3_data, mapping = aes(x=`Emission_kg.s-1`, y = EqMass)) +
+#   geom_point() + facet_wrap(vars(Scale,SubCompart,EmisComp)) 
+# p3
+
+plots_data <- Plot_data |>
+  filter(Abbr %in% emiscomps)
+
+for(i in varnames) {
+  p2 <- ggplot(plots_data, mapping = aes(x = .data[[i]], y = EqMass)) +
+  geom_point() + 
+  facet_wrap(vars(Abbr)) + 
+  ggtitle("Mass in compartment at year ") + 
+  labs(subtitle = "One set of emissions",
+       x = i,  
+       y = "Mass (kg)") +
+  plot_theme                 
+print(p2)
+}
 
 ```
 
