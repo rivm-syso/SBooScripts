@@ -1,0 +1,500 @@
+---
+title: "DPMFA LEON-T"
+author: "Anne Hids"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) 
+```
+
+# *Initializing World and Substance*
+
+Depending on the substance you want to analyze, a selection needs to be
+made from the three different"worlds" : Molecular, Paticulate and
+Plastics. Here, we initialize the world for plastics.
+
+```{r Initialize World}
+library(lhs)
+
+source("baseScripts/initWorld_onlyPlastics.R")
+
+World$substance <- "microplastic"
+```
+
+# Load the DPMFA data and make a nested emission dataframe
+
+*To do: don't sum over all polymers but do this per polymer* 
+
+```{r Load DPMFA data}
+abspath <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/DPMFA_output/Baseline_PMFA_EU.RData"
+
+load(abspath)
+
+# Check if the loaded data is DPMFA or PMFA data
+if(exists("DPMFA_stocks")) {
+  type <- "DPMFA"
+} else {
+  type <- "PMFA"
+}
+
+# Convert to long format
+data_long <- 
+  DPMFA_sink |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
+  pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
+               names_to = "Year",
+               values_to = "Mass_Polymer_kt")
+
+# Choose a source of interest if you want, else write NA
+source_of_interest <- "Tyre wear"
+
+if(!is.na(source_of_interest)){
+  if(!source_of_interest %in% unique(data_long$Source)){
+    print("Selected source not in dataframe")
+  } else {
+    filtersource <- source_of_interest
+  }
+} else if (is.na(source_of_interest)){
+  filtersource <- unique(data_long$Source)
+}
+
+# Calculate kg/s from kt/y 
+data_summed <- data_long |>
+  filter(Source %in% filtersource) |>
+  filter(between(RUN, 1, 100)) |>
+  mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |>
+  filter(Material_Type == "micro") 
+
+if(unique(data_long$Scale) == "EU"){
+  SBscale <- "C"
+} else if (unique(data_long$Scale) == "NL") {
+  SBscale <- "R"
+}
+
+# Assign SB compartments to DPMFA compartments
+data_filtered <- data_summed |>
+  select(To_Compartment, Mass_Polymer_kg_s, Year, RUN, Polymer) |>
+  mutate(Scale = SBscale) |>
+  mutate(Compartment = case_when(
+    str_detect(To_Compartment, "soil") ~ "s",
+    str_detect(To_Compartment, "water") ~ "w",
+    str_detect(To_Compartment, "air") ~ "a"
+  )) |>
+  mutate(Subcompartment = case_when(
+    str_detect(To_Compartment, "Agricultural") ~ "2",
+    str_detect(To_Compartment, "Natural") ~ "1",
+    str_detect(To_Compartment, "Sub-surface") ~ "3",
+    str_detect(To_Compartment, "Road side") ~ "3",
+    str_detect(To_Compartment, "Residential") ~ "3",
+    str_detect(To_Compartment, "Sea") ~ "2",
+    str_detect(To_Compartment, "Surface") ~ "1",
+    str_detect(To_Compartment, "Outdoor") ~ ""
+  )) |>
+  mutate(Species = "S") |>
+  mutate(Abbr = paste0(Compartment, Subcompartment, Scale, Species)) |>
+  group_by(Abbr, Year, RUN, Polymer) |>
+  summarise(Mass_Polymer_kg_s = sum(Mass_Polymer_kg_s)) |>
+  ungroup() |>
+  rename(value = Mass_Polymer_kg_s) |>
+  select(Abbr, Year, Polymer, value, RUN)
+
+```
+
+```{r Make a separate emission df for every polymer}
+polymers <- unique(data_filtered$Polymer)
+
+for(i in polymers){
+ filtered <- data_filtered |>
+   filter(Polymer == i)
+ 
+ df_names <- c()
+ 
+ if(type == "DPMFA"){
+   # Make an emission dataframe for the dynamic uncertain solver
+   emis_df_dyn <- filtered |>
+     group_by(Abbr, Year) |>
+     rename(Timed = Year) |>
+     mutate(Timed = as.double(Timed)*(365.25*24*3600)) |>
+     nest(Emis = c(RUN, value)) 
+   
+   df_name <- paste0("emis_dyn_", i)
+   
+   assign(df_name, emis_df_dyn)
+
+   df_names <- c(df_names, df_name)
+   
+ } else if(type == "PMFA"){
+  
+   # Select data for 2019
+   y <- 2019
+  
+   # Make an emission dataframe for the steady uncertain solver
+   emis_df_ss <- filtered |>
+     filter(Year == y) |>
+     nest(Emis = c(RUN, value)) 
+   
+   df_name <- paste0("emis_ss_", i)
+   
+   assign(df_name, emis_df_ss)
+   
+   df_names <- c(df_names, df_name)
+ }
+}
+
+```
+
+# Create dummy dataset with uncertain variables
+
+```{r}
+n_samples <- nrow(emis_df_ss$Emis[[1]])
+n_vars <- 2
+
+# Generate LHS
+lhs_samples <- randomLHS(n_samples, n_vars)
+
+# Define triangular distribution function
+triangular_cdf_inv <- function(u, a, b, c) {
+  ifelse(u < (c-a)/(b-a),
+         a + sqrt(u * (b-a) * (c-a)),
+         b - sqrt((1-u) * (b-a) * (b-c)))
+}
+
+# Define the names of the uncertain variables
+var1Name <- "RhoS"
+
+var <- World$fetchData(var1Name)
+var <- data.frame("RhoS" = var)
+
+var1 <- var |>
+  mutate(Scale = NA) |>
+  mutate(SubCompart = NA)
+
+# Set the parameters for the triangular distribution
+var1$a <- 1500    # Minimum value
+var1$b <- 2200    # Maximum value
+var1$c <- 1850         # Mode (peak)
+
+# Define the names of the uncertain variables
+var2Name <- "RadS"
+
+var <- World$fetchData(var1Name)
+var <- data.frame("RadS" = var)
+
+var2 <- var |>
+  mutate(Scale = NA) |>
+  mutate(SubCompart = NA)
+
+# Set the parameters for the triangular distribution
+var2$a <- 0.5        # Minimum value
+var2$b <- 2500000    # Maximum value
+var2$c <- 1250000    # Mode (peak)
+
+params <- tibble(
+  varName = c(var1Name, var2Name),
+  Scale = c(var1$Scale, var2$Scale),
+  SubCompart = c(var1$SubCompart, var2$SubCompart),
+  data = list(
+    tibble(id = c("a", "b", "c"), value = c(var1$a, var1$b, var1$c)),
+    tibble(id = c("a", "b", "c"), value = c(var2$a, var2$b, var2$c))
+  )
+)
+
+sample_df <- params
+
+# Transform each LHS sample column to the corresponding triangular distribution
+for (i in 1:n_vars) {
+  a <- filter(params$data[[i]], id == "a") %>% pull(value)
+  b <- filter(params$data[[i]], id == "b") %>% pull(value)
+  c <- filter(params$data[[i]], id == "c") %>% pull(value)
+  
+  samples <- triangular_cdf_inv(lhs_samples[, i], a, b, c)
+  
+  # Create a new tibble for 'data' with samples replacing original values
+  new_data <- tibble(value = samples)
+  
+  # Update the data column in the sample_df
+  sample_df$data[[i]] <- new_data
+}
+
+```
+
+# Solve the matrix 
+
+Solve the matrix depending on the type of input emissions given (PMFA = Steady state, DPMFA = dynamic)
+
+```{r Solve steady state}
+
+if(type == "PMFA"){
+  World$NewSolver("UncertainSolver")
+  
+  for(i in df_names){
+    solved <- World$Solve(get(i), needdebug = FALSE, sample_df)
+    assign(paste0("solved_", i), solved)
+  }
+  
+} else if(type == "DPMFA"){
+  World$NewSolver("UncertainDynamicSolver")
+  
+  for(i in df_names){
+    solved <- World$Solve(World$Solve(get(i)), sample_df, tmax = tmax, needdebug = F)
+    assign(paste0("solved_", i), solved)
+  }
+}
+
+```
+
+# Prep data and make plots
+
+```{r Solve steady state}
+
+if(type == "PMFA"){
+  for(i in df_names){
+    solved <- paste0("solved_",i)
+    
+    # Prepare data for plots
+    Input_Variables <- 
+      solved$Input_Variables |> unnest(data) 
+    Input_Emission <- 
+      solved$Input_Emission |> unnest(Emis) 
+    
+    Plot_data <- 
+      Input_Variables |> 
+    # some units missing resulting in NA
+      pivot_wider(names_from = c(varName,Scale,SubCompart,Unit), values_from = value) |> 
+      full_join(solved$SteadyStateMass) |>
+      full_join(Input_Emission, by = c("Abbr", "RUN"))
+    
+    varnames <- colnames(Plot_data)[2:(1+n_vars)]
+    
+    plot_theme <-  theme(
+        axis.title.x = element_text(size = 14),    
+        axis.title.y = element_text(size = 14),    
+        axis.text.x = element_text(size = 12, angle = 45, hjust = 1),     
+        axis.text.y = element_text(size = 12),
+        title = element_text(size=20)
+      )
+
+    emiscomps <- unique(solved$Input_Emission$Abbr)
+    
+    # Plot the data
+    p1 <- ggplot(Plot_data, mapping = aes(x=varnames[1], y = EqMass)) +
+      geom_point() + facet_wrap(vars(Abbr)) +
+      scale_y_continuous(trans = 'log10')
+    p1
+    
+    plots_data <- Plot_data |>
+      filter(Abbr %in% emiscomps)
+    
+    subt <- paste0("Uncertain emissions, ", as.character(y), ", ", filtersource , " , ", unique())
+    
+    for(i in varnames) {
+      p2 <- ggplot(plots_data, mapping = aes(x = .data[[i]], y = EqMass)) +
+      geom_point() + 
+      facet_wrap(vars(Abbr)) + 
+      ggtitle("Mass in compartment at year ") + 
+      labs(subtitle = subt,
+           x = i,  
+           y = "Mass (kg)") +
+      plot_theme                 
+    print(p2)
+    }
+    
+    # Filter the plot data for the compartments that received emissions
+    EM_data <- Plot_data |>
+      filter(Abbr %in% emiscomps)
+    
+    # Plot the emissions against the masses for these compartments
+    EM_p1 <- ggplot(EM_data, mapping = aes(x = value, y = EqMass)) +
+      geom_point() + 
+      facet_wrap(vars(Abbr)) +
+      ggtitle("Relation between emissions and mass") + 
+      labs(subtitle = "Uncertain emissions",
+           x = "Emissions (kg/s)",
+           y = "Mass (kg)") + 
+      plot_theme
+    EM_p1
+    
+    
+  }
+  
+} else if(type == "DPMFA"){
+  for(i in df_names){
+    solved <- paste0("solved_",i)
+  }
+}
+
+```
+
+# Plot the outcome 
+
+```{r Data preparation for plots}
+Input_Variables <- 
+  solved$Input_Variables |> unnest(data) 
+Input_Emission <- 
+  solved$Input_Emission |> unnest(Emis) 
+
+Plot_data <- 
+  Input_Variables |> 
+# some units missing resulting in NA
+  pivot_wider(names_from = c(varName,Scale,SubCompart,Unit), values_from = value) |> 
+  full_join(solved$SteadyStateMass) |>
+  full_join(Input_Emission, by = c("Abbr", "RUN"))
+
+varnames <- colnames(Plot_data)[2:(1+n_vars)]
+
+plot_theme <-  theme(
+    axis.title.x = element_text(size = 14),    
+    axis.title.y = element_text(size = 14),    
+    axis.text.x = element_text(size = 12, angle = 45, hjust = 1),     
+    axis.text.y = element_text(size = 12),
+    title = element_text(size=20)
+  )
+
+emiscomps <- unique(solved$Input_Emission$Abbr)
+
+```
+
+```{r Plot SS outcome}
+p1 <- ggplot(Plot_data, mapping = aes(x=varnames[1], y = EqMass)) +
+  geom_point() + facet_wrap(vars(Abbr)) +
+  scale_y_continuous(trans = 'log10')
+p1
+
+plots_data <- Plot_data |>
+  filter(Abbr %in% emiscomps)
+
+subt <- paste0("Uncertain emissions, ", as.character(y), ", ", filtersource , " , ", unique())
+
+for(i in varnames) {
+  p2 <- ggplot(plots_data, mapping = aes(x = .data[[i]], y = EqMass)) +
+  geom_point() + 
+  facet_wrap(vars(Abbr)) + 
+  ggtitle("Mass in compartment at year ") + 
+  labs(subtitle = subt,
+       x = i,  
+       y = "Mass (kg)") +
+  plot_theme                 
+print(p2)
+}
+
+# Filter the plot data for the compartments that received emissions
+EM_data <- Plot_data |>
+  filter(Abbr %in% emiscomps)
+
+# Plot the emissions against the masses for these compartments
+EM_p1 <- ggplot(EM_data, mapping = aes(x = value, y = EqMass)) +
+  geom_point() + 
+  facet_wrap(vars(Abbr)) +
+  ggtitle("Relation between emissions and mass") + 
+  labs(subtitle = "Uncertain emissions",
+       x = "Emissions (kg/s)",
+       y = "Mass (kg)") + 
+  plot_theme
+EM_p1
+```
+
+
+```{r example output plots}
+Input_Variables <- 
+  solved3$Input_Variables |> unnest(data) 
+
+inputcomps <- unique(emissions$Abbr)
+
+Input_Emission <- solved3$DynamicMass |>
+  select(starts_with("emis2"), "time", "RUN") |>
+  rename_with(
+    .fn = ~ str_remove(.x, "emis2"),              # Function to add "_new" to column names
+    .cols = !c("time", "RUN")  # Select columns to modify
+  ) |>
+  pivot_longer(cols = -c("time", "RUN"),
+               names_to = "Abbr",
+               values_to = "Emis") 
+
+masses_long <- solved3$DynamicMass |>
+  select(!starts_with("emis2")) |>
+    rename_with(
+    .fn = ~ paste0("mass_", .x),              # Function to add "_new" to column names
+    .cols = !c("time", "RUN", "Unit") & !starts_with("emis")  # Select columns to modify
+  ) |>
+  pivot_longer(cols = starts_with("mass_"),
+               names_to = "Abbr",
+               values_to = "Mass") |>
+  mutate(Abbr =  str_remove(Abbr, "mass_")) |>
+  left_join(Input_Emission, by = c("Abbr", "time", "RUN")) |>
+  left_join(solved3$States, by = "Abbr")
+
+Plot_data <- 
+  Input_Variables |> 
+# some units missing resulting in NA
+  pivot_wider(names_from = c(varName,Scale,SubCompart,Unit), values_from = value) |> 
+  full_join(masses_long) |>
+  mutate(time = time/(365.25*24*60*60))
+
+datatmax <- Plot_data |>
+  filter(time == tmax/(365.25*24*60*60)) |>
+  left_join(solved3$States)
+
+maxyear <- tmax/(365.25*24*60*60)
+```
+
+```{r Variable plots}
+varnames <- colnames(Plot_data)[2:(1+n_vars)]
+
+var_data <- Plot_data |> 
+    filter(Abbr %in% emiscomps)
+
+var_tmax <- datatmax |>
+    filter(Abbr %in% emiscomps)
+
+for(i in varnames) {
+  p1 <- ggplot(var_data, mapping = aes(x = time, y = Mass, group = RUN, color = .data[[i]])) +  # Us
+    geom_line() + 
+    facet_wrap(vars(Abbr)) +
+    labs(subtitle = "Uncertain emissions",
+         x = "Time (years)", 
+         y = "Mass (kg)", 
+         color = i) +  # Use i as the label for color
+    ggtitle("Mass in compartment over time (default substance)") +
+    plot_theme
+  print(p1)  # Use print() to ensure the plot is displayed in a loop
+}
+
+for(i in varnames) {
+  p2 <- ggplot(var_tmax, mapping = aes(x = .data[[i]], y = Mass)) +
+  geom_point() + 
+  facet_wrap(vars(Abbr)) + 
+  ggtitle(paste0("Mass in compartment at year ", as.character(maxyear))) + 
+  labs(subtitle = "Uncertain emissions",
+       x = i,  
+       y = "Mass (kg)") +
+  plot_theme                 
+print(p2)
+}
+
+# Filter the plot data for the compartments that received emissions
+EM_data <- Plot_data |>
+  filter(Abbr %in% emiscomps)
+
+EM_tmax <- datatmax |>
+  filter(Abbr %in% emiscomps)
+
+# Plot the emissions against the masses for these compartments
+EM_p1 <- ggplot(EM_tmax, mapping = aes(x = Emis, y = Mass)) +
+  geom_point() + 
+  facet_wrap(vars(Abbr)) +
+  ggtitle("Relation between emissions and mass") + 
+  labs(subtitle = "Uncertain emissions",
+       x = "Emissions (kg/s)",
+       y = "Mass (kg)") + 
+  plot_theme
+EM_p1
+```
