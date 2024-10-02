@@ -591,16 +591,16 @@ var_tmax <- datatmax |>
     filter(Abbr %in% emiscomps)
 
 for(i in varnames) {
-  p1 <- ggplot(var_data, mapping = aes(x = time, y = Mass, group = RUN, color = .data[[i]])) +  # Us
+  p1 <- ggplot(var_data, mapping = aes(x = time, y = Mass, group = RUN, color = .data[[i]])) + 
     geom_line() + 
     facet_wrap(vars(Abbr)) +
     labs(subtitle = "Uncertain emissions",
          x = "Time (years)", 
          y = "Mass (kg)", 
-         color = i) +  # Use i as the label for color
+         color = i) +  
     ggtitle("Mass in compartment over time (default substance)") +
     plot_theme
-  print(p1)  # Use print() to ensure the plot is displayed in a loop
+  print(p1) 
 }
 
 for(i in varnames) {
