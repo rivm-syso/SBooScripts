@@ -27,6 +27,7 @@ Plastics. Here, we initialize the world for plastics.
 library(lhs)
 library(readxl)
 library(viridis)
+library(doParallel)
 
 source("baseScripts/initWorld_onlyPlastics.R")
 
@@ -34,7 +35,6 @@ World$substance <- "microplastic"
 ```
 
 # Load the DPMFA data and make a nested emission dataframe
-
 
 ```{r Load DPMFA data}
 abspath <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/DPMFA_output/Baseline_PMFA_EU.RData"
@@ -187,6 +187,7 @@ power_law <- function(u, a, b, c){                 # u = samples, a = min, b = m
 # Create dataset with uncertain variables
 
 ## Prepare excel data
+
 ```{r}
 # Path to excel file with distribution values
 path_dist <- "N:/Documents/Simplebox/Microplastic_variables_v1.xlsx"
@@ -285,24 +286,51 @@ for(i in polymers){
     sample_df$data[[k]] <- new_data
   }
   
-  # Duplicate rows
-  exploded_scales <- explode(sample_df, target_col = "Scale", explode_value = "any", new_values = scales)
-  exploded_water <- explode(exploded_scales, target_col = "SubCompart", explode_value = "water", new_values = water)
-  exploded_soil_sediment <- explode(exploded_water, target_col = "SubCompart", explode_value = "soil_sediment", new_values = soil_sediment)
-  exploded_subcomparts <- explode(exploded_soil_sediment, target_col = "SubCompart", explode_value = "any", new_values = all_SC)
-  
+  # Save a separate dataframe for each material
   sample_df_name <- paste0("sample_df_",i)
-  
   sample_df_names <- paste0(sample_df_names, sample_df_name)
   
-  assign(sample_df_name, exploded_subcomparts)
+  assign(sample_df_name, sample_df)
+}
+
+# Remove illegal Scale-SubCompart combinations from the dataframes
+allowd_combs <- World$fetchData("Area") |>
+    select(Scale, SubCompart)
+
+
+for(sample_df_name in sample_df_names) {
+  sample_df <- get(sample_df_name)
+
+  # Step 1: Explode for Scale
+  exploded_scales <- explode(sample_df, target_col = "Scale", explode_value = "any", new_values = scales)
+  print(paste("After exploding scales:", nrow(exploded_scales)))  # Check size
+
+  # Step 2: Explode for SubCompart: water
+  exploded_water <- explode(exploded_scales, target_col = "SubCompart", explode_value = "water", new_values = water)
+  print(paste("After exploding water:", nrow(exploded_water)))  # Check size
+
+  # Step 3: Explode for SubCompart: soil_sediment
+  exploded_soil_sediment <- explode(exploded_water, target_col = "SubCompart", explode_value = "soil_sediment", new_values = soil_sediment)
+  print(paste("After exploding soil_sediment:", nrow(exploded_soil_sediment)))  # Check size
+
+  # Step 4: Explode for SubCompart: any
+  exploded_subcomparts <- explode(exploded_soil_sediment, target_col = "SubCompart", explode_value = "any", new_values = all_SC)
+  print(paste("After exploding any:", nrow(exploded_subcomparts)))  # Check size
+
+  # Step 5: Perform the semi-join
+  sample_df <- exploded_subcomparts %>%
+    semi_join(allowd_combs, by = c("Scale", "SubCompart"))
+  print(paste("After semi-join:", nrow(sample_df)))  # Check size
+
+  assign(sample_df_name, sample_df)  # Save it back to the environment
 }
 
 ```
 
-# Solve the matrix 
+# Solve the matrix
 
-Solve the matrix depending on the type of input emissions given (PMFA = Steady state, DPMFA = dynamic)
+Solve the matrix depending on the type of input emissions given (PMFA =
+Steady state, DPMFA = dynamic)
 
 ```{r Solve steady state}
 
@@ -332,6 +360,7 @@ if(type == "PMFA"){
 ```
 
 # Calculate concentrations
+
 ```{r Calculate concentrations}
 for(mat in polymers){ 
   dfname <- paste0("solved_ss_", mat)
@@ -435,6 +464,7 @@ for(mat in polymers){
 ```
 
 # Prep data and make plots
+
 ```{r Solve steady state}
 
 # Create a plot theme
@@ -545,4 +575,3 @@ if(type == "PMFA"){
 }
 
 ```
-
