@@ -20,7 +20,7 @@ knitr::opts_knit$set(root.dir = projectRoot)
 # *Initializing World and Substance*
 
 Depending on the substance you want to analyze, a selection needs to be
-made from the three different"worlds" : Molecular, Paticulate and
+made from the three different"worlds" : Molecular, Particulate and
 Plastics. Here, we initialize the world for plastics.
 
 ```{r Initialize World}
@@ -58,9 +58,6 @@ data_long <-
 # Choose a source of interest if you want, else write NA
 source_of_interest <- "Tyre wear"
 
-# Choose material of interest 
-mat <- "RUBBER"
-
 if(!is.na(source_of_interest)){
   if(!source_of_interest %in% unique(data_long$Source)){
     print("Selected source not in dataframe")
@@ -74,7 +71,7 @@ if(!is.na(source_of_interest)){
 # Calculate kg/s from kt/y 
 data_summed <- data_long |>
   filter(Source %in% filtersource) |>
-  #filter(between(RUN, 1, 100)) |>
+  filter(between(RUN, 1, 10)) |>
   mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |>
   filter(Material_Type == "micro") 
 
@@ -116,139 +113,190 @@ data_filtered <- data_summed |>
 ```{r Make a separate emission df for every polymer}
 polymers <- unique(data_filtered$Polymer)
 
-
-filtered <- data_filtered |>
- filter(Polymer == mat)
+for(i in polymers){
+ filtered <- data_filtered |>
+   filter(Polymer == i)
  
-df_names <- c()
+ df_names <- c()
  
-if(type == "DPMFA"){
- # Make an emission dataframe for the dynamic uncertain solver
- emis_df_dyn <- filtered |>
-   group_by(Abbr, Year) |>
-   rename(Timed = Year) |>
-   mutate(Timed = as.double(Timed)*(365.25*24*3600)) |>
-   nest(Emis = c(RUN, value)) 
- 
- df_name <- paste0("emis_dyn_", i)
-
- assign(df_name, emis_df_dyn)
-
- df_names <- c(df_names, df_name)
+ if(type == "DPMFA"){
+   # Make an emission dataframe for the dynamic uncertain solver
+   emis_df_dyn <- filtered |>
+     group_by(Abbr, Year) |>
+     rename(Timed = Year) |>
+     mutate(Timed = as.double(Timed)*(365.25*24*3600)) |>
+     nest(Emis = c(RUN, value)) 
    
- ymin <- min(emis_df_dyn$Year)
- ymax <- max(emis_df_dyn$Year)
+   df_name <- paste0("emis_dyn_", i)
    
-} else if(type == "PMFA"){
+   assign(df_name, emis_df_dyn)
+
+   df_names <- c(df_names, df_name)
+   
+   ymin <- min(emis_df_dyn$Year)
+   ymax <- max(emis_df_dyn$Year)
+   
+ } else if(type == "PMFA"){
   
- # Select data for 2019
- y <- 2019
+   # Select data for 2019
+   y <- 2019
   
- # Make an emission dataframe for the steady uncertain solver
- emis_df_ss <- filtered |>
-   filter(Year == y) |>
-   nest(Emis = c(RUN, value)) 
- 
- df_name <- paste0("emis_ss_", i)
+   # Make an emission dataframe for the steady uncertain solver
+   emis_df_ss <- filtered |>
+     filter(Year == y) |>
+     nest(Emis = c(RUN, value)) 
    
- assign(df_name, emis_df_ss)
+   df_name <- paste0("emis_ss_", i)
    
- df_names <- c(df_names, df_name)
+   assign(df_name, emis_df_ss)
+   
+   df_names <- c(df_names, df_name)
+ }
 }
 
 ```
 
 ```{r Functions for distributions}
 # Define triangular distribution function
-Triangular <- function(u, a, b, c) {               # u = samples, a = , b = , c = 
+triangular <- function(u, a, b, c) {               # u = samples, a = min, b = max, c = peak
   ifelse(u < (c-a)/(b-a),
          a + sqrt(u * (b-a) * (c-a)),
          b - sqrt((1-u) * (b-a) * (b-c)))
 }
 
 # Define uniform distribution function
-Uniform <- function(u, a, b) {                     # u = samples, a = min, b = max
-  transformed_samples <- a + (b - a) * lhs_samples
+uniform <- function(u, a, b) {                     # u = samples, a = min, b = max
+  transformed_samples <- a + (b - a) * u
   return(transformed_samples)
 }
 
 # Define power law distribution function
+power_law <- function(u, a, b, c){                 # u = samples, a = min, b = max, c = alpha
 
-
+  # Ensure that samples are within [0, 1]
+  samples <- pmin(pmax(u, 0), 1)
+  
+  # Transform samples to the power-law distribution
+  scaled_samples <- a * ((b / a) ^ samples) ^ (1 / (1 - c))
+  
+  return(scaled_samples)
+}
 
 ```
 
-# Create dummy dataset with uncertain variables
+# Create dataset with uncertain variables
 
+## Prepare excel data
 ```{r}
 # Path to excel file with distribution values
-path_dist <- "N:/Documents/Simplebox/Microplastic_variables.xlsx"
+path_dist <- "N:/Documents/Simplebox/Microplastic_variables_v1.xlsx"
 
+excel_df <- read_excel(path_dist, sheet = "Polymer_data")
+
+materials <- unique(excel_df$Polymer)
+
+water <- c("lake", "sea", "deepsea", "river")
+soil <- c("naturalsoil", "agriculturalsoil", "othersoil")
+sediment <- c("marinesediment", "freshwatersediment", "lakesediment")
+soil_sediment <- c(soil, sediment)
+air <- c("air", "cloudwater")
+all_SC <- c(water, soil, sediment, air)
+materials <- c("HDPE", "LDPE", "PP", "PS", "PVC", "Acryl", "PA", "PET", "ABS", "EPS", "PC", "PMMA", "PUR", "RUBBER", "OTHER")
+
+scales <- c("Arctic", "Tropic", "Moderate", "Regional", "Continental")
+
+explode <- function(df, target_col, explode_value, new_values) {
+  df %>%
+    # Use mutate to create a new column if the target column equals explode_value
+    mutate(!!sym(target_col) := ifelse(!!sym(target_col) == explode_value, list(new_values), !!sym(target_col))) %>%
+    # Unnest the target column to duplicate rows
+    unnest(!!sym(target_col))
+}
+
+var_df <- explode(excel_df, target_col = "Polymer", explode_value = "any", new_values = materials) |>
+  mutate(a = as.numeric(a)) |>
+  mutate(b = as.numeric(b)) |>
+  mutate(c = as.numeric(c))
+```
+
+```{r}
 # Generate the correct number of samples
 n_samples <- nrow(emis_df_ss$Emis[[1]]) # Number of emission runs 
 sample_df_names <- c()
 
-input_vars <- read_excel(path_dist, sheet = mat) |>
-  filter(!is.na(Distribution)) |>
-  select(-c(Source, Comments))
+for(i in polymers){
   
-varnames <- unique(input_vars$VarName)
+  input_vars <- var_df |>
+    filter(if_all(c(Distribution, a, b), ~ !is.na(.))) |>
+    filter(Polymer == i) 
   
-n_vars <- nrow(input_vars)
-# Generate LHS
-lhs_samples <- randomLHS(n_samples, n_vars)
-var_df_names <- c()
+  varnames <- input_vars$VarName
   
-for(j in 1:nrow(input_vars)){
-  df <- input_vars[j, ]
-
-  if(is.na(df$Scale) && is.na(df$SubCompart) && is.na(df$Species)){
+  n_vars <- nrow(input_vars)
+  
+  # Generate LHS
+  lhs_samples <- randomLHS(n_samples, n_vars)
+  var_df_names <- c()
+  
+  for(j in 1:nrow(input_vars)){
+    df <- input_vars[j, ]
+    
     varname <- df$VarName
       
-    var <- World$fetchData(varname)
-    var <- data.frame(setNames(var, varname))
-    
+    var <- df |>
+      select(VarName, Scale, SubCompart, a, b, c)
+      
     name <- paste0("var", j)
     var_df_names <- c(var_df_names, name)
       
-    var_df <- var |>
-      mutate(Scale = df$Scale) |>
-      mutate(SubCompart = df$SubCompart)
-
-    var_df$a <- df$Min
-    var_df$b <- df$Max
-    var_df$c <- df$Peak
-      
-    assign(name, var_df)
-  } 
-}
+    assign(name, var)
+  }  
   
-params <- tibble(
-  varName = varnames,
-  Scale = sapply(var_df_names, function(v) get(v)$Scale),
-  SubCompart = sapply(var_df_names, function(v) get(v)$SubCompart),
-  data = lapply(var_df_names, function(v) {
-    df <- get(v)
-    tibble(id = c("a", "b", "c"), value = c(df$a, df$b, df$c))
-  }))
+  params <- tibble(
+    varName = sapply(var_df_names, function(v) get(v)$VarName),
+    Scale = sapply(var_df_names, function(v) get(v)$Scale),
+    SubCompart = sapply(var_df_names, function(v) get(v)$SubCompart),
+    data = lapply(var_df_names, function(v) {
+      df <- get(v)
+      tibble(id = c("a", "b", "c"), value = c(df$a, df$b, df$c))
+    }))
+  
+  sample_df <- params
 
-sample_df <- params
   # Transform each LHS sample column to the corresponding triangular distribution
+  for (k in 1:n_vars) {
+    #print(params$varName[[k]])
+    a <- filter(params$data[[k]], id == "a") %>% pull(value)
+    b <- filter(params$data[[k]], id == "b") %>% pull(value)
+    c <- filter(params$data[[k]], id == "c") %>% pull(value)
+    
+    if(input_vars$Distribution[k] == "Triangular"){
+      samples <- triangular(lhs_samples[, k], a, b, c)
+    } else if(input_vars$Distribution[k] == "Uniform"){
+      samples <- uniform(lhs_samples[, k], a, b)
+    } else if(input_vars$Distribution[k] == "Powerlaw"){
+      samples <- power_law(lhs_samples[, k], a, b, c)
+    }
 
-for (k in 1:n_vars) {
-  a <- filter(params$data[[k]], id == "a") %>% pull(value)
-  b <- filter(params$data[[k]], id == "b") %>% pull(value)
-  c <- filter(params$data[[k]], id == "c") %>% pull(value)
-    samples <- Triangular(lhs_samples[, k], a, b, c)
     # Create a new tibble for 'data' with samples replacing original values
-  new_data <- tibble(value = samples)
+    new_data <- tibble(value = samples)
+
     # Update the data column in the sample_df
-  sample_df$data[[k]] <- new_data
-}
+    sample_df$data[[k]] <- new_data
+  }
   
-sample_df_name <- paste0("sample_df_",i)
-sample_df_names <- paste0(sample_df_names, sample_df_name)
-assign(sample_df_name, sample_df)
+  # Duplicate rows
+  exploded_scales <- explode(sample_df, target_col = "Scale", explode_value = "any", new_values = scales)
+  exploded_water <- explode(exploded_scales, target_col = "SubCompart", explode_value = "water", new_values = water)
+  exploded_soil_sediment <- explode(exploded_water, target_col = "SubCompart", explode_value = "soil_sediment", new_values = soil_sediment)
+  exploded_subcomparts <- explode(exploded_soil_sediment, target_col = "SubCompart", explode_value = "any", new_values = all_SC)
+  
+  sample_df_name <- paste0("sample_df_",i)
+  
+  sample_df_names <- paste0(sample_df_names, sample_df_name)
+  
+  assign(sample_df_name, exploded_subcomparts)
+}
 
 ```
 
@@ -285,103 +333,104 @@ if(type == "PMFA"){
 
 # Calculate concentrations
 ```{r Calculate concentrations}
-
-dfname <- paste0("solved_ss_", mat)
-  
-sol <- get(dfname)
-  
-Solution <- sol$SteadyStateMass |>
-  mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
-  mutate(Abbr = str_replace_all(Abbr, "cw", "a")) |>
-  group_by(RUN, Scale, SubCompart, Species, Unit, Abbr) |>
-  summarise(EqMass = sum(EqMass)) |>
-  ungroup() 
-  
-# Fetch necessary data
-  
-# Sum cloudwater and air under air
-Volume <- World$fetchData("Volume") |>
-  mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
-  group_by(Scale, SubCompart) |>
-  summarise(Volume = sum(Volume)) |>
-  ungroup()
-  
-Area <- World$fetchData("Area")
-FRACw <- World$fetchData("FRACw")
-FRACa <- World$fetchData("FRACa")
-Fractrial <- FRACa$FRACa[FRACa$SubCompart =="air" & FRACa$Scale =="Arctic" ]
-Rho <- World$fetchData("rhoMatrix")
-Concentration_eq <- merge(Solution, Volume, by = c("SubCompart", "Scale"))
-Concentration_eq$Concentration <- Concentration_eq$EqMass / Concentration_eq$Volume
-RhoWater_value <- Rho$rhoMatrix[Rho$SubCompart == "river"]
-
-f_adjust_concentration <- function(Concentration, FRACw, FRACa, SubCompart, Scale, Rho, RhoWater_value) {
-  # Fetch Fracw based on SubCompart and Scale
-  Fracw <- FRACw$FRACw[FRACw$SubCompart == SubCompart & FRACw$Scale == Scale]
-  
-  # Fetch Fraca based on SubCompart and Scale
-  Fraca <- FRACa$FRACa[FRACa$SubCompart == SubCompart & FRACa$Scale == Scale]
-  
-  # Fetch RHOsolid based on SubCompart
-  RHOsolid <- Rho$rhoMatrix[Rho$SubCompart == SubCompart]
+for(mat in polymers){ 
+  dfname <- paste0("solved_ss_", mat)
     
-  # Check if any of Fracw, Fraca, or RHOsolid are N
+  sol <- get(dfname)
     
-  Concentration * 1000 / (Fracw * RhoWater_value + (1 - Fracw - Fraca) * RHOsolid)
-}
+  Solution <- sol$SteadyStateMass |>
+    mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
+    mutate(Abbr = str_replace_all(Abbr, "cw", "a")) |>
+    group_by(RUN, Scale, SubCompart, Species, Unit, Abbr) |>
+    summarise(EqMass = sum(EqMass)) |>
+    ungroup() 
+    
+  # Fetch necessary data
+    
+  # Sum cloudwater and air under air
+  Volume <- World$fetchData("Volume") |>
+    mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
+    group_by(Scale, SubCompart) |>
+    summarise(Volume = sum(Volume)) |>
+    ungroup()
+    
+  Area <- World$fetchData("Area")
+  FRACw <- World$fetchData("FRACw")
+  FRACa <- World$fetchData("FRACa")
+  Fractrial <- FRACa$FRACa[FRACa$SubCompart =="air" & FRACa$Scale =="Arctic" ]
+  Rho <- World$fetchData("rhoMatrix")
+  Concentration_eq <- merge(Solution, Volume, by = c("SubCompart", "Scale"))
+  Concentration_eq$Concentration <- Concentration_eq$EqMass / Concentration_eq$Volume
+  RhoWater_value <- Rho$rhoMatrix[Rho$SubCompart == "river"]
   
-subcomparts <- c("agriculturalsoil", "naturalsoil", "othersoil", "freshwatersediment", "marinesediment")
-  
-filtered_data <- Concentration_eq[Concentration_eq$SubCompart %in% subcomparts, ]
-  
-# Apply the adjustment function to the filtered data
-adjusted_concentrations <- apply(filtered_data, 1, function(row) {
-  f_adjust_concentration(
-    Concentration = as.numeric(row["Concentration"]),
-    FRACw = subset(FRACw, SubCompart == row["SubCompart"] & Scale == row["Scale"]),
-    FRACa = subset(FRACa, SubCompart == row["SubCompart"] & Scale == row["Scale"]),
-    Rho = subset(Rho, SubCompart == row["SubCompart"]),
-    RhoWater_value = 998,  # Replace with your actual RhoWater_value
-    SubCompart = row["SubCompart"],
-    Scale = row["Scale"]
-  )
-})
-# Update Concentration_eq with adjusted concentrations
-Concentration_eq[Concentration_eq$SubCompart %in% subcomparts, "Concentration"] <- adjusted_concentrations
-
-#Define the units
-subcompart <- c("agriculturalsoil", "naturalsoil", "othersoil", "freshwatersediment", "marinesediment",  "lakesediment", "air", "deepocean", "lake" , "river", "sea")
-units <- c("g/kg dw", "g/kg dw", "g/kg dw", "g/kg dw", "g/kg dw", "g/kg dw",
-           "kg/m^3", "kg/L", "kg/L", "kg/L", "kg/L", "kg/L")
-  
-# Combine into a named list
-subcompart_units <- setNames(units, subcompart)
-Concentration_eq <- Concentration_eq |>
-  mutate(Units_per_SubCompart = subcompart_units[SubCompart])
-  
-convert_units <- function(concentration, unit) {
-  if (unit == "g/kg dw") {
-    return(concentration * 1e9)
-  } else if (unit == "kg/m^3") {
-    return(concentration * 1e12)
-  } else if (unit == "kg/L") {
-    return(concentration * 1e12)
-  } else {
-    return(concentration)
+  f_adjust_concentration <- function(Concentration, FRACw, FRACa, SubCompart, Scale, Rho, RhoWater_value) {
+    # Fetch Fracw based on SubCompart and Scale
+    Fracw <- FRACw$FRACw[FRACw$SubCompart == SubCompart & FRACw$Scale == Scale]
+    
+    # Fetch Fraca based on SubCompart and Scale
+    Fraca <- FRACa$FRACa[FRACa$SubCompart == SubCompart & FRACa$Scale == Scale]
+    
+    # Fetch RHOsolid based on SubCompart
+    RHOsolid <- Rho$rhoMatrix[Rho$SubCompart == SubCompart]
+      
+    # Check if any of Fracw, Fraca, or RHOsolid are N
+      
+    Concentration * 1000 / (Fracw * RhoWater_value + (1 - Fracw - Fraca) * RHOsolid)
   }
+    
+  subcomparts <- c("agriculturalsoil", "naturalsoil", "othersoil", "freshwatersediment", "marinesediment")
+    
+  filtered_data <- Concentration_eq[Concentration_eq$SubCompart %in% subcomparts, ]
+    
+  # Apply the adjustment function to the filtered data
+  adjusted_concentrations <- apply(filtered_data, 1, function(row) {
+    f_adjust_concentration(
+      Concentration = as.numeric(row["Concentration"]),
+      FRACw = subset(FRACw, SubCompart == row["SubCompart"] & Scale == row["Scale"]),
+      FRACa = subset(FRACa, SubCompart == row["SubCompart"] & Scale == row["Scale"]),
+      Rho = subset(Rho, SubCompart == row["SubCompart"]),
+      RhoWater_value = 998,  # Replace with your actual RhoWater_value
+      SubCompart = row["SubCompart"],
+      Scale = row["Scale"]
+    )
+  })
+  # Update Concentration_eq with adjusted concentrations
+  Concentration_eq[Concentration_eq$SubCompart %in% subcomparts, "Concentration"] <- adjusted_concentrations
+  
+  #Define the units
+  subcompart <- c("agriculturalsoil", "naturalsoil", "othersoil", "freshwatersediment", "marinesediment",  "lakesediment", "air", "deepocean", "lake" , "river", "sea")
+  units <- c("g/kg dw", "g/kg dw", "g/kg dw", "g/kg dw", "g/kg dw", "g/kg dw",
+             "kg/m^3", "kg/L", "kg/L", "kg/L", "kg/L", "kg/L")
+    
+  # Combine into a named list
+  subcompart_units <- setNames(units, subcompart)
+  Concentration_eq <- Concentration_eq |>
+    mutate(Units_per_SubCompart = subcompart_units[SubCompart])
+    
+  convert_units <- function(concentration, unit) {
+    if (unit == "g/kg dw") {
+      return(concentration * 1e9)
+    } else if (unit == "kg/m^3") {
+      return(concentration * 1e12)
+    } else if (unit == "kg/L") {
+      return(concentration * 1e12)
+    } else {
+      return(concentration)
+    }
+  }
+  
+  # Convert concentrations to ng/kg or ng/L and update units
+  Concentration_eq <- Concentration_eq |>
+    mutate(
+           Concentration = mapply(convert_units, Concentration, Units_per_SubCompart),
+           Units_per_SubCompart = ifelse(Units_per_SubCompart == "g/kg dw", "ng/kg dw", 
+                                         ifelse(Units_per_SubCompart == "kg/m^3", "ng/m^3", "ng/L")))
+  Concentration_eq <- Concentration_eq |>
+    mutate(across(where(is.numeric), ~ format(., scientific = TRUE)))
+  
+  solname <- paste0("Solution_", mat)
+  assign(solname, Concentration_eq)
 }
-
-# Convert concentrations to ng/kg or ng/L and update units
-Concentration_eq <- Concentration_eq |>
-  mutate(
-         Concentration = mapply(convert_units, Concentration, Units_per_SubCompart),
-         Units_per_SubCompart = ifelse(Units_per_SubCompart == "g/kg dw", "ng/kg dw", 
-                                       ifelse(Units_per_SubCompart == "kg/m^3", "ng/m^3", "ng/L")))
-Concentration_eq <- Concentration_eq |>
-  mutate(across(where(is.numeric), ~ format(., scientific = TRUE)))
-
-solname <- paste0("Solution_", mat)
-assign(solname, Concentration_eq)
   
 ```
 
@@ -402,192 +451,97 @@ plot_theme <-  theme(
 
 # Plot the data for each polymer separately, for all selected compartments (different plots depending on PMFA or DPMFA)
 if(type == "PMFA"){
-  solution_name <- paste0("Solution_", mat)
-  df_name <- paste0("solved_ss_", mat)
-  
-  Solution <- get(solution_name) |>
-    mutate(RUN = as.integer(RUN)) |>
-    mutate(EqMass = as.double(EqMass)) |>
-    mutate(Concentration = as.double(Concentration)) 
-  
-  solved <- get(df_name)
-  
-  # Prepare data for plots
-  Input_Variables <- 
-    solved$Input_Variables |> unnest(data) 
-  Input_Emission <- 
-    solved$Input_Emission |> unnest(Emis) 
-  
-  Plot_data <- 
-    Input_Variables |> 
-    pivot_wider(names_from = c(varName,Scale,SubCompart,Unit), values_from = value) |> 
-    full_join(Solution) |>
-    full_join(Input_Emission, by = c("Abbr", "RUN"))
-  
-  # Aggregate plot data for all species
-  Plot_data_agg <- Plot_data |>
-    group_by(Scale, SubCompart, RUN, Unit.x, Units_per_SubCompart) |>
-    summarise(EqMass = sum(EqMass), Concentration = sum(Concentration))
-  
-  scales <- unique(Plot_data_agg$Scale)
-  
-  # Make plots for each scale, one with mass and one with concentrations
-  for (scale in scales) {
-    df <- Plot_data_agg |>
-      filter(Scale == scale) |>
-      mutate(concname = paste0(SubCompart, " (", Units_per_SubCompart, ")"))
+  for(mat in polymers){
+    solution_name <- paste0("Solution_", mat)
+    df_name <- paste0("solved_ss_", mat)
     
-    # Filter out the compartments without mass
-    masscomps <- df |>
-      filter(RUN == 1) |>
-      filter(EqMass != 0)
+    Solution <- get(solution_name) |>
+      mutate(RUN = as.integer(RUN)) |>
+      mutate(EqMass = as.double(EqMass)) |>
+      mutate(Concentration = as.double(Concentration)) 
     
-    masscomps <- masscomps$SubCompart
+    solved <- get(df_name)
     
-    df <- df |>
-      filter(SubCompart %in% masscomps)
+    subt <- paste0(mat, ", ", y)
     
-    # Mass plot
-    mass_p <- ggplot(df, mapping = aes(x = SubCompart, y = EqMass, fill = SubCompart)) +  
-      geom_violin() + 
-      labs(title = paste0("Masses at ", scale, " scale"),
-           subtitle = subt,
-           x = "Compartment",
-           y = "Mass (kg)") +
-      plot_theme +
-      scale_y_continuous(trans = 'log10') +
-      scale_fill_viridis_d() + 
-      # Customize the legend for this plot as well
-      theme(axis.text.x = element_blank(),  # Remove x-axis labels
-            legend.position = "bottom") +   # Move legend to the bottom
-      guides(fill = guide_legend(title = NULL))  # Remove legend title
+    # Prepare data for plots
+    Input_Variables <- 
+      solved$Input_Variables |> unnest(data) 
+    Input_Emission <- 
+      solved$Input_Emission |> unnest(Emis) 
     
-    print(mass_p)
+    Plot_data <- 
+      Input_Variables |> 
+      pivot_wider(names_from = c(varName,Scale,SubCompart,Unit), values_from = value) |> 
+      full_join(Solution) |>
+      full_join(Input_Emission, by = c("Abbr", "RUN"))
     
-    ggsave(paste0("N:/Documents/Simplebox/LEON-T_plots/Mass_plot_", scale, ".png"), plot=mass_p)
+    # Aggregate plot data for all species
+    Plot_data_agg <- Plot_data |>
+      group_by(Scale, SubCompart, RUN, Unit.x, Units_per_SubCompart) |>
+      summarise(EqMass = sum(EqMass), Concentration = sum(Concentration))
     
-    # Concentration plot
-    conc_p <- ggplot(df, mapping = aes(x = concname, y = Concentration, fill = concname)) +  
-      geom_violin() +
-      labs(title = paste0("Concentrations at ", scale, " scale"),
-           subtitle = subt,
-           x = "Compartment",
-           y = "Concentration") +
-      plot_theme +
-      scale_y_continuous(trans = 'log10') +
-      scale_fill_viridis_d() +
-      theme(axis.text.x = element_blank(),  # Remove x-axis labels
-            legend.position = "bottom") +   # Move legend to the bottom
-      guides(fill = guide_legend(title = NULL))  # Remove legend title
+    scales <- unique(Plot_data_agg$Scale)
     
-    print(conc_p)
-    
-    ggsave(paste0("N:/Documents/Simplebox/LEON-T_plots/Concentration_plot_", scale, ".png"), plot=conc_p)
+    # Make plots for each scale, one with mass and one with concentrations
+    for (scale in scales) {
+      df <- Plot_data_agg |>
+        filter(Scale == scale) |>
+        mutate(concname = paste0(SubCompart, " (", Units_per_SubCompart, ")"))
+      
+      # Filter out the compartments without mass
+      masscomps <- df |>
+        filter(RUN == 1) |>
+        filter(EqMass != 0)
+      
+      masscomps <- masscomps$SubCompart
+      
+      df <- df |>
+        filter(SubCompart %in% masscomps)
+      
+      # Mass plot
+      mass_p <- ggplot(df, mapping = aes(x = SubCompart, y = EqMass, fill = SubCompart)) +  
+        geom_violin() + 
+        labs(title = paste0("Masses at ", scale, " scale"),
+             subtitle = subt,
+             x = "Compartment",
+             y = "Mass (kg)") +
+        plot_theme +
+        scale_y_continuous(trans = 'log10') +
+        scale_fill_viridis_d() + 
+        # Customize the legend for this plot as well
+        theme(axis.text.x = element_blank(),  # Remove x-axis labels
+              legend.position = "bottom") +   # Move legend to the bottom
+        guides(fill = guide_legend(title = NULL))  # Remove legend title
+      
+      print(mass_p)
+      
+      ggsave(paste0("N:/Documents/Simplebox/LEON-T_plots/Mass_plot_", scale, ".png"), plot=mass_p)
+      
+      # Concentration plot
+      conc_p <- ggplot(df, mapping = aes(x = concname, y = Concentration, fill = concname)) +  
+        geom_violin() +
+        labs(title = paste0("Concentrations at ", scale, " scale"),
+             subtitle = subt,
+             x = "Compartment",
+             y = "Concentration") +
+        plot_theme +
+        scale_y_continuous(trans = 'log10') +
+        scale_fill_viridis_d() +
+        theme(axis.text.x = element_blank(),  # Remove x-axis labels
+              legend.position = "bottom") +   # Move legend to the bottom
+        guides(fill = guide_legend(title = NULL))  # Remove legend title
+      
+      print(conc_p)
+      
+      ggsave(paste0("N:/Documents/Simplebox/LEON-T_plots/Concentration_plot_", scale, ".png"), plot=conc_p)
+    }
   }
 
-} else if(type == "DPMFA"){
+} else if(type == "DPMFA"){        
+  
+  # TO DO: Make plots for DPMFA output
 
-  # Prepare the plot data
-  df_name <- paste0("solved_dyn_",i)
-  solved <- get(df_name)
-  
-  ymin <- as_character(ymin)
-  ymax <- as_character(ymax)
-  
-  Input_Variables <- 
-    solved$Input_Variables |> unnest(data) 
-  
-  inputcomps <- unique(emissions$Abbr)
-  
-  Input_Emission <- solved$DynamicMass |>
-    select(starts_with("emis2"), "time", "RUN") |>
-    rename_with(
-      .fn = ~ str_remove(.x, "emis2"),              # Function to add "_new" to column names
-      .cols = !c("time", "RUN")  # Select columns to modify
-    ) |>
-    pivot_longer(cols = -c("time", "RUN"),
-                 names_to = "Abbr",
-                 values_to = "Emis") 
-  
-  masses_long <- solved$DynamicMass |>
-    select(!starts_with("emis2")) |>
-    rename_with(
-      .fn = ~ paste0("mass_", .x),              # Function to add "_new" to column names
-      .cols = !c("time", "RUN", "Unit") & !starts_with("emis")  # Select columns to modify
-    ) |>
-    pivot_longer(cols = starts_with("mass_"),
-                 names_to = "Abbr",
-                 values_to = "Mass") |>
-    mutate(Abbr =  str_remove(Abbr, "mass_")) |>
-    left_join(Input_Emission, by = c("Abbr", "time", "RUN")) |>
-    left_join(solved$States, by = "Abbr")
-  
-  Plot_data <- 
-    Input_Variables |> 
-    pivot_wider(names_from = c(varName,Scale,SubCompart,Unit), values_from = value) |> 
-    full_join(masses_long) |>
-    mutate(time = time/(365.25*24*60*60))
-  
-  datatmax <- Plot_data |>
-    filter(time == tmax/(365.25*24*60*60)) |>
-    left_join(solved$States)
-  
-  maxyear <- tmax/(365.25*24*60*60)
-  
-  subt_range <- paste0(ymin, "-", ymax, ", ", filtersource , ", ", mat)
-  subt_tmax <- paste0( as.character(y), ", ", filtersource , ", ", mat)
-  
-  # Plot the outcome
-  varnames <- colnames(Plot_data)[2:(1+n_vars)]
-  
-  var_data <- Plot_data |> 
-    filter(Abbr %in% emiscomps)
-  
-  var_tmax <- datatmax |>
-    filter(Abbr %in% emiscomps)
-  
-  for(i in varnames) {
-    p1 <- ggplot(var_data, mapping = aes(x = time, y = Mass, group = RUN, color = .data[[i]])) +  
-      geom_line() + 
-      facet_wrap(vars(Abbr)) +
-      labs(subtitle = subt_range,
-           x = "Time (years)", 
-           y = "Mass (kg)", 
-           color = i) +  
-      ggtitle("Mass in compartment over time (default substance)") +
-      plot_theme
-    print(p1)  
-  }
-  
-  for(i in varnames) {
-    p2 <- ggplot(var_tmax, mapping = aes(x = .data[[i]], y = Mass)) +
-      geom_point() + 
-      facet_wrap(vars(Abbr)) + 
-      ggtitle(paste0("Mass in compartment at year ", as.character(maxyear))) + 
-      labs(subtitle = subt_tmax,
-           x = i,  
-           y = "Mass (kg)") +
-      plot_theme                 
-    print(p2)
-  }
-  
-  # Filter the plot data for the compartments that received emissions
-  EM_data <- Plot_data |>
-    filter(Abbr %in% emiscomps)
-  
-  EM_tmax <- datatmax |>
-    filter(Abbr %in% emiscomps)
-  
-  # Plot the emissions against the masses for these compartments
-  EM_p1 <- ggplot(EM_tmax, mapping = aes(x = Emis, y = Mass)) +
-    geom_point() + 
-    facet_wrap(vars(Abbr)) +
-    ggtitle("Relation between emissions and mass") + 
-    labs(subtitle = subt_tmax,
-         x = "Emissions (kg/s)",
-         y = "Mass (kg)") + 
-    plot_theme
-  print(EM_p1)
 }
 
 ```

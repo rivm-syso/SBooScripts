@@ -100,6 +100,8 @@ for (i in 1:n_vars) {
 World$NewSolver("UncertainDynamicSolver")
 solved_emis_df <- World$Solve(emissions, sample_df, tmax = tmax, needdebug = F)
 
+conc <- World$GetConcentration()
+
 # Access one solution df
 sol1 <- solved_emis_df$Mass[[1]]
 
