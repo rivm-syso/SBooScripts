@@ -203,6 +203,7 @@ soil_sediment <- c(soil, sediment)
 air <- c("air", "cloudwater")
 all_SC <- c(water, soil, sediment, air)
 materials <- c("HDPE", "LDPE", "PP", "PS", "PVC", "Acryl", "PA", "PET", "ABS", "EPS", "PC", "PMMA", "PUR", "RUBBER", "OTHER")
+species <- c("Large", "Small", "Solid")
 
 scales <- c("Arctic", "Tropic", "Moderate", "Regional", "Continental")
 
@@ -245,7 +246,7 @@ for(i in polymers){
     varname <- df$VarName
       
     var <- df |>
-      select(VarName, Scale, SubCompart, a, b, c)
+      select(VarName, Scale, SubCompart, Species, a, b, c)
       
     name <- paste0("var", j)
     var_df_names <- c(var_df_names, name)
@@ -257,6 +258,7 @@ for(i in polymers){
     varName = sapply(var_df_names, function(v) get(v)$VarName),
     Scale = sapply(var_df_names, function(v) get(v)$Scale),
     SubCompart = sapply(var_df_names, function(v) get(v)$SubCompart),
+    Species = sapply(var_df_names, function(v) get(v)$Species),
     data = lapply(var_df_names, function(v) {
       df <- get(v)
       tibble(id = c("a", "b", "c"), value = c(df$a, df$b, df$c))
@@ -293,41 +295,32 @@ for(i in polymers){
   assign(sample_df_name, sample_df)
 }
 
-# Remove illegal Scale-SubCompart combinations from the dataframes
-allowd_combs <- World$fetchData("Area") |>
-    select(Scale, SubCompart)
+sample_dfs <- lapply(sample_df_names, get)
 
-
-for(sample_df_name in sample_df_names) {
-  sample_df <- get(sample_df_name)
-
-  # Step 1: Explode for Scale
+# Function to process each dataframe
+process_sample_df <- function(sample_df) {
   exploded_scales <- explode(sample_df, target_col = "Scale", explode_value = "any", new_values = scales)
-  print(paste("After exploding scales:", nrow(exploded_scales)))  # Check size
-
-  # Step 2: Explode for SubCompart: water
   exploded_water <- explode(exploded_scales, target_col = "SubCompart", explode_value = "water", new_values = water)
-  print(paste("After exploding water:", nrow(exploded_water)))  # Check size
-
-  # Step 3: Explode for SubCompart: soil_sediment
   exploded_soil_sediment <- explode(exploded_water, target_col = "SubCompart", explode_value = "soil_sediment", new_values = soil_sediment)
-  print(paste("After exploding soil_sediment:", nrow(exploded_soil_sediment)))  # Check size
+  exploded_species <- explode(exploded_soil_sediment, target_col = "Species", explode_value = "any", new_values = species)
+  exploded_subcomparts <- explode(exploded_species, target_col = "SubCompart", explode_value = "any", new_values = all_SC)
+  exploded_soil <- explode(exploded_subcomparts, target_col = "SubCompart", explode_value = "soil", new_values = soil)
 
-  # Step 4: Explode for SubCompart: any
-  exploded_subcomparts <- explode(exploded_soil_sediment, target_col = "SubCompart", explode_value = "any", new_values = all_SC)
-  print(paste("After exploding any:", nrow(exploded_subcomparts)))  # Check size
+  sample_df_cleaned <- exploded_soil
 
-  # Step 5: Perform the semi-join
-  sample_df <- exploded_subcomparts %>%
-    semi_join(allowd_combs, by = c("Scale", "SubCompart"))
-  print(paste("After semi-join:", nrow(sample_df)))  # Check size
-
-  assign(sample_df_name, sample_df)  # Save it back to the environment
+  return(sample_df_cleaned)
 }
+
+# Apply the processing function to each dataframe in the list
+cleaned_dfs <- lapply(sample_dfs, process_sample_df)
+
+# Assign the cleaned dataframes back to their original names in the global environment
+names(cleaned_dfs) <- sample_df_names
+list2env(cleaned_dfs, envir = .GlobalEnv)
 
 ```
 
-# Solve the matrix
+# Solve the matrix and calculate concentrations
 
 Solve the matrix depending on the type of input emissions given (PMFA =
 Steady state, DPMFA = dynamic)
@@ -338,11 +331,18 @@ if(type == "PMFA"){
   World$NewSolver("UncertainSolver")
   
   for(i in polymers){
+    # Get the emissions (kg)
     emis_df_name <- paste0("emis_ss_", i)
     sample_df_name <- paste0("sample_df_", i)
     
     solved <- World$Solve(get(emis_df_name), needdebug = FALSE, get(sample_df_name))
     assign(paste0("solved_ss_", i), solved)
+    
+    # Get the concentrations
+    conc_df_name <- paste0("solution_", i)
+    conc <- World$GetConcentration()
+    
+    assign(conc_df_name, conc)
   }
   
 } else if(type == "DPMFA"){
@@ -354,113 +354,15 @@ if(type == "PMFA"){
     
     solved <- World$Solve(World$Solve(get(i)), sample_df, tmax = tmax, needdebug = F)
     assign(paste0("solved_dyn_", i), solved)
+    
+    # Get the concentrations
+    conc_df_name <- paste0("solution_", i)
+    conc <- World$GetConcentration()
+    
+    assign(conc_df_name, conc)
   }
 }
 
-```
-
-# Calculate concentrations
-
-```{r Calculate concentrations}
-for(mat in polymers){ 
-  dfname <- paste0("solved_ss_", mat)
-    
-  sol <- get(dfname)
-    
-  Solution <- sol$SteadyStateMass |>
-    mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
-    mutate(Abbr = str_replace_all(Abbr, "cw", "a")) |>
-    group_by(RUN, Scale, SubCompart, Species, Unit, Abbr) |>
-    summarise(EqMass = sum(EqMass)) |>
-    ungroup() 
-    
-  # Fetch necessary data
-    
-  # Sum cloudwater and air under air
-  Volume <- World$fetchData("Volume") |>
-    mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
-    group_by(Scale, SubCompart) |>
-    summarise(Volume = sum(Volume)) |>
-    ungroup()
-    
-  Area <- World$fetchData("Area")
-  FRACw <- World$fetchData("FRACw")
-  FRACa <- World$fetchData("FRACa")
-  Fractrial <- FRACa$FRACa[FRACa$SubCompart =="air" & FRACa$Scale =="Arctic" ]
-  Rho <- World$fetchData("rhoMatrix")
-  Concentration_eq <- merge(Solution, Volume, by = c("SubCompart", "Scale"))
-  Concentration_eq$Concentration <- Concentration_eq$EqMass / Concentration_eq$Volume
-  RhoWater_value <- Rho$rhoMatrix[Rho$SubCompart == "river"]
-  
-  f_adjust_concentration <- function(Concentration, FRACw, FRACa, SubCompart, Scale, Rho, RhoWater_value) {
-    # Fetch Fracw based on SubCompart and Scale
-    Fracw <- FRACw$FRACw[FRACw$SubCompart == SubCompart & FRACw$Scale == Scale]
-    
-    # Fetch Fraca based on SubCompart and Scale
-    Fraca <- FRACa$FRACa[FRACa$SubCompart == SubCompart & FRACa$Scale == Scale]
-    
-    # Fetch RHOsolid based on SubCompart
-    RHOsolid <- Rho$rhoMatrix[Rho$SubCompart == SubCompart]
-      
-    # Check if any of Fracw, Fraca, or RHOsolid are N
-      
-    Concentration * 1000 / (Fracw * RhoWater_value + (1 - Fracw - Fraca) * RHOsolid)
-  }
-    
-  subcomparts <- c("agriculturalsoil", "naturalsoil", "othersoil", "freshwatersediment", "marinesediment")
-    
-  filtered_data <- Concentration_eq[Concentration_eq$SubCompart %in% subcomparts, ]
-    
-  # Apply the adjustment function to the filtered data
-  adjusted_concentrations <- apply(filtered_data, 1, function(row) {
-    f_adjust_concentration(
-      Concentration = as.numeric(row["Concentration"]),
-      FRACw = subset(FRACw, SubCompart == row["SubCompart"] & Scale == row["Scale"]),
-      FRACa = subset(FRACa, SubCompart == row["SubCompart"] & Scale == row["Scale"]),
-      Rho = subset(Rho, SubCompart == row["SubCompart"]),
-      RhoWater_value = 998,  # Replace with your actual RhoWater_value
-      SubCompart = row["SubCompart"],
-      Scale = row["Scale"]
-    )
-  })
-  # Update Concentration_eq with adjusted concentrations
-  Concentration_eq[Concentration_eq$SubCompart %in% subcomparts, "Concentration"] <- adjusted_concentrations
-  
-  #Define the units
-  subcompart <- c("agriculturalsoil", "naturalsoil", "othersoil", "freshwatersediment", "marinesediment",  "lakesediment", "air", "deepocean", "lake" , "river", "sea")
-  units <- c("g/kg dw", "g/kg dw", "g/kg dw", "g/kg dw", "g/kg dw", "g/kg dw",
-             "kg/m^3", "kg/L", "kg/L", "kg/L", "kg/L", "kg/L")
-    
-  # Combine into a named list
-  subcompart_units <- setNames(units, subcompart)
-  Concentration_eq <- Concentration_eq |>
-    mutate(Units_per_SubCompart = subcompart_units[SubCompart])
-    
-  convert_units <- function(concentration, unit) {
-    if (unit == "g/kg dw") {
-      return(concentration * 1e9)
-    } else if (unit == "kg/m^3") {
-      return(concentration * 1e12)
-    } else if (unit == "kg/L") {
-      return(concentration * 1e12)
-    } else {
-      return(concentration)
-    }
-  }
-  
-  # Convert concentrations to ng/kg or ng/L and update units
-  Concentration_eq <- Concentration_eq |>
-    mutate(
-           Concentration = mapply(convert_units, Concentration, Units_per_SubCompart),
-           Units_per_SubCompart = ifelse(Units_per_SubCompart == "g/kg dw", "ng/kg dw", 
-                                         ifelse(Units_per_SubCompart == "kg/m^3", "ng/m^3", "ng/L")))
-  Concentration_eq <- Concentration_eq |>
-    mutate(across(where(is.numeric), ~ format(., scientific = TRUE)))
-  
-  solname <- paste0("Solution_", mat)
-  assign(solname, Concentration_eq)
-}
-  
 ```
 
 # Prep data and make plots
