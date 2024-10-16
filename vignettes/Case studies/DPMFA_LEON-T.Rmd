@@ -56,7 +56,7 @@ data_long <-
                values_to = "Mass_Polymer_kt")
 
 # Choose a source of interest if you want, else write NA
-source_of_interest <- "Tyre wear"
+source_of_interest <- NA
 
 if(!is.na(source_of_interest)){
   if(!source_of_interest %in% unique(data_long$Source)){
@@ -81,33 +81,66 @@ if(unique(data_long$Scale) == "EU"){
   SBscale <- "R"
 }
 
-# Assign SB compartments to DPMFA compartments
-data_filtered <- data_summed |>
-  select(To_Compartment, Mass_Polymer_kg_s, Year, RUN, Polymer) |>
-  mutate(Scale = SBscale) |>
-  mutate(Compartment = case_when(
-    str_detect(To_Compartment, "soil") ~ "s",
-    str_detect(To_Compartment, "water") ~ "w",
-    str_detect(To_Compartment, "air") ~ "a"
-  )) |>
-  mutate(Subcompartment = case_when(
-    str_detect(To_Compartment, "Agricultural") ~ "2",
-    str_detect(To_Compartment, "Natural") ~ "1",
-    str_detect(To_Compartment, "Sub-surface") ~ "3",
-    str_detect(To_Compartment, "Road side") ~ "3",
-    str_detect(To_Compartment, "Residential") ~ "3",
-    str_detect(To_Compartment, "Sea") ~ "2",
-    str_detect(To_Compartment, "Surface") ~ "1",
-    str_detect(To_Compartment, "Outdoor") ~ ""
-  )) |>
-  mutate(Species = "S") |>
-  mutate(Abbr = paste0(Compartment, Subcompartment, Scale, Species)) |>
-  group_by(Abbr, Year, RUN, Polymer) |>
-  summarise(Mass_Polymer_kg_s = sum(Mass_Polymer_kg_s)) |>
-  ungroup() |>
-  rename(value = Mass_Polymer_kg_s) |>
-  select(Abbr, Year, Polymer, value, RUN)
+sources <- unique(data_long$Source)
 
+# Assign the emissions to the right compartments. For Tyre wear, emissions go to Attached instead of Solid. 
+for(i in sources){
+  if(i != "Tyre wear"){
+    # Assign SB compartments to DPMFA compartments
+    data_filtered <- data_summed |>
+      select(To_Compartment, Mass_Polymer_kg_s, Year, RUN, Polymer) |>
+      mutate(Scale = SBscale) |>
+      mutate(Compartment = case_when(
+        str_detect(To_Compartment, "soil") ~ "s",
+        str_detect(To_Compartment, "water") ~ "w",
+        str_detect(To_Compartment, "air") ~ "a"
+      )) |>
+      mutate(Subcompartment = case_when(
+        str_detect(To_Compartment, "Agricultural") ~ "2",
+        str_detect(To_Compartment, "Natural") ~ "1",
+        str_detect(To_Compartment, "Sub-surface") ~ "3",
+        str_detect(To_Compartment, "Road side") ~ "3",
+        str_detect(To_Compartment, "Residential") ~ "3",
+        str_detect(To_Compartment, "Sea") ~ "2",
+        str_detect(To_Compartment, "Surface") ~ "1",
+        str_detect(To_Compartment, "Outdoor") ~ ""
+      )) |>
+      mutate(Species = "S") |>
+      mutate(Abbr = paste0(Compartment, Subcompartment, Scale, Species)) |>
+      group_by(Abbr, Year, RUN, Polymer) |>
+      summarise(Mass_Polymer_kg_s = sum(Mass_Polymer_kg_s)) |>
+      ungroup() |>
+      rename(value = Mass_Polymer_kg_s) |>
+      select(Abbr, Year, Polymer, value, RUN)
+  } else {
+    # Assign SB compartments to DPMFA compartments
+    data_filtered <- data_summed |>
+      select(To_Compartment, Mass_Polymer_kg_s, Year, RUN, Polymer) |>
+      mutate(Scale = SBscale) |>
+      mutate(Compartment = case_when(
+        str_detect(To_Compartment, "soil") ~ "s",
+        str_detect(To_Compartment, "water") ~ "w",
+        str_detect(To_Compartment, "air") ~ "a"
+      )) |>
+      mutate(Subcompartment = case_when(
+        str_detect(To_Compartment, "Agricultural") ~ "2",
+        str_detect(To_Compartment, "Natural") ~ "1",
+        str_detect(To_Compartment, "Sub-surface") ~ "3",
+        str_detect(To_Compartment, "Road side") ~ "3",
+        str_detect(To_Compartment, "Residential") ~ "3",
+        str_detect(To_Compartment, "Sea") ~ "2",
+        str_detect(To_Compartment, "Surface") ~ "1",
+        str_detect(To_Compartment, "Outdoor") ~ ""
+      )) |>
+      mutate(Species = "P") |>
+      mutate(Abbr = paste0(Compartment, Subcompartment, Scale, Species)) |>
+      group_by(Abbr, Year, RUN, Polymer) |>
+      summarise(Mass_Polymer_kg_s = sum(Mass_Polymer_kg_s)) |>
+      ungroup() |>
+      rename(value = Mass_Polymer_kg_s) |>
+      select(Abbr, Year, Polymer, value, RUN)
+  }
+}
 ```
 
 ```{r Make a separate emission df for every polymer}
@@ -196,7 +229,7 @@ excel_df <- read_excel(path_dist, sheet = "Polymer_data")
 
 materials <- unique(excel_df$Polymer)
 
-water <- c("lake", "sea", "deepsea", "river")
+water <- c("lake", "sea", "deepocean", "river")
 soil <- c("naturalsoil", "agriculturalsoil", "othersoil")
 sediment <- c("marinesediment", "freshwatersediment", "lakesediment")
 soil_sediment <- c(soil, sediment)
@@ -204,6 +237,7 @@ air <- c("air", "cloudwater")
 all_SC <- c(water, soil, sediment, air)
 materials <- c("HDPE", "LDPE", "PP", "PS", "PVC", "Acryl", "PA", "PET", "ABS", "EPS", "PC", "PMMA", "PUR", "RUBBER", "OTHER")
 species <- c("Large", "Small", "Solid")
+small_large <- c("Small", "Large")
 
 scales <- c("Arctic", "Tropic", "Moderate", "Regional", "Continental")
 
@@ -215,10 +249,12 @@ explode <- function(df, target_col, explode_value, new_values) {
     unnest(!!sym(target_col))
 }
 
-var_df <- explode(excel_df, target_col = "Polymer", explode_value = "any", new_values = materials) |>
-  mutate(a = as.numeric(a)) |>
-  mutate(b = as.numeric(b)) |>
-  mutate(c = as.numeric(c))
+suppressWarnings({
+  var_df <- explode(excel_df, target_col = "Polymer", explode_value = "any", new_values = materials) |>
+    mutate(a = as.numeric(a)) |>
+    mutate(b = as.numeric(b)) |>
+    mutate(c = as.numeric(c))
+})
 ```
 
 ```{r}
@@ -268,7 +304,6 @@ for(i in polymers){
 
   # Transform each LHS sample column to the corresponding triangular distribution
   for (k in 1:n_vars) {
-    #print(params$varName[[k]])
     a <- filter(params$data[[k]], id == "a") %>% pull(value)
     b <- filter(params$data[[k]], id == "b") %>% pull(value)
     c <- filter(params$data[[k]], id == "c") %>% pull(value)
@@ -303,7 +338,8 @@ process_sample_df <- function(sample_df) {
   exploded_water <- explode(exploded_scales, target_col = "SubCompart", explode_value = "water", new_values = water)
   exploded_soil_sediment <- explode(exploded_water, target_col = "SubCompart", explode_value = "soil_sediment", new_values = soil_sediment)
   exploded_species <- explode(exploded_soil_sediment, target_col = "Species", explode_value = "any", new_values = species)
-  exploded_subcomparts <- explode(exploded_species, target_col = "SubCompart", explode_value = "any", new_values = all_SC)
+  exploded_small_large <- explode(exploded_species, target_col = "Species", explode_value = "small_large", new_values = small_large)
+  exploded_subcomparts <- explode(exploded_small_large, target_col = "SubCompart", explode_value = "any", new_values = all_SC)
   exploded_soil <- explode(exploded_subcomparts, target_col = "SubCompart", explode_value = "soil", new_values = soil)
 
   sample_df_cleaned <- exploded_soil
@@ -317,7 +353,86 @@ cleaned_dfs <- lapply(sample_dfs, process_sample_df)
 # Assign the cleaned dataframes back to their original names in the global environment
 names(cleaned_dfs) <- sample_df_names
 list2env(cleaned_dfs, envir = .GlobalEnv)
+```
 
+```{r Make some figures to show the values chosen from the distributions}
+alpha_water <- sample_df_RUBBER |>
+  filter(varName == "alpha") |>
+  filter(SubCompart == "sea") |>
+  filter(Species == "Small") 
+
+alpha_water <- alpha_water$data[[1]]
+
+# Make some figures of the distributions
+ggplot(alpha_water, mapping = aes(x = value)) +
+  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+  labs(title = "Distribution of attachment efficiency for water compartments",
+       x = "Alpha") +
+  theme_classic()
+
+alpha_soil <- sample_df_RUBBER |>
+  filter(varName == "alpha") |>
+  filter(SubCompart == "naturalsoil") |>
+  filter(Species == "Small") 
+
+alpha_soil <- alpha_soil$data[[1]]
+
+# Make some figures of the distributions
+ggplot(alpha_soil, mapping = aes(x = value)) +
+  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+  labs(title = "Distribution of attachment efficiency for soil and sediment compartments",
+       x = "Alpha")+
+  theme_classic()
+
+rads <- sample_df_RUBBER |>
+  filter(varName == "RadS")
+
+rads <- rads$data[[1]]
+
+ggplot(rads, mapping = aes(x = value)) +
+  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+  labs(title = "Distribution of particle radius",
+       x = "Radius (nm)")+
+  theme_classic()
+
+rhos <- sample_df_RUBBER |>
+  filter(varName == "RhoS")
+
+rhos <- rhos$data[[1]]
+
+ggplot(rhos, mapping = aes(x = value)) +
+  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+  labs(title = "Distribution of density",
+       x = "Density (g/m^3)")+
+  theme_classic()
+
+kdeg_soil <- sample_df_RUBBER |>
+  filter(varName == "kdeg") |>
+  filter(SubCompart == "naturalsoil") |>
+  filter(Species == "Small") 
+
+kdeg_soil <- kdeg_soil$data[[1]]
+
+# Make some figures of the distributions
+ggplot(kdeg_soil, mapping = aes(x = value)) +
+  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+  labs(title = "Distribution of degradation rate constant for soil and sediment compartments",
+       x = "Degradation rate constant (s-1)")+
+  theme_classic()
+
+kdeg_water <- sample_df_RUBBER |>
+  filter(varName == "kdeg") |>
+  filter(SubCompart == "sea") |>
+  filter(Species == "Small") 
+
+kdeg_water <- kdeg_water$data[[1]]
+
+# Make some figures of the distributions
+ggplot(kdeg_water, mapping = aes(x = value)) +
+  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+  labs(title = "Distribution of degradation rate constant for water compartments",
+       x = "Degradation rate constant (s-1)")+
+  theme_classic()
 ```
 
 # Solve the matrix and calculate concentrations
@@ -326,7 +441,7 @@ Solve the matrix depending on the type of input emissions given (PMFA =
 Steady state, DPMFA = dynamic)
 
 ```{r Solve steady state}
-
+start_time <- Sys.time()
 if(type == "PMFA"){
   World$NewSolver("UncertainSolver")
   
@@ -362,7 +477,11 @@ if(type == "PMFA"){
     assign(conc_df_name, conc)
   }
 }
+end_time <- sys.time()
 
+elapsed_time <- end_time - start_time
+
+print(paste0("Elapsed time is ", elapsed_time))
 ```
 
 # Prep data and make plots
