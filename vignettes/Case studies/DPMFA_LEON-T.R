@@ -293,13 +293,13 @@ if(type == "PMFA"){
     solved <- World$Solve(get(emis_df_name), needdebug = FALSE, get(sample_df_name))
     assign(paste0("solved_ss_", i), solved)
     
-    saveRDS(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/SimpleBoxData/", emis_df_name), solved)
+    saveRDS(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/SimpleBoxData/", emis_df_name, ".R"), solved)
     
     # Get the concentrations
     conc_df_name <- paste0("solution_", i)
     conc <- World$GetConcentration()
     
-    saveRDS(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/SimpleBoxData/", conc_df_name), conc)
+    saveRDS(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/SimpleBoxData/", conc_df_name, ".R"), conc)
     
     assign(conc_df_name, conc)
   }
@@ -314,7 +314,7 @@ if(type == "PMFA"){
     solved <- World$Solve(World$Solve(get(i)), sample_df, tmax = tmax, needdebug = F)
     assign(paste0("solved_dyn_", i), solved)
     
-    saveRDS(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/SimpleBoxData/", emis_df_name), solved)
+    saveRDS(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/SimpleBoxData/", emis_df_name, ".R"), solved)
     
     # Get the concentrations
     conc_df_name <- paste0("solution_", i)
