@@ -153,8 +153,10 @@ for(i in sources){
 ```
 
 ```{r Make a separate emission df for every polymer}
-polymers <- unique(data_filtered$Polymer)
+TESTING = T
+if(TESTING==TRUE) data_filtered <- data_filtered |> filter(RUN<11)
 
+polymers <- unique(data_filtered$Polymer)
 for(source in filtersource){
   for(pol in polymers){
     filtered <- data_filtered |>
@@ -189,7 +191,10 @@ for(source in filtersource){
         filter(Year == y) |>
         nest(Emis = c(RUN, value)) 
       
-      df_name <- paste0("emis_ss_", source, "_", pol)
+    source_name <- str_replace_all(source, "[()]", "")  # Remove parentheses
+    source_name <- str_replace_all(source, " ", "_")   # Replace spaces with underscores
+    
+      df_name <- paste0("emis_ss_", source_name, "_", pol)
       
       assign(df_name, emis_df_ss)
       
@@ -299,6 +304,7 @@ suppressWarnings({
 })
 ```
 
+
 ```{r}
 # Generate the correct number of samples
 n_samples <- nrow(emis_df_ss$Emis[[1]]) # Number of emission runs 
@@ -388,28 +394,34 @@ for(source in filtersource){
   sample_dfs <- lapply(sample_df_names, get)
 }
 
+
 # Function to process each dataframe
-  process_sample_df <- function(sample_df, # data frame with nested samples in data
-                                scales, # all SimpleBox scales
-                                water, # all SimpleBox water compartments
-                                soil_sediment, # all SimpleBox soil and sediment compartments
-                                species, # all SimpleBox species
-                                small_large, # all small and large SimpleBox names
-                                all_SC, # all SimpleBox subcompartment names
-                                soil) { # all SimpleBox soil compartments
-    exploded_scales <- explode(sample_df, target_col = "Scale", explode_value = "any", new_values = scales)
-    exploded_water <- explode(exploded_scales, target_col = "SubCompart", explode_value = "Water", new_values = water)
-    exploded_soil_sediment <- explode(exploded_water, target_col = "SubCompart", explode_value = "Soil_Sediment", new_values = soil_sediment)
-    exploded_species <- explode(exploded_soil_sediment, target_col = "Species", explode_value = "any", new_values = species)
-    exploded_small_large <- explode(exploded_species, target_col = "Species", explode_value = "Small_Large", new_values = small_large)
-    exploded_subcomparts <- explode(exploded_small_large, target_col = "SubCompart", explode_value = "any", new_values = all_SC)
-    exploded_soil <- explode(exploded_subcomparts, target_col = "SubCompart", explode_value = "Soil", new_values = soil)
-    
-    sample_df_cleaned <- exploded_soil
-    
-    return(sample_df_cleaned)
-  }
+process_sample_df <- function(sample_df, # data frame with nested samples in data
+                              scales=c("Arctic", "Tropic", "Moderate", "Regional", "Continental"), # all SimpleBox scales
+                              water=c("lake", "sea", "deepocean", "river"), # all SimpleBox water compartments
+                              soil_sediment=c("marinesediment", "freshwatersediment", 
+                                              "lakesediment","naturalsoil", 
+                                              "agriculturalsoil", "othersoil"), # all SimpleBox soil and sediment compartments
+                              species=c("Large", "Small", "Solid"), # all SimpleBox species
+                              small_large=c("Small", "Large"), # all small and large SimpleBox names
+                              all_SC=c("air", "cloudwater","marinesediment", "freshwatersediment", 
+                                       "lakesediment","naturalsoil", 
+                                       "agriculturalsoil", "othersoil",
+                                       "lake", "sea", "deepocean", "river"), # all SimpleBox subcompartment names
+                              soil=c("naturalsoil", "agriculturalsoil", "othersoil")) { # all SimpleBox soil compartments
+  exploded_scales <- explode(sample_df, target_col = "Scale", explode_value = "any", new_values = scales)
+  exploded_water <- explode(exploded_scales, target_col = "SubCompart", explode_value = "Water", new_values = water)
+  exploded_soil_sediment <- explode(exploded_water, target_col = "SubCompart", explode_value = "Soil_Sediment", new_values = soil_sediment)
+  exploded_species <- explode(exploded_soil_sediment, target_col = "Species", explode_value = "any", new_values = species)
+  exploded_small_large <- explode(exploded_species, target_col = "Species", explode_value = "Small_Large", new_values = small_large)
+  exploded_subcomparts <- explode(exploded_small_large, target_col = "SubCompart", explode_value = "any", new_values = all_SC)
+  exploded_soil <- explode(exploded_subcomparts, target_col = "SubCompart", explode_value = "Soil", new_values = soil)
   
+  sample_df_cleaned <- exploded_soil
+  
+  return(sample_df_cleaned)
+}
+
 # Apply the processing function to each dataframe in the list
 cleaned_dfs <- lapply(sample_dfs, process_sample_df)
 
@@ -509,20 +521,23 @@ start_time <- Sys.time()
 if(type == "PMFA"){ 
   World$NewSolver("UncertainSolver")
   
-  for(pol in polymers){
-    # Get the emissions (kg)
-    emis_df_name <- paste0("emis_ss_", pol)
-    sample_df_name <- paste0("sample_df_", pol)
-    
-    solved <- World$Solve(get(emis_df_name), needdebug = FALSE, get(sample_df_name))
-    assign(paste0("solved_ss_", pol), solved)
-    
-    # Get the concentrations
-    conc_df_name <- paste0("solution_", pol)
-    conc <- World$GetConcentration()
-    
-    assign(conc_df_name, conc)
+  for(Source in source_names){
+    for(pol in polymers){
+      # Get the emissions (kg)
+      emis_df_name <- paste("emis_ss",Source, pol,sep="_")
+      sample_df_name <- paste("sample_df",Source, pol,sep="_")
+      
+      solved <- World$Solve(get(emis_df_name), needdebug = FALSE, get(sample_df_name))
+      assign(paste0("solved_ss_", pol), solved)
+      
+      # Get the concentrations
+      conc_df_name <- paste0("solution_", pol)
+      conc <- World$GetConcentration()
+      
+      assign(conc_df_name, conc)
+    }
   }
+  
   
 } else if(type == "DPMFA"){
   World$NewSolver("UncertainDynamicSolver")
@@ -567,12 +582,12 @@ plot_theme <-  theme(
 # Plot the data for each polymer separately, for all selected compartments (different plots depending on PMFA or DPMFA)
 if(type == "PMFA"){
   for(mat in polymers){
-    solution_name <- paste0("Solution_", mat)
+    solution_name <- paste0("solution_", mat)
     df_name <- paste0("solved_ss_", mat)
     
     Solution <- get(solution_name) |>
       mutate(RUN = as.integer(RUN)) |>
-      mutate(EqMass = as.double(EqMass)) |>
+      # mutate(EqMass = as.double(EqMass)) |>
       mutate(Concentration = as.double(Concentration)) 
     
     solved <- get(df_name)
