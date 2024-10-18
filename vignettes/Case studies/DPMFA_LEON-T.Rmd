@@ -38,7 +38,11 @@ World$substance <- "microplastic"
 # Load the DPMFA data and make a nested emission dataframe
 
 ```{r Load DPMFA data}
+
+# on internal network drive:
 abspath <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/DPMFA_output/Baseline_PMFA_EU.RData"
+# for local case study folder:
+abspath <- "vignettes/Case Studies/CaseData/Baseline_PMFA_EU.RData"
 
 load(abspath)
 
@@ -254,6 +258,8 @@ trapezoidal <- function(u, a, b, c, d) {
 ```{r}
 # Path to excel file with distribution values
 path_dist <- "N:/Documents/Simplebox/Microplastic_variables_v2.xlsx"
+path_dist <- "vignettes/Case studies/CaseData/Microplastic_variables_v1.xlsx"
+
 
 excel_df <- read_excel(path_dist, sheet = "Polymer_data") 
 
@@ -300,11 +306,11 @@ source_names <- c()
 sample_df_names <- c()
 
 for(source in filtersource){
-    for(i in polymers){
+    for(pol in polymers){
     
     input_vars <- var_df |>
       filter(if_all(c(Distribution, a, b), ~ !is.na(.))) |>
-      filter(Polymer == i) |>
+      filter(Polymer == pol) |>
     group_by(VarName, Scale, SubCompart, Species, Polymer) |>
     filter(if (n() > 1) MP_source == source | (MP_source == "" & !any(MP_source == source)) else TRUE) %>%
     ungroup()
@@ -373,7 +379,7 @@ for(source in filtersource){
     source_names <- paste0(source_names, source_name)
     
     # Save a separate dataframe for each material
-    sample_df_name <- paste0("sample_df_", source_name, "_", i)
+    sample_df_name <- paste0("sample_df_", source_name, "_", pol)
     sample_df_names <- paste0(sample_df_names, sample_df_name)
     
     assign(sample_df_name, sample_df)
@@ -495,16 +501,16 @@ start_time <- Sys.time()
 if(type == "PMFA"){ 
   World$NewSolver("UncertainSolver")
   
-  for(i in polymers){
+  for(pol in polymers){
     # Get the emissions (kg)
-    emis_df_name <- paste0("emis_ss_", i)
-    sample_df_name <- paste0("sample_df_", i)
+    emis_df_name <- paste0("emis_ss_", pol)
+    sample_df_name <- paste0("sample_df_", pol)
     
     solved <- World$Solve(get(emis_df_name), needdebug = FALSE, get(sample_df_name))
-    assign(paste0("solved_ss_", i), solved)
+    assign(paste0("solved_ss_", pol), solved)
     
     # Get the concentrations
-    conc_df_name <- paste0("solution_", i)
+    conc_df_name <- paste0("solution_", pol)
     conc <- World$GetConcentration()
     
     assign(conc_df_name, conc)
@@ -513,15 +519,15 @@ if(type == "PMFA"){
 } else if(type == "DPMFA"){
   World$NewSolver("UncertainDynamicSolver")
   
-  for(i in polymers){
-    emis_df_name <- paste0("emis_dyn_", i)
-    sample_df_name <- pasteo("sample_df_", i)
+  for(pol in polymers){
+    emis_df_name <- paste0("emis_dyn_", pol)
+    sample_df_name <- pasteo("sample_df_", pol)
     
-    solved <- World$Solve(World$Solve(get(i)), sample_df, tmax = tmax, needdebug = F)
-    assign(paste0("solved_dyn_", i), solved)
+    solved <- World$Solve(World$Solve(get(pol)), sample_df, tmax = tmax, needdebug = F)
+    assign(paste0("solved_dyn_", pol), solved)
     
     # Get the concentrations
-    conc_df_name <- paste0("solution_", i)
+    conc_df_name <- paste0("solution_", pol)
     conc <- World$GetConcentration()
     
     assign(conc_df_name, conc)
