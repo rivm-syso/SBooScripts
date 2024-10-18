@@ -59,7 +59,7 @@ data_long <-
   pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
                names_to = "Year",
                values_to = "Mass_Polymer_kt") 
-  
+
 source_names <- unique(data_long$Source)
 
 print(source_names)
@@ -156,45 +156,45 @@ for(i in sources){
 polymers <- unique(data_filtered$Polymer)
 
 for(source in filtersource){
-   for(pol in polymers){
-   filtered <- data_filtered |>
-     filter(Polymer == pol)
-   
-   df_names <- c()
-   
-   if(type == "DPMFA"){
-     # Make an emission dataframe for the dynamic uncertain solver
-     emis_df_dyn <- filtered |>
-       group_by(Abbr, Year) |>
-       rename(Timed = Year) |>
-       mutate(Timed = as.double(Timed)*(365.25*24*3600)) |>
-       nest(Emis = c(RUN, value)) 
-     
-     df_name <- paste0("emis_dyn_", source, "_", pol)
-     
-     assign(df_name, emis_df_dyn)
-  
-     df_names <- c(df_names, df_name)
-     
-     ymin <- min(emis_df_dyn$Year)
-     ymax <- max(emis_df_dyn$Year)
-     
-   } else if(type == "PMFA"){
+  for(pol in polymers){
+    filtered <- data_filtered |>
+      filter(Polymer == pol)
     
-     # Select data for 2019
-     y <- 2019
+    df_names <- c()
     
-     # Make an emission dataframe for the steady uncertain solver
-     emis_df_ss <- filtered |>
-       filter(Year == y) |>
-       nest(Emis = c(RUN, value)) 
-     
-     df_name <- paste0("emis_ss_", source, "_", pol)
-     
-     assign(df_name, emis_df_ss)
-     
-     df_names <- c(df_names, df_name)
-   }
+    if(type == "DPMFA"){
+      # Make an emission dataframe for the dynamic uncertain solver
+      emis_df_dyn <- filtered |>
+        group_by(Abbr, Year) |>
+        rename(Timed = Year) |>
+        mutate(Timed = as.double(Timed)*(365.25*24*3600)) |>
+        nest(Emis = c(RUN, value)) 
+      
+      df_name <- paste0("emis_dyn_", source, "_", pol)
+      
+      assign(df_name, emis_df_dyn)
+      
+      df_names <- c(df_names, df_name)
+      
+      ymin <- min(emis_df_dyn$Year)
+      ymax <- max(emis_df_dyn$Year)
+      
+    } else if(type == "PMFA"){
+      
+      # Select data for 2019
+      y <- 2019
+      
+      # Make an emission dataframe for the steady uncertain solver
+      emis_df_ss <- filtered |>
+        filter(Year == y) |>
+        nest(Emis = c(RUN, value)) 
+      
+      df_name <- paste0("emis_ss_", source, "_", pol)
+      
+      assign(df_name, emis_df_ss)
+      
+      df_names <- c(df_names, df_name)
+    }
   }
 }
 ```
@@ -215,7 +215,7 @@ uniform <- function(u, a, b) {                     # u = samples, a = min, b = m
 
 # Define power law distribution function
 power_law <- function(u, a, b, c){                 # u = samples, a = min, b = max, c = alpha
-
+  
   # Ensure that samples are within [0, 1]
   samples <- pmin(pmax(u, 0), 1)
   
@@ -306,14 +306,14 @@ source_names <- c()
 sample_df_names <- c()
 
 for(source in filtersource){
-    for(pol in polymers){
+  for(pol in polymers){
     
     input_vars <- var_df |>
       filter(if_all(c(Distribution, a, b), ~ !is.na(.))) |>
       filter(Polymer == pol) |>
-    group_by(VarName, Scale, SubCompart, Species, Polymer) |>
-    filter(if (n() > 1) MP_source == source | (MP_source == "" & !any(MP_source == source)) else TRUE) %>%
-    ungroup()
+      group_by(VarName, Scale, SubCompart, Species, Polymer) |>
+      filter(if (n() > 1) MP_source == source | (MP_source == "" & !any(MP_source == source)) else TRUE) %>%
+      ungroup()
     
     varnames <- input_vars$VarName
     
@@ -327,13 +327,13 @@ for(source in filtersource){
       df <- input_vars[j, ]
       
       varname <- df$VarName
-        
+      
       var <- df |>
         select(VarName, Scale, SubCompart, Species, a, b, c, d)
-        
+      
       name <- paste0("var", j)
       var_df_names <- c(var_df_names, name)
-        
+      
       assign(name, var)
     }  
     
@@ -348,8 +348,8 @@ for(source in filtersource){
       }))
     
     sample_df <- params
-  
-    # Transform each LHS sample column to the corresponding triangular distribution
+    
+    # Transform each LHS sample column to the corresponding  distribution
     for (k in 1:n_vars) {
       a <- filter(params$data[[k]], id == "a") |> pull(value)
       b <- filter(params$data[[k]], id == "b") |> pull(value)
@@ -366,10 +366,10 @@ for(source in filtersource){
         samples <- trapezoidal(lhs_samples[, k], a, b, c, d)
         #samples <- trapezoidal(lhs_samples[, k], a, b, c, d)
       }
-  
+      
       # Create a new tibble for 'data' with samples replacing original values
       new_data <- tibble(value = samples)
-  
+      
       # Update the data column in the sample_df
       sample_df$data[[k]] <- new_data
     }
@@ -386,9 +386,17 @@ for(source in filtersource){
   }
   
   sample_dfs <- lapply(sample_df_names, get)
-  
-  # Function to process each dataframe
-  process_sample_df <- function(sample_df) {
+}
+
+# Function to process each dataframe
+  process_sample_df <- function(sample_df, # data frame with nested samples in data
+                                scales, # all SimpleBox scales
+                                water, # all SimpleBox water compartments
+                                soil_sediment, # all SimpleBox soil and sediment compartments
+                                species, # all SimpleBox species
+                                small_large, # all small and large SimpleBox names
+                                all_SC, # all SimpleBox subcompartment names
+                                soil) { # all SimpleBox soil compartments
     exploded_scales <- explode(sample_df, target_col = "Scale", explode_value = "any", new_values = scales)
     exploded_water <- explode(exploded_scales, target_col = "SubCompart", explode_value = "Water", new_values = water)
     exploded_soil_sediment <- explode(exploded_water, target_col = "SubCompart", explode_value = "Soil_Sediment", new_values = soil_sediment)
@@ -396,13 +404,12 @@ for(source in filtersource){
     exploded_small_large <- explode(exploded_species, target_col = "Species", explode_value = "Small_Large", new_values = small_large)
     exploded_subcomparts <- explode(exploded_small_large, target_col = "SubCompart", explode_value = "any", new_values = all_SC)
     exploded_soil <- explode(exploded_subcomparts, target_col = "SubCompart", explode_value = "Soil", new_values = soil)
-  
+    
     sample_df_cleaned <- exploded_soil
-  
+    
     return(sample_df_cleaned)
   }
-}
-
+  
 # Apply the processing function to each dataframe in the list
 cleaned_dfs <- lapply(sample_dfs, process_sample_df)
 
@@ -644,11 +651,11 @@ if(type == "PMFA"){
       ggsave(paste0("N:/Documents/Simplebox/LEON-T_plots/Concentration_plot_", scale, ".png"), plot=conc_p)
     }
   }
-
+  
 } else if(type == "DPMFA"){        
   
   # TO DO: Make plots for DPMFA output
-
+  
 }
 
 ```
