@@ -158,8 +158,7 @@ for (i in 1:n_comps) {
 World$NewSolver("UncertainSolver")
 solved <- World$Solve(emis_df, needdebug = F, sample_df)
 
-
-
+conc <- World$GetConcentration()
 
 masses <- solved$SteadyStateMass
 emis <- solved$Input_Emission

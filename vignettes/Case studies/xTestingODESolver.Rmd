@@ -774,7 +774,7 @@ CompartmentsConc_corrected[, names(CompartmentsConc_combined_adjusted)] <- Compa
 
 
 plot(CompartmentsConc_corrected$time, CompartmentsConc_corrected$w1CA, type = "l",
-     xlab = "Time", ylab = "Concentration [g/L]",
+     xlab = "Time (s)", ylab = "Concentration [g/L]",
      main = "Freshwater concentrations over time",
      col = "blue") # Set color for w1CA
 
@@ -787,7 +787,7 @@ legend("topright", legend = c("W1CA", "W1CP", "W1CS"), col = c("blue", "red", "g
 
 
 plot(CompartmentsConc_corrected$time, CompartmentsConc_corrected$sd1CA, type = "l",
-     xlab = "Time", ylab = "Concentration [g/kg w.w.]",
+     xlab = "Time (s)", ylab = "Concentration [g/kg w.w.]",
      main = "Soil concentrations over time",
      col = "blue") # Set color for w1CA
 
