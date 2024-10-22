@@ -39,8 +39,6 @@ World$substance <- "microplastic"
 
 ```{r Load DPMFA data}
 
-# on internal network drive:
-#abspath <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/DPMFA_output/Baseline_PMFA_EU.RData"
 # for local case study folder:
 abspath <- "vignettes/Case Studies/CaseData/Baseline_PMFA_EU.RData"
 
@@ -98,6 +96,7 @@ data_filtered <- data_summed |>
   filter(Year == y) |>
   select(Source, To_Compartment, Mass_Polymer_kg_s, Year, RUN, Polymer) |>
   mutate(Scale = SBscale) |>
+  filter(To_Compartment != "Sub-surface soil (micro)") |> # Exclude sub-surface soil because this is outside the scope of SimpleBox
   mutate(Compartment = case_when(
     str_detect(To_Compartment, "soil") ~ "s",
     str_detect(To_Compartment, "water") ~ "w",
@@ -106,7 +105,6 @@ data_filtered <- data_summed |>
   mutate(Subcompartment = case_when(
     str_detect(To_Compartment, "Agricultural") ~ "2",
     str_detect(To_Compartment, "Natural") ~ "1",
-    str_detect(To_Compartment, "Sub-surface") ~ "3",
     str_detect(To_Compartment, "Road side") ~ "3",
     str_detect(To_Compartment, "Residential") ~ "3",
     str_detect(To_Compartment, "Sea") ~ "2",
@@ -181,15 +179,32 @@ For the source tyre wear, we want to estimate the concentration of TWP in road s
 
 To estimate this, two datapoints are needed: 
 - The total road length in the EU (https://erf.be/statistics/road-network-2024/)
-- The mean width of road side soil
+- The mean width of road side soil (2m, based on deliverable 3.2, figure 23)
+
+Zorgen dat er in totaal evenveel landoppervlak is
 
 ```{r Estimate area of road side soil in the EU}
+path_dist <- "vignettes/Case studies/CaseData/Road_network_data.xlsx"
+RN_data <- read_excel(path_dist, sheet = "Data") 
 
+# Sum the data to get the total length of the road network in EU27 countries
+road_length_EU <- sum(RN_data$Total)
+RL_m <- road_length_EU*1000 
 
+# Multiply the road length with the width of roadside soil on both sides of the road
+RSS_width <- 2 #in meters
+RSS_area_EU <- RL_m*RSS_width*2 # Total area of roadside soil in the EU27 in m^2
 
+# TO DO: Check if area should be in m or km in SB as input
 
-road_length_EU <- 4852242 # Total Road length (km) EU in 2013, will try to find a more recent source
-RL_km <- road_length_EU*1000
+# Check the current value for other soil area in SimpleBox on continental scale
+areas <- World$fetchData("Area") |>
+  filter(Scale == "Continental") |>
+  filter(SubCompart == "othersoil" | SubCompart == "naturalsoil" | SubCompart == "agriculturalsoil") |>
+  mutate(new_area = case_when(
+    SubCompart == "othersoil" ~ RSS_area_EU,
+    TRUE ~ NA
+  ))
 
 ```
 
@@ -251,9 +266,7 @@ trapezoidal <- function(u, a, b, c, d) {
 
 ```{r}
 # Path to excel file with distribution values
-path_dist <- "N:/Documents/Simplebox/Microplastic_variables_v2.xlsx"
 path_dist <- "vignettes/Case studies/CaseData/Microplastic_variables_v2.xlsx"
-
 
 excel_df <- read_excel(path_dist, sheet = "Polymer_data") 
 
@@ -650,7 +663,7 @@ if(type == "PMFA"){
       
       print(mass_p)
       
-      ggsave(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figures/Mass_plot_", scale,  "_", dt, "_", runs, "runs.png"), plot=mass_p)
+      ggsave(paste0("vignettes/Case Studies/CaseData/Mass_plot_", scale,  "_", dt, "_", runs, "runs.png"), plot=mass_p)
     }
   }
 } else if(type == "DPMFA"){
@@ -723,7 +736,7 @@ if(type == "PMFA"){
       
       print(conc_p)
       
-      ggsave(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figures/Concentration_plot_", scale, "_", "_", runs, "runs.png"), plot=conc_p)
+      ggsave(paste0("vignettes/Case Studies/CaseData/Concentration_plot_", scale, "_", "_", runs, "runs.png"), plot=conc_p)
     }
   }
 } else if(type == "DPMFA"){
