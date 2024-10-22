@@ -38,6 +38,8 @@ World$substance <- "microplastic"
 
 ```{r Load DPMFA data}
 
+source_of_interest <- c("Tyre wear", "Paint") # NA for all
+
 # for local case study folder:
 abspath <- "vignettes/Case Studies/CaseData/Baseline_PMFA_EU.RData"
 
@@ -45,80 +47,81 @@ load(abspath)
 
 # Check if the loaded data is DPMFA or PMFA data
 if(exists("DPMFA_stocks")) {
-  type <- "DPMFA"
+  MFAtype <- "DPMFA"
 } else {
-  type <- "PMFA"
+  MFAtype <- "PMFA"
 }
 
-# Convert to long format
-data_long <- 
-  DPMFA_sink |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
-  pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
-               names_to = "Year",
-               values_to = "Mass_Polymer_kt") 
+if(MFAtype == "PMFA"){
+  
+  # unnest tibbles to very long format (memory intensive)
+  DPMFA_sink_long <- 
+    DPMFA_sink |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
+    pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
+                 names_to = "Year",
+                 values_to = "Mass_Polymer_kt") 
+  
+  # sink_source_names <- unique(DPMFA_sink_long$Source)
+  # print(sink_source_names)
 
-source_names <- unique(data_long$Source)
-
-print(source_names)
-
-source_of_interest <- c("Tyre wear", "Paint")
-
-if (all(!is.na(source_of_interest))) {
-  # Check if all the elements of source_of_interest are present in data_long$Source
-  if (!all(source_of_interest %in% unique(data_long$Source))) {
-    print("Selected source(s) not in dataframe")
-  } else {
-    sources <- source_of_interest
+  if (all(!is.na(source_of_interest))) {
+    # Check if all the elements of source_of_interest are present in DPMFA_sink_long$Source
+    if (!all(source_of_interest %in% unique(DPMFA_sink_long$Source))) {
+      print("Selected source(s) not in dataframe")
+    } else {
+      selected_sources <- source_of_interest
+    }
+  } else if (all(is.na(source_of_interest))) {
+    # If all elements are NA, return all unique sources
+    selected_sources <- unique(DPMFA_sink_long$Source)
   }
-} else if (all(is.na(source_of_interest))) {
-  # If all elements are NA, return all unique sources
-  sources <- unique(data_long$Source)
-}
-
-# Calculate kg/s from kt/y 
-data_summed <- data_long |>
-  filter(Source %in% sources) |>
-  mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |>
-  filter(Material_Type == "micro") 
-
-if(unique(data_long$Scale) == "EU"){
-  SBscale <- "C"
-} else if (unique(data_long$Scale) == "NL") {
-  SBscale <- "R"
-}
-
-# Select data for 2019
-y <- 2019
-
-# Assign SB compartments to DPMFA compartments
-data_filtered <- data_summed |>
-  filter(Year == y) |>
-  select(Source, To_Compartment, Mass_Polymer_kg_s, Year, RUN, Polymer) |>
-  mutate(Scale = SBscale) |>
-  mutate(Compartment = case_when(
-    str_detect(To_Compartment, "soil") ~ "s",
-    str_detect(To_Compartment, "water") ~ "w",
-    str_detect(To_Compartment, "air") ~ "a"
-  )) |>
-  mutate(Subcompartment = case_when(
-    str_detect(To_Compartment, "Agricultural") ~ "2",
-    str_detect(To_Compartment, "Natural") ~ "1",
-    str_detect(To_Compartment, "Sub-surface") ~ "3",
-    str_detect(To_Compartment, "Road side") ~ "3",
-    str_detect(To_Compartment, "Residential") ~ "3",
-    str_detect(To_Compartment, "Sea") ~ "2",
-    str_detect(To_Compartment, "Surface") ~ "1",
-    str_detect(To_Compartment, "Outdoor") ~ ""
-  )) |>
-  mutate(Species = case_when(
-    Source == "Tyre wear" ~ "P",
-    TRUE ~ "S")) |>
-  mutate(Abbr = paste0(Compartment, Subcompartment, Scale, Species)) |>
-  group_by(Source, Abbr, Year, RUN, Polymer) |>
-  summarise(Mass_Polymer_kg_s = sum(Mass_Polymer_kg_s)) |>
-  ungroup() |>
-  rename(value = Mass_Polymer_kg_s) |>
-  select(Source, Abbr, Year, Polymer,  value, RUN)
+  
+  # Calculate kg/s from kt/y 
+  DPMFA_sink_long_micro <- DPMFA_sink_long |>
+    filter(Source %in% selected_sources) |>
+    mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600),
+           .keep = c("unused")) |>
+    filter(Material_Type == "micro") |> 
+    mutate(Scale = case_when(
+      str_detect(Scale, "EU") ~ "C",
+      str_detect(Scale, "NL") ~ "R",
+    ))
+  
+  
+  # Select data for 2019
+  y <- 2019
+  
+  # Assign SB compartments to DPMFA compartments
+  data_filtered <- data_summed |>
+    filter(Year == y) |>
+    select(Source, To_Compartment, Mass_Polymer_kg_s, Year, RUN, Polymer) |>
+    # mutate(Scale = SBscale) |>
+    mutate(Compartment = case_when(
+      str_detect(To_Compartment, "soil") ~ "s",
+      str_detect(To_Compartment, "water") ~ "w",
+      str_detect(To_Compartment, "air") ~ "a"
+    )) |>
+    mutate(Subcompartment = case_when(
+      str_detect(To_Compartment, "Agricultural") ~ "2",
+      str_detect(To_Compartment, "Natural") ~ "1",
+      str_detect(To_Compartment, "Sub-surface") ~ "3",
+      str_detect(To_Compartment, "Road side") ~ "3",
+      str_detect(To_Compartment, "Residential") ~ "3",
+      str_detect(To_Compartment, "Sea") ~ "2",
+      str_detect(To_Compartment, "Surface") ~ "1",
+      str_detect(To_Compartment, "Outdoor") ~ ""
+    )) |>
+    mutate(Species = case_when(
+      Source == "Tyre wear" ~ "P",
+      TRUE ~ "S")) |>
+    mutate(Abbr = paste0(Compartment, Subcompartment, Scale, Species)) |>
+    group_by(Source, Abbr, Year, RUN, Polymer) |>
+    summarise(Mass_Polymer_kg_s = sum(Mass_Polymer_kg_s)) |>
+    ungroup() |>
+    rename(value = Mass_Polymer_kg_s) |>
+    select(Source, Abbr, Year, Polymer,  value, RUN)
+  
+} else (print("DPMFA not implemented yet"))
 
 ```
 
@@ -131,13 +134,13 @@ unique_combinations <- data_filtered |>
 
 if(type == "PMFA"){
   emis_df <- data_filtered |>
-      nest(Emis = c(RUN, value))
+    nest(Emis = c(RUN, value))
 } else if(type == "DPMFA"){
   emis_df_dyn <- data_filtered |>
-      group_by(Abbr, Year) |>
-      rename(Timed = Year) |>
-      mutate(Timed = as.double(Timed)*(365.25*24*3600)) |>
-      nest(Emis = c(RUN, value))
+    group_by(Abbr, Year) |>
+    rename(Timed = Year) |>
+    mutate(Timed = as.double(Timed)*(365.25*24*3600)) |>
+    nest(Emis = c(RUN, value))
   
   ymin <- min(emis_df_dyn$Year)
   ymax <- max(emis_df_dyn$Year)
@@ -249,79 +252,79 @@ n_samples <- nrow(emis_df$Emis[[1]]) # Number of emission runs
 sample_df <- data.frame()
 
 for(i in 1:nrow(unique_combinations)){
-    source <- unique_combinations$Source[i]
-    pol <- unique_combinations$Polymer[i]
+  source <- unique_combinations$Source[i]
+  pol <- unique_combinations$Polymer[i]
+  
+  input_vars <- var_df |>
+    filter(if_all(c(Distribution, a, b), ~ !is.na(.))) |>
+    filter(Polymer == pol) |>
+    group_by(VarName, Scale, SubCompart, Species, Polymer) |>
+    filter(if (n() > 1) MP_source == source | (MP_source == "" & !any(MP_source == source)) else TRUE) %>%
+    ungroup()
+  
+  varnames <- input_vars$VarName
+  
+  n_vars <- nrow(input_vars)
+  
+  # Generate LHS
+  lhs_samples <- randomLHS(n_samples, n_vars)
+  var_df_names <- c()
+  
+  for(j in 1:nrow(input_vars)){
+    df <- input_vars[j, ]
     
-    input_vars <- var_df |>
-      filter(if_all(c(Distribution, a, b), ~ !is.na(.))) |>
-      filter(Polymer == pol) |>
-      group_by(VarName, Scale, SubCompart, Species, Polymer) |>
-      filter(if (n() > 1) MP_source == source | (MP_source == "" & !any(MP_source == source)) else TRUE) %>%
-      ungroup()
+    varname <- df$VarName
     
-    varnames <- input_vars$VarName
+    var <- df |>
+      select(VarName, Scale, SubCompart, Species, a, b, c, d)
     
-    n_vars <- nrow(input_vars)
+    name <- paste0("var", j)
+    var_df_names <- c(var_df_names, name)
     
-    # Generate LHS
-    lhs_samples <- randomLHS(n_samples, n_vars)
-    var_df_names <- c()
+    assign(name, var)
+  }  
+  
+  params <- tibble(
+    varName = sapply(var_df_names, function(v) get(v)$VarName),
+    Scale = sapply(var_df_names, function(v) get(v)$Scale),
+    SubCompart = sapply(var_df_names, function(v) get(v)$SubCompart),
+    Species = sapply(var_df_names, function(v) get(v)$Species),
+    data = lapply(var_df_names, function(v) {
+      df <- get(v)
+      tibble(id = c("a", "b", "c", "d"), value = c(df$a, df$b, df$c, df$d))
+    }))
+  
+  sample_df_var <- params
+  
+  # Transform each LHS sample column to the corresponding  distribution
+  for (k in 1:n_vars) {
+    a <- filter(params$data[[k]], id == "a") |> pull(value)
+    b <- filter(params$data[[k]], id == "b") |> pull(value)
+    c <- filter(params$data[[k]], id == "c") |> pull(value)
+    d <- filter(params$data[[k]], id == "d") |> pull(value)
     
-    for(j in 1:nrow(input_vars)){
-      df <- input_vars[j, ]
-      
-      varname <- df$VarName
-      
-      var <- df |>
-        select(VarName, Scale, SubCompart, Species, a, b, c, d)
-      
-      name <- paste0("var", j)
-      var_df_names <- c(var_df_names, name)
-      
-      assign(name, var)
-    }  
-    
-    params <- tibble(
-      varName = sapply(var_df_names, function(v) get(v)$VarName),
-      Scale = sapply(var_df_names, function(v) get(v)$Scale),
-      SubCompart = sapply(var_df_names, function(v) get(v)$SubCompart),
-      Species = sapply(var_df_names, function(v) get(v)$Species),
-      data = lapply(var_df_names, function(v) {
-        df <- get(v)
-        tibble(id = c("a", "b", "c", "d"), value = c(df$a, df$b, df$c, df$d))
-      }))
-    
-    sample_df_var <- params
-    
-    # Transform each LHS sample column to the corresponding  distribution
-    for (k in 1:n_vars) {
-      a <- filter(params$data[[k]], id == "a") |> pull(value)
-      b <- filter(params$data[[k]], id == "b") |> pull(value)
-      c <- filter(params$data[[k]], id == "c") |> pull(value)
-      d <- filter(params$data[[k]], id == "d") |> pull(value)
-      
-      if(input_vars$Distribution[k] == "Triangular"){
-        samples <- triangular(lhs_samples[, k], a, b, c)
-      } else if(input_vars$Distribution[k] == "Uniform"){
-        samples <- uniform(lhs_samples[, k], a, b)
-      } else if(input_vars$Distribution[k] == "Powerlaw"){
-        samples <- power_law(lhs_samples[, k], a, b, c)
-      } else if(input_vars$Distribution[k] == "Trapezoidal"){
-        samples <- trapezoidal(lhs_samples[, k], a, b, c, d)
-      }
-      
-      # Create a new tibble for 'data' with samples replacing original values
-      new_data <- tibble(value = samples)
-      
-      # Update the data column in the sample_df
-      sample_df_var$data[[k]] <- new_data
+    if(input_vars$Distribution[k] == "Triangular"){
+      samples <- triangular(lhs_samples[, k], a, b, c)
+    } else if(input_vars$Distribution[k] == "Uniform"){
+      samples <- uniform(lhs_samples[, k], a, b)
+    } else if(input_vars$Distribution[k] == "Powerlaw"){
+      samples <- power_law(lhs_samples[, k], a, b, c)
+    } else if(input_vars$Distribution[k] == "Trapezoidal"){
+      samples <- trapezoidal(lhs_samples[, k], a, b, c, d)
     }
     
-    sample_df_var <- sample_df_var |>
-      mutate(Polymer = pol) |>
-      mutate(Source = source)
+    # Create a new tibble for 'data' with samples replacing original values
+    new_data <- tibble(value = samples)
     
-    sample_df <- rbind(sample_df, sample_df_var)
+    # Update the data column in the sample_df
+    sample_df_var$data[[k]] <- new_data
+  }
+  
+  sample_df_var <- sample_df_var |>
+    mutate(Polymer = pol) |>
+    mutate(Source = source)
+  
+  sample_df <- rbind(sample_df, sample_df_var)
 }
 
 # Function to process each dataframe
@@ -460,7 +463,7 @@ if(type == "PMFA"){
     emis_source <- emis_df |>
       filter(Source == source) |>
       filter(Polymer == pol) #|>
-      #select(Abbr, Emis)
+    #select(Abbr, Emis)
     
     sample_source <- sample_df |>
       filter(Source == source) |>
@@ -491,7 +494,7 @@ if(type == "PMFA"){
       concentrations <- rbind(concentrations, conc)
     }
   }
-    
+  
 } else if(type == "DPMFA"){
   World$NewSolver("UncertainDynamicSolver")
   
