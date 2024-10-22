@@ -38,8 +38,6 @@ World$substance <- "microplastic"
 
 ```{r Load DPMFA data}
 
-# on internal network drive:
-#abspath <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/DPMFA_output/Baseline_PMFA_EU.RData"
 # for local case study folder:
 abspath <- "vignettes/Case Studies/CaseData/Baseline_PMFA_EU.RData"
 
@@ -603,7 +601,7 @@ if(type == "PMFA"){
       
       print(mass_p)
       
-      ggsave(paste0("N:/Documents/Simplebox/LEON-T_plots/Mass_plot_", scale, ".png"), plot=mass_p)
+      ggsave(paste0("vignettes/Case Studies/CaseData/Mass_plot_", scale, ".png"), plot=mass_p)
       
       # Concentration plot
       conc_p <- ggplot(df, mapping = aes(x = concname, y = Concentration, fill = concname)) +  
@@ -621,7 +619,7 @@ if(type == "PMFA"){
       
       print(conc_p)
       
-      ggsave(paste0("N:/Documents/Simplebox/LEON-T_plots/Concentration_plot_", scale, ".png"), plot=conc_p)
+      ggsave(paste0("vignettes/Case Studies/CaseData/Concentration_plot_", scale, ".png"), plot=conc_p)
     }
   }
   
