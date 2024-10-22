@@ -1,16 +1,20 @@
-# Initialize
 
 library(lhs)
 library(readxl)
 library(viridis)
-library(doParallel)
+library(trapezoid)
 
 source("baseScripts/initWorld_onlyPlastics.R")
 
 World$substance <- "microplastic"
 
-#### Load and reclassify DPMFA data ####
-abspath <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/DPMFA_output/Baseline_PMFA_EU.RData"
+# Load the DPMFA data and make a nested emission dataframe
+
+
+# on internal network drive:
+#abspath <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/DPMFA_output/Baseline_PMFA_EU.RData"
+# for local case study folder:
+abspath <- "vignettes/Case Studies/CaseData/Baseline_PMFA_EU.RData"
 
 load(abspath)
 
@@ -26,24 +30,29 @@ data_long <-
   DPMFA_sink |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
   pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
                names_to = "Year",
-               values_to = "Mass_Polymer_kt")
+               values_to = "Mass_Polymer_kt") 
 
-# Choose a source of interest if you want, else write NA
-source_of_interest <- "Tyre wear"
+source_names <- unique(data_long$Source)
 
-if(!is.na(source_of_interest)){
-  if(!source_of_interest %in% unique(data_long$Source)){
-    print("Selected source not in dataframe")
+print(source_names)
+
+source_of_interest <- c("Tyre wear", "Paint")
+
+if (all(!is.na(source_of_interest))) {
+  # Check if all the elements of source_of_interest are present in data_long$Source
+  if (!all(source_of_interest %in% unique(data_long$Source))) {
+    print("Selected source(s) not in dataframe")
   } else {
-    filtersource <- source_of_interest
+    sources <- source_of_interest
   }
-} else if (is.na(source_of_interest)){
-  filtersource <- unique(data_long$Source)
+} else if (all(is.na(source_of_interest))) {
+  # If all elements are NA, return all unique sources
+  sources <- unique(data_long$Source)
 }
 
 # Calculate kg/s from kt/y 
 data_summed <- data_long |>
-  filter(Source %in% filtersource) |>
+  filter(Source %in% sources) |>
   #filter(between(RUN, 1, 10)) |>
   mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |>
   filter(Material_Type == "micro") 
@@ -54,9 +63,13 @@ if(unique(data_long$Scale) == "EU"){
   SBscale <- "R"
 }
 
+# Select data for 2019
+y <- 2019
+
 # Assign SB compartments to DPMFA compartments
 data_filtered <- data_summed |>
-  select(To_Compartment, Mass_Polymer_kg_s, Year, RUN, Polymer) |>
+  filter(Year == y) |>
+  select(Source, To_Compartment, Mass_Polymer_kg_s, Year, RUN, Polymer) |>
   mutate(Scale = SBscale) |>
   mutate(Compartment = case_when(
     str_detect(To_Compartment, "soil") ~ "s",
@@ -73,58 +86,38 @@ data_filtered <- data_summed |>
     str_detect(To_Compartment, "Surface") ~ "1",
     str_detect(To_Compartment, "Outdoor") ~ ""
   )) |>
-  mutate(Species = "S") |>
+  mutate(Species = case_when(
+    Source == "Tyre wear" ~ "P",
+    TRUE ~ "S")) |>
   mutate(Abbr = paste0(Compartment, Subcompartment, Scale, Species)) |>
-  group_by(Abbr, Year, RUN, Polymer) |>
+  group_by(Source, Abbr, Year, RUN, Polymer) |>
   summarise(Mass_Polymer_kg_s = sum(Mass_Polymer_kg_s)) |>
   ungroup() |>
   rename(value = Mass_Polymer_kg_s) |>
-  select(Abbr, Year, Polymer, value, RUN)
+  select(Source, Abbr, Year, Polymer,  value, RUN)
 
-polymers <- unique(data_filtered$Polymer)
 
-for(i in polymers){
-  filtered <- data_filtered |>
-    filter(Polymer == i)
+TESTING = T
+if(TESTING==TRUE) data_filtered <- data_filtered |> filter(RUN<11)
+
+unique_combinations <- data_filtered |>
+  distinct(Source, Polymer)
+
+if(type == "PMFA"){
+  emis_df <- data_filtered |>
+    nest(Emis = c(RUN, value))
+} else if(type == "DPMFA"){
+  emis_df_dyn <- data_filtered |>
+    group_by(Abbr, Year) |>
+    rename(Timed = Year) |>
+    mutate(Timed = as.double(Timed)*(365.25*24*3600)) |>
+    nest(Emis = c(RUN, value))
   
-  df_names <- c()
-  
-  if(type == "DPMFA"){
-    # Make an emission dataframe for the dynamic uncertain solver
-    emis_df_dyn <- filtered |>
-      group_by(Abbr, Year) |>
-      rename(Timed = Year) |>
-      mutate(Timed = as.double(Timed)*(365.25*24*3600)) |>
-      nest(Emis = c(RUN, value)) 
-    
-    df_name <- paste0("emis_dyn_", i)
-    
-    assign(df_name, emis_df_dyn)
-    
-    df_names <- c(df_names, df_name)
-    
-    ymin <- min(emis_df_dyn$Year)
-    ymax <- max(emis_df_dyn$Year)
-    
-  } else if(type == "PMFA"){
-    
-    # Select data for 2019
-    y <- 2019
-    
-    # Make an emission dataframe for the steady uncertain solver
-    emis_df_ss <- filtered |>
-      filter(Year == y) |>
-      nest(Emis = c(RUN, value)) 
-    
-    df_name <- paste0("emis_ss_", i)
-    
-    assign(df_name, emis_df_ss)
-    
-    df_names <- c(df_names, df_name)
-  }
+  ymin <- min(emis_df_dyn$Year)
+  ymax <- max(emis_df_dyn$Year)
 }
 
-#### Initialize distribution functions ####
+
 # Define triangular distribution function
 triangular <- function(u, a, b, c) {               # u = samples, a = min, b = max, c = peak
   ifelse(u < (c-a)/(b-a),
@@ -150,11 +143,40 @@ power_law <- function(u, a, b, c){                 # u = samples, a = min, b = m
   return(scaled_samples)
 }
 
-#### Make sample dataframes ####
-# Path to excel file with distribution values
-path_dist <- "N:/Documents/Simplebox/Microplastic_variables_v1.xlsx"
+trapezoidal <- function(u, a, b, c, d) {
+  # Ensure u is in the range [0, 1]
+  u <- pmin(pmax(u, 0), 1)  # Clip u to [0, 1]
+  
+  # Total width of the trapezoid
+  width_total <- d - a
+  base1 <- b - a    # Width of the left base
+  base2 <- d - c    # Width of the right base
+  
+  # Calculate the CDF segments
+  CDF_left <- base1 / width_total         # Area under the left triangle
+  CDF_flat <- 1 - base2 / width_total     # Area under the flat top
+  
+  result <- ifelse(u < (base1 / width_total), 
+                   a + sqrt(u * (base1) * width_total),  # Left triangle
+                   ifelse(u <= (CDF_flat + base1 / width_total), 
+                          b + (u - base1 / width_total) * (d - b),  # Flat top
+                          d - sqrt((1 - u) * (base2) * width_total)  # Right triangle
+                   )
+  )
+  
+  return(result)
+}
 
-excel_df <- read_excel(path_dist, sheet = "Polymer_data")
+
+# Create dataset with uncertain variables
+
+## Prepare excel data
+
+# Path to excel file with distribution values
+#path_dist <- "N:/Documents/Simplebox/Microplastic_variables_v2.xlsx"
+path_dist <- "vignettes/Case studies/CaseData/Microplastic_variables_v2.xlsx"
+
+excel_df <- read_excel(path_dist, sheet = "Polymer_data") 
 
 materials <- unique(excel_df$Polymer)
 
@@ -167,7 +189,6 @@ all_SC <- c(water, soil, sediment, air)
 materials <- c("HDPE", "LDPE", "PP", "PS", "PVC", "Acryl", "PA", "PET", "ABS", "EPS", "PC", "PMMA", "PUR", "RUBBER", "OTHER")
 species <- c("Large", "Small", "Solid")
 small_large <- c("Small", "Large")
-
 scales <- c("Arctic", "Tropic", "Moderate", "Regional", "Continental")
 
 explode <- function(df, target_col, explode_value, new_values) {
@@ -180,20 +201,31 @@ explode <- function(df, target_col, explode_value, new_values) {
 
 suppressWarnings({
   var_df <- explode(excel_df, target_col = "Polymer", explode_value = "any", new_values = materials) |>
-    mutate(a = as.numeric(a)) |>
-    mutate(b = as.numeric(b)) |>
-    mutate(c = as.numeric(c))
+    mutate(across(c(a, b, c, d), as.numeric)) |>
+    mutate(across(c(a, b, c, d), ~ case_when(
+      str_detect(Unit, "um") ~ . * 1000,
+      TRUE ~ .
+    ))) |>
+    mutate(Unit = case_when(
+      str_detect(Unit, "um") ~ "nm",
+      TRUE ~ Unit
+    ))
 })
 
 # Generate the correct number of samples
-n_samples <- nrow(emis_df_ss$Emis[[1]]) # Number of emission runs 
-sample_df_names <- c()
+n_samples <- nrow(emis_df$Emis[[1]]) # Number of emission runs 
+sample_df <- data.frame()
 
-for(i in polymers){
+for(i in 1:nrow(unique_combinations)){
+  source <- unique_combinations$Source[i]
+  pol <- unique_combinations$Polymer[i]
   
   input_vars <- var_df |>
     filter(if_all(c(Distribution, a, b), ~ !is.na(.))) |>
-    filter(Polymer == i) 
+    filter(Polymer == pol) |>
+    group_by(VarName, Scale, SubCompart, Species, Polymer) |>
+    filter(if (n() > 1) MP_source == source | (MP_source == "" & !any(MP_source == source)) else TRUE) %>%
+    ungroup()
   
   varnames <- input_vars$VarName
   
@@ -209,7 +241,7 @@ for(i in polymers){
     varname <- df$VarName
     
     var <- df |>
-      select(VarName, Scale, SubCompart, Species, a, b, c)
+      select(VarName, Scale, SubCompart, Species, a, b, c, d)
     
     name <- paste0("var", j)
     var_df_names <- c(var_df_names, name)
@@ -224,16 +256,17 @@ for(i in polymers){
     Species = sapply(var_df_names, function(v) get(v)$Species),
     data = lapply(var_df_names, function(v) {
       df <- get(v)
-      tibble(id = c("a", "b", "c"), value = c(df$a, df$b, df$c))
+      tibble(id = c("a", "b", "c", "d"), value = c(df$a, df$b, df$c, df$d))
     }))
   
-  sample_df <- params
+  sample_df_var <- params
   
-  # Transform each LHS sample column to the corresponding triangular distribution
+  # Transform each LHS sample column to the corresponding  distribution
   for (k in 1:n_vars) {
-    a <- filter(params$data[[k]], id == "a") %>% pull(value)
-    b <- filter(params$data[[k]], id == "b") %>% pull(value)
-    c <- filter(params$data[[k]], id == "c") %>% pull(value)
+    a <- filter(params$data[[k]], id == "a") |> pull(value)
+    b <- filter(params$data[[k]], id == "b") |> pull(value)
+    c <- filter(params$data[[k]], id == "c") |> pull(value)
+    d <- filter(params$data[[k]], id == "d") |> pull(value)
     
     if(input_vars$Distribution[k] == "Triangular"){
       samples <- triangular(lhs_samples[, k], a, b, c)
@@ -241,90 +274,211 @@ for(i in polymers){
       samples <- uniform(lhs_samples[, k], a, b)
     } else if(input_vars$Distribution[k] == "Powerlaw"){
       samples <- power_law(lhs_samples[, k], a, b, c)
+    } else if(input_vars$Distribution[k] == "Trapezoidal"){
+      samples <- trapezoidal(lhs_samples[, k], a, b, c, d)
     }
     
     # Create a new tibble for 'data' with samples replacing original values
     new_data <- tibble(value = samples)
     
     # Update the data column in the sample_df
-    sample_df$data[[k]] <- new_data
+    sample_df_var$data[[k]] <- new_data
   }
   
-  # Save a separate dataframe for each material
-  sample_df_name <- paste0("sample_df_",i)
-  sample_df_names <- paste0(sample_df_names, sample_df_name)
+  sample_df_var <- sample_df_var |>
+    mutate(Polymer = pol) |>
+    mutate(Source = source)
   
-  assign(sample_df_name, sample_df)
+  sample_df <- rbind(sample_df, sample_df_var)
 }
 
-sample_dfs <- lapply(sample_df_names, get)
-
 # Function to process each dataframe
-process_sample_df <- function(sample_df) {
+process_sample_df <- function(sample_df, # data frame with nested samples in data
+                              scales=c("Arctic", "Tropic", "Moderate", "Regional", "Continental"), # all SimpleBox scales
+                              water=c("lake", "sea", "deepocean", "river"), # all SimpleBox water compartments
+                              soil_sediment=c("marinesediment", "freshwatersediment", 
+                                              "lakesediment","naturalsoil", 
+                                              "agriculturalsoil", "othersoil"), # all SimpleBox soil and sediment compartments
+                              species=c("Large", "Small", "Solid"), # all SimpleBox species
+                              small_large=c("Small", "Large"), # all small and large SimpleBox names
+                              all_SC=c("air", "cloudwater","marinesediment", "freshwatersediment", 
+                                       "lakesediment","naturalsoil", 
+                                       "agriculturalsoil", "othersoil",
+                                       "lake", "sea", "deepocean", "river"), # all SimpleBox subcompartment names
+                              soil=c("naturalsoil", "agriculturalsoil", "othersoil")) { # all SimpleBox soil compartments
+  
   exploded_scales <- explode(sample_df, target_col = "Scale", explode_value = "any", new_values = scales)
-  exploded_water <- explode(exploded_scales, target_col = "SubCompart", explode_value = "water", new_values = water)
-  exploded_soil_sediment <- explode(exploded_water, target_col = "SubCompart", explode_value = "soil_sediment", new_values = soil_sediment)
+  exploded_water <- explode(exploded_scales, target_col = "SubCompart", explode_value = "Water", new_values = water)
+  exploded_soil_sediment <- explode(exploded_water, target_col = "SubCompart", explode_value = "Soil_Sediment", new_values = soil_sediment)
   exploded_species <- explode(exploded_soil_sediment, target_col = "Species", explode_value = "any", new_values = species)
-  exploded_small_large <- explode(exploded_species, target_col = "Species", explode_value = "small_large", new_values = small_large)
+  exploded_small_large <- explode(exploded_species, target_col = "Species", explode_value = "Small_Large", new_values = small_large)
   exploded_subcomparts <- explode(exploded_small_large, target_col = "SubCompart", explode_value = "any", new_values = all_SC)
-  exploded_soil <- explode(exploded_subcomparts, target_col = "SubCompart", explode_value = "soil", new_values = soil)
+  exploded_soil <- explode(exploded_subcomparts, target_col = "SubCompart", explode_value = "Soil", new_values = soil)
   
   sample_df_cleaned <- exploded_soil
   
   return(sample_df_cleaned)
 }
 
-# Apply the processing function to each dataframe in the list
-cleaned_dfs <- lapply(sample_dfs, process_sample_df)
+sample_df <- process_sample_df(sample_df)
 
-# Assign the cleaned dataframes back to their original names in the global environment
-names(cleaned_dfs) <- sample_df_names
-list2env(cleaned_dfs, envir = .GlobalEnv)
 
-#### Solve the matrix #### 
-if(type == "PMFA"){
+sample_df_Tyre_wear_RUBBER <- sample_df |>
+  filter(Source == "Tyre wear")
+
+alpha_water <- sample_df_Tyre_wear_RUBBER |>
+  filter(varName == "alpha") |>
+  filter(SubCompart == "sea") |>
+  filter(Species == "Small") 
+
+alpha_water <- alpha_water$data[[1]]
+
+# Make some figures of the distributions
+ggplot(alpha_water, mapping = aes(x = value)) +
+  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+  labs(title = "Distribution of attachment efficiency for water compartments",
+       x = "Alpha") + scale_x_continuous(trans='log10') +
+  theme_classic()
+
+alpha_soil <- sample_df_Tyre_wear_RUBBER |>
+  filter(varName == "alpha") |>
+  filter(SubCompart == "naturalsoil") |>
+  filter(Species == "Small") 
+
+alpha_soil <- alpha_soil$data[[1]]
+
+# Make some figures of the distributions
+ggplot(alpha_soil, mapping = aes(x = value)) +
+  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+  labs(title = "Distribution of attachment efficiency for soil and sediment compartments",
+       x = "Alpha")+ scale_x_continuous(trans='log10') +
+  theme_classic()
+
+rads <- sample_df_Tyre_wear_RUBBER |>
+  filter(varName == "RadS")
+
+rads <- rads$data[[1]]
+
+ggplot(rads, mapping = aes(x = value)) +
+  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+  labs(title = "Distribution of particle radius",
+       x = "Radius (nm)")+
+  theme_classic()
+
+rhos <- sample_df_Tyre_wear_RUBBER |>
+  filter(varName == "RhoS")
+
+rhos <- rhos$data[[1]]
+
+ggplot(rhos, mapping = aes(x = value)) +
+  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+  labs(title = "Distribution of density",
+       x = "Density (g/m^3)")+
+  theme_classic()
+
+kdeg_soil <- sample_df_Tyre_wear_RUBBER |>
+  filter(varName == "kdeg") |>
+  filter(SubCompart == "naturalsoil") |>
+  filter(Species == "Small") 
+
+kdeg_soil <- kdeg_soil$data[[1]]
+
+# Make some figures of the distributions
+ggplot(kdeg_soil, mapping = aes(x = value)) +
+  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+  labs(title = "Distribution of degradation rate constant for soil and sediment compartments",
+       x = "Degradation rate constant (s-1)")+
+  theme_classic()
+
+kdeg_water <- sample_df_Tyre_wear_RUBBER |>
+  filter(varName == "kdeg") |>
+  filter(SubCompart == "sea") |>
+  filter(Species == "Small") 
+
+kdeg_water <- kdeg_water$data[[1]]
+
+# Make some figures of the distributions
+ggplot(kdeg_water, mapping = aes(x = value)) +
+  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+  labs(title = "Distribution of degradation rate constant for water compartments",
+       x = "Degradation rate constant (s-1)")+
+  theme_classic()
+
+# Solve the matrix and calculate concentrations
+
+start_time <- Sys.time()
+
+solutions <- data.frame()
+concentrations <- data.frame()
+
+if(type == "PMFA"){ 
   World$NewSolver("UncertainSolver")
   
-  for(i in polymers){
-    # Get the emissions (kg)
-    emis_df_name <- paste0("emis_ss_", i)
-    sample_df_name <- paste0("sample_df_", i)
+  for(i in 1:nrow(unique_combinations)){
+    source <- unique_combinations$Source[i]
+    pol <- unique_combinations$Polymer[i]
     
-    solved <- World$Solve(get(emis_df_name), needdebug = FALSE, get(sample_df_name))
-    assign(paste0("solved_ss_", i), solved)
+    emis_source <- emis_df |>
+      filter(Source == source) |>
+      filter(Polymer == pol) #|>
+    #select(Abbr, Emis)
     
-    saveRDS(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/SimpleBoxData/", emis_df_name, ".R"), solved)
+    sample_source <- sample_df |>
+      filter(Source == source) |>
+      filter(Polymer == pol) |>
+      select(-c(Source, Polymer))
+    
+    solved <- World$Solve((emis_source), needdebug = F, sample_source)
+    solution <- solved$SteadyStateMass |>
+      mutate(Polymer = pol) |>
+      mutate(Source = source)
+    
+    if (nrow(solutions) == 0) {
+      solutions <- solution  # Initialize with the structure of `solution`
+    } else {
+      solutions <- rbind(solutions, solution)
+    }
     
     # Get the concentrations
-    conc_df_name <- paste0("solution_", i)
-    conc <- World$GetConcentration()
+    conc <- World$GetConcentration() |>
+      mutate(Polymer = pol) |>
+      mutate(Source = source)
     
-    saveRDS(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/SimpleBoxData/", conc_df_name, ".R"), conc)
+    print(colnames(conc))
     
-    assign(conc_df_name, conc)
+    if (nrow(concentrations) == 0) {
+      concentrations <- conc  # Initialize with the structure of `solution`
+    } else {
+      concentrations <- rbind(concentrations, conc)
+    }
   }
   
 } else if(type == "DPMFA"){
   World$NewSolver("UncertainDynamicSolver")
   
-  for(i in polymers){
-    emis_df_name <- paste0("emis_dyn_", i)
-    sample_df_name <- pasteo("sample_df_", i)
+  for(pol in polymers){
+    emis_df_name <- paste0("emis_dyn_", pol)
+    sample_df_name <- pasteo("sample_df_", pol)
     
-    solved <- World$Solve(World$Solve(get(i)), sample_df, tmax = tmax, needdebug = F)
-    assign(paste0("solved_dyn_", i), solved)
-    
-    saveRDS(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/SimpleBoxData/", emis_df_name, ".R"), solved)
+    solved <- World$Solve(World$Solve(get(pol)), sample_df, tmax = tmax, needdebug = F)
+    assign(paste0("solved_dyn_", pol), solved)
     
     # Get the concentrations
-    conc_df_name <- paste0("solution_", i)
+    conc_df_name <- paste0("solution_", pol)
     conc <- World$GetConcentration()
     
     assign(conc_df_name, conc)
   }
 }
+end_time <- Sys.time()
 
-#### Make figures ####
+elapsed_time <- end_time - start_time
+
+print(paste0("Elapsed time is ", elapsed_time))
+
+# 10000 runs will take 4 hours and 10 minutes per polymer-source combination.
+
+# Prep data and make plots
 
 # Create a plot theme
 plot_theme <-  theme(
@@ -341,12 +495,12 @@ plot_theme <-  theme(
 # Plot the data for each polymer separately, for all selected compartments (different plots depending on PMFA or DPMFA)
 if(type == "PMFA"){
   for(mat in polymers){
-    solution_name <- paste0("Solution_", mat)
+    solution_name <- paste0("solution_", mat)
     df_name <- paste0("solved_ss_", mat)
     
     Solution <- get(solution_name) |>
       mutate(RUN = as.integer(RUN)) |>
-      mutate(EqMass = as.double(EqMass)) |>
+      # mutate(EqMass = as.double(EqMass)) |>
       mutate(Concentration = as.double(Concentration)) 
     
     solved <- get(df_name)
@@ -405,7 +559,7 @@ if(type == "PMFA"){
       
       print(mass_p)
       
-      ggsave(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/SimpleBoxData/Mass_plot_", scale, ".png"), plot=mass_p)
+      ggsave(paste0("N:/Documents/Simplebox/LEON-T_plots/Mass_plot_", scale, ".png"), plot=mass_p)
       
       # Concentration plot
       conc_p <- ggplot(df, mapping = aes(x = concname, y = Concentration, fill = concname)) +  
@@ -423,7 +577,7 @@ if(type == "PMFA"){
       
       print(conc_p)
       
-      ggsave(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/SimpleBoxData/Concentration_plot_", scale, ".png"), plot=conc_p)
+      ggsave(paste0("N:/Documents/Simplebox/LEON-T_plots/Concentration_plot_", scale, ".png"), plot=conc_p)
     }
   }
   
@@ -432,20 +586,3 @@ if(type == "PMFA"){
   # TO DO: Make plots for DPMFA output
   
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -39,9 +39,9 @@ World$substance <- "microplastic"
 ```{r Load DPMFA data}
 
 # on internal network drive:
-abspath <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/DPMFA_output/Baseline_PMFA_EU.RData"
+#abspath <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/DPMFA_output/Baseline_PMFA_EU.RData"
 # for local case study folder:
-#abspath <- "vignettes/Case Studies/CaseData/Baseline_PMFA_EU.RData"
+abspath <- "vignettes/Case Studies/CaseData/Baseline_PMFA_EU.RData"
 
 load(abspath)
 
@@ -205,8 +205,8 @@ trapezoidal <- function(u, a, b, c, d) {
 
 ```{r Prepare excel data}
 # Path to excel file with distribution values
-path_dist <- "N:/Documents/Simplebox/Microplastic_variables_v2.xlsx"
-#path_dist <- "vignettes/Case studies/CaseData/Microplastic_variables_v1.xlsx"
+#path_dist <- "N:/Documents/Simplebox/Microplastic_variables_v2.xlsx"
+path_dist <- "vignettes/Case studies/CaseData/Microplastic_variables_v2.xlsx"
 
 excel_df <- read_excel(path_dist, sheet = "Polymer_data") 
 
@@ -462,27 +462,37 @@ if(type == "PMFA"){
     
     emis_source <- emis_df |>
       filter(Source == source) |>
-      filter(Polymer == pol) |>
-      select(Abbr, Emis)
+      filter(Polymer == pol) #|>
+      #select(Abbr, Emis)
     
     sample_source <- sample_df |>
       filter(Source == source) |>
       filter(Polymer == pol) |>
       select(-c(Source, Polymer))
     
-    solved <- World$Solve((emis_source), needdebug = FALSE, sample_source)
+    solved <- World$Solve((emis_source), needdebug = F, sample_source)
     solution <- solved$SteadyStateMass |>
       mutate(Polymer = pol) |>
       mutate(Source = source)
     
-    solutions <- rbind(solutions, solution)
+    if (nrow(solutions) == 0) {
+      solutions <- solution  # Initialize with the structure of `solution`
+    } else {
+      solutions <- rbind(solutions, solution)
+    }
     
     # Get the concentrations
     conc <- World$GetConcentration() |>
       mutate(Polymer = pol) |>
       mutate(Source = source)
     
-    concentrations <- rbind(concentrations, conc)
+    print(colnames(conc))
+    
+    if (nrow(concentrations) == 0) {
+      concentrations <- conc  # Initialize with the structure of `solution`
+    } else {
+      concentrations <- rbind(concentrations, conc)
+    }
   }
     
 } else if(type == "DPMFA"){
@@ -513,7 +523,7 @@ print(paste0("Elapsed time is ", elapsed_time))
 
 # Prep data and make plots
 
-```{r Solve steady state}
+```{r}
 
 # Create a plot theme
 plot_theme <-  theme(
