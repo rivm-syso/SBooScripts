@@ -195,15 +195,21 @@ RL_m <- road_length_EU*1000
 RSS_width <- 2 #in meters
 RSS_area_EU <- RL_m*RSS_width*2 # Total area of roadside soil in the EU27 in m^2
 
-# TO DO: Check if area should be in m or km in SB as input
-
 # Check the current value for other soil area in SimpleBox on continental scale
 areas <- World$fetchData("Area") |>
   filter(Scale == "Continental") |>
-  filter(SubCompart == "othersoil" | SubCompart == "naturalsoil" | SubCompart == "agriculturalsoil") |>
-  mutate(new_area = case_when(
+  filter(SubCompart == "othersoil" | SubCompart == "naturalsoil" | SubCompart == "agriculturalsoil")
+
+# Calculate the areas of natural and agriculturalsoil again, so that the total soil area stays the same
+nat_fraction <- areas$Area[2]/(areas$Area[1]+area$Area[2])
+nat_area <- ((sum(area$Area) - RSS_area_EU))*nat_fraction
+agri_area <- sum(area$Area)-nat_area
+
+areas <- areas |>
+mutate(new_area = case_when(
     SubCompart == "othersoil" ~ RSS_area_EU,
-    TRUE ~ NA
+    SubCompart == "naturalsoil" ~ nat_area,
+    SubCompart == "agriculturalsoil" ~ agri_area
   ))
 
 ```
@@ -386,6 +392,18 @@ for(i in 1:nrow(unique_combinations)){
   source_name <- str_replace_all(source, "[()]", "")  # Remove parentheses
   source_name <- str_replace_all(source, " ", "_")   # Replace spaces with underscores
   source_names <- paste0(source_names, source_name)
+  
+  # Alter the area of the soil compartments if the source is tyre wear
+  if(source == "Tyre wear"){
+    area <- areas |>
+      rowwise() |>
+      mutate(varName = "Area") |>
+      mutate(data = list(tibble(value = rep(new_area, n_samples)))) |>
+      select(Scale, SubCompart, varName, data) |>
+      mutate(Species = NA) 
+    
+    sample_df <- rbind(sample_df, area)
+  }
   
   # Save a separate dataframe for each material
   sample_df_name <- paste0("sample_df_", source_name, "_", pol)
