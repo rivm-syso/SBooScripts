@@ -39,6 +39,8 @@ World$substance <- "microplastic"
 ```{r Load DPMFA data}
 
 source_of_interest <- c("Tyre wear", "Paint") # NA for all
+# Select PMFA data for 2019
+PMFA_year <- 2019
 
 # for local case study folder:
 abspath <- "vignettes/Case Studies/CaseData/Baseline_PMFA_EU.RData"
@@ -55,30 +57,30 @@ if(exists("DPMFA_stocks")) {
 if(MFAtype == "PMFA"){
   
   # unnest tibbles to very long format (memory intensive)
-  DPMFA_sink_long <- 
+  DPMFA_sink <- 
     DPMFA_sink |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
     pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
                  names_to = "Year",
                  values_to = "Mass_Polymer_kt") 
   
-  # sink_source_names <- unique(DPMFA_sink_long$Source)
+  # sink_source_names <- unique(DPMFA_sink$Source)
   # print(sink_source_names)
-
+  
   if (all(!is.na(source_of_interest))) {
-    # Check if all the elements of source_of_interest are present in DPMFA_sink_long$Source
-    if (!all(source_of_interest %in% unique(DPMFA_sink_long$Source))) {
+    # Check if all the elements of source_of_interest are present in DPMFA_sink$Source
+    if (!all(source_of_interest %in% unique(DPMFA_sink$Source))) {
       print("Selected source(s) not in dataframe")
     } else {
       selected_sources <- source_of_interest
     }
   } else if (all(is.na(source_of_interest))) {
     # If all elements are NA, return all unique sources
-    selected_sources <- unique(DPMFA_sink_long$Source)
+    selected_sources <- unique(DPMFA_sink$Source)
   }
   
   # Calculate kg/s from kt/y 
-  DPMFA_sink_long_micro <- DPMFA_sink_long |>
-    filter(Source %in% selected_sources) |>
+  DPMFA_sink_micro <- DPMFA_sink |>
+    filter(Source %in% selected_sources) |> # remove sources not of interest
     mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600),
            .keep = c("unused")) |>
     filter(Material_Type == "micro") |> 
@@ -87,14 +89,11 @@ if(MFAtype == "PMFA"){
       str_detect(Scale, "NL") ~ "R",
     ))
   
-  
-  # Select data for 2019
-  y <- 2019
-  
   # Assign SB compartments to DPMFA compartments
-  data_filtered <- data_summed |>
-    filter(Year == y) |>
-    select(Source, To_Compartment, Mass_Polymer_kg_s, Year, RUN, Polymer) |>
+  DPMFA_sink_micro <- 
+    DPMFA_sink_micro |>
+    filter(Year == PMFA_year) |> # select for PMFA only 1 year
+    select(Source,Polymer, To_Compartment, Scale, Material_Type, Year, RUN, Mass_Polymer_kg_s) |>
     # mutate(Scale = SBscale) |>
     mutate(Compartment = case_when(
       str_detect(To_Compartment, "soil") ~ "s",
@@ -104,8 +103,8 @@ if(MFAtype == "PMFA"){
     mutate(Subcompartment = case_when(
       str_detect(To_Compartment, "Agricultural") ~ "2",
       str_detect(To_Compartment, "Natural") ~ "1",
-      str_detect(To_Compartment, "Sub-surface") ~ "3",
-      str_detect(To_Compartment, "Road side") ~ "3",
+      str_detect(To_Compartment, "Sub-surface") ~ "4", # subsurface out of scope, potential for future subcompartment
+      str_detect(To_Compartment, "Road side") ~ "3", # for now other soil, but potential for future subcompartment
       str_detect(To_Compartment, "Residential") ~ "3",
       str_detect(To_Compartment, "Sea") ~ "2",
       str_detect(To_Compartment, "Surface") ~ "1",
@@ -113,30 +112,36 @@ if(MFAtype == "PMFA"){
     )) |>
     mutate(Species = case_when(
       Source == "Tyre wear" ~ "P",
-      TRUE ~ "S")) |>
-    mutate(Abbr = paste0(Compartment, Subcompartment, Scale, Species)) |>
-    group_by(Source, Abbr, Year, RUN, Polymer) |>
+      .default = "S")) |>
+    mutate(Abbr = paste0(Compartment, Subcompartment, Scale, Species)) |> # Abbr is the key for SimpleBox compartments
+    mutate(Subcompartment = paste0(Compartment, Subcompartment)) |> 
+    group_by(Source, Polymer, Year, Material_Type, Abbr, RUN, Subcompartment, Scale, Species) |>
     summarise(Mass_Polymer_kg_s = sum(Mass_Polymer_kg_s)) |>
     ungroup() |>
-    rename(value = Mass_Polymer_kg_s) |>
-    select(Source, Abbr, Year, Polymer,  value, RUN)
+    rename(value = Mass_Polymer_kg_s) #|> why do we need it to be value?
+  #    select(Source, Abbr, Year, Polymer,  value, RUN)
   
 } else (print("DPMFA not implemented yet"))
+
+
+
+
 
 ```
 
 ```{r Make a df with the emissions}
 TESTING = T
-if(TESTING==TRUE) data_filtered <- data_filtered |> filter(RUN<11)
+if(TESTING==TRUE) DPMFA_sink_micro <- DPMFA_sink_micro |> filter(RUN<11)
 
-unique_combinations <- data_filtered |>
-  distinct(Source, Polymer)
+# Filter out emission subcompartments for which SimpleBox does not have a compartment (yet)
+DPMFA_sink_micro <-
+  DPMFA_sink_micro |> filter(Subcompartment %in% World$fetchData("AbbrC")$AbbrC)
 
-if(type == "PMFA"){
-  emis_df <- data_filtered |>
+if(MFAtype == "PMFA"){
+  DPMFA_sink_micro <- DPMFA_sink_micro |>
     nest(Emis = c(RUN, value))
-} else if(type == "DPMFA"){
-  emis_df_dyn <- data_filtered |>
+} else if(MFAtype == "DPMFA"){ # TODO when using DPMFA filtering should not occur for 1 year. All years should be used.
+  emis_df_dyn <- DPMFA_sink_micro |>
     group_by(Abbr, Year) |>
     rename(Timed = Year) |>
     mutate(Timed = as.double(Timed)*(365.25*24*3600)) |>
@@ -206,24 +211,42 @@ trapezoidal <- function(u, a, b, c, d) {
 ```{r Prepare excel data}
 # Path to excel file with distribution values
 #path_dist <- "N:/Documents/Simplebox/Microplastic_variables_v2.xlsx"
-path_dist <- "vignettes/Case studies/CaseData/Microplastic_variables_v2.xlsx"
+path_parameters_file <- "vignettes/Case studies/CaseData/Microplastic_variables_v1.xlsx"
 
-excel_df <- read_excel(path_dist, sheet = "Polymer_data") 
+Material_Parameters <- read_excel(path_parameters_file, sheet = "Polymer_data") |> 
+  # change um to nm unit coversion
+  mutate(across(c(a, b, c, d), as.numeric)) |>
+  mutate(across(c(a, b, c, d), ~ case_when(
+    str_detect(Unit, "um") ~ . * 1000,
+    TRUE ~ .
+  ))) |>
+  mutate(Unit = case_when(
+    str_detect(Unit, "um") ~ "nm",
+    TRUE ~ Unit
+  ))
 
-materials <- unique(excel_df$Polymer)
+materials <- unique(Material_Parameters$Polymer)
 
+
+
+
+# TODO: get these from SB objects and not set in text input:
 water <- c("lake", "sea", "deepocean", "river")
 soil <- c("naturalsoil", "agriculturalsoil", "othersoil")
 sediment <- c("marinesediment", "freshwatersediment", "lakesediment")
 soil_sediment <- c(soil, sediment)
 air <- c("air", "cloudwater")
 all_SC <- c(water, soil, sediment, air)
-materials <- c("HDPE", "LDPE", "PP", "PS", "PVC", "Acryl", "PA", "PET", "ABS", "EPS", "PC", "PMMA", "PUR", "RUBBER", "OTHER")
 species <- c("Large", "Small", "Solid")
 small_large <- c("Small", "Large")
 scales <- c("Arctic", "Tropic", "Moderate", "Regional", "Continental")
 
-explode <- function(df, target_col, explode_value, new_values) {
+# Only the ones with data in xlsx or with emission data are needed no? Why this vector?
+# materials <- c("HDPE", "LDPE", "PP", "PS", "PVC", "Acryl", "PA", "PET", "ABS", "EPS", "PC", "PMMA", "PUR", "RUBBER", "OTHER")
+
+materials <- unique(DPMFA_sink_micro$Polymer)
+
+explodeF <- function(df, target_col, explode_value, new_values) {
   df %>%
     # Use mutate to create a new column if the target column equals explode_value
     mutate(!!sym(target_col) := ifelse(!!sym(target_col) == explode_value, list(new_values), !!sym(target_col))) %>%
@@ -231,24 +254,25 @@ explode <- function(df, target_col, explode_value, new_values) {
     unnest(!!sym(target_col))
 }
 
+DefinedVariables <- lapply(unique(Material_Parameters$VarName),World$fetchData)
+names(DefinedVariables) = unique(Material_Parameters$VarName)
+
+
+# how to cope with any. For now this, but materials should be only for material being calculated for.
 suppressWarnings({
-  var_df <- explode(excel_df, target_col = "Polymer", explode_value = "any", new_values = materials) |>
-    mutate(across(c(a, b, c, d), as.numeric)) |>
-    mutate(across(c(a, b, c, d), ~ case_when(
-      str_detect(Unit, "um") ~ . * 1000,
-      TRUE ~ .
-    ))) |>
-    mutate(Unit = case_when(
-      str_detect(Unit, "um") ~ "nm",
-      TRUE ~ Unit
-    ))
+  var_df <- explodeF(Material_Parameters, target_col = "Polymer", explode_value = "any", new_values = materials)
 })
+
 ```
 
 
 ```{r Make sample df}
 # Generate the correct number of samples
-n_samples <- nrow(emis_df$Emis[[1]]) # Number of emission runs 
+n_samples <- nrow(DPMFA_sink_micro$Emis[[1]]) # Number of emission runs 
+
+unique_combinations <- DPMFA_sink_micro |>
+  distinct(Source, Polymer)
+
 sample_df <- data.frame()
 
 for(i in 1:nrow(unique_combinations)){
@@ -256,10 +280,11 @@ for(i in 1:nrow(unique_combinations)){
   pol <- unique_combinations$Polymer[i]
   
   input_vars <- var_df |>
-    filter(if_all(c(Distribution, a, b), ~ !is.na(.))) |>
-    filter(Polymer == pol) |>
+    filter(if_all(c(Distribution, a, b), ~ !is.na(.) )) |> # filter out non defined distributions
+    filter(Polymer == pol) |> 
+    # Not sure what the 3 lines below do.
     group_by(VarName, Scale, SubCompart, Species, Polymer) |>
-    filter(if (n() > 1) MP_source == source | (MP_source == "" & !any(MP_source == source)) else TRUE) %>%
+    filter(if (n() > 1) MP_source == source | (MP_source == "" & !any(MP_source == source)) else TRUE) |>
     ungroup()
   
   varnames <- input_vars$VarName
@@ -271,11 +296,12 @@ for(i in 1:nrow(unique_combinations)){
   var_df_names <- c()
   
   for(j in 1:nrow(input_vars)){
-    df <- input_vars[j, ]
     
-    varname <- df$VarName
+    # df <- input_vars[j, ]
     
-    var <- df |>
+    varname <-input_vars[j, ]$VarName
+    
+    var <- input_vars[j, ] |>
       select(VarName, Scale, SubCompart, Species, a, b, c, d)
     
     name <- paste0("var", j)
@@ -450,6 +476,9 @@ Steady state, DPMFA = dynamic)
 ```{r Solve steady state}
 start_time <- Sys.time()
 
+
+World$states
+
 solutions <- data.frame()
 concentrations <- data.frame()
 
@@ -460,7 +489,7 @@ if(type == "PMFA"){
     source <- unique_combinations$Source[i]
     pol <- unique_combinations$Polymer[i]
     
-    emis_source <- emis_df |>
+    emis_source <- DPMFA_sink_micro |>
       filter(Source == source) |>
       filter(Polymer == pol) #|>
     #select(Abbr, Emis)
