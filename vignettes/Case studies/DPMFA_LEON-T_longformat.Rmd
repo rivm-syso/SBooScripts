@@ -214,6 +214,7 @@ trapezoidal <- function(u, a, b, c, d) {
 path_parameters_file <- "vignettes/Case studies/CaseData/Microplastic_variables_v1.xlsx"
 
 Material_Parameters <- read_excel(path_parameters_file, sheet = "Polymer_data") |> 
+  
   # change um to nm unit coversion
   mutate(across(c(a, b, c, d), as.numeric)) |>
   mutate(across(c(a, b, c, d), ~ case_when(
@@ -226,26 +227,23 @@ Material_Parameters <- read_excel(path_parameters_file, sheet = "Polymer_data") 
   ))
 
 materials <- unique(Material_Parameters$Polymer)
-
+materials <- unique(DPMFA_sink_micro$Polymer) # materials in selected sources
 
 
 
 # TODO: get these from SB objects and not set in text input:
-water <- c("lake", "sea", "deepocean", "river")
-soil <- c("naturalsoil", "agriculturalsoil", "othersoil")
-sediment <- c("marinesediment", "freshwatersediment", "lakesediment")
-soil_sediment <- c(soil, sediment)
-air <- c("air", "cloudwater")
-all_SC <- c(water, soil, sediment, air)
-species <- c("Large", "Small", "Solid")
-small_large <- c("Small", "Large")
-scales <- c("Arctic", "Tropic", "Moderate", "Regional", "Continental")
+# water <- c("lake", "sea", "deepocean", "river")
+# soil <- c("naturalsoil", "agriculturalsoil", "othersoil")
+# sediment <- c("marinesediment", "freshwatersediment", "lakesediment")
+# soil_sediment <- c(soil, sediment)
+# air <- c("air", "cloudwater")
+# all_SC <- c(water, soil, sediment, air)
+# species <- c("Large", "Small", "Solid")
+# small_large <- c("Small", "Large")
+# scales <- c("Arctic", "Tropic", "Moderate", "Regional", "Continental")
 
 # Only the ones with data in xlsx or with emission data are needed no? Why this vector?
 # materials <- c("HDPE", "LDPE", "PP", "PS", "PVC", "Acryl", "PA", "PET", "ABS", "EPS", "PC", "PMMA", "PUR", "RUBBER", "OTHER")
-
-materials <- unique(DPMFA_sink_micro$Polymer)
-
 explodeF <- function(df, target_col, explode_value, new_values) {
   df %>%
     # Use mutate to create a new column if the target column equals explode_value
@@ -260,7 +258,7 @@ names(DefinedVariables) = unique(Material_Parameters$VarName)
 
 # how to cope with any. For now this, but materials should be only for material being calculated for.
 suppressWarnings({
-  var_df <- explodeF(Material_Parameters, target_col = "Polymer", explode_value = "any", new_values = materials)
+  Material_Parameters <- explodeF(Material_Parameters, target_col = "Polymer", explode_value = "any", new_values = materials)
 })
 
 ```
@@ -273,13 +271,16 @@ n_samples <- nrow(DPMFA_sink_micro$Emis[[1]]) # Number of emission runs
 unique_combinations <- DPMFA_sink_micro |>
   distinct(Source, Polymer)
 
+
 sample_df <- data.frame()
 
 for(i in 1:nrow(unique_combinations)){
+  
   source <- unique_combinations$Source[i]
   pol <- unique_combinations$Polymer[i]
   
-  input_vars <- var_df |>
+  input_vars <- 
+    Material_Parameters |>
     filter(if_all(c(Distribution, a, b), ~ !is.na(.) )) |> # filter out non defined distributions
     filter(Polymer == pol) |> 
     # Not sure what the 3 lines below do.
@@ -287,69 +288,83 @@ for(i in 1:nrow(unique_combinations)){
     filter(if (n() > 1) MP_source == source | (MP_source == "" & !any(MP_source == source)) else TRUE) |>
     ungroup()
   
-  varnames <- input_vars$VarName
-  
   n_vars <- nrow(input_vars)
   
   # Generate LHS
   lhs_samples <- randomLHS(n_samples, n_vars)
-  var_df_names <- c()
+  # var_df_names <- c()
   
-  for(j in 1:nrow(input_vars)){
-    
-    # df <- input_vars[j, ]
-    
-    varname <-input_vars[j, ]$VarName
-    
-    var <- input_vars[j, ] |>
-      select(VarName, Scale, SubCompart, Species, a, b, c, d)
-    
-    name <- paste0("var", j)
-    var_df_names <- c(var_df_names, name)
-    
-    assign(name, var)
-  }  
+  # somthing like this should work to get the nested tibble with data of samples
+  sample_df_var <-  
+    input_vars |> 
+    mutate(nvar = c(1:8)) |> 
+    rowwise() |> 
+    mutate(
+      data = 
+        case_match(Distribution,
+                   "Triangular" ~ list(triangular(lhs_samples[, nvar], a, b, c)),
+                   "Uniform" ~  list(uniform(lhs_samples[, nvar], a, b)),
+                   "Powerlaw" ~  list( power_law(lhs_samples[, nvar], a, b, c)),
+                   "Trapezoidal" ~  list( trapezoidal(lhs_samples[, nvar], a, b, c, d)),
+                   .default = NA
+        )
+    ) 
   
-  params <- tibble(
-    varName = sapply(var_df_names, function(v) get(v)$VarName),
-    Scale = sapply(var_df_names, function(v) get(v)$Scale),
-    SubCompart = sapply(var_df_names, function(v) get(v)$SubCompart),
-    Species = sapply(var_df_names, function(v) get(v)$Species),
-    data = lapply(var_df_names, function(v) {
-      df <- get(v)
-      tibble(id = c("a", "b", "c", "d"), value = c(df$a, df$b, df$c, df$d))
-    }))
-  
-  sample_df_var <- params
-  
-  # Transform each LHS sample column to the corresponding  distribution
-  for (k in 1:n_vars) {
-    a <- filter(params$data[[k]], id == "a") |> pull(value)
-    b <- filter(params$data[[k]], id == "b") |> pull(value)
-    c <- filter(params$data[[k]], id == "c") |> pull(value)
-    d <- filter(params$data[[k]], id == "d") |> pull(value)
-    
-    if(input_vars$Distribution[k] == "Triangular"){
-      samples <- triangular(lhs_samples[, k], a, b, c)
-    } else if(input_vars$Distribution[k] == "Uniform"){
-      samples <- uniform(lhs_samples[, k], a, b)
-    } else if(input_vars$Distribution[k] == "Powerlaw"){
-      samples <- power_law(lhs_samples[, k], a, b, c)
-    } else if(input_vars$Distribution[k] == "Trapezoidal"){
-      samples <- trapezoidal(lhs_samples[, k], a, b, c, d)
-    }
-    
-    # Create a new tibble for 'data' with samples replacing original values
-    new_data <- tibble(value = samples)
-    
-    # Update the data column in the sample_df
-    sample_df_var$data[[k]] <- new_data
-  }
-  
+  # for(j in 1:nrow(input_vars)){
+  #   
+  #   # df <- input_vars[j, ]
+  #   
+  #   varname <-input_vars[j, ]$VarName
+  #   
+  #   var <- input_vars[j, ] |>
+  #     select(VarName, Scale, SubCompart, Species, a, b, c, d)
+  #   
+  #   name <- paste0("var", j)
+  #   var_df_names <- c(var_df_names, name)
+  #   
+  #   assign(name, var)
+  # }  
+  # 
+  # params <- tibble(
+  #   varName = sapply(var_df_names, function(v) get(v)$VarName),
+  #   Scale = sapply(var_df_names, function(v) get(v)$Scale),
+  #   SubCompart = sapply(var_df_names, function(v) get(v)$SubCompart),
+  #   Species = sapply(var_df_names, function(v) get(v)$Species),
+  #   data = lapply(var_df_names, function(v) {
+  #     df <- get(v)
+  #     tibble(id = c("a", "b", "c", "d"), value = c(df$a, df$b, df$c, df$d))
+  #   }))
+  # 
+  # sample_df_var <- params
+  # 
+  # # Transform each LHS sample column to the corresponding  distribution
+  # for (k in 1:n_vars) {
+  #   a <- filter(params$data[[k]], id == "a") |> pull(value)
+  #   b <- filter(params$data[[k]], id == "b") |> pull(value)
+  #   c <- filter(params$data[[k]], id == "c") |> pull(value)
+  #   d <- filter(params$data[[k]], id == "d") |> pull(value)
+  #   
+  #   if(input_vars$Distribution[k] == "Triangular"){
+  #     samples <- triangular(lhs_samples[, k], a, b, c)
+  #   } else if(input_vars$Distribution[k] == "Uniform"){
+  #     samples <- uniform(lhs_samples[, k], a, b)
+  #   } else if(input_vars$Distribution[k] == "Powerlaw"){
+  #     samples <- power_law(lhs_samples[, k], a, b, c)
+  #   } else if(input_vars$Distribution[k] == "Trapezoidal"){
+  #     samples <- trapezoidal(lhs_samples[, k], a, b, c, d)
+  #   }
+  #   
+  #   # Create a new tibble for 'data' with samples replacing original values
+  #   new_data <- tibble(value = samples)
+  #   
+  #   # Update the data column in the sample_df
+  #   sample_df_var$data[[k]] <- new_data
+  # }
+  # 
   sample_df_var <- sample_df_var |>
     mutate(Polymer = pol) |>
     mutate(Source = source)
-  
+
   sample_df <- rbind(sample_df, sample_df_var)
 }
 
@@ -476,8 +491,6 @@ Steady state, DPMFA = dynamic)
 ```{r Solve steady state}
 start_time <- Sys.time()
 
-
-World$states
 
 solutions <- data.frame()
 concentrations <- data.frame()
