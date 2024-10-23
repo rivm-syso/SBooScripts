@@ -201,9 +201,9 @@ areas <- World$fetchData("Area") |>
   filter(SubCompart == "othersoil" | SubCompart == "naturalsoil" | SubCompart == "agriculturalsoil")
 
 # Calculate the areas of natural and agriculturalsoil again, so that the total soil area stays the same
-nat_fraction <- areas$Area[2]/(areas$Area[1]+area$Area[2])
-nat_area <- ((sum(area$Area) - RSS_area_EU))*nat_fraction
-agri_area <- sum(area$Area)-nat_area
+nat_fraction <- areas$Area[2]/(areas$Area[1]+areas$Area[2])
+nat_area <- ((sum(areas$Area) - RSS_area_EU))*nat_fraction
+agri_area <- sum(areas$Area)-nat_area
 
 areas <- areas |>
 mutate(new_area = case_when(
@@ -656,7 +656,15 @@ if(type == "PMFA"){
       masscomps <- masscomps$SubCompart
       
       df <- df |>
-        filter(SubCompart %in% masscomps)
+        filter(SubCompart %in% masscomps) 
+      
+      if(source == "Tyre wear"){
+        df <- df |>
+          mutate(SubCompart = case_when(
+            SubCompart == "othersoil" ~ "roadsidesoil",
+            TRUE ~ SubCompart
+          ))
+      }
       
       # Mass plot
       mass_p <- ggplot(df, mapping = aes(x = SubCompart, y = EqMass, fill = SubCompart)) +  
@@ -730,6 +738,14 @@ if(type == "PMFA"){
       
       df <- df |>
         filter(SubCompart %in% masscomps) 
+      
+      if(source == "Tyre wear"){
+        df <- df |>
+          mutate(SubCompart = case_when(
+            SubCompart == "othersoil" ~ "roadsidesoil",
+            TRUE ~ SubCompart
+          ))
+      }
       
       # Concentration plot
       conc_p <- ggplot(df, mapping = aes(x = concname, y = Concentration, fill = concname)) +  
