@@ -96,7 +96,7 @@ data_filtered <- data_summed |>
   filter(Year == y) |>
   select(Source, To_Compartment, Mass_Polymer_kg_s, Year, RUN, Polymer) |>
   mutate(Scale = SBscale) |>
-  filter(To_Compartment != "Sub-surface soil (micro)") |> # Exclude sub-surface soil because this is outside the scope of SimpleBox
+  filter(To_Compartment != "Sub-surface soil (micro)") |> # Exclude sub-surface soil because this is currently outside the scope of SimpleBox
   mutate(Compartment = case_when(
     str_detect(To_Compartment, "soil") ~ "s",
     str_detect(To_Compartment, "water") ~ "w",
@@ -119,7 +119,7 @@ data_filtered <- data_summed |>
   summarise(Mass_Polymer_kg_s = sum(Mass_Polymer_kg_s)) |>
   ungroup() |>
   rename(value = Mass_Polymer_kg_s) |>
-  select(Source, Abbr, Year, Polymer,  value, RUN)
+  select(Source, Abbr, Year, Polymer, value, RUN)
 
 ```
 
@@ -148,11 +148,11 @@ for(i in 1:nrow(unique_combinations)){
       mutate(Timed = as.double(Timed)*(365.25*24*3600)) |>
       nest(Emis = c(RUN, value)) 
     
-    df_name <- paste0("emis_dyn_", source, "_", pol)
+    emis_df_name <- paste0("emis_dyn_", source, "_", pol)
     
-    assign(df_name, emis_df_dyn)
+    assign(emis_df_name, emis_df_dyn)
     
-    emis_df_names <- c(emis_df_names, df_name)
+    emis_df_names <- c(emis_df_names, emis_df_name)
     
     ymin <- min(emis_df_dyn$Year)
     ymax <- max(emis_df_dyn$Year)
@@ -166,11 +166,11 @@ for(i in 1:nrow(unique_combinations)){
     source_name <- str_replace_all(source, "[()]", "")  # Remove parentheses
     source_name <- str_replace_all(source, " ", "_")   # Replace spaces with underscores
     
-    df_name <- paste0("emis_ss_", source_name, "_", pol)
+    emis_df_name <- paste0("emis_ss_", source_name, "_", pol)
     
-    assign(df_name, emis_df_ss)
+    assign(emis_df_name, emis_df_ss)
     
-    emis_df_names <- c(emis_df_names, df_name)
+    emis_df_names <- c(emis_df_names, emis_df_name)
   }
 }
 ```
@@ -179,9 +179,7 @@ For the source tyre wear, we want to estimate the concentration of TWP in road s
 
 To estimate this, two datapoints are needed: 
 - The total road length in the EU (https://erf.be/statistics/road-network-2024/)
-- The mean width of road side soil (2m, based on deliverable 3.2, figure 23)
-
-Zorgen dat er in totaal evenveel landoppervlak is
+- The mean width of road side soil (2m, based on LEON-T deliverable 3.2, figure 23)
 
 ```{r Estimate area of road side soil in the EU}
 path_dist <- "vignettes/Case studies/CaseData/Road_network_data.xlsx"
@@ -195,15 +193,21 @@ RL_m <- road_length_EU*1000
 RSS_width <- 2 #in meters
 RSS_area_EU <- RL_m*RSS_width*2 # Total area of roadside soil in the EU27 in m^2
 
-# TO DO: Check if area should be in m or km in SB as input
-
 # Check the current value for other soil area in SimpleBox on continental scale
-areas <- World$fetchData("Area") |>
+soil_areas <- World$fetchData("Area") |>
   filter(Scale == "Continental") |>
-  filter(SubCompart == "othersoil" | SubCompart == "naturalsoil" | SubCompart == "agriculturalsoil") |>
-  mutate(new_area = case_when(
+  filter(SubCompart == "othersoil" | SubCompart == "naturalsoil" | SubCompart == "agriculturalsoil")
+
+# Calculate the areas of natural and agriculturalsoil again, so that the total soil area stays the same
+nat_fraction <- soil_areas$Area[2]/(soil_areas$Area[1]+soil_areas$Area[2])
+nat_area <- ((sum(soil_areas$Area) - RSS_area_EU))*nat_fraction
+agri_area <- sum(soil_areas$Area)-nat_area
+
+soil_areas <- soil_areas |>
+mutate(new_area = case_when(
     SubCompart == "othersoil" ~ RSS_area_EU,
-    TRUE ~ NA
+    SubCompart == "naturalsoil" ~ nat_area,
+    SubCompart == "agriculturalsoil" ~ agri_area
   ))
 
 ```
@@ -272,17 +276,16 @@ excel_df <- read_excel(path_dist, sheet = "Polymer_data")
 
 materials <- unique(excel_df$Polymer)
 
-water <- c("lake", "sea", "deepocean", "river")
-soil <- c("naturalsoil", "agriculturalsoil", "othersoil")
-sediment <- c("marinesediment", "freshwatersediment", "lakesediment")
+all_subcomparts <- World$fetchData("SubCompartName")$SubCompart
+soil <- all_subcomparts[str_detect(all_subcomparts, "soil")]
+sediment <- all_subcomparts[str_detect(all_subcomparts, "sediment")]
+air <- str_detect(all_subcomparts, "air|cloudwater")
+water <- all_subcomparts[!grepl("soil|sediment|air|cloudwater", all_subcomparts)]
 soil_sediment <- c(soil, sediment)
-air <- c("air", "cloudwater")
-all_SC <- c(water, soil, sediment, air)
-materials <- c("HDPE", "LDPE", "PP", "PS", "PVC", "Acryl", "PA", "PET", "ABS", "EPS", "PC", "PMMA", "PUR", "RUBBER", "OTHER")
-species <- c("Large", "Small", "Solid")
-small_large <- c("Small", "Large")
-
-scales <- c("Arctic", "Tropic", "Moderate", "Regional", "Continental")
+materials <- unique(data_filtered$Polymer)
+species <- World$fetchData("SpeciesName")$Species[!grepl("Unbound", World$fetchData("SpeciesName")$Species)]
+small_large <- species[!grepl("Solid", species)]
+scales <- World$fetchData("ScaleName")$Scale
 
 explode <- function(df, target_col, explode_value, new_values) {
   df %>%
@@ -292,6 +295,7 @@ explode <- function(df, target_col, explode_value, new_values) {
     unnest(!!sym(target_col))
 }
 
+# Repeat the rows where Polymer == "any" for every polymer present in the filtered DPMFA data
 suppressWarnings({
   var_df <- explode(excel_df, target_col = "Polymer", explode_value = "any", new_values = materials) |>
     mutate(across(c(a, b, c, d), as.numeric)) |>
@@ -306,7 +310,6 @@ suppressWarnings({
 })
 ```
 
-
 ```{r}
 # Generate the correct number of samples
 n_samples <- nrow(emis_df_ss$Emis[[1]]) # Number of emission runs 
@@ -316,34 +319,35 @@ sample_df_names <- c()
 for(i in 1:nrow(unique_combinations)){
   source <- unique_combinations$Source[i]
   pol <- unique_combinations$Polymer[i]
-    
-  input_vars <- var_df |>
+  
+  # Filter the dataframe for the source and polymer 
+  filtered_excel_vars <- var_df |>
     filter(if_all(c(Distribution, a, b), ~ !is.na(.))) |>
     filter(Polymer == pol) |>
     group_by(VarName, Scale, SubCompart, Species, Polymer) |>
     filter(if (n() > 1) MP_source == source | (MP_source == "" & !any(MP_source == source)) else TRUE) %>%
     ungroup()
   
-  varnames <- input_vars$VarName
+  varnames <- filtered_excel_vars$VarName
   
-  n_vars <- nrow(input_vars)
+  n_vars <- nrow(filtered_excel_vars)
   
   # Generate LHS
   lhs_samples <- randomLHS(n_samples, n_vars)
   var_df_names <- c()
   
-  for(j in 1:nrow(input_vars)){
-    df <- input_vars[j, ]
+  for(j in 1:nrow(filtered_excel_vars)){
+    filtered_excel_row <- filtered_excel_vars[j, ]
     
-    varname <- df$VarName
+    varname <- filtered_excel_row$VarName
     
-    var <- df |>
+    filtered_excel_row <- filtered_excel_row |>
       select(VarName, Scale, SubCompart, Species, a, b, c, d)
     
     name <- paste0("var", j)
     var_df_names <- c(var_df_names, name)
     
-    assign(name, var)
+    assign(name, filtered_excel_row)
   }  
   
   params <- tibble(
@@ -365,15 +369,14 @@ for(i in 1:nrow(unique_combinations)){
     c <- filter(params$data[[k]], id == "c") |> pull(value)
     d <- filter(params$data[[k]], id == "d") |> pull(value)
     
-    if(input_vars$Distribution[k] == "Triangular"){
+    if(filtered_excel_vars$Distribution[k] == "Triangular"){
       samples <- triangular(lhs_samples[, k], a, b, c)
-    } else if(input_vars$Distribution[k] == "Uniform"){
+    } else if(filtered_excel_vars$Distribution[k] == "Uniform"){
       samples <- uniform(lhs_samples[, k], a, b)
-    } else if(input_vars$Distribution[k] == "Powerlaw"){
+    } else if(filtered_excel_vars$Distribution[k] == "Powerlaw"){
       samples <- power_law(lhs_samples[, k], a, b, c)
-    } else if(input_vars$Distribution[k] == "Trapezoidal"){
+    } else if(filtered_excel_vars$Distribution[k] == "Trapezoidal"){
       samples <- trapezoidal(lhs_samples[, k], a, b, c, d)
-      #samples <- trapezoidal(lhs_samples[, k], a, b, c, d)
     }
     
     # Create a new tibble for 'data' with samples replacing original values
@@ -386,6 +389,18 @@ for(i in 1:nrow(unique_combinations)){
   source_name <- str_replace_all(source, "[()]", "")  # Remove parentheses
   source_name <- str_replace_all(source, " ", "_")   # Replace spaces with underscores
   source_names <- paste0(source_names, source_name)
+  
+  # Alter the area of the soil compartments if the source is tyre wear
+  if(source == "Tyre wear"){
+    soil_areas <- soil_areas |>
+      rowwise() |>
+      mutate(varName = "Area") |>
+      mutate(data = list(tibble(value = rep(new_area, n_samples)))) |>
+      select(Scale, SubCompart, varName, data) |>
+      mutate(Species = NA) 
+    
+    sample_df <- rbind(sample_df, soil_areas)
+  }
   
   # Save a separate dataframe for each material
   sample_df_name <- paste0("sample_df_", source_name, "_", pol)
@@ -406,7 +421,7 @@ process_sample_df <- function(sample_df, # data frame with nested samples in dat
                                               "agriculturalsoil", "othersoil"), # all SimpleBox soil and sediment compartments
                               species=c("Large", "Small", "Solid"), # all SimpleBox species
                               small_large=c("Small", "Large"), # all small and large SimpleBox names
-                              all_SC=c("air", "cloudwater","marinesediment", "freshwatersediment", 
+                              all_subcomparts=c("air", "cloudwater","marinesediment", "freshwatersediment", 
                                        "lakesediment","naturalsoil", 
                                        "agriculturalsoil", "othersoil",
                                        "lake", "sea", "deepocean", "river"), # all SimpleBox subcompartment names
@@ -416,7 +431,7 @@ process_sample_df <- function(sample_df, # data frame with nested samples in dat
   exploded_soil_sediment <- explode(exploded_water, target_col = "SubCompart", explode_value = "Soil_Sediment", new_values = soil_sediment)
   exploded_species <- explode(exploded_soil_sediment, target_col = "Species", explode_value = "any", new_values = species)
   exploded_small_large <- explode(exploded_species, target_col = "Species", explode_value = "Small_Large", new_values = small_large)
-  exploded_subcomparts <- explode(exploded_small_large, target_col = "SubCompart", explode_value = "any", new_values = all_SC)
+  exploded_subcomparts <- explode(exploded_small_large, target_col = "SubCompart", explode_value = "any", new_values = all_subcomparts)
   exploded_soil <- explode(exploded_subcomparts, target_col = "SubCompart", explode_value = "Soil", new_values = soil)
   
   sample_df_cleaned <- exploded_soil
@@ -595,7 +610,7 @@ plot_theme <-  theme(
 
 ```{r Make Mass plots}
 
-dt <- Sys.Date()
+date <- Sys.Date()
 
 if(type == "PMFA"){
   for(name in solved_df_names){
@@ -626,22 +641,30 @@ if(type == "PMFA"){
     
     # Make plots for each scale
     for (scale in scales) {
-      df <- Plot_data_agg |>
+      plot_data_scale <- Plot_data_agg |>
         filter(Scale == scale) |>
         mutate(concname = paste0(SubCompart, " (", Unit, ")"))
       
       # Filter out the compartments without mass
-      masscomps <- df |>
+      masscomps <- plot_data_scale |>
         filter(RUN == 1) |>
         filter(EqMass != 0)
       
       masscomps <- masscomps$SubCompart
       
-      df <- df |>
-        filter(SubCompart %in% masscomps)
+      plot_data_scale <- plot_data_scale |>
+        filter(SubCompart %in% masscomps) 
+      
+      if(source == "Tyre wear"){
+        plot_data_scale <- plot_data_scale |>
+          mutate(SubCompart = case_when(
+            SubCompart == "othersoil" ~ "roadsidesoil",
+            TRUE ~ SubCompart
+          ))
+      }
       
       # Mass plot
-      mass_p <- ggplot(df, mapping = aes(x = SubCompart, y = EqMass, fill = SubCompart)) +  
+      mass_p <- ggplot(plot_data_scale, mapping = aes(x = SubCompart, y = EqMass, fill = SubCompart)) +  
         geom_violin() + 
         labs(title = paste0("Masses at ", scale, " scale"),
              subtitle = subt,
@@ -663,7 +686,7 @@ if(type == "PMFA"){
       
       print(mass_p)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Mass_plot_", scale,  "_", dt, "_", runs, "runs.png"), plot=mass_p)
+      ggsave(paste0("vignettes/Case Studies/CaseData/Mass_plot_", scale,  "_", date, "_", runs, "runs.png"), plot=mass_p)
     }
   }
 } else if(type == "DPMFA"){
@@ -699,22 +722,30 @@ if(type == "PMFA"){
     
     # Make plots for each scale
     for (scale in scales) {
-      df <- Plot_data_agg |>
+      plot_data_scale <- Plot_data_agg |>
         filter(Scale == scale) |>
         mutate(concname = paste0(SubCompart, " (", Unit, ")"))
       
       # Filter out the compartments without mass
-      masscomps <- df |>
+      masscomps <- plot_data_scale |>
         filter(RUN == 1) |>
         filter(Concentration != 0)
       
       masscomps <- masscomps$SubCompart
       
-      df <- df |>
+      plot_data_scale <- plot_data_scale |>
         filter(SubCompart %in% masscomps) 
       
+      if(source == "Tyre wear"){
+        plot_data_scale <- plot_data_scale |>
+          mutate(SubCompart = case_when(
+            SubCompart == "othersoil" ~ "roadsidesoil",
+            TRUE ~ SubCompart
+          ))
+      }
+      
       # Concentration plot
-      conc_p <- ggplot(df, mapping = aes(x = concname, y = Concentration, fill = concname)) +  
+      conc_p <- ggplot(plot_data_scale, mapping = aes(x = concname, y = Concentration, fill = concname)) +  
         geom_violin() +
         labs(title = paste0("Concentrations at ", scale, " scale"),
              subtitle = subt,
@@ -736,7 +767,7 @@ if(type == "PMFA"){
       
       print(conc_p)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Concentration_plot_", scale, "_", "_", runs, "runs.png"), plot=conc_p)
+      ggsave(paste0("vignettes/Case Studies/CaseData/Concentration_plot_", scale, "_", date, "_", runs, "runs.png"), plot=conc_p)
     }
   }
 } else if(type == "DPMFA"){
