@@ -175,43 +175,6 @@ for(i in 1:nrow(unique_combinations)){
 }
 ```
 
-For the source tyre wear, we want to estimate the concentration of TWP in road side soil. We will do this by rescaling the othersoil compartment to the size of road side soil in the EU. 
-
-To estimate this, two datapoints are needed: 
-- The total road length in the EU (https://erf.be/statistics/road-network-2024/)
-- The mean width of road side soil (2m, based on LEON-T deliverable 3.2, figure 23)
-
-```{r Estimate area of road side soil in the EU}
-path_dist <- "vignettes/Case studies/CaseData/Road_network_data.xlsx"
-RN_data <- read_excel(path_dist, sheet = "Data") 
-
-# Sum the data to get the total length of the road network in EU27 countries
-road_length_EU <- sum(RN_data$Total)
-RL_m <- road_length_EU*1000 
-
-# Multiply the road length with the width of roadside soil on both sides of the road
-RSS_width <- 2 #in meters
-RSS_area_EU <- RL_m*RSS_width*2 # Total area of roadside soil in the EU27 in m^2
-
-# Check the current value for other soil area in SimpleBox on continental scale
-soil_areas <- World$fetchData("Area") |>
-  filter(Scale == "Continental") |>
-  filter(SubCompart == "othersoil" | SubCompart == "naturalsoil" | SubCompart == "agriculturalsoil")
-
-# Calculate the areas of natural and agriculturalsoil again, so that the total soil area stays the same
-nat_fraction <- soil_areas$Area[2]/(soil_areas$Area[1]+soil_areas$Area[2])
-nat_area <- ((sum(soil_areas$Area) - RSS_area_EU))*nat_fraction
-agri_area <- sum(soil_areas$Area)-nat_area
-
-soil_areas <- soil_areas |>
-mutate(new_area = case_when(
-    SubCompart == "othersoil" ~ RSS_area_EU,
-    SubCompart == "naturalsoil" ~ nat_area,
-    SubCompart == "agriculturalsoil" ~ agri_area
-  ))
-
-```
-
 ```{r Functions for distributions}
 # Define triangular distribution function
 triangular <- function(u, a, b, c) {               # u = samples, a = min, b = max, c = peak
@@ -390,18 +353,6 @@ for(i in 1:nrow(unique_combinations)){
   source_name <- str_replace_all(source, " ", "_")   # Replace spaces with underscores
   source_names <- paste0(source_names, source_name)
   
-  # Alter the area of the soil compartments if the source is tyre wear
-  if(source == "Tyre wear"){
-    soil_areas <- soil_areas |>
-      rowwise() |>
-      mutate(varName = "Area") |>
-      mutate(data = list(tibble(value = rep(new_area, n_samples)))) |>
-      select(Scale, SubCompart, varName, data) |>
-      mutate(Species = NA) 
-    
-    sample_df <- rbind(sample_df, soil_areas)
-  }
-  
   # Save a separate dataframe for each material
   sample_df_name <- paste0("sample_df_", source_name, "_", pol)
   sample_df_names <- c(sample_df_names, sample_df_name)
@@ -410,7 +361,6 @@ for(i in 1:nrow(unique_combinations)){
   
   sample_dfs <- lapply(sample_df_names, get)
 }
-
 
 # Function to process each dataframe
 process_sample_df <- function(sample_df, # data frame with nested samples in data
@@ -655,14 +605,6 @@ if(type == "PMFA"){
       plot_data_scale <- plot_data_scale |>
         filter(SubCompart %in% masscomps) 
       
-      if(source == "Tyre wear"){
-        plot_data_scale <- plot_data_scale |>
-          mutate(SubCompart = case_when(
-            SubCompart == "othersoil" ~ "roadsidesoil",
-            TRUE ~ SubCompart
-          ))
-      }
-      
       # Mass plot
       mass_p <- ggplot(plot_data_scale, mapping = aes(x = SubCompart, y = EqMass, fill = SubCompart)) +  
         geom_violin() + 
@@ -735,14 +677,6 @@ if(type == "PMFA"){
       
       plot_data_scale <- plot_data_scale |>
         filter(SubCompart %in% masscomps) 
-      
-      if(source == "Tyre wear"){
-        plot_data_scale <- plot_data_scale |>
-          mutate(SubCompart = case_when(
-            SubCompart == "othersoil" ~ "roadsidesoil",
-            TRUE ~ SubCompart
-          ))
-      }
       
       # Concentration plot
       conc_p <- ggplot(plot_data_scale, mapping = aes(x = concname, y = Concentration, fill = concname)) +  
