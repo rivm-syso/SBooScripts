@@ -1,6 +1,6 @@
 ---
 title: "DPMFA LEON-T"
-author: "Anne Hids"
+author: "Anne Hids, Joris Quik"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
@@ -310,97 +310,48 @@ for(i in 1:nrow(unique_combinations)){
         )
     ) 
   
-  # for(j in 1:nrow(input_vars)){
-  #   
-  #   # df <- input_vars[j, ]
-  #   
-  #   varname <-input_vars[j, ]$VarName
-  #   
-  #   var <- input_vars[j, ] |>
-  #     select(VarName, Scale, SubCompart, Species, a, b, c, d)
-  #   
-  #   name <- paste0("var", j)
-  #   var_df_names <- c(var_df_names, name)
-  #   
-  #   assign(name, var)
-  # }  
-  # 
-  # params <- tibble(
-  #   varName = sapply(var_df_names, function(v) get(v)$VarName),
-  #   Scale = sapply(var_df_names, function(v) get(v)$Scale),
-  #   SubCompart = sapply(var_df_names, function(v) get(v)$SubCompart),
-  #   Species = sapply(var_df_names, function(v) get(v)$Species),
-  #   data = lapply(var_df_names, function(v) {
-  #     df <- get(v)
-  #     tibble(id = c("a", "b", "c", "d"), value = c(df$a, df$b, df$c, df$d))
-  #   }))
-  # 
-  # sample_df_var <- params
-  # 
-  # # Transform each LHS sample column to the corresponding  distribution
-  # for (k in 1:n_vars) {
-  #   a <- filter(params$data[[k]], id == "a") |> pull(value)
-  #   b <- filter(params$data[[k]], id == "b") |> pull(value)
-  #   c <- filter(params$data[[k]], id == "c") |> pull(value)
-  #   d <- filter(params$data[[k]], id == "d") |> pull(value)
-  #   
-  #   if(input_vars$Distribution[k] == "Triangular"){
-  #     samples <- triangular(lhs_samples[, k], a, b, c)
-  #   } else if(input_vars$Distribution[k] == "Uniform"){
-  #     samples <- uniform(lhs_samples[, k], a, b)
-  #   } else if(input_vars$Distribution[k] == "Powerlaw"){
-  #     samples <- power_law(lhs_samples[, k], a, b, c)
-  #   } else if(input_vars$Distribution[k] == "Trapezoidal"){
-  #     samples <- trapezoidal(lhs_samples[, k], a, b, c, d)
-  #   }
-  #   
-  #   # Create a new tibble for 'data' with samples replacing original values
-  #   new_data <- tibble(value = samples)
-  #   
-  #   # Update the data column in the sample_df
-  #   sample_df_var$data[[k]] <- new_data
-  # }
-  # 
   sample_df_var <- sample_df_var |>
     mutate(Polymer = pol) |>
     mutate(Source = source)
-
+  
   sample_df <- rbind(sample_df, sample_df_var)
 }
 
-# Function to process each dataframe
-process_sample_df <- function(sample_df, # data frame with nested samples in data
-                              scales=c("Arctic", "Tropic", "Moderate", "Regional", "Continental"), # all SimpleBox scales
-                              water=c("lake", "sea", "deepocean", "river"), # all SimpleBox water compartments
-                              soil_sediment=c("marinesediment", "freshwatersediment", 
-                                              "lakesediment","naturalsoil", 
-                                              "agriculturalsoil", "othersoil"), # all SimpleBox soil and sediment compartments
-                              species=c("Large", "Small", "Solid"), # all SimpleBox species
-                              small_large=c("Small", "Large"), # all small and large SimpleBox names
-                              all_SC=c("air", "cloudwater","marinesediment", "freshwatersediment", 
-                                       "lakesediment","naturalsoil", 
-                                       "agriculturalsoil", "othersoil",
-                                       "lake", "sea", "deepocean", "river"), # all SimpleBox subcompartment names
-                              soil=c("naturalsoil", "agriculturalsoil", "othersoil")) { # all SimpleBox soil compartments
-  
-  exploded_scales <- explode(sample_df, target_col = "Scale", explode_value = "any", new_values = scales)
-  exploded_water <- explode(exploded_scales, target_col = "SubCompart", explode_value = "Water", new_values = water)
-  exploded_soil_sediment <- explode(exploded_water, target_col = "SubCompart", explode_value = "Soil_Sediment", new_values = soil_sediment)
-  exploded_species <- explode(exploded_soil_sediment, target_col = "Species", explode_value = "any", new_values = species)
-  exploded_small_large <- explode(exploded_species, target_col = "Species", explode_value = "Small_Large", new_values = small_large)
-  exploded_subcomparts <- explode(exploded_small_large, target_col = "SubCompart", explode_value = "any", new_values = all_SC)
-  exploded_soil <- explode(exploded_subcomparts, target_col = "SubCompart", explode_value = "Soil", new_values = soil)
-  
-  sample_df_cleaned <- exploded_soil
-  
-  return(sample_df_cleaned)
-}
 
-sample_df <- process_sample_df(sample_df)
+scales <- union((World$FromDataAndTo()$fromScale),(World$FromDataAndTo()$toScale))
+subCompartments <-  union((World$FromDataAndTo()$fromSubCompart),(World$FromDataAndTo()$toSubCompart))
+species <- union((World$FromDataAndTo()$fromSpecies),(World$FromDataAndTo()$toSpecies))
+
+sample_df <- 
+  sample_df %>% 
+    separate_rows(Species, sep = "_") |> 
+    separate_rows(SubCompart, sep = "_") |>
+    mutate( Scale = str_replace_all(Scale, "any",
+                                    paste(scales,collapse="__"))) |> 
+    separate_rows(Species, sep = "__") |> 
+    mutate( SubCompart = str_replace_all(SubCompart, "Water",
+                                         paste(c("lake", "sea", "deepocean", "river"),
+                                               collapse = "__"))) |> 
+    separate_rows(SubCompart, sep = "__") |> 
+        mutate( SubCompart = str_replace_all(SubCompart, "Soil",
+                                         paste(subCompartments |> str_subset(c("soil")),
+                                               collapse = "__"))) |> 
+    separate_rows(SubCompart, sep = "__") |> 
+            mutate( SubCompart = str_replace_all(SubCompart, "Sediment",
+                                         paste(subCompartments |> str_subset(c("sediment")),
+                                               collapse = "__"))) |> 
+    separate_rows(SubCompart, sep = "__") |> 
+       mutate( Species = str_replace_all(Species, "any",
+                                    paste(species,collapse="__"))) |> 
+    separate_rows(Species, sep = "__") |> 
+           mutate( SubCompart = str_replace_all(SubCompart, "any",
+                                    paste(subCompartments,collapse="__"))) |> 
+    separate_rows(SubCompart, sep = "__")
 
 ```
 
 ```{r Make some figures to show the values chosen from the distributions}
+
 sample_df_Tyre_wear_RUBBER <- sample_df |>
   filter(Source == "Tyre wear")
 
