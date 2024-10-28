@@ -31,7 +31,7 @@ library(trapezoid)
 
 source("baseScripts/initWorld_onlyPlastics.R")
 
-World$substance <- "microplastic"
+World$substance <- "TRWP"
 ```
 
 # Load the DPMFA data and make a nested emission dataframe
@@ -357,6 +357,7 @@ Material_Parameters_n <-
 ```{r Make some figures to show the values chosen from the distributions}
 
 #Example of plot:
+#TODO: include units
 
 PlotVariable = "alpha"
 ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
@@ -376,34 +377,17 @@ ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data),
   facet_wrap(vars(Polymer,Source))+
   xlab(paste(PlotVariable)) 
 
+PlotVariable = "kdeg"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Species))+
+  xlab(paste(PlotVariable)) 
 
-kdeg_soil <- sample_df_Tyre_wear_RUBBER |>
-  filter(varName == "kdeg") |>
-  filter(SubCompart == "naturalsoil") |>
-  filter(Species == "Small") 
-
-kdeg_soil <- kdeg_soil$data[[1]]
-
-# Make some figures of the distributions
-ggplot(kdeg_soil, mapping = aes(x = value)) +
-  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
-  labs(title = "Distribution of degradation rate constant for soil and sediment compartments",
-       x = "Degradation rate constant (s-1)")+
-  theme_classic()
-
-kdeg_water <- sample_df_Tyre_wear_RUBBER |>
-  filter(varName == "kdeg") |>
-  filter(SubCompart == "sea") |>
-  filter(Species == "Small") 
-
-kdeg_water <- kdeg_water$data[[1]]
-
-# Make some figures of the distributions
-ggplot(kdeg_water, mapping = aes(x = value)) +
-  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
-  labs(title = "Distribution of degradation rate constant for water compartments",
-       x = "Degradation rate constant (s-1)")+
-  theme_classic()
+PlotVariable = "kfrag"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Species))+
+  xlab(paste(PlotVariable)) 
 ```
 
 # Solve the matrix and calculate concentrations
@@ -415,8 +399,9 @@ Steady state, DPMFA = dynamic)
 start_time <- Sys.time()
 
 
-solutions <- data.frame()
-concentrations <- data.frame()
+# solutions <- list()
+Output <- unique_combinations |> 
+  add_column(SBoutput=NA)
 
 if(type == "PMFA"){ 
   World$NewSolver("UncertainSolver")
@@ -438,29 +423,31 @@ if(type == "PMFA"){
     
     solved <- World$Solve((emis_source), needdebug = F, sample_source)
     solved$SteadyStateConc <- World$GetConcentration()
+    # solutions <- solved
+    # solution <- solved$SteadyStateMass |>
+    #   mutate(Polymer = pol) |>
+    #   mutate(Source = source)
+    # solutions$SBdata[[length(solutions)+1]] <- solved
+    # if (length(solutions) == 0) {
+    #   solutions <- solved  # Initialize with the structure of `solution`
+    # } else {
+    #   solutions <- rbind(solutions, solved)
+    # }
+    # 
     
-    solution <- solved$SteadyStateMass |>
-      mutate(Polymer = pol) |>
-      mutate(Source = source)
-    
-    if (nrow(solutions) == 0) {
-      solutions <- solution  # Initialize with the structure of `solution`
-    } else {
-      solutions <- rbind(solutions, solution)
-    }
-    
-    # Get the concentrations
-    conc <- World$GetConcentration() |>
-      mutate(Polymer = pol) |>
-      mutate(Source = source)
-    
-    print(colnames(conc))
-    
-    if (nrow(concentrations) == 0) {
-      concentrations <- conc  # Initialize with the structure of `solution`
-    } else {
-      concentrations <- rbind(concentrations, conc)
-    }
+    Output$SBoutput[i] = list(solved)
+    # # # Get the concentrations
+    # # conc <- World$GetConcentration() |>
+    # #   mutate(Polymer = pol) |>
+    # #   mutate(Source = source)
+    # # 
+    # # print(colnames(conc))
+    # 
+    # if (nrow(concentrations) == 0) {
+    #   concentrations <- conc  # Initialize with the structure of `solution`
+    # } else {
+    #   concentrations <- rbind(concentrations, conc)
+    # }
   }
   
 } else if(type == "DPMFA"){
