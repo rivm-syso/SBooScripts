@@ -1,4 +1,7 @@
 "process","from","to"
+"k_Fragmentation","Large","Solid"
+"k_Fragmentation","Small","Solid"
+"k_Fragmentation","Solid","Solid"
 "k_HeteroAgglomeration.a","Solid","Large"
 "k_HeteroAgglomeration.a","Solid","Small"
 "k_HeteroAgglomeration.wsd","Solid","Large"
