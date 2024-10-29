@@ -233,7 +233,7 @@ trapezoidal <- function(u, a, b, c, d) {
 
 ```{r}
 # Path to excel file with distribution values
-path_dist <- "vignettes/Case studies/CaseData/Microplastic_variables_v2.xlsx"
+path_dist <- "vignettes/Case studies/CaseData/Microplastic_variables_v1.xlsx"
 
 excel_df <- read_excel(path_dist, sheet = "Polymer_data") 
 
