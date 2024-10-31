@@ -29,144 +29,238 @@ library(readxl)
 library(viridis)
 library(doParallel)
 library(trapezoid)
+library(MASS)
+library(tidyverse)
 
 source("baseScripts/initWorld_onlyPlastics.R")
 
-World$substance <- "microplastic"
 ```
 
 # Load the DPMFA data and make a nested emission dataframe
 
 ```{r Load DPMFA data}
 
-# for local case study folder:
-abspath <- "vignettes/Case Studies/CaseData/Baseline_PMFA_EU.RData"
+#source_of_interest <- NA # NA for all except TWP (needs to be run separately)
+source_of_interest <- "Tyre wear"
 
-load(abspath)
-
-# Check if the loaded data is DPMFA or PMFA data
-if(exists("DPMFA_stocks")) {
-  type <- "DPMFA"
+# Choose substance based on chosen sources
+if(length(source_of_interest) == 1 && source_of_interest == "Tyre wear"){
+  World$substance <- "TRWP"
 } else {
-  type <- "PMFA"
+  World$substance <- "microplastic"
 }
 
-# Convert to long format
-data_long <- 
-  DPMFA_sink |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
-  pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
-               names_to = "Year",
-               values_to = "Mass_Polymer_kt") 
+# Select PMFA data for 2019
+PMFA_year <- 2019
+DPMFA_years <- 2019:2025
 
-source_names <- unique(data_long$Source)
+MFAtype <- "DPMFA" # other option is DPMFA
 
-print(source_names)
-
-source_of_interest <- c("Tyre wear")
-
-if (all(!is.na(source_of_interest))) {
-  # Check if all the elements of source_of_interest are present in data_long$Source
-  if (!all(source_of_interest %in% unique(data_long$Source))) {
-    print("Selected source(s) not in dataframe")
-  } else {
-    sources <- source_of_interest
+if(MFAtype == "PMFA"){
+  # Load EU data
+  abspath <- "vignettes/Case Studies/CaseData/PMFA_EU.RData"
+  load(abspath)
+  
+  # Convert to long format
+  data_long_EU <- 
+    DPMFA_sink |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
+    pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
+                 names_to = "Year",
+                 values_to = "Mass_Polymer_kt") |>
+    mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |> # Convert kt/year to kg/s
+    filter(Material_Type == "micro") |> # Select microplastics only
+    mutate(SBscale = ifelse(Scale == "EU", "C", "R"))
+    
+  # Load NL data
+  abspath <- "vignettes/Case Studies/CaseData/PMFA_NL.RData"
+  load(abspath)
+  
+  # Convert to long format
+  data_long_NL <- 
+    DPMFA_sink |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
+    pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
+                 names_to = "Year",
+                 values_to = "Mass_Polymer_kt") |>
+    mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |> # Convert kt/year to kg/s
+    filter(Material_Type == "micro") |> # Select microplastics only
+    mutate(SBscale = ifelse(Scale == "EU", "C", "R"))
+  
+  data_long <- rbind(data_long_EU, data_long_NL)
+  
+  if (all(!is.na(source_of_interest))) {
+    # Check if all the elements of source_of_interest are present in data_long$Source
+    if (!all(source_of_interest %in% unique(data_long$Source))) {
+      print("Selected source(s) not in dataframe")
+    } else {
+      sources <- source_of_interest
+    }
+  } else if (all(is.na(source_of_interest))) {
+    # If all elements are NA, return all unique sources
+    sources <- unique(data_long$Source)
+    sources <- sources[sources != "Tyre wear"]
   }
-} else if (all(is.na(source_of_interest))) {
-  # If all elements are NA, return all unique sources
-  sources <- unique(data_long$Source)
+  
+  # Assign SB compartments to DPMFA compartments
+  data_filtered <- data_long |>
+    filter(Year == PMFA_year) |>
+    filter(Source %in% sources) |>
+    select(Source, To_Compartment, Mass_Polymer_kg_s, Year, RUN, Polymer, SBscale) |>
+    rename(Scale = SBscale) |>
+    filter(To_Compartment != "Sub-surface soil (micro)") |> # Exclude sub-surface soil because this is currently outside the scope of SimpleBox
+    mutate(Compartment = case_when(
+      str_detect(To_Compartment, "soil") ~ "s",
+      str_detect(To_Compartment, "water") ~ "w",
+      str_detect(To_Compartment, "air") ~ "a"
+    )) |>
+    mutate(Subcompartment = case_when(
+      str_detect(To_Compartment, "Agricultural") ~ "2",
+      str_detect(To_Compartment, "Natural") ~ "1",
+      str_detect(To_Compartment, "Road side") ~ "3",
+      str_detect(To_Compartment, "Residential") ~ "3",
+      str_detect(To_Compartment, "Sea") ~ "2",
+      str_detect(To_Compartment, "Surface") ~ "1",
+      str_detect(To_Compartment, "Outdoor") ~ ""
+    )) |>
+    mutate(Species = case_when(
+      Source == "Tyre wear" ~ "P",
+      TRUE ~ "S")) |>
+    mutate(Abbr = paste0(Compartment, Subcompartment, Scale, Species)) |>
+    #group_by(Source, Abbr, Year, RUN, Polymer) |>
+    group_by(Abbr, Year, Polymer, RUN) |>
+    summarise(Mass_Polymer_kg_s = sum(Mass_Polymer_kg_s)) |>
+    ungroup() |>
+    rename(value = Mass_Polymer_kg_s) |>
+    select(Source, Abbr, Year, Polymer, value, RUN)
+} else if(MFAtype == "DPMFA"){
+   # Load EU data
+  abspath <- "vignettes/Case Studies/CaseData/DPMFA_EU.RData"
+  load(abspath)
+  
+  # Convert to long format
+  data_long_EU <- 
+    DPMFA_sink |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
+    pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
+                 names_to = "Year",
+                 values_to = "Mass_Polymer_kt") |>
+    mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |> # Convert kt/year to kg/s
+    filter(Material_Type == "micro") |> # Select microplastics only
+    mutate(SBscale = ifelse(Scale == "EU", "C", "R")) |>
+    filter(Year %in% DPMFA_years)
+    
+  # Load NL data
+  abspath <- "vignettes/Case Studies/CaseData/DPMFA_NL.RData"
+  load(abspath)
+  
+  # Convert to long format
+  data_long_NL <- 
+    DPMFA_sink |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
+    pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
+                 names_to = "Year",
+                 values_to = "Mass_Polymer_kt") |>
+    mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |> # Convert kt/year to kg/s
+    filter(Material_Type == "micro") |> # Select microplastics only
+    mutate(SBscale = ifelse(Scale == "EU", "C", "R")) |>
+    filter(Year %in% DPMFA_years)
+  
+  data_long <- rbind(data_long_EU, data_long_NL)
+  
+  if (all(!is.na(source_of_interest))) {
+    # Check if all the elements of source_of_interest are present in data_long$Source
+    if (!all(source_of_interest %in% unique(data_long$Source))) {
+      print("Selected source(s) not in dataframe")
+    } else {
+      sources <- source_of_interest
+    }
+  } else if (all(is.na(source_of_interest))) {
+    # If all elements are NA, return all unique sources
+    sources <- unique(data_long$Source)
+    sources <- sources[sources != "Tyre wear"]
+  }
+  
+  # Assign SB compartments to DPMFA compartments
+  data_filtered <- data_long |>
+    filter(Source %in% sources) |>
+    select(Source, To_Compartment, Mass_Polymer_kg_s, Year, RUN, Polymer, SBscale) |>
+    rename(Scale = SBscale) |>
+    filter(To_Compartment != "Sub-surface soil (micro)") |> # Exclude sub-surface soil because this is currently outside the scope of SimpleBox
+    mutate(Compartment = case_when(
+      str_detect(To_Compartment, "soil") ~ "s",
+      str_detect(To_Compartment, "water") ~ "w",
+      str_detect(To_Compartment, "air") ~ "a"
+    )) |>
+    mutate(Subcompartment = case_when(
+      str_detect(To_Compartment, "Agricultural") ~ "2",
+      str_detect(To_Compartment, "Natural") ~ "1",
+      str_detect(To_Compartment, "Road side") ~ "3",
+      str_detect(To_Compartment, "Residential") ~ "3",
+      str_detect(To_Compartment, "Sea") ~ "2",
+      str_detect(To_Compartment, "Surface") ~ "1",
+      str_detect(To_Compartment, "Outdoor") ~ ""
+    )) |>
+    mutate(Species = case_when(
+      Source == "Tyre wear" ~ "P",
+      TRUE ~ "S")) |>
+    mutate(Abbr = paste0(Compartment, Subcompartment, Scale, Species)) |>
+    #group_by(Source, Abbr, Year, RUN, Polymer) |>
+    group_by(Abbr, Year, RUN, Polymer) |>
+    summarise(Mass_Polymer_kg_s = sum(Mass_Polymer_kg_s)) |>
+    ungroup() |>
+    rename(value = Mass_Polymer_kg_s) |>
+    select(Abbr, Year, Polymer, value, RUN)
+    #select(Source, Abbr, Year, Polymer, value, RUN)
 }
-
-# Calculate kg/s from kt/y 
-data_summed <- data_long |>
-  filter(Source %in% sources) |>
-  mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |>
-  filter(Material_Type == "micro") 
-
-if(unique(data_long$Scale) == "EU"){
-  SBscale <- "C"
-} else if (unique(data_long$Scale) == "NL") {
-  SBscale <- "R"
-}
-
-# Select data for 2019
-y <- 2019
-
-# Assign SB compartments to DPMFA compartments
-data_filtered <- data_summed |>
-  filter(Year == y) |>
-  select(Source, To_Compartment, Mass_Polymer_kg_s, Year, RUN, Polymer) |>
-  mutate(Scale = SBscale) |>
-  filter(To_Compartment != "Sub-surface soil (micro)") |> # Exclude sub-surface soil because this is currently outside the scope of SimpleBox
-  mutate(Compartment = case_when(
-    str_detect(To_Compartment, "soil") ~ "s",
-    str_detect(To_Compartment, "water") ~ "w",
-    str_detect(To_Compartment, "air") ~ "a"
-  )) |>
-  mutate(Subcompartment = case_when(
-    str_detect(To_Compartment, "Agricultural") ~ "2",
-    str_detect(To_Compartment, "Natural") ~ "1",
-    str_detect(To_Compartment, "Road side") ~ "3",
-    str_detect(To_Compartment, "Residential") ~ "3",
-    str_detect(To_Compartment, "Sea") ~ "2",
-    str_detect(To_Compartment, "Surface") ~ "1",
-    str_detect(To_Compartment, "Outdoor") ~ ""
-  )) |>
-  mutate(Species = case_when(
-    Source == "Tyre wear" ~ "P",
-    TRUE ~ "S")) |>
-  mutate(Abbr = paste0(Compartment, Subcompartment, Scale, Species)) |>
-  group_by(Source, Abbr, Year, RUN, Polymer) |>
-  summarise(Mass_Polymer_kg_s = sum(Mass_Polymer_kg_s)) |>
-  ungroup() |>
-  rename(value = Mass_Polymer_kg_s) |>
-  select(Source, Abbr, Year, Polymer, value, RUN)
 
 ```
 
 ```{r Make a separate emission df for every polymer}
-runs <- 1000
+runs <- 10
 TESTING = T
 if(TESTING==TRUE) data_filtered <- data_filtered |> filter(RUN<(runs+1))
 
-unique_combinations <- data_filtered |>
-  distinct(Source, Polymer)
+# unique_combinations <- data_filtered |>
+#   distinct(Source, Polymer)
+polymers <- unique(data_filtered$Polymer)
 
 emis_df_names <- c()
 
-for(i in 1:nrow(unique_combinations)){
-  source <- unique_combinations$Source[i]
-  pol <- unique_combinations$Polymer[i]
+#for(i in 1:nrow(unique_combinations)){
+for(pol in polymers){  
+  #source <- unique_combinations$Source[i]
+  #pol <- unique_combinations$Polymer[i]
   
   filtered <- data_filtered |>
     filter(Polymer == pol)
   
-  if(type == "DPMFA"){
+  if(MFAtype == "DPMFA"){
+    
+    # source_name <- str_replace_all(source, "[()]", "")  # Remove parentheses
+    # source_name <- str_replace_all(source, " ", "_")   # Replace spaces with underscores
+    
     # Make an emission dataframe for the dynamic uncertain solver
     emis_df_dyn <- filtered |>
       group_by(Abbr, Year) |>
       rename(Timed = Year) |>
       mutate(Timed = as.double(Timed)*(365.25*24*3600)) |>
-      nest(Emis = c(RUN, value)) 
+      nest(Emis = c(value, RUN)) |>
+      select(-Polymer)
     
-    emis_df_name <- paste0("emis_dyn_", source, "_", pol)
-    
+    #emis_df_name <- paste0("emis_dyn_", source_name, "_", pol)
+    emis_df_name <- paste0("emis_dyn_", pol)
     assign(emis_df_name, emis_df_dyn)
     
     emis_df_names <- c(emis_df_names, emis_df_name)
     
-    ymin <- min(emis_df_dyn$Year)
-    ymax <- max(emis_df_dyn$Year)
-    
-  } else if(type == "PMFA"){
+  } else if(MFAtype == "PMFA"){
     
     # Make an emission dataframe for the steady uncertain solver
     emis_df_ss <- filtered |>
       nest(Emis = c(RUN, value)) 
     
-    source_name <- str_replace_all(source, "[()]", "")  # Remove parentheses
-    source_name <- str_replace_all(source, " ", "_")   # Replace spaces with underscores
-    
-    emis_df_name <- paste0("emis_ss_", source_name, "_", pol)
+    # source_name <- str_replace_all(source, "[()]", "")  # Remove parentheses
+    # source_name <- str_replace_all(source, " ", "_")   # Replace spaces with underscores
+    # 
+    # emis_df_name <- paste0("emis_ss_", source_name, "_", pol)
+    emis_df_name <- paste0("emis_ss_", pol)
     
     assign(emis_df_name, emis_df_ss)
     
@@ -256,7 +350,7 @@ explode <- function(df, target_col, explode_value, new_values) {
     mutate(!!sym(target_col) := ifelse(!!sym(target_col) == explode_value, list(new_values), !!sym(target_col))) %>%
     # Unnest the target column to duplicate rows
     unnest(!!sym(target_col))
-}
+} 
 
 # Repeat the rows where Polymer == "any" for every polymer present in the filtered DPMFA data
 suppressWarnings({
@@ -275,20 +369,27 @@ suppressWarnings({
 
 ```{r}
 # Generate the correct number of samples
-n_samples <- nrow(emis_df_ss$Emis[[1]]) # Number of emission runs 
-source_names <- c()
+if(MFAtype == "PFMA"){
+  n_samples <- nrow(emis_df_ss$Emis[[1]]) # Number of emission runs 
+} else if (MFAtype == "DPMFA"){
+  n_samples <- nrow(emis_df_dyn$Emis[[1]]) # Number of emission runs 
+}
+
+#source_names <- c()
 sample_df_names <- c()
 
-for(i in 1:nrow(unique_combinations)){
-  source <- unique_combinations$Source[i]
-  pol <- unique_combinations$Polymer[i]
+#for(i in 1:nrow(unique_combinations)){
+for(pol in polymers){
+  #source <- unique_combinations$Source[i]
+  #pol <- unique_combinations$Polymer[i]
   
   # Filter the dataframe for the source and polymer 
   filtered_excel_vars <- var_df |>
     filter(if_all(c(Distribution, a, b), ~ !is.na(.))) |>
     filter(Polymer == pol) |>
     group_by(VarName, Scale, SubCompart, Species, Polymer) |>
-    filter(if (n() > 1) MP_source == source | (MP_source == "" & !any(MP_source == source)) else TRUE) %>%
+    #filter(if (n() > 1) MP_source == source | (MP_source == "" & !any(MP_source == source)) else TRUE) |>
+    filter(if (n() > 1) MP_source == source_of_interest | (MP_source == "" & !any(MP_source == source_of_interest)) else TRUE) |>
     ungroup()
   
   varnames <- filtered_excel_vars$VarName
@@ -349,12 +450,13 @@ for(i in 1:nrow(unique_combinations)){
     sample_df$data[[k]] <- new_data
   }
     
-  source_name <- str_replace_all(source, "[()]", "")  # Remove parentheses
-  source_name <- str_replace_all(source, " ", "_")   # Replace spaces with underscores
-  source_names <- paste0(source_names, source_name)
-  
-  # Save a separate dataframe for each material
-  sample_df_name <- paste0("sample_df_", source_name, "_", pol)
+  # source_name <- str_replace_all(source, "[()]", "")  # Remove parentheses
+  # source_name <- str_replace_all(source, " ", "_")   # Replace spaces with underscores
+  # source_names <- paste0(source_names, source_name)
+  # 
+  # # Save a separate dataframe for each material
+  # sample_df_name <- paste0("sample_df_", source_name, "_", pol)
+  sample_df_name <- paste0("sample_df_", pol)
   sample_df_names <- c(sample_df_names, sample_df_name)
   
   assign(sample_df_name, sample_df)
@@ -399,83 +501,83 @@ list2env(cleaned_dfs, envir = .GlobalEnv)
 ```
 
 ```{r Make some figures to show the values chosen from the distributions}
-alpha_water <- sample_df_Tyre_wear_RUBBER |>
-  filter(varName == "alpha") |>
-  filter(SubCompart == "sea") |>
-  filter(Species == "Small") 
-
-alpha_water <- alpha_water$data[[1]]
-
-# Make some figures of the distributions
-ggplot(alpha_water, mapping = aes(x = value)) +
-  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
-  labs(title = "Distribution of attachment efficiency for water compartments",
-       x = "Alpha") + scale_x_continuous(trans='log10') +
-  theme_classic()
-
-alpha_soil <- sample_df_Tyre_wear_RUBBER |>
-  filter(varName == "alpha") |>
-  filter(SubCompart == "naturalsoil") |>
-  filter(Species == "Small") 
-
-alpha_soil <- alpha_soil$data[[1]]
-
-# Make some figures of the distributions
-ggplot(alpha_soil, mapping = aes(x = value)) +
-  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
-  labs(title = "Distribution of attachment efficiency for soil and sediment compartments",
-       x = "Alpha")+
-  theme_classic()
-
-rads <- sample_df_Tyre_wear_RUBBER |>
-  filter(varName == "RadS")
-
-rads <- rads$data[[1]]
-
-ggplot(rads, mapping = aes(x = value)) +
-  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
-  labs(title = "Distribution of particle radius",
-       x = "Radius (nm)")+
-  theme_classic()
-
-rhos <- sample_df_Tyre_wear_RUBBER |>
-  filter(varName == "RhoS")
-
-rhos <- rhos$data[[1]]
-
-ggplot(rhos, mapping = aes(x = value)) +
-  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
-  labs(title = "Distribution of density",
-       x = "Density (g/m^3)")+
-  theme_classic()
-
-kdeg_soil <- sample_df_Tyre_wear_RUBBER |>
-  filter(varName == "kdeg") |>
-  filter(SubCompart == "naturalsoil") |>
-  filter(Species == "Small") 
-
-kdeg_soil <- kdeg_soil$data[[1]]
-
-# Make some figures of the distributions
-ggplot(kdeg_soil, mapping = aes(x = value)) +
-  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
-  labs(title = "Distribution of degradation rate constant for soil and sediment compartments",
-       x = "Degradation rate constant (s-1)")+
-  theme_classic()
-
-kdeg_water <- sample_df_Tyre_wear_RUBBER |>
-  filter(varName == "kdeg") |>
-  filter(SubCompart == "sea") |>
-  filter(Species == "Small") 
-
-kdeg_water <- kdeg_water$data[[1]]
-
-# Make some figures of the distributions
-ggplot(kdeg_water, mapping = aes(x = value)) +
-  geom_histogram(bins=50, color="#00AFBB", fill=NA) +
-  labs(title = "Distribution of degradation rate constant for water compartments",
-       x = "Degradation rate constant (s-1)")+
-  theme_classic()
+# alpha_water <- sample_df_Tyre_wear_RUBBER |>
+#   filter(varName == "alpha") |>
+#   filter(SubCompart == "sea") |>
+#   filter(Species == "Small") 
+# 
+# alpha_water <- alpha_water$data[[1]]
+# 
+# # Make some figures of the distributions
+# ggplot(alpha_water, mapping = aes(x = value)) +
+#   geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+#   labs(title = "Distribution of attachment efficiency for water compartments",
+#        x = "Alpha") + scale_x_continuous(trans='log10') +
+#   theme_classic()
+# 
+# alpha_soil <- sample_df_Tyre_wear_RUBBER |>
+#   filter(varName == "alpha") |>
+#   filter(SubCompart == "naturalsoil") |>
+#   filter(Species == "Small") 
+# 
+# alpha_soil <- alpha_soil$data[[1]]
+# 
+# # Make some figures of the distributions
+# ggplot(alpha_soil, mapping = aes(x = value)) +
+#   geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+#   labs(title = "Distribution of attachment efficiency for soil and sediment compartments",
+#        x = "Alpha")+
+#   theme_classic()
+# 
+# rads <- sample_df_Tyre_wear_RUBBER |>
+#   filter(varName == "RadS")
+# 
+# rads <- rads$data[[1]]
+# 
+# ggplot(rads, mapping = aes(x = value)) +
+#   geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+#   labs(title = "Distribution of particle radius",
+#        x = "Radius (nm)")+
+#   theme_classic()
+# 
+# rhos <- sample_df_Tyre_wear_RUBBER |>
+#   filter(varName == "RhoS")
+# 
+# rhos <- rhos$data[[1]]
+# 
+# ggplot(rhos, mapping = aes(x = value)) +
+#   geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+#   labs(title = "Distribution of density",
+#        x = "Density (g/m^3)")+
+#   theme_classic()
+# 
+# kdeg_soil <- sample_df_Tyre_wear_RUBBER |>
+#   filter(varName == "kdeg") |>
+#   filter(SubCompart == "naturalsoil") |>
+#   filter(Species == "Small") 
+# 
+# kdeg_soil <- kdeg_soil$data[[1]]
+# 
+# # Make some figures of the distributions
+# ggplot(kdeg_soil, mapping = aes(x = value)) +
+#   geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+#   labs(title = "Distribution of degradation rate constant for soil and sediment compartments",
+#        x = "Degradation rate constant (s-1)")+
+#   theme_classic()
+# 
+# kdeg_water <- sample_df_Tyre_wear_RUBBER |>
+#   filter(varName == "kdeg") |>
+#   filter(SubCompart == "sea") |>
+#   filter(Species == "Small") 
+# 
+# kdeg_water <- kdeg_water$data[[1]]
+# 
+# # Make some figures of the distributions
+# ggplot(kdeg_water, mapping = aes(x = value)) +
+#   geom_histogram(bins=50, color="#00AFBB", fill=NA) +
+#   labs(title = "Distribution of degradation rate constant for water compartments",
+#        x = "Degradation rate constant (s-1)")+
+#   theme_classic()
 ```
 
 # Solve the matrix and calculate concentrations
@@ -488,48 +590,65 @@ start_time <- Sys.time()
 solved_df_names <- c()
 concentration_df_names <- c()
 
-if(type == "PMFA"){ 
+if(MFAtype == "PMFA"){ 
   World$NewSolver("UncertainSolver")
   
-  for(i in 1:nrow(unique_combinations)){
-    source <- unique_combinations$Source[i]
-    source <- str_replace_all(source, "[()]", "")  # Remove parentheses
-    source <- str_replace_all(source, " ", "_")   # Replace spaces with underscores
-    pol <- unique_combinations$Polymer[i]
+  #for(i in 1:nrow(unique_combinations)){
+  for(pol in polymers){
+    # source <- unique_combinations$Source[i]
+    # source <- str_replace_all(source, "[()]", "")  # Remove parentheses
+    # source <- str_replace_all(source, " ", "_")   # Replace spaces with underscores
+    # pol <- unique_combinations$Polymer[i]
     
     # Get the emissions (kg)
-    emis_df_name <- emis_df_names[i]
-    sample_df_name <- sample_df_names[i]
+    #emis_df_name <- emis_df_names[i]
+    #sample_df_name <- sample_df_names[i]
+    
+    emis_df_name <- paste0("emis_ss_", pol)
+    sample_df_name <- paste0("sample_df_", pol)
     
     solved <- World$Solve(get(emis_df_name), needdebug = FALSE, get(sample_df_name))
-    solved_df_name <- paste0("solved_ss_", source, "_", pol)
+    #solved_df_name <- paste0("solved_ss_", source, "_", pol)
+    solved_df_name <- paste0("solved_ss_", pol)
     assign(solved_df_name, solved)
     solved_df_names <- c(solved_df_names, solved_df_name)
     
     # Get the concentrations
     conc <- World$GetConcentration()
-    conc_df_name <- paste0("concentration_ss_", source, "_", pol)  
+    #conc_df_name <- paste0("concentration_ss_", source, "_", pol)  
+    conc_df_name <- paste0("concentration_ss_", pol)
     assign(conc_df_name, conc)
     concentration_df_names <- c(concentration_df_names, conc_df_name)
   }
   
-} else if(type == "DPMFA"){
+} else if(MFAtype == "DPMFA"){
   World$NewSolver("UncertainDynamicSolver")
+  tmax = max(emis_df_dyn$Timed)
   
-  for(i in 1:nrow(unique_combinations)){
-    source <- unique_combinations$Source[i]
-    pol <- unique_combinations$Polymer[i]
-    emis_df_name <- paste0("emis_dyn_", pol)
-    sample_df_name <- pasteo("sample_df_", pol)
+  #for(i in 1:nrow(unique_combinations)){
+  for(pol in polymers){
+    # source <- unique_combinations$Source[i]
+    # source <- str_replace_all(source, "[()]", "")  # Remove parentheses
+    # source <- str_replace_all(source, " ", "_")   # Replace spaces with underscores
+    # pol <- unique_combinations$Polymer[i]
     
-    solved <- World$Solve(World$Solve(get(pol)), sample_df, tmax = tmax, needdebug = F)
-    assign(paste0("solved_dyn_", pol), solved)
+    #emis_df_name <- emis_df_names[i]
+    #sample_df_name <- sample_df_names[i]
+    emis_df_name <- paste0("emis_dyn_", pol)
+    sample_df_name <- paste0("sample_df_", pol)
+    
+    #solved_df_name <- paste0("solved_dyn_", source, "_", pol)
+    solved_df_name <- paste0("solved_dyn_", pol)
+    solved <- World$Solve(get(emis_df_name), get(sample_df_name), tmax = tmax, needdebug = F)
+    assign(solved_df_name, solved)
+    solved_df_names <- c(solved_df_names, solved_df_name)
     
     # Get the concentrations
-    conc_df_name <- paste0("solution_", pol)
     conc <- World$GetConcentration()
-    
+    #conc_df_name <- paste0("concentration_dyn_", source, "_", pol)  
+    conc_df_name <- paste0("concentration_dyn_", pol)
     assign(conc_df_name, conc)
+    concentration_df_names <- c(concentration_df_names, conc_df_name)
   }
 }
 end_time <- Sys.time()
@@ -540,174 +659,57 @@ print(paste0("Elapsed time is ", elapsed_time))
 
 ```
 
-# Prep data and make plots
 
-```{r Initialize theme}
+```{r Save the outcomes in long format}
+solved_df <- tibble()
+input_var_df <- tibble()
+concentration_df <- tibble()
 
-# Create a plot theme
-plot_theme <-  theme(
-  axis.title.x = element_text(size = 14),    
-  axis.title.y = element_text(size = 14),    
-  axis.text.x = element_text(size = 12, angle = 45, hjust = 1),     
-  axis.text.y = element_text(size = 12),
-  title = element_text(size=20),
-  panel.background = element_rect(fill = "white"),  
-  panel.grid.major = element_line(color = "lightgrey", size = 0.5),  
-  panel.grid.minor = element_line(color = "lightgrey", size = 0.5)
-)
+for(name in solved_df_names){
+  if(MFAtype == "DPMFA"){
+    pol <- sub(".*_(.*)", "\\1", name)
+    
+    sol <- get(name)
+    solution <- sol$DynamicMass |>
+      mutate(Polymer = pol)
+    input <- sol$Input_Variables |>
+      mutate(Polymer = pol)
 
-```
+    concentration <- get(paste0("concentration_dyn_", pol))
+    concentration <- concentration$Concentrations |>
+      mutate(Polymer = pol)
+    
+    solved_df <- rbind(solved_df, solution)
+    input_var_df <- rbind(input_var_df, input)
+    concentration_df <- rbind(concentration_df, concentration)
+  } else if(MFAtype == "PMFA"){
+    pol <- sub(".*_(.*)", "\\1", name)
+    
+    sol <- get(name)
+    solution <- sol$SteadyStateMass |>
+      mutate(Polymer = pol)
+    input <- sol$Input_Variables |>
+      mutate(Polymer = pol)
 
-```{r Make Mass plots}
-
-date <- Sys.Date()
-
-if(type == "PMFA"){
-  for(name in solved_df_names){
-    solution_name <- name
+    concentration <- get(paste0("concentration_ss_", pol))
+    concentration <- concentration$Concentrations |>
+      mutate(Polymer = pol)
     
-    Solution <- get(solution_name)$SteadyStateMass |>
-      mutate(RUN = as.integer(RUN)) |>
-      mutate(EqMass = as.double(EqMass)) 
-    
-    source <- str_remove(solution_name, "solved_ss_") |> 
-          str_replace("_[^_]*$", "") |>  # Removes everything after the last underscore
-          str_replace_all("_", " ")      # Replaces all underscores with spaces
-    
-    pol <- str_extract(solution_name, "(?<=_)[^_]*$")
-    
-    subt <- paste0(source, ", ", pol, ", ", y)
-    
-    # Aggregate plot data for all species
-    Plot_data_agg <- Solution |>
-      mutate(SubCompart = case_when(
-        SubCompart == "cloudwater" ~ "air",
-        TRUE ~ SubCompart
-      )) |>
-      group_by(Scale, SubCompart, RUN, Unit) |>
-      summarise(EqMass = sum(EqMass)) 
-      
-    scales <- unique(Plot_data_agg$Scale)
-    
-    # Make plots for each scale
-    for (scale in scales) {
-      plot_data_scale <- Plot_data_agg |>
-        filter(Scale == scale) |>
-        mutate(concname = paste0(SubCompart, " (", Unit, ")"))
-      
-      # Filter out the compartments without mass
-      masscomps <- plot_data_scale |>
-        filter(RUN == 1) |>
-        filter(EqMass != 0)
-      
-      masscomps <- masscomps$SubCompart
-      
-      plot_data_scale <- plot_data_scale |>
-        filter(SubCompart %in% masscomps) 
-      
-      # Mass plot
-      mass_p <- ggplot(plot_data_scale, mapping = aes(x = SubCompart, y = EqMass, fill = SubCompart)) +  
-        geom_violin() + 
-        labs(title = paste0("Masses at ", scale, " scale"),
-             subtitle = subt,
-             x = "Compartment",
-             y = "Mass (kg)") +
-        plot_theme +
-        scale_y_continuous(trans = 'log10') +
-        scale_fill_viridis_d() + 
-        theme(axis.text.x = element_blank(),  
-              legend.position = "bottom") +   
-        guides(fill = guide_legend(title = NULL)) + 
-      scale_y_log10(  # Apply logarithmic scale
-      # Major breaks at powers of 10
-      breaks = scales::trans_breaks("log10", function(x) 10^x),
-      
-      # Labels in human-readable form
-      labels = scales::trans_format("log10", scales::math_format(10^.x)),
-    ) 
-      
-      print(mass_p)
-      
-      ggsave(paste0("vignettes/Case Studies/CaseData/Mass_plot_", scale,  "_", date, "_", runs, "runs.png"), plot=mass_p)
-    }
-  }
-} else if(type == "DPMFA"){
-  for(name in solved_df_names){
-    
-  }
-}
-```
-
-```{r Make concentration plots}
-if(type == "PMFA"){
-  for(name in concentration_df_names){
-    solution_name <- name
-    
-    Solution <- get(solution_name) |>
-      mutate(RUN = as.integer(RUN)) |>
-      mutate(Concentration = as.double(Concentration)) 
-    
-    source <- str_remove(solution_name, "concentration_ss_") |> 
-          str_replace("_[^_]*$", "") |>  # Removes everything after the last underscore
-          str_replace_all("_", " ")      # Replaces all underscores with spaces
-    
-    pol <- str_extract(solution_name, "(?<=_)[^_]*$")
-    
-    subt <- paste0(source, ", ", pol, ", ", y)
-    
-    # Aggregate plot data for all species
-    Plot_data_agg <- Solution |>
-      group_by(Scale, SubCompart, RUN, Unit) |>
-      summarise(Concentration = sum(Concentration)) 
-      
-    scales <- unique(Plot_data_agg$Scale)
-    
-    # Make plots for each scale
-    for (scale in scales) {
-      plot_data_scale <- Plot_data_agg |>
-        filter(Scale == scale) |>
-        mutate(concname = paste0(SubCompart, " (", Unit, ")"))
-      
-      # Filter out the compartments without mass
-      masscomps <- plot_data_scale |>
-        filter(RUN == 1) |>
-        filter(Concentration != 0)
-      
-      masscomps <- masscomps$SubCompart
-      
-      plot_data_scale <- plot_data_scale |>
-        filter(SubCompart %in% masscomps) 
-      
-      # Concentration plot
-      conc_p <- ggplot(plot_data_scale, mapping = aes(x = concname, y = Concentration, fill = concname)) +  
-        geom_violin() +
-        labs(title = paste0("Concentrations at ", scale, " scale"),
-             subtitle = subt,
-             x = "Compartment",
-             y = "Concentration") +
-        plot_theme +
-        scale_y_continuous(trans = 'log10') +
-        scale_fill_viridis_d() +
-        theme(axis.text.x = element_blank(),  
-              legend.position = "bottom") +   
-        guides(fill = guide_legend(title = NULL))  + 
-      scale_y_log10(  # Apply logarithmic scale
-      # Major breaks at powers of 10
-      breaks = scales::trans_breaks("log10", function(x) 10^x),
-      
-      # Labels in human-readable form
-      labels = scales::trans_format("log10", scales::math_format(10^.x)),
-    ) 
-      
-      print(conc_p)
-      
-      ggsave(paste0("vignettes/Case Studies/CaseData/Concentration_plot_", scale, "_", date, "_", runs, "runs.png"), plot=conc_p)
-    }
-  }
-} else if(type == "DPMFA"){
-  for(name in solved_df_names){
-    
+    solved_df <- rbind(solved_df, solution)
+    input_var_df <- rbind(input_var_df, input)
+    concentration_df <- rbind(concentration_df, concentration)
   }
 }
 
+if(is.na(source_of_interest)){
+  save(solved_df, input_var_df, concentration_df,
+     file = paste0("vignettes/Case studies/Casedata/LEON-T_output_OTHER_", MFAtype, "_", as.character(n_samples) , "_RUNS_", format(Sys.Date(),"%Y_%m_%d"),".RData"),
+     compress = "xz",
+     compression_level = 9)   
+} else if(source_of_interest == "Tyre wear"){
+  save(solved_df, input_var_df, concentration_df,
+     file = paste0("vignettes/Case studies/Casedata/LEON-T_output_TYRE_WEAR_", MFAtype, "_", as.character(n_samples) , "_RUNS_", format(Sys.Date(),"%Y_%m_%d"),".RData"),
+     compress = "xz",
+     compression_level = 9)  
+}
 ```

@@ -31,7 +31,8 @@ library(trapezoid)
 
 source("baseScripts/initWorld_onlyPlastics.R")
 
-World$substance <- "TRWP"
+#World$substance <- "TRWP"
+World$substance <- "microplastic"
 ```
 
 # Load the DPMFA data and make a nested emission dataframe
@@ -39,6 +40,7 @@ World$substance <- "TRWP"
 ```{r Load DPMFA data}
 
 source_of_interest <- c("Tyre wear", "Paint") # NA for all
+
 # Select PMFA data for 2019
 PMFA_year <- 2019
 
@@ -62,9 +64,6 @@ if(MFAtype == "PMFA"){
     pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
                  names_to = "Year",
                  values_to = "Mass_Polymer_kt") 
-  
-  # sink_source_names <- unique(DPMFA_sink$Source)
-  # print(sink_source_names)
   
   if (all(!is.na(source_of_interest))) {
     # Check if all the elements of source_of_interest are present in DPMFA_sink$Source
@@ -122,7 +121,6 @@ if(MFAtype == "PMFA"){
   #    select(Source, Abbr, Year, Polymer,  value, RUN)
   
 } else (print("DPMFA not implemented yet"))
-
 
 ```
 
@@ -348,10 +346,6 @@ Material_Parameters_n <-
   separate_rows(SubCompart, sep = "__") |> 
   rename(Source = MP_source)
 
-
-
-
-
 ```
 
 ```{r Make some figures to show the values chosen from the distributions}
@@ -403,7 +397,7 @@ start_time <- Sys.time()
 Output <- unique_combinations |> 
   add_column(SBoutput=NA)
 
-if(type == "PMFA"){ 
+if(MFAtype == "PMFA"){ 
   World$NewSolver("UncertainSolver")
   
   for(i in 1:nrow(unique_combinations)){

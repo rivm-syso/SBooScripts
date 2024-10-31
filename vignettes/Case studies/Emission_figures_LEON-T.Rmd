@@ -16,17 +16,16 @@ library(tidyverse)
 library(scales)
 library(openxlsx)
 
-data_folder <-  "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/"
-
-dataset_names <- c("PMFA_EU")
+data_folder <-  "vignettes/Case Studies/CaseData/"
 
 ```
 
 # Prepare data for plotting
 ```{r}
 
-name <- "PMFA_EU"
-load(file = paste0(data_folder, name, ".Rdata"))
+MFAtype <- "DPMFA"
+
+load(file = paste0(data_folder, MFAtype, "_EU", ".Rdata"))
 
 data_long_EU <- 
   DPMFA_inflow |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
@@ -35,8 +34,7 @@ data_long_EU <-
                values_to = "Mass_Polymer_kt") |>
   select(-c(Scale, iD_source))
 
-name <- "PMFA_NL"
-load(file = paste0(data_folder, name, ".Rdata"))
+load(file = paste0(data_folder, MFAtype, "_NL", ".Rdata"))
 
 data_long_NL <-
   DPMFA_inflow |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |>
@@ -250,5 +248,286 @@ sink_dist_barplot
 ggsave(paste0("/Figures/Emission_plots/","Env_comp_barplot_",format(Sys.time(),'%Y%m%d'),".png"),
        path = data_folder, width = 20, height = 10)  
 ```
+
+# Simplebox figures
+
+```{r load SB ouput data}
+otherdataname <- "LEON-T_output_OTHER_DPMFA_10_RUNS_2024_10_30.RData"
+twdataname <- "LEON-T_output_TYRE_WEAR_DPMFA_10_RUNS_2024_10_31.RData"
+
+load(paste0(data_folder, otherdataname))
+concentration_other <- concentration_df |>
+  mutate(Source = "Other sources")
+input_vars_other <- input_var_df
+solution_other <- solved_df |>
+  mutate(Source = "Other sources")
+
+load(paste0(data_folder, twdataname))
+concentration_tw <- concentration_df |>
+  mutate(Source = "Tyre wear")
+input_vars_tw <- input_var_df
+solution_tw <- solved_df |>
+  mutate(Source = "Tyre wear")
+
+concentration_df <- rbind(concentration_other, concentration_tw)
+solution_df <- rbind(solution_other, solution_tw)
+
+```
+
+# Prep data and make plots
+```{r Initialize theme}
+
+# Create a plot theme
+plot_theme <-  theme(
+  axis.title.x = element_text(size = 14),    
+  axis.title.y = element_text(size = 14),    
+  axis.text.x = element_text(size = 12, angle = 45, hjust = 1),     
+  axis.text.y = element_text(size = 12),
+  title = element_text(size=20),
+  panel.background = element_rect(fill = "white"),  
+  panel.grid.major = element_line(color = "lightgrey", size = 0.5),  
+  panel.grid.minor = element_line(color = "lightgrey", size = 0.5)
+)
+
+```
+
+```{r Plot SB output}
+if(MFAtype == "PMFA"){
+  
+  
+  
+  
+} else if (MFAtype == "DPMFA"){
+  concentration_long <- concentration_df |>
+    pivot_longer(!c(time, RUN, Polymer, Source), names_to = "Abbr", values_to = "Concentration") |>
+    mutate(time = as.numeric(time)) |>
+    mutate(RUN = as.integer(RUN)) |>
+    mutate(concentration = as.double(Concentration)) |>
+    mutate(Year = time/(365*24*3600))
+}
+
+```
+
+```{r Make Mass plots}
+
+if(MFAtype == "PMFA"){
+  for(name in solved_df_names){
+    solution_name <- name
+    
+    Solution <- get(solution_name)$SteadyStateMass |>
+      mutate(RUN = as.integer(RUN)) |>
+      mutate(EqMass = as.double(EqMass)) 
+    
+    source <- str_remove(solution_name, "solved_ss_") |> 
+          str_replace("_[^_]*$", "") |>  # Removes everything after the last underscore
+          str_replace_all("_", " ")      # Replaces all underscores with spaces
+    
+    pol <- str_extract(solution_name, "(?<=_)[^_]*$")
+    
+    subt <- paste0(source, ", ", pol, ", ", y)
+    
+    # Aggregate plot data for all species
+    Plot_data_agg <- Solution |>
+      mutate(SubCompart = case_when(
+        SubCompart == "cloudwater" ~ "air",
+        TRUE ~ SubCompart
+      )) |>
+      group_by(Scale, SubCompart, RUN, Unit) |>
+      summarise(EqMass = sum(EqMass)) 
+      
+    scales <- unique(Plot_data_agg$Scale)
+    
+    # Make plots for each scale
+    for (scale in scales) {
+      plot_data_scale <- Plot_data_agg |>
+        filter(Scale == scale) |>
+        mutate(concname = paste0(SubCompart, " (", Unit, ")"))
+      
+      # Filter out the compartments without mass
+      masscomps <- plot_data_scale |>
+        filter(RUN == 1) |>
+        filter(EqMass != 0)
+      
+      masscomps <- masscomps$SubCompart
+      
+      plot_data_scale <- plot_data_scale |>
+        filter(SubCompart %in% masscomps) 
+      
+      # Mass plot
+      mass_p <- ggplot(plot_data_scale, mapping = aes(x = SubCompart, y = EqMass, fill = SubCompart)) +  
+        geom_violin() + 
+        labs(title = paste0("Masses at ", scale, " scale"),
+             subtitle = subt,
+             x = "Compartment",
+             y = "Mass (kg)") +
+        plot_theme +
+        scale_y_continuous(trans = 'log10') +
+        scale_fill_viridis_d() + 
+        theme(axis.text.x = element_blank(),  
+              legend.position = "bottom") +   
+        guides(fill = guide_legend(title = NULL)) + 
+      scale_y_log10(  # Apply logarithmic scale
+      # Major breaks at powers of 10
+      breaks = scales::trans_breaks("log10", function(x) 10^x),
+      
+      # Labels in human-readable form
+      labels = scales::trans_format("log10", scales::math_format(10^.x)),
+    ) 
+      
+      print(mass_p)
+      
+      ggsave(paste0("vignettes/Case Studies/CaseData/Mass_plot_", scale,  "_", date, "_", runs, "runs.png"), plot=mass_p)
+    }
+  }
+} else if(MFAtype == "DPMFA"){
+  for(name in solved_df_names){
+    solution_name <- name
+    
+    Solution <- get(solution_name)$SteadyStateMass |>
+      mutate(RUN = as.integer(RUN)) |>
+      mutate(EqMass = as.double(EqMass)) 
+    
+    source <- str_remove(solution_name, "solved_ss_") |> 
+          str_replace("_[^_]*$", "") |>  # Removes everything after the last underscore
+          str_replace_all("_", " ")      # Replaces all underscores with spaces
+    
+    pol <- str_extract(solution_name, "(?<=_)[^_]*$")
+    
+    subt <- paste0(source, ", ", pol, ", ", y)
+    
+    # Aggregate plot data for all species
+    Plot_data_agg <- Solution |>
+      mutate(SubCompart = case_when(
+        SubCompart == "cloudwater" ~ "air",
+        TRUE ~ SubCompart
+      )) |>
+      group_by(Scale, SubCompart, RUN, Unit) |>
+      summarise(EqMass = sum(EqMass)) 
+      
+    scales <- unique(Plot_data_agg$Scale)
+    
+    # Make plots for each scale
+    for (scale in scales) {
+      plot_data_scale <- Plot_data_agg |>
+        filter(Scale == scale) |>
+        mutate(concname = paste0(SubCompart, " (", Unit, ")"))
+      
+      # Filter out the compartments without mass
+      masscomps <- plot_data_scale |>
+        filter(RUN == 1) |>
+        filter(EqMass != 0)
+      
+      masscomps <- masscomps$SubCompart
+      
+      plot_data_scale <- plot_data_scale |>
+        filter(SubCompart %in% masscomps) 
+      
+      # Mass plot
+      mass_p <- ggplot(plot_data_scale, mapping = aes(x = SubCompart, y = EqMass, fill = SubCompart)) +  
+        geom_violin() + 
+        labs(title = paste0("Masses at ", scale, " scale"),
+             subtitle = subt,
+             x = "Compartment",
+             y = "Mass (kg)") +
+        plot_theme +
+        scale_y_continuous(trans = 'log10') +
+        scale_fill_viridis_d() + 
+        theme(axis.text.x = element_blank(),  
+              legend.position = "bottom") +   
+        guides(fill = guide_legend(title = NULL)) + 
+      scale_y_log10(  # Apply logarithmic scale
+      # Major breaks at powers of 10
+      breaks = scales::trans_breaks("log10", function(x) 10^x),
+      
+      # Labels in human-readable form
+      labels = scales::trans_format("log10", scales::math_format(10^.x)),
+    ) 
+      
+      print(mass_p)
+      
+      ggsave(paste0("vignettes/Case Studies/CaseData/Mass_plot_", scale,  "_", date, "_", runs, "runs.png"), plot=mass_p)
+    }
+  }
+}
+```
+
+
+
+```{r Make concentration plots}
+if(type == "PMFA"){
+  for(name in concentration_df_names){
+    solution_name <- name
+    
+    Solution <- get(solution_name) |>
+      mutate(RUN = as.integer(RUN)) |>
+      mutate(Concentration = as.double(Concentration)) 
+    
+    source <- str_remove(solution_name, "concentration_ss_") |> 
+          str_replace("_[^_]*$", "") |>  # Removes everything after the last underscore
+          str_replace_all("_", " ")      # Replaces all underscores with spaces
+    
+    pol <- str_extract(solution_name, "(?<=_)[^_]*$")
+    
+    subt <- paste0(source, ", ", pol, ", ", y)
+    
+    # Aggregate plot data for all species
+    Plot_data_agg <- Solution |>
+      group_by(Scale, SubCompart, RUN, Unit) |>
+      summarise(Concentration = sum(Concentration)) 
+      
+    scales <- unique(Plot_data_agg$Scale)
+    
+    # Make plots for each scale
+    for (scale in scales) {
+      plot_data_scale <- Plot_data_agg |>
+        filter(Scale == scale) |>
+        mutate(concname = paste0(SubCompart, " (", Unit, ")"))
+      
+      # Filter out the compartments without mass
+      masscomps <- plot_data_scale |>
+        filter(RUN == 1) |>
+        filter(Concentration != 0)
+      
+      masscomps <- masscomps$SubCompart
+      
+      plot_data_scale <- plot_data_scale |>
+        filter(SubCompart %in% masscomps) 
+      
+      # Concentration plot
+      conc_p <- ggplot(plot_data_scale, mapping = aes(x = concname, y = Concentration, fill = concname)) +  
+        geom_violin() +
+        labs(title = paste0("Concentrations at ", scale, " scale"),
+             subtitle = subt,
+             x = "Compartment",
+             y = "Concentration") +
+        plot_theme +
+        scale_y_continuous(trans = 'log10') +
+        scale_fill_viridis_d() +
+        theme(axis.text.x = element_blank(),  
+              legend.position = "bottom") +   
+        guides(fill = guide_legend(title = NULL))  + 
+      scale_y_log10(  # Apply logarithmic scale
+      # Major breaks at powers of 10
+      breaks = scales::trans_breaks("log10", function(x) 10^x),
+      
+      # Labels in human-readable form
+      labels = scales::trans_format("log10", scales::math_format(10^.x)),
+    ) 
+      
+      print(conc_p)
+      
+      ggsave(paste0("vignettes/Case Studies/CaseData/Concentration_plot_", scale, "_", date, "_", runs, "runs.png"), plot=conc_p)
+    }
+  }
+} else if(type == "DPMFA"){
+  for(name in solved_df_names){
+    
+  }
+}
+
+```
+
+
+
 
 
