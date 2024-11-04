@@ -297,24 +297,9 @@ Material_Parameters <- read_excel(path_parameters_file, sheet = "Polymer_data") 
     TRUE ~ Unit
   ))
 
-materials <- unique(Material_Parameters$Polymer)
+# materials <- unique(Material_Parameters$Polymer)
 materials <- unique(DPMFA_sink_micro$Polymer) # materials in selected sources
 
-
-
-# TODO: get these from SB objects and not set in text input:
-# water <- c("lake", "sea", "deepocean", "river")
-# soil <- c("naturalsoil", "agriculturalsoil", "othersoil")
-# sediment <- c("marinesediment", "freshwatersediment", "lakesediment")
-# soil_sediment <- c(soil, sediment)
-# air <- c("air", "cloudwater")
-# all_SC <- c(water, soil, sediment, air)
-# species <- c("Large", "Small", "Solid")
-# small_large <- c("Small", "Large")
-# scales <- c("Arctic", "Tropic", "Moderate", "Regional", "Continental")
-
-# Only the ones with data in xlsx or with emission data are needed no? Why this vector?
-# materials <- c("HDPE", "LDPE", "PP", "PS", "PVC", "Acryl", "PA", "PET", "ABS", "EPS", "PC", "PMMA", "PUR", "RUBBER", "OTHER")
 explodeF <- function(df, target_col, explode_value, new_values) {
   df %>%
     # Use mutate to create a new column if the target column equals explode_value
@@ -523,45 +508,6 @@ if(is.na(source_of_interest)){
      compress = "xz",
      compression_level = 9)  
 }
-```
-
-# paralel version
-
-```{r}
-# library(foreach)
-# registerDoParallel(2)  # use multicore, set to the number of our cores
-# 
-# out.data <- 
-#   foreach(i=c(1:nrow(unique_combinations)), .inorder=FALSE, .errorhandling = "pass") %dopar%  {
-#     
-#     source <- unique_combinations$Source[i]
-#     pol <- unique_combinations$Polymer[i]
-#     
-#     emis_source <- DPMFA_sink_micro |>
-#       filter(Source == source) |>
-#       filter(Polymer == pol) |>
-#       select(Source, Abbr, Year, Polymer,Emis)
-#     
-#     sample_source <- Material_Parameters_n |>
-#       filter(Source == source) |>
-#       filter(Polymer == pol) |>
-#       select(VarName, Scale, SubCompart, Species, data) |> 
-#       rename(varName = VarName)
-#     
-#     solved <- World$Solve((emis_source), needdebug = F, sample_source)
-#     solved$SteadyStateConc <- World$GetConcentration()
-#     solved
-#   }
-# 
-# stopImplicitCluster()
-# 
-# # equivalent to colMeans(m)
-# m <- matrix(rnorm(9), 3, 3)
-# foreach(i=1:ncol(m), .combine=c) %do%
-#   mean(m[,i])
-# foreach(i=1:nrow(m), .combine=rbind) %dopar%
-#   (m[i,] / mean(m[i,]))
-
 ```
 
 # Prep data and make plots
