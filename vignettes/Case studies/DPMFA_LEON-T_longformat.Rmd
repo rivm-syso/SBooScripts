@@ -127,7 +127,7 @@ if(MFAtype == "PMFA"){
     rename(value = Mass_Polymer_kg_s)
 } else if(MFAtype == "DPMFA"){
    # Load EU data
-  abspath <- "vignettes/Case Studies/CaseData/DPMFA_EU.RData"
+  abspath <- "vignettes/Case Studies/CaseData/TEST_DPMFA_EU.RData"
   load(abspath)
   
   # Convert to long format
@@ -141,7 +141,7 @@ if(MFAtype == "PMFA"){
     mutate(SBscale = ifelse(Scale == "EU", "C", "R")) 
   
   # Load NL data
-  abspath <- "vignettes/Case Studies/CaseData/DPMFA_NL.RData"
+  abspath <- "vignettes/Case Studies/CaseData/TEST_DPMFA_NL.RData"
   load(abspath)
   
   # Convert to long format
@@ -202,8 +202,24 @@ if(MFAtype == "PMFA"){
 }
 ```
 
+```{r Set the regional scale to NL}
+# Path to excel file with distribution values and scale values
+path_parameters_file <- "vignettes/Case studies/CaseData/Microplastic_variables_v1.xlsx"
+
+# Make a df in the correct format for mutateVars
+Regional_Parameters <- read_excel(path_parameters_file, sheet = "Netherlands_data") |>
+  rename(varName = Variable) |>
+  rename(Waarde = Value) |>
+  select(-Unit) 
+
+# Recalculate the area's
+World$mutateVars(Regional_Parameters)
+World$UpdateDirty(unique(Regional_Parameters$varName))
+
+```
+
 ```{r Make a df with the emissions}
-TESTING = T
+TESTING = F
 if(TESTING==TRUE) DPMFA_sink_micro <- DPMFA_sink_micro |> filter(RUN<11)
 
 DPMFA_sink_micro <- DPMFA_sink_micro |>
@@ -216,7 +232,7 @@ DPMFA_sink_micro <-
 if(MFAtype == "PMFA"){
   DPMFA_sink_micro <- DPMFA_sink_micro |>
     nest(Emis = c(RUN, value))
-} else if(MFAtype == "DPMFA"){ # TODO when using DPMFA filtering should not occur for 1 year. All years should be used.
+} else if(MFAtype == "DPMFA"){ 
   DPMFA_sink_micro <- DPMFA_sink_micro |>
     mutate(Timed = as.double(Year)*(365.25*24*3600)) |>
     nest(Emis = c(RUN, value))
@@ -280,10 +296,6 @@ trapezoidal <- function(u, a, b, c, d) {
 ## Prepare excel data
 
 ```{r Prepare excel data}
-# Path to excel file with distribution values
-#path_dist <- "N:/Documents/Simplebox/Microplastic_variables_v2.xlsx"
-path_parameters_file <- "vignettes/Case studies/CaseData/Microplastic_variables_v1.xlsx"
-
 Material_Parameters <- read_excel(path_parameters_file, sheet = "Polymer_data") |> 
   
   # change um to nm unit coversion
@@ -318,7 +330,6 @@ suppressWarnings({
 })
 
 ```
-
 
 ```{r Make sample df}
 # Generate the correct number of samples
@@ -514,36 +525,88 @@ if(is.na(source_of_interest)){
 
 ```{r Load output data}
 otherdataname <- "LEON-T_output_OTHER_DPMFA_10_RUNS_2024_11_04.RData"
-twdataname <- "LEON-T_output_TYRE_WEAR_DPMFA_10_RUNS_2024_11_01.RData"
+twdataname <- "LEON-T_output_TYRE_WEAR_DPMFA_10_RUNS_2024_11_04.RData"
 
 data_folder <-  "vignettes/Case Studies/CaseData/"
 
 Solution <- data.frame()
 Concentrations <- data.frame()
 
-load(paste0(data_folder, otherdataname))
-for(i in 1:nrow(Output)){
+if(MFAtype == "DPMFA"){
+  load(paste0(data_folder, otherdataname))
   
+  for(i in 1:nrow(Output)){
+    output <- Output$SBoutput[i]
+    output <- output[[1]]
+    
+    solution <- output$DynamicMass |>
+      mutate(Source = "Other sources") |>
+      mutate(Polymer = Output$Polymer[i])
+      
+    Solution <- rbind(Solution, solution)
+    
+    concentration <- output$DynamicConc$Concentrations |>
+      mutate(Source = "Other sources") |>
+      mutate(Polymer = Output$Polymer[i])
+    
+    Concentrations <- rbind(Concentrations, concentration)
+    
+    States <- output$States
+  }
+  load(paste0(data_folder, twdataname))
   
+  for(i in 1:nrow(Output)){
+    output <- Output$SBoutput[i]
+    output <- output[[1]]
+    
+    solution <- output$DynamicMass |>
+      mutate(Source = "Tyre wear") |>
+      mutate(Polymer = Output$Polymer[i])
+      
+    Solution <- rbind(Solution, solution)
+    
+    concentration <- output$DynamicConc$Concentrations |>
+      mutate(Source = "Tyre wear") |>
+      mutate(Polymer = Output$Polymer[i])
+    
+    Concentrations <- rbind(Concentrations, concentration)
+  }
   
+  units <- output$DynamicConc$Units |>
+    pivot_longer(cols = everything(), names_to = "Abbr", values_to = "Unit")
+  
+  Concentrations_long <- Concentrations |>
+    pivot_longer(!c(time, RUN, Polymer, Source), names_to = "Abbr", values_to = "Concentration") |>
+    mutate(time = as.numeric(time)) |>
+    mutate(RUN = as.integer(RUN)) |>
+    mutate(Concentration = as.double(Concentration)) |>
+    mutate(Year = time/(365.25*24*3600))  |>
+    left_join(units, by="Abbr") |>
+    group_by(time, RUN, Source, Abbr, Year, Unit) |>
+    summarise(Concentration = sum(Concentration))|>
+    left_join(States, by="Abbr") |>
+    ungroup() |>
+    group_by(time, RUN, Source, Abbr, Year, Scale, SubCompart, Unit) |>
+    summarise(Concentration = sum(Concentration)) |>
+    mutate(SubCompartName  = paste0(SubCompart, " (", Unit, ")"))
+  
+  Solution_long <- Solution |>
+    pivot_longer(!c(time, RUN, Polymer, Source), names_to = "Abbr", values_to = "Mass") |>
+    mutate(time = as.numeric(time)) |>
+    mutate(RUN = as.integer(RUN)) |>
+    mutate(Mass = as.double(Mass)) |>
+    mutate(Year = time/(365.25*24*3600)) |>
+    filter(!str_starts(Abbr, "emis")) |>
+    group_by(time, RUN, Source, Abbr, Year) |>
+    summarise(Mass = sum(Mass)) |>
+    left_join(States, by="Abbr") |>
+    mutate(SubCompart = case_when(
+      str_detect(SubCompart, "cloudwater") ~ "air",
+      TRUE ~ SubCompart)) |>
+    ungroup() |>
+    group_by(time, RUN, Source, Abbr, Year, Scale, SubCompart) |>
+    summarise(Mass = sum(Mass))
 }
-
-concentration_other <- concentration_df |>
-  mutate(Source = "Other sources")
-input_vars_other <- input_var_df
-solution_other <- solved_df |>
-  mutate(Source = "Other sources")
-
-load(paste0(data_folder, twdataname))
-concentration_tw <- concentration_df |>
-  mutate(Source = "Tyre wear")
-input_vars_tw <- input_var_df
-solution_tw <- solved_df |>
-  mutate(Source = "Tyre wear")
-
-concentration_df <- rbind(concentration_other, concentration_tw)
-solution_df <- rbind(solution_other, solution_tw)
-
 ```
 
 ```{r}
@@ -560,99 +623,128 @@ plot_theme <-  theme(
   panel.grid.minor = element_line(color = "lightgrey", size = 0.25)
 )
 
-# Plot the data for each polymer separately, for all selected compartments (different plots depending on PMFA or DPMFA)
-if(type == "PMFA"){
-  for(mat in polymers){
-    solution_name <- paste0("solution_", mat)
-    df_name <- paste0("solved_ss_", mat)
+Source_colors <- c(
+  "Tyre wear" = "#2D708EFF",
+  "Other sources" = "#440154FF"
+)
+
+year <- 2020
+
+if(MFAtype == "DPMFA"){
+  scales <- unique(Solution_long$Scale)
+  
+  for(scale in scales){
+    sol_plot_data <- Solution_long |>
+      filter(Scale == scale) |>
+      filter(Year == year) |>
+      group_by(RUN, Source, Year, Scale, SubCompart) |>
+      summarise(Mass = sum(Mass))
     
-    Solution <- get(solution_name) |>
-      mutate(RUN = as.integer(RUN)) |>
-      # mutate(EqMass = as.double(EqMass)) |>
-      mutate(Concentration = as.double(Concentration)) 
+    sol_plot_data_TW <- sol_plot_data |>
+      filter(Source == "Tyre wear")
     
-    solved <- get(df_name)
+    conc_plot_data <- Concentrations_long |>
+      filter(Scale == scale) |>
+      filter(Year == year)|>
+      group_by(RUN, Source, Year, Scale, SubCompart, SubCompartName) |>
+      summarise(Concentration = sum(Concentration))
     
-    subt <- paste0(mat, ", ", y)
+    conc_plot_data_TW <- conc_plot_data |>
+      filter(Source == "Tyre wear")
     
-    # Prepare data for plots
-    Input_Variables <- 
-      solved$Input_Variables |> unnest(data) 
-    Input_Emission <- 
-      solved$Input_Emission |> unnest(Emis) 
+    conc_over_time_TW <- Concentrations_long |>
+      filter(Scale == scale) |>
+      filter(Source == "Tyre wear") |>
+      group_by(RUN, Source, Year, Scale, SubCompart, SubCompartName) |>
+      summarise(Concentration = sum(Concentration)) |>
+      ungroup() |>
+      group_by(Source, Year, Scale, SubCompartName) |>
+      summarise(Mean = mean(Concentration),
+                p25 = quantile(Concentration, probs = 0.25, na.rm = T),
+                p75 = quantile(Concentration, probs = 0.75, na.rm = T)) |>
+      arrange(SubCompartName, Year) 
     
-    Plot_data <- 
-      Input_Variables |> 
-      pivot_wider(names_from = c(varName,Scale,SubCompart,Unit), values_from = value) |> 
-      full_join(Solution) |>
-      full_join(Input_Emission, by = c("Abbr", "RUN"))
-    
-    # Aggregate plot data for all species
-    Plot_data_agg <- Plot_data |>
-      group_by(Scale, SubCompart, RUN, Unit.x, Units_per_SubCompart) |>
-      summarise(EqMass = sum(EqMass), Concentration = sum(Concentration))
-    
-    scales <- unique(Plot_data_agg$Scale)
-    
-    # Make plots for each scale, one with mass and one with concentrations
-    for (scale in scales) {
-      df <- Plot_data_agg |>
-        filter(Scale == scale) |>
-        mutate(concname = paste0(SubCompart, " (", Units_per_SubCompart, ")"))
-      
-      # Filter out the compartments without mass
-      masscomps <- df |>
-        filter(RUN == 1) |>
-        filter(EqMass != 0)
-      
-      masscomps <- masscomps$SubCompart
-      
-      df <- df |>
-        filter(SubCompart %in% masscomps)
-      
-      # Mass plot
-      mass_p <- ggplot(df, mapping = aes(x = SubCompart, y = EqMass, fill = SubCompart)) +  
+    # Mass plot comparing tyre wear and other sources
+      mass_p <- ggplot(sol_plot_data, mapping = aes(x = SubCompart, y = Mass, fill = Source)) +  
         geom_violin() + 
-        labs(title = paste0("Masses at ", scale, " scale"),
-             subtitle = subt,
+        labs(title = paste0("Masses at ", scale, " scale, ", as.character(year)),
+             x = "Compartment",
+             y = "Mass (kg)") +
+        plot_theme +
+        scale_y_continuous(trans = 'log10') +
+        scale_fill_manual(values = Source_colors) +
+        theme(legend.position = "bottom") +   
+        guides(fill = guide_legend(title = NULL))  
+      
+      print(mass_p)
+      
+      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Mass_plot_comparison_", scale, ".png"), plot=mass_p, width = 20, height = 10)
+    
+      # Mass plot for tyre wear
+      mass_p <- ggplot(sol_plot_data_TW, mapping = aes(x = SubCompart, y = Mass, fill = SubCompart)) +  
+        geom_violin() + 
+        labs(title = paste0("Tyre wear rubber masses at ", scale, " scale, ", as.character(year)),
              x = "Compartment",
              y = "Mass (kg)") +
         plot_theme +
         scale_y_continuous(trans = 'log10') +
         scale_fill_viridis_d() + 
-        # Customize the legend for this plot as well
-        theme(axis.text.x = element_blank(),  # Remove x-axis labels
-              legend.position = "bottom") +   # Move legend to the bottom
-        guides(fill = guide_legend(title = NULL))  # Remove legend title
+        theme(axis.text.x = element_blank(),  
+              legend.position = "bottom") +   
+        guides(fill = guide_legend(title = NULL))  
       
       print(mass_p)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Mass_plot_", scale, ".png"), plot=mass_p)
+      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Mass_plot_TW_", scale, ".png"), plot=mass_p, width = 20, height = 10)
       
-      # Concentration plot
-      conc_p <- ggplot(df, mapping = aes(x = concname, y = Concentration, fill = concname)) +  
-        geom_violin() +
-        labs(title = paste0("Concentrations at ", scale, " scale"),
-             subtitle = subt,
+      # Concentration plot comparing tyre wear and other sources
+      conc_p <- ggplot(conc_plot_data, mapping = aes(x = SubCompartName, y = Concentration, fill = Source)) +  
+        geom_violin() + 
+        labs(title = paste0("Concentrations at ", scale, " scale, ", as.character(year)),
              x = "Compartment",
-             y = "Concentration") +
+             y = "Mass (kg)") +
         plot_theme +
         scale_y_continuous(trans = 'log10') +
-        scale_fill_viridis_d() +
-        theme(axis.text.x = element_blank(),  # Remove x-axis labels
-              legend.position = "bottom") +   # Move legend to the bottom
-        guides(fill = guide_legend(title = NULL))  # Remove legend title
+        scale_fill_manual(values = Source_colors) +
+        theme(legend.position = "bottom") +   
+        guides(fill = guide_legend(title = NULL))  
       
       print(conc_p)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Concentration_plot_", scale, ".png"), plot=conc_p)
-    }
+      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Concentration_plot_comparison_", scale, ".png"), plot=conc_p, width = 20, height = 10)
+    
+      # Concentration plot for tyre wear
+      conc_p <- ggplot(conc_plot_data_TW, mapping = aes(x = SubCompartName, y = Concentration, fill = SubCompart)) +  
+        geom_violin() + 
+        labs(title = paste0("Tyre wear rubber concentrations at ", scale, " scale, ", as.character(year)),
+             x = "Compartment",
+             y = "Mass (kg)") +
+        plot_theme +
+        scale_y_continuous(trans = 'log10') +
+        scale_fill_viridis_d() + 
+        theme(axis.text.x = element_blank(),  
+              legend.position = "bottom") +   
+        guides(fill = guide_legend(title = NULL))  
+      
+      print(conc_p)
+      
+      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Concentration_plot_TW_", scale, ".png"), plot=conc_p, width = 20, height = 10)
+      
+      conc_time_p <- ggplot(conc_over_time_TW, mapping = aes(x = Year, y = Mean, colour = SubCompartName, group = SubCompartName)) +
+        geom_line(size = 1) +
+        labs(title = paste0("Tyre wear rubber mean concentrations over time at ", scale, " scale"),
+             x = "Year",
+             y = "Concentration") +
+        plot_theme +
+        scale_y_continuous(trans = 'log10') + 
+        scale_color_viridis_d() +
+        theme(axis.text.x = element_text(),  
+              legend.position = "bottom") +   
+        guides(colour = guide_legend(title = NULL)) 
+      
+      print(conc_time_p)
+        
   }
-  
-} else if(type == "DPMFA"){        
-  
-  # TO DO: Make plots for DPMFA output
-  
 }
 
 ```
