@@ -40,11 +40,11 @@ source("baseScripts/initWorld_onlyPlastics.R")
 
 ```{r Load DPMFA data}
 
-#source_of_interest <- NA # NA for all except TWP (needs to be run separately)
-source_of_interest <- "Tyre wear"
+source_of_interest <- NA # NA for all except TWP (needs to be run separately)
+#source_of_interest <- "Tyre wear"
 
 # Choose substance based on chosen sources
-if(length(source_of_interest) == 1 && source_of_interest == "Tyre wear"){
+if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_interest == "Tyre wear") {
   World$substance <- "TRWP"
 } else {
   World$substance <- "microplastic"
@@ -214,7 +214,7 @@ if(MFAtype == "PMFA"){
 
 ```{r Make a separate emission df for every polymer}
 runs <- 10
-TESTING = T
+TESTING = F
 if(TESTING==TRUE) data_filtered <- data_filtered |> filter(RUN<(runs+1))
 
 # unique_combinations <- data_filtered |>
@@ -711,5 +711,15 @@ if(is.na(source_of_interest)){
      file = paste0("vignettes/Case studies/Casedata/LEON-T_output_TYRE_WEAR_", MFAtype, "_", as.character(n_samples) , "_RUNS_", format(Sys.Date(),"%Y_%m_%d"),".RData"),
      compress = "xz",
      compression_level = 9)  
+  
+  States <- solved$States
+  
+  save(States,
+     file = "vignettes/Case studies/Casedata/States.RData",
+     compress = "xz",
+     compression_level = 9)  
+
 }
+
+
 ```
