@@ -25,6 +25,7 @@ source("baseScripts/initWorld_onlyMolec.R")
 allnodes <- World$nodelist
 head(allnodes)
 filtered_nodelist <- World$nodelist[World$nodelist$Calc == "k_Adsorption", ]
+filtered_nodelist <- World$nodelist[World$nodelist$Calc == "FRingas", ]
 filtered_nodelist_sea <- World$nodelist[World$nodelist$Calc == "AreaSea",]
 print(filtered_nodelist)
 ```
@@ -34,6 +35,8 @@ k_Adsorption is a great example of a process module that is dependent on a signi
 ```{r World nodes}
 NodeAsText <- paste(filtered_nodelist$Params, "->", filtered_nodelist$Calc)
 AllNodesAsText <- do.call(paste, c(as.list(NodeAsText), list(sep = ";")))
+
+allnodes |> distinct(ModuleType)
 
 # Create the DAG string
 dag_string <- paste("dag{", AllNodesAsText, "}")
