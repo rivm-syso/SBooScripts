@@ -39,8 +39,8 @@ source("baseScripts/initWorld_onlyPlastics.R")
 # Load the DPMFA data and make a nested emission dataframe
 
 ```{r Load DPMFA data}
-#source_of_interest <- NA # NA for all except TWP (needs to be run separately)
-source_of_interest <- "Tyre wear"
+source_of_interest <- NA # NA for all except TWP (needs to be run separately)
+#source_of_interest <- "Tyre wear"
 
 # Choose substance based on chosen sources
 if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_interest == "Tyre wear") {
@@ -204,7 +204,7 @@ if(MFAtype == "PMFA"){
     select(Abbr, Year, Polymer, value, RUN, Subcompartment)
   
   # If the source is tyre wear, separate the mass into NR and SBR, according to a triangular distribution based on data of LEON-T deliverable 3.2
-  if(source_of_interest == "Tyre wear"){
+  if(!is.na(source_of_interest)){
       
     TRWP_data <- read_excel(path_parameters_file, sheet = "TRWP_data") |>
       select(NR_Average_fraction) 
@@ -350,7 +350,7 @@ TRWP_size_dist <- function(u, path_to_file) {
 
 ```{r Prepare excel data}
 Material_Parameters <- read_excel(path_parameters_file, sheet = "Polymer_data") |> 
-  # change um to nm unit coversion
+  # change um to nm unit conversion
   mutate(across(c(a, b, c, d), as.numeric)) |>
   mutate(across(c(a, b, c, d), ~ case_when(
     str_detect(Unit, "um") ~ . * 1000,
@@ -361,13 +361,12 @@ Material_Parameters <- read_excel(path_parameters_file, sheet = "Polymer_data") 
     TRUE ~ Unit
   ))
 
-if(source_of_interest == "Tyre wear"){
+if(!is.na(source_of_interest)){
   Material_Parameters <- Material_Parameters |>
     filter(MP_source == "Tyre wear")
-  
-} else {
+} else if(is.na(source_of_interest)){
   Material_Parameters <- Material_Parameters |>
-    filter(MP_source == "")
+    filter(is.na(MP_source))
 }
 
 # materials <- unique(Material_Parameters$Polymer)
@@ -495,7 +494,7 @@ PlotVariable = "RadS"
 ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
   geom_violin()+
   facet_wrap(vars(Polymer,Source))+
-  xlab(paste(PlotVariable)) + scale_x_log10() 
+  xlab(paste(PlotVariable)) #+ scale_x_log10() 
 
 PlotVariable = "RhoS"
 ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
@@ -809,7 +808,6 @@ if(MFAtype == "DPMFA"){
         guides(colour = guide_legend(title = NULL)) 
       
       print(conc_time_p)
-        
   }
 }
 
