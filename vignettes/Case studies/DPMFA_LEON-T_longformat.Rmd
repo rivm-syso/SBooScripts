@@ -283,6 +283,13 @@ uniform <- function(u, a, b) {                     # u = samples, a = min, b = m
   return(transformed_samples)
 }
 
+log_uniform <- function(u, a, b) {
+
+  log_scaled <- -log(1 - u)
+  transformed_samples <- a + (b - a) * (log_scaled / max(log_scaled))
+  return(transformed_samples)
+}
+
 # Define power law distribution function
 power_law <- function(u, a, b, c){                 # u = samples, a = min, b = max, c = alpha
   
@@ -417,6 +424,7 @@ for(pol in polymers){
                    "Powerlaw" ~  list(tibble(value=power_law(lhs_samples[, nvar], a, b, c))),
                    "Trapezoidal" ~  list(tibble(value=trapezoidal(lhs_samples[, nvar], a, b, c, d))),
                    "TRWP_size" ~ list(tibble(value=TRWP_size_dist(lhs_samples[, nvar], path_parameters_file))),
+                   "Log uniform" ~ list(tibble(value=log_uniform(lhs_samples[, nvar], a, b))),
                    .default = NA
         )
     ) 
@@ -481,7 +489,7 @@ PlotVariable = "alpha"
 ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
   geom_violin()+
   facet_wrap(vars(Polymer,Species))+
-  xlab(PlotVariable) + scale_x_log10() 
+  xlab(PlotVariable)
 
 PlotVariable = "RadS"
 ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
@@ -565,7 +573,7 @@ elapsed_time <- end_time - start_time
 
 print(paste0("Elapsed time is ", elapsed_time))
 
-# Save the ouput as RData file
+# Save the output as RData file
 if(is.na(source_of_interest)){
   save(Output, report_table, 
      file = paste0("vignettes/Case studies/Casedata/LEON-T_output_OTHER_", MFAtype, "_", as.character(n_samples) , "_RUNS_", format(Sys.Date(),"%Y_%m_%d"),".RData"),
@@ -686,7 +694,7 @@ Source_colors <- c(
   "Other sources" = "#440154FF"
 )
 
-year <- 2020
+year <- 2019
 
 if(MFAtype == "DPMFA"){
   scales <- unique(Solution_long$Scale)
