@@ -28,6 +28,10 @@ library(lhs)
 library(readxl)
 library(viridis)
 library(trapezoid)
+library(triangle)
+
+# Path to excel file with parameters
+path_parameters_file <- "vignettes/Case studies/CaseData/Microplastic_variables_v1.xlsx"
 
 source("baseScripts/initWorld_onlyPlastics.R")
 ```
@@ -120,7 +124,6 @@ if(MFAtype == "PMFA"){
       TRUE ~ "S")) |>
     mutate(Abbr = paste0(Compartment, Subcompartment, Scale, Species)) |>
     mutate(Subcompartment = paste0(Compartment, Subcompartment)) |>
-    #group_by(Source, Abbr, Year, RUN, Polymer) |>
     group_by(Abbr, Year, Polymer, RUN, Subcompartment) |>
     summarise(Mass_Polymer_kg_s = sum(Mass_Polymer_kg_s)) |>
     ungroup() |>
@@ -168,7 +171,7 @@ if(MFAtype == "PMFA"){
     sources <- unique(data_long$Source)
     sources <- sources[sources != "Tyre wear"]
   }
-  
+
   # Assign SB compartments to DPMFA compartments
   DPMFA_sink_micro <- data_long |>
     filter(Source %in% sources) |>
@@ -199,13 +202,43 @@ if(MFAtype == "PMFA"){
     ungroup() |>
     rename(value = Mass_Polymer_kg_s) |>
     select(Abbr, Year, Polymer, value, RUN, Subcompartment)
+  
+  # If the source is tyre wear, separate the mass into NR and SBR, according to a triangular distribution based on data of LEON-T deliverable 3.2
+  if(source_of_interest == "Tyre wear"){
+      
+    TRWP_data <- read_excel(path_parameters_file, sheet = "TRWP_data") |>
+      select(NR_Average_fraction) 
+    TRWP_data <- na.omit(TRWP_data)
+    a <- min(TRWP_data$NR_Average_fraction)
+    b <- max(TRWP_data$NR_Average_fraction)
+    c <- mean(TRWP_data$NR_Average_fraction)
+    
+    nsamples <- max(DPMFA_sink_micro$RUN)
+    NR_SBR_fractions <- rtriangle(nsamples, a, b, c) 
+    NR_SBR_fractions <- data.frame(NR_SBR_fractions) |>
+      mutate(RUN = 1:nsamples) |>
+      rename(NR_fraction = NR_SBR_fractions)
+    
+    DPMFA_sink_micro <- DPMFA_sink_micro |> 
+      left_join(NR_SBR_fractions, by = "RUN") 
+    
+    NR_df <- DPMFA_sink_micro |>
+      mutate(Polymer = "NR") |>
+      mutate(value = value*NR_fraction) |>
+      select(-NR_fraction)
+    
+    SBR_df <- DPMFA_sink_micro |>
+      mutate(Polymer = "SBR") |>
+      mutate(SBR_fraction = 1-NR_fraction) |>
+      mutate(value = value*SBR_fraction) |>
+      select(-c(NR_fraction, SBR_fraction))
+    
+    DPMFA_sink_micro <- rbind(NR_df, SBR_df)
+  }
 }
 ```
 
 ```{r Set the regional scale to NL}
-# Path to excel file with distribution values and scale values
-path_parameters_file <- "vignettes/Case studies/CaseData/Microplastic_variables_v1.xlsx"
-
 # Make a df in the correct format for mutateVars
 Regional_Parameters <- read_excel(path_parameters_file, sheet = "Netherlands_data") |>
   rename(varName = Variable) |>
@@ -221,9 +254,6 @@ World$UpdateDirty(unique(Regional_Parameters$varName))
 ```{r Make a df with the emissions}
 TESTING = F
 if(TESTING==TRUE) DPMFA_sink_micro <- DPMFA_sink_micro |> filter(RUN<11)
-
-DPMFA_sink_micro <- DPMFA_sink_micro |>
-  filter(Year %in% 2019:2025)
 
 # Filter out emission subcompartments for which SimpleBox does not have a compartment (yet)
 DPMFA_sink_micro <-
@@ -285,10 +315,26 @@ trapezoidal <- function(u, a, b, c, d) {
                           d - sqrt((1 - u) * (base2) * width_total)  # Right triangle
                    )
   )
-  
   return(result)
 }
 
+# Function to scale TRWP size to data from LEON-T deliverable 3.2
+TRWP_size_dist <- function(u, path_to_file) {
+  
+  # Read the data and process it
+  TRWP_data <- read_excel(path_parameters_file, sheet = "TRWP_data") |>
+    separate(`Size Fraction (µm)`,
+             into = c("Size_um","max_size_um"), sep = "-") |> 
+    mutate(Size_um = as.numeric(gsub("400", "1000", Size_um))) |>  # Change "400" to "1000"
+    mutate(PSD_um = as.numeric(PSD_um)) |> # Assuming PSD_um is the particle size distribution (weights)
+    mutate(cdf = cumsum(PSD_um)) |>
+    mutate(cdf = cdf / max(cdf))  # Normalize the CDF
+  
+  # Use the approx function to interpolate Size_um based on the CDF
+  scaled_samples <- approx(x = TRWP_data$cdf, y = TRWP_data$Size_um, xout = u, rule = 2)$y
+  
+  return(scaled_samples)
+}
 ```
 
 # Create dataset with uncertain variables
@@ -308,16 +354,14 @@ Material_Parameters <- read_excel(path_parameters_file, sheet = "Polymer_data") 
     TRUE ~ Unit
   ))
 
-TRWP_data <- read_excel(path_parameters_file, sheet = "TRWP_data") 
+if(source_of_interest == "Tyre wear"){
+  Material_Parameters <- Material_Parameters |>
+    filter(MP_source == "Tyre wear")
   
-library(pdqr)
-TRWP_data <- 
-  TRWP_data |> separate(`Size Fraction (µm)`,
-                      into = c("Size_um","max_size_um"), sep = "-")
-funProb <- new_d(data.frame(x = as.numeric(TRWP_data$Size_um), y = TRWP_data$PSD_um),
-                 type="continuous")
-
-plot(funProb)
+} else {
+  Material_Parameters <- Material_Parameters |>
+    filter(MP_source == "")
+}
 
 # materials <- unique(Material_Parameters$Polymer)
 materials <- unique(DPMFA_sink_micro$Polymer) # materials in selected sources
@@ -332,7 +376,6 @@ explodeF <- function(df, target_col, explode_value, new_values) {
 
 DefinedVariables <- lapply(unique(Material_Parameters$VarName),World$fetchData)
 names(DefinedVariables) = unique(Material_Parameters$VarName)
-
 
 # how to cope with any. For now this, but materials should be only for material being calculated for.
 suppressWarnings({
@@ -353,20 +396,15 @@ for(pol in polymers){
 
   input_vars <- 
     Material_Parameters |>
-    filter(if_all(c(Distribution, a, b), ~ !is.na(.) )) |> # filter out non defined distributions
-    filter(Polymer == pol) |> 
-    # Not sure what the 3 lines below do.
-    group_by(VarName, Scale, SubCompart, Species, Polymer) |>
-    filter(if (n() > 1) MP_source == source_of_interest | (MP_source == "" & !any(MP_source == source_of_interest)) else TRUE) |>
-    ungroup()
-  
+    filter(!is.na(Distribution)) |>
+    filter(Polymer == pol) #|> 
+
   n_vars <- nrow(input_vars)
   
   # Generate LHS
   lhs_samples <- randomLHS(n_samples, n_vars)
-  # var_df_names <- c()
   
-  # somthing like this should work to get the nested tibble with data of samples
+  # Scale the lhs samples to the correct distributions
   sample_df_var <-  
     input_vars |> 
     mutate(nvar = c(1:n_vars)) |> 
@@ -376,20 +414,30 @@ for(pol in polymers){
         case_match(Distribution,
                    "Triangular" ~ list(tibble(value=triangular(lhs_samples[, nvar], a, b, c))),
                    "Uniform" ~  list(tibble(value=uniform(lhs_samples[, nvar], a, b))),
-                   "Powerlaw" ~  list(tibble( value=power_law(lhs_samples[, nvar], a, b, c))),
-                   "Trapezoidal" ~  list(tibble( value=trapezoidal(lhs_samples[, nvar], a, b, c, d))),
+                   "Powerlaw" ~  list(tibble(value=power_law(lhs_samples[, nvar], a, b, c))),
+                   "Trapezoidal" ~  list(tibble(value=trapezoidal(lhs_samples[, nvar], a, b, c, d))),
+                   "TRWP_size" ~ list(tibble(value=TRWP_size_dist(lhs_samples[, nvar], path_parameters_file))),
                    .default = NA
         )
     ) 
-  
-  # sample_df_var <- sample_df_var |>
-  #   mutate(Polymer = pol) |>
-  #   mutate(Source = source)
-  
+
   Material_Parameters_n <- rbind(Material_Parameters_n, sample_df_var)
 }
 
-#TODO before explosion export table with some statistics of applied variable ranges for reporting in relation to input variables of each distribution. Aim at: min, p5, p50, mean, p95, max.
+# Make a table with statistics of the samples
+report_table <- Material_Parameters_n |>
+  select(-c(a, b, c, d, Reasoning, Comment, Description, nvar)) |>
+  unnest(data) |>
+  group_by(VarName, Scale, SubCompart, Species, Distribution, Polymer, Unit, `Data Source`) |>
+  mutate(min = min(value),
+         p5 = quantile(value, 0.05),
+         p25 = quantile(value, 0.25),
+         p50 = quantile(value, 0.50),
+         mean = mean(value),
+         p75 = quantile(value, 0.75),
+         p95 = quantile(value, 0.95)) |>
+  select(-value) |>
+  distinct()
 
 scales <- union((World$FromDataAndTo()$fromScale),(World$FromDataAndTo()$toScale))
 subCompartments <-  union((World$FromDataAndTo()$fromSubCompart),(World$FromDataAndTo()$toSubCompart))
@@ -519,12 +567,12 @@ print(paste0("Elapsed time is ", elapsed_time))
 
 # Save the ouput as RData file
 if(is.na(source_of_interest)){
-  save(Output,
+  save(Output, report_table, 
      file = paste0("vignettes/Case studies/Casedata/LEON-T_output_OTHER_", MFAtype, "_", as.character(n_samples) , "_RUNS_", format(Sys.Date(),"%Y_%m_%d"),".RData"),
      compress = "xz",
      compression_level = 9)   
 } else if(source_of_interest == "Tyre wear"){
-  save(Output,
+  save(Output, NR_SBR_fractions, report_table,
      file = paste0("vignettes/Case studies/Casedata/LEON-T_output_TYRE_WEAR_", MFAtype, "_", as.character(n_samples) , "_RUNS_", format(Sys.Date(),"%Y_%m_%d"),".RData"),
      compress = "xz",
      compression_level = 9)  
