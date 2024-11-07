@@ -130,7 +130,7 @@ if(MFAtype == "PMFA"){
     rename(value = Mass_Polymer_kg_s)
 } else if(MFAtype == "DPMFA"){
    # Load EU data
-  abspath <- "vignettes/Case Studies/CaseData/TEST_DPMFA_EU.RData"
+  abspath <- "vignettes/Case Studies/CaseData/DPMFA_EU.RData"
   load(abspath)
   
   # Convert to long format
@@ -144,7 +144,7 @@ if(MFAtype == "PMFA"){
     mutate(SBscale = ifelse(Scale == "EU", "C", "R")) 
   
   # Load NL data
-  abspath <- "vignettes/Case Studies/CaseData/TEST_DPMFA_NL.RData"
+  abspath <- "vignettes/Case Studies/CaseData/DPMFA_NL.RData"
   load(abspath)
   
   # Convert to long format
@@ -808,6 +808,28 @@ if(MFAtype == "DPMFA"){
         guides(colour = guide_legend(title = NULL)) 
       
       print(conc_time_p)
+      
+      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Concentration_plot_TW_", scale, ".png"), plot=conc_p, width = 20, height = 10)
+      
+      conc_time_2 <- ggplot(conc_over_time_TW, aes(x = Year, y = Mean, group = SubCompartName)) +
+        geom_ribbon(aes(ymin = p25, ymax = p75, fill = SubCompartName), alpha = 0.2) +
+        geom_line(aes(color = SubCompartName), size = 1.2) +
+        scale_color_viridis_d(option = "D") +  
+        scale_fill_viridis_d(option = "D") +   
+        labs(title = "Concentration of Tyre Wear over Time",
+             x = "Year",
+             y = "Concentration (Mean, p25, p75)",
+             color = "Sub-Compartment",
+             fill = "Sub-Compartment") +
+        plot_theme +
+        scale_y_continuous(trans = 'log10') +
+        theme(axis.text.x = element_text(),  
+              legend.position = "bottom") +   
+        guides(colour = guide_legend(title = NULL))
+      
+      print(conc_time_2)
+      
+      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Concentration_plot_TW_uncertain", scale, ".png"), plot=conc_p, width = 20, height = 10)
   }
 }
 
