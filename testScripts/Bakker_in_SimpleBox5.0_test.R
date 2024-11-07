@@ -15,9 +15,10 @@ source("baseScripts/initWorld_onlyMolec.R")
 
 # Choose the substance to model. Of the 5 substances used in Bakker (2003) only Tetrachloroethylene
 # is currently present in data/Substances.csv by default. The others need to be added manually.
-Substance <- "fluoranthene"
+Substance <- "tetrachloroethylene"
 
 World$substance <- Substance
+
 
 # There are some substance specific parameters not included in data/Substances.csv, so I create a dataframe for them.
 Substance_extra <- data.frame(Substance = c("tetrachloroethylene", "lindane", "fluoranthene", "chrysene", "benzo[a]pyrene"),
@@ -27,12 +28,13 @@ Substance_extra <- data.frame(Substance = c("tetrachloroethylene", "lindane", "f
                               kdegsoil = c(4.10e-8, 2.23e-8, 2.23e-8, 2.23e-8, 2.23e-8))
 
 # Set the emission values [ton/year]
-#emissions <- data.frame(Abbr = c("aRU", "w1RU", "aCU", "w1CU"), Emis = c(2380, 15.1, 64200, 223.4))     # Tetrachloroethylene
+emissions <- data.frame(Abbr = c("aRU", "w1RU", "aCU", "w1CU"), Emis = c(2380, 15.1, 64200, 223.4))     # Tetrachloroethylene
 #emissions <- data.frame(Abbr = c("aRU", "s2RU", "aCU", "s2CU"), Emis = c(2.1, 18.9, 104.4, 939.6))      # Lindane
-emissions <- data.frame(Abbr = c("aRU", "w1RU", "s2RU", "s3RU"), Emis = c(196.8, 19.2, 7.2, 16.8))      # Fluoranthene
+#emissions <- data.frame(Abbr = c("aRU", "w1RU", "s2RU", "s3RU"), Emis = c(196.8, 19.2, 7.2, 16.8))      # Fluoranthene
 #emissions <- data.frame(Abbr = c("aRU", "w1RU", "s2RU", "s3RU"), Emis = c(75.2, 3.2, 0.8, 0.8))         # Chrysene
 #emissions <- data.frame(Abbr = c("aRU", "w1RU", "s2RU", "s3RU"), Emis = c(26.88, 4.16, 0.32, 0.64))     # Benzo[a]pyrene
 
+# Convert emission to [mol/s]
 MW <- World$fetchData("MW")
 emissions <- emissions |> mutate(Emis = Emis*1000/(MW*365*24*60*60))
 
@@ -40,8 +42,8 @@ emissions <- emissions |> mutate(Emis = Emis*1000/(MW*365*24*60*60))
 SystemArea <- World$fetchData("TotalArea")
 index <- which(SystemArea$Scale == "Regional")
 SystemArea$TotalArea[index] <- 8.4e+10
-index <- which(SystemArea$Scale == "Continental")
-SystemArea$TotalArea[index] <- 3.714e+12 
+# index <- which(SystemArea$Scale == "Continental")
+# SystemArea$TotalArea[index] <- 3.714e+12 
 World$SetConst("TotalArea" = SystemArea)
 
 # Setting sea fraction of total area [-]
@@ -54,9 +56,9 @@ World$SetConst("FRACsea" = FracSea)
 # Lake fraction does not exist in this scenario, but cannot be set to 0 in the model
 LandFrac <- World$fetchData("landFRAC")
 index <- which(LandFrac$Scale == "Regional" & LandFrac$SubCompart == "river")
-LandFrac$landFRAC[index] <- 0.0999
+LandFrac$landFRAC[index] <- 0.1
 index <- which(LandFrac$Scale == "Regional" & LandFrac$SubCompart == "lake")
-LandFrac$landFRAC[index] <- 0.0001
+LandFrac$landFRAC[index] <- 1e-20
 index <- which(LandFrac$Scale == "Regional" & LandFrac$SubCompart == "naturalsoil")
 LandFrac$landFRAC[index] <- 0.40
 index <- which(LandFrac$Scale == "Regional" & LandFrac$SubCompart == "agriculturalsoil")
@@ -77,6 +79,8 @@ Corg$Corg[index] <- 0.05
 index <- which(Corg$SubCompart == "othersoil")
 Corg$Corg[index] <- 0.05
 World$SetConst("Corg" = Corg)
+
+World$SetConst("CorgStandard" = 0.05)
 
 # Setting mass fraction of organic carbon suspended in water [-]
 World$SetConst("CORG.susp" = 0.1)
@@ -99,7 +103,7 @@ index <- which(Temp$Scale == "Continental")
 Temp$Temp[index] <- 273 + 10
 World$SetConst("Temp" = Temp)
 
-# Setting parameters compartment depth/height [m]
+# Setting depth/height of the compartments [m]
 DepthHeight <- World$fetchData("VertDistance")
 index <- which(DepthHeight$Scale == "Regional" & DepthHeight$SubCompart == "river")
 DepthHeight$VertDistance[index] <- 3
@@ -133,12 +137,12 @@ index <- which(FRsolid$Scale == "Regional" & FRsolid$SubCompart == "othersoil")
 FRsolid$FRACs[index] <- 0.6
 World$SetConst("FRACs" = FRsolid)
 
-# Setting the fractions of water that infiltrates/becomes runoff [-]
+# Setting the fractions of water on soil that infiltrates/becomes runoff [-]
 World$SetConst("FRACrun" = 0.25)
 World$SetConst("FRACinf" = 0.25)
 
 # This scenario has no lakewater compartment, but LakeFracRiver (fraction of freshwater part of lakes) cannot be 0.
-World$SetConst("LakeFracRiver" = 0.0001)
+World$SetConst("LakeFracRiver" = 1e-20)
 
 # Setting wind speed [m/s]
 wind <- World$fetchData("WINDspeed")
@@ -147,6 +151,7 @@ wind$WINDspeed[index] <- 5
 World$SetConst("WINDspeed" = wind)
 
 # Setting the rain rate [mm/year]
+# The data retrieved by World$fetchData() is in SI units, so it should be converted to [mm/year] first
 rain <- World$fetchData("RAINrate")
 rain <- rain |> mutate(RAINrate = RAINrate*1000*3600*24*365)
 index <- which(rain$Scale == "Regional")
@@ -162,14 +167,14 @@ index <- which(collecteff$Scale == "Regional")
 collecteff$COLLECTeff[index] <- 20000
 World$SetConst("COLLECTeff" = collecteff)
 
-# Setting the settling velocity in water [m/s]
-settlev <- World$fetchData("SettlVelocitywater")
-index <- which(settlev$Scale == "Regional")
-settlev$SettlVelocitywater[index] <- 2.89e-6
-World$SetConst("SettlVelocitywater" = settlev)
+# Setting the settling velocity in water [m/s]      # Setting this parameter doesn't seem to do anything, as the model will calculate settling velocity on its own using f_SetVelWater.
+# settlev <- World$fetchData("SettlVelocitywater")
+# index <- which(settlev$Scale == "Regional")
+# settlev$SettlVelocitywater[index] <- 2.89e-6
+# World$SetConst("SettlVelocitywater" = settlev)
 
 #World$SetConst("EROSIONsoil" = 9.51294e-13)      # [mm/year] ?? World$fetchDataUnits() says m/s, but the default values clearly suggest mm/year
-#World$SetConst("Erosion" = 0.03)                # [m/s] ?? World$fetchDataUnits() says mm/year, but the default value clearly suggests m/s. Also this parameter seems redundant.
+#World$SetConst("Erosion" = 0.03)                 # [m/s] ?? World$fetchDataUnits() says mm/year, but the default value clearly suggests m/s. Also this parameter seems redundant.
 
 # Setting partial mass transfer coefficient of the water/sediment interface [m/s]
 World$SetConst("kwsd.sed" = 2.78e-8)
@@ -179,18 +184,25 @@ World$SetConst("kwsd.water" = 2.78e-6)
 indexS <- which(Substance_extra$Substance == Substance)
 World$SetConst("H0sol" = Substance_extra$H0sol[indexS])
 
+# Setting the net sedimentation rate [m/s]
+sedrate <- World$fetchData("NETsedrate")
+index <- which(sedrate$Scale == "Regional" & sedrate$SubCompart == "sea")
+sedrate$NETsedrate[index] <- 2.74288e-11
+index <- which(sedrate$Scale == "Continental" & sedrate$SubCompart == "sea")
+sedrate$NETsedrate[index] <- 0 
+
 # Setting the degradation rates for the subcompartments [/s]
-#kdeg <- World$fetchData("kdeg")
-#index <- which(kdeg$SubCompart == "air")
-#kdeg$kdeg[index] <- Substance_extra$kdegair[indexS]
-#index <- which(kdeg$SubCompart == "river" | kdeg$SubCompart == "sea")
-#kdeg$kdeg[index] <- Substance_extra$kdegwater[indexS]
-#index <- which(kdeg$SubCompart == "agriculturalsoil" | kdeg$SubCompart == "naturalsoil" | kdeg$SubCompart == "othersoil"  )
-#kdeg$kdeg[index] <- Substance_extra$kdegsoil[indexS]
-#World$SetConst("kdeg" = kdeg)
+# kdeg <- World$fetchData("kdeg")                                   # Attempting to set these parameters for anything other than Tetrachloroethylene will result in an error. 
+# index <- which(kdeg$SubCompart == "air")
+# kdeg$kdeg[index] <- Substance_extra$kdegair[indexS]
+# index <- which(kdeg$SubCompart == "river" | kdeg$SubCompart == "sea")
+# kdeg$kdeg[index] <- Substance_extra$kdegwater[indexS]
+# index <- which(kdeg$SubCompart == "agriculturalsoil" | kdeg$SubCompart == "naturalsoil" | kdeg$SubCompart == "othersoil"  )
+# kdeg$kdeg[index] <- Substance_extra$kdegsoil[indexS]
+# World$SetConst("kdeg" = kdeg)
 
 
-# Calculating parameters ?? I'm not sure how this works. This is what they do in the vignettes, so I'm doing it here too.
+# Calculating the parameters that are dependent on input parameters
 SBvars <- c("FRACs",
             "FRACw",
             "FRACa",
@@ -219,106 +231,48 @@ for (x in SBvars) {
   World$CalcVar(x)
 }
 
-# Calculating flows ?? This part is directly taken from the Advection vignette
 
-World$CalcVar("x_Advection_Air")
-
-flow1 <- World$NewFlow("x_ContRiver2Reg")
-flow1$FromAndTo
-flow1$execute()
-World$CalcVar("x_ContRiver2Reg")
-
-flow2 <- World$NewFlow("x_RiverDischarge")
-flow2$FromAndTo
-flow2$execute()
-World$CalcVar("x_RiverDischarge")
-
-flow3 <- World$NewFlow("x_LakeOutflow")
-flow3$FromAndTo
-flow3$execute()
-World$CalcVar("x_LakeOutflow")
-
-flow4 <- World$NewFlow("x_ContSea2Reg")
-flow4$FromAndTo
-flow4$execute()
-World$CalcVar("x_ContSea2Reg")
-
-flow5 <- World$NewFlow("x_RegSea2Cont")
-flow5$FromAndTo
-flow5$execute()
-World$CalcVar("x_RegSea2Cont")
-
-flow6 <- World$NewFlow("x_ToModerateWater")
-flow6$FromAndTo
-flow6$execute()
-World$CalcVar("x_ToModerateWater")
-
-# Calculating depostion from air
-testClass <- World$NewProcess("k_Deposition")
-testClass$execute()
-
-testProc <- World$NewProcess("k_Adsorption")
-testProc$execute()
-
-testClass2 <- World$NewProcess("k_Degradation")
-testClass2$execute()
-
-TestProcess <- World$NewProcess("k_Burial")
-TestProcess$execute()
-
-testClass3 <- World$NewProcess("k_Leaching")
-testClass3$execute()
-
-testClass4 <- World$NewProcess("k_Escape")
-testClass4$execute()
-
-resuspension <- World$NewProcess("k_Resuspension")
-resuspension$execute()
-
-test1 <- World$NewProcess("k_Erosion")
-test1$execute()
-
-test2 <- World$NewProcess("k_Runoff")
-test2$execute()
-
-testProc2 <- World$NewProcess("k_Volatilisation")
-testProc2$execute()
-
-testProc3 <- World$NewProcess("k_Desorption")
-testProc3$execute()
-
-
-# This method is called to update the transfer rates stored in the model to what was calculated
-# in the previous blocks of code.
+# Update the transfer rates based on the newly set and calculated parameters
 World$UpdateKaas()
 
 
 # The scenario from Bakker (2003) does not have a lake component. In order to disable that compartment in SB 5.0,
 # I forcibly set all transfer rates going to and from the lake compartments to 0.
-lakeindex <- which(World$kaas$fromSubCompart == "lake" | World$kaas$fromSubCompart == "lakesediment" | World$kaas$toSubCompart == "lake" | World$kaas$toSubCompart == "lakesediment")
-for (i in lakeindex) {
-  World$kaas$k[i] <- 0
-}
+# lakeindex <- which(World$kaas$fromSubCompart == "lake" | World$kaas$fromSubCompart == "lakesediment" | World$kaas$toSubCompart == "lake" | World$kaas$toSubCompart == "lakesediment")
+# for (i in lakeindex) {
+#   World$kaas$k[i] <- 0
+# }
+# 
+# # Bakker (2003) specifically lists a rate for Continental Rivers to Regional Rivers, so I'm manually setting
+# # it here in SimpleBox 5.0
+# Volumew1C <- filter(World$fetchData("Volume"), Scale =="Continental", SubCompart == "river")[3]
+# Ratew1Ctow1R <- 2247/Volumew1C
+# index <- which(World$kaas$process == "k_Advection" & World$kaas$fromScale == "Continental" & World$kaas$fromSubCompart == "river" & World$kaas$toSubCompart == "river")
+# World$kaas$k[index] <- as.numeric(Ratew1Ctow1R)
 
-# Bakker (2003) specifically lists a rate for Continental Rivers to Regional Rivers, so I'm manually setting
-# it here in SimpleBox 5.0
-Volumew1C <- filter(World$fetchData("Volume"), Scale =="Continental", SubCompart == "river")[3]
-Ratew1Ctow1R <- 2247/Volumew1C
-index <- which(World$kaas$process == "k_Advection" & World$kaas$fromScale == "Continental" & World$kaas$fromSubCompart == "river" & World$kaas$toSubCompart == "river")
-World$kaas$k[index] <- as.numeric(Ratew1Ctow1R)
 
-
-# Solve the matrix
+# Set a solver and solve the matrix
 World$NewSolver("SB1Solve")
 
-masses <- filter(World$Solve(emissions), Scale == "Regional") %>% arrange(SubCompart)
-masses <- World$Solve(emissions)
+masses <- filter(World$Solve(emissions), Scale == "Regional") %>% arrange(SubCompart)   # THIS OUTPUT IS IN MOL, NOT KG!
 masses <- as_tibble(masses)
-print(masses)
+
+# Convert mass output to Kg
+masses <- masses |> mutate(EqMass = EqMass*MW)
+
+print(masses)                          
 
 # Get the concentrations for the compartments
-Concentrations <- filter(World$GetConcentration(), Scale == "Regional")
+Concentrations <- filter(World$GetConcentration(), Scale == "Regional")    # SAME HERE. THIS IS MOL, NOT KG!
 Concentrations <- Concentrations[,-c(1,2)]
+
+# Convert concentrations to g/
+Concentrations <- Concentrations |> mutate(Concentration = Concentration*MW)
+index <- which(Concentrations$SubCompart == "river" | Concentrations$SubCompart == "sea")
+for (i in index) {
+  Concentrations$Concentration[i] <- Concentrations$Concentration[i] / 1000
+}
+
 
 # Calculate concentrations for the sub-phases in the relevant compartments
 Cair <- filter(Concentrations, SubCompart == "air")[,2]
@@ -342,29 +296,41 @@ Concentrations <- rbind(Concentrations, c("river - suspended", Criver[[1]]*FRw1*
 # Water and Solid in Freshwater Sediment
 FRwinsd <- filter(World$fetchData("FRACw"), Scale == "Regional" & SubCompart == "freshwatersediment")[,3]
 KPsuspsd1 <- filter(World$fetchData("Kp"), SubCompart == "freshwatersediment")[,2]
-Concentrations <- rbind(Concentrations, c("freshwatersediment - water", Csediment[[1]]*FRwinsd, "g/L"))
-Concentrations <- rbind(Concentrations, c("freshwatersediment - solid", Csediment[[1]]*FRwinsd*KPsuspsd1, "g/kg d"))
+FRsinsd <- filter(World$fetchData("FRACs"), Scale == "Regional" & SubCompart == "freshwatersediment")[,3]
+RhoS <- filter(World$fetchData("RhoCP"), SubCompart == "freshwatersediment")[,2]
+Csedsolid <- Csediment*FRsinsd/(FRwinsd/(KPsuspsd1*RhoS/1000)/FRsinsd)
+Concentrations <- rbind(Concentrations, c("freshwatersediment - water", Csedsolid[[1]]/KPsuspsd1, "g/L"))
+Concentrations <- rbind(Concentrations, c("freshwatersediment - solid", Csedsolid[[1]], "g/kg d"))
 
 # Water and Solid in Natural Soil
 FRwins1 <- filter(World$fetchData("FRACw"), Scale == "Regional" & SubCompart == "naturalsoil")[,3]
 KPsusps1 <- filter(World$fetchData("Kp"), SubCompart == "naturalsoil")[,2]
-Concentrations <- rbind(Concentrations, c("naturalsoil - water", Cnatsoil[[1]]*FRwins1, "g/L"))
-Concentrations <- rbind(Concentrations, c("naturalsoil - solid", Cnatsoil[[1]]*FRwins1*KPsusps1, "g/kg d"))
+FRains1 <- filter(World$fetchData("FRACa"), Scale == "Regional" & SubCompart == "naturalsoil")[,3]
+FRsins1 <- filter(World$fetchData("FRACs"), Scale == "Regional" & SubCompart == "naturalsoil")[,3]
+Csoilsolid <- Cnatsoil*(FRwins1*1000+(1- FRwins1- FRains1)*RhoS)*0.99/(FRsins1*RhoS)
+Concentrations <- rbind(Concentrations, c("naturalsoil - water", Csoilsolid[[1]]/KPsusps1, "g/L"))
+Concentrations <- rbind(Concentrations, c("naturalsoil - solid", Csoilsolid[[1]], "g/kg d"))
 
 # Water and Solid in Agricultural Soil
 FRwins2 <- filter(World$fetchData("FRACw"), Scale == "Regional" & SubCompart == "agriculturalsoil")[,3]
 KPsusps2 <- filter(World$fetchData("Kp"), SubCompart == "agriculturalsoil")[,2]
-Concentrations <- rbind(Concentrations, c("agriculturalsoil - water", Cagrisoil[[1]]*FRwins2, "g/L"))
-Concentrations <- rbind(Concentrations, c("agriculturalsoil - solid", Cagrisoil[[1]]*FRwins2*KPsusps2, "g/kg d"))
+FRains2 <- filter(World$fetchData("FRACa"), Scale == "Regional" & SubCompart == "agriculturalsoil")[,3]
+FRsins2 <- filter(World$fetchData("FRACs"), Scale == "Regional" & SubCompart == "agriculturalsoil")[,3]
+Csoilsolid <- Cagrisoil*(FRwins2*1000+(1- FRwins2- FRains2)*RhoS)*0.99/(FRsins2*RhoS)
+Concentrations <- rbind(Concentrations, c("agriculturalsoil - water", Csoilsolid[[1]]/KPsusps2, "g/L"))
+Concentrations <- rbind(Concentrations, c("agriculturalsoil - solid", Csoilsolid[[1]], "g/kg d"))
 
 # Water and Solid in Other Soil
 FRwins3 <- filter(World$fetchData("FRACw"), Scale == "Regional" & SubCompart == "othersoil")[,3]
 KPsusps3 <- filter(World$fetchData("Kp"), SubCompart == "othersoil")[,2]
-Concentrations <- rbind(Concentrations, c("othersoil - water", Cothersoil[[1]]*FRwins3, "g/L"))
-Concentrations <- rbind(Concentrations, c("othersoil - solid", Cothersoil[[1]]*FRwins3*KPsusps3, "g/kg d"))
+FRains3 <- filter(World$fetchData("FRACa"), Scale == "Regional" & SubCompart == "othersoil")[,3]
+FRsins3 <- filter(World$fetchData("FRACs"), Scale == "Regional" & SubCompart == "othersoil")[,3]
+Csoilsolid <- Cothersoil*(FRwins3*1000+(1- FRwins3- FRains3)*RhoS)*0.99/(FRsins3*RhoS)
+Concentrations <- rbind(Concentrations, c("othersoil - water", Csoilsolid[[1]]/KPsusps3, "g/L"))
+Concentrations <- rbind(Concentrations, c("othersoil - solid", Csoilsolid[[1]], "g/kg d"))
 
 
 # Print final results
 Concentrations$Concentration <- as.numeric(Concentrations$Concentration)
 
-print(arrange(Concentrations, SubCompart), n=20)
+print(arrange(Concentrations, SubCompart), n=22)
