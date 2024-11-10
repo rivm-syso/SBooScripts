@@ -61,7 +61,7 @@ read_Prob4SB <- function(path_parameters_file = "vignettes/Case studies/CaseData
     n_vars <- nrow(input_vars)
     
     # Generate LHS
-    lhs_samples <- randomLHS(n_samples, n_vars)
+    lhs_samples <- lhs::randomLHS(n_samples, n_vars)
     
     # Scale the lhs samples to the correct distributions
     sample_df_var <-  

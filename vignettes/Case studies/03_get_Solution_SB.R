@@ -88,7 +88,7 @@ print(paste0("Elapsed time is ", elapsed_time))
 
 
 save(Output, NR_SBR_fractions, Parameters, elapsed_time,
-     file = paste0("vignettes/Case studies/Casedata/SBoutput_LEON-T_D3.5_TWP", 
+     file = paste0("vignettes/Case studies/CaseData/SBoutput_LEON-T_D3.5_TWP", 
                    min(RUNSamples), "_", max(RUNSamples) , "_RUNS_", format(Sys.Date(),"%Y_%m_%d"),".RData"),
      compress = "xz",
      compression_level = 9)  

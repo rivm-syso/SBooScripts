@@ -63,7 +63,7 @@ trapezoidal <- function(u, a, b, c, d) {
 TRWP_size_dist <- function(u, path_parameters_file) {
   
   # Read the data and process it
-  TRWP_data <- read_excel(path_parameters_file, sheet = "TRWP_data") |>
+  TRWP_data <- readxl::read_excel(path_parameters_file, sheet = "TRWP_data") |>
     separate(`Size Fraction (µm)`,
              into = c("Size_um","max_size_um"), sep = "-") |> 
     mutate(Size_um = as.numeric(gsub("400", "1000", Size_um))) |>  # Change "400" to "1000"

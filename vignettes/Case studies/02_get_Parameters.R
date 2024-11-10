@@ -9,6 +9,9 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
   World$substance <- "microplastic"
 }
 
+source("vignettes/Case studies/f_Parameters4SB.R")
+
+
 ## Get the parameters, Parameters object needed for further solving using SB
 Parameters <- read_Prob4SB(path_parameters_file = "vignettes/Case studies/CaseData/Microplastic_variables_v1.xlsx",
                            source_of_interest=source_of_interest,
@@ -21,5 +24,5 @@ Parameters <- read_Prob4SB(path_parameters_file = "vignettes/Case studies/CaseDa
 )
 
 save(Parameters, 
-     paste0("vignettes/Case studies/Casedata/Parameters_LEON-T_D3.5_TWP_", 
+     paste0("vignettes/Case studies/CaseData/Parameters_LEON-T_D3.5_TWP_", 
             format(Sys.Date(),"%Y_%m_%d"),".RData"))
