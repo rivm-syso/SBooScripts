@@ -39,8 +39,8 @@ source("baseScripts/initWorld_onlyPlastics.R")
 # Load the DPMFA data and make a nested emission dataframe
 
 ```{r Load DPMFA data}
-source_of_interest <- NA # NA for all except TWP (needs to be run separately)
-#source_of_interest <- "Tyre wear"
+# source_of_interest <- NA # NA for all except TWP (needs to be run separately)
+source_of_interest <- "Tyre wear"
 
 # Choose substance based on chosen sources
 if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_interest == "Tyre wear") {
@@ -130,7 +130,7 @@ if(MFAtype == "PMFA"){
     rename(value = Mass_Polymer_kg_s)
 } else if(MFAtype == "DPMFA"){
    # Load EU data
-  abspath <- "vignettes/Case Studies/CaseData/DPMFA_EU.RData"
+  abspath <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_EU.RData"
   load(abspath)
   
   # Convert to long format
@@ -144,7 +144,7 @@ if(MFAtype == "PMFA"){
     mutate(SBscale = ifelse(Scale == "EU", "C", "R")) 
   
   # Load NL data
-  abspath <- "vignettes/Case Studies/CaseData/DPMFA_NL.RData"
+  abspath <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_NL.RData"
   load(abspath)
   
   # Convert to long format
@@ -252,8 +252,8 @@ World$UpdateDirty(unique(Regional_Parameters$varName))
 ```
 
 ```{r Make a df with the emissions}
-TESTING = F
-if(TESTING==TRUE) DPMFA_sink_micro <- DPMFA_sink_micro |> filter(RUN<11)
+TESTING = T
+if(TESTING==TRUE) DPMFA_sink_micro <- DPMFA_sink_micro |> filter(RUN<2)
 
 # Filter out emission subcompartments for which SimpleBox does not have a compartment (yet)
 DPMFA_sink_micro <-

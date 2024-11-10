@@ -15,6 +15,9 @@
 #   DPMFA_sink_micro with n samples
 #   Parameters with n samples
 
+load(paste0("vignettes/Case studies/Casedata/DPMFAoutput_LEON-T_D3.5_TWP20241110.RData"))
+load(paste0("vignettes/Case studies/Casedata/Parameters_LEON-T_D3.5_TWP20241110.RData"))
+
 #### Select subset of RUNs from emission and parameters ####
 RUNSamples = c(1:3) #  Set the runs that need to be run, should be consequetive from x to y.
 ##

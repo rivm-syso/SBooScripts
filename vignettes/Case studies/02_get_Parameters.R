@@ -19,3 +19,7 @@ Parameters <- read_Prob4SB(path_parameters_file = "vignettes/Case studies/CaseDa
                            subCompartments =  union((World$FromDataAndTo()$fromSubCompart),(World$FromDataAndTo()$toSubCompart)),
                            species = union((World$FromDataAndTo()$fromSpecies),(World$FromDataAndTo()$toSpecies))
 )
+
+save(Parameters, 
+     paste0("vignettes/Case studies/Casedata/Parameters_LEON-T_D3.5_TWP_", 
+            format(Sys.Date(),"%Y_%m_%d"),".RData"))

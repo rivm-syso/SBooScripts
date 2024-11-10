@@ -13,3 +13,7 @@ DPMFA_SBoutput <- Load_DPMFA4SB(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoe
 
 DPMFA_sink_micro <- DPMFA_SBoutput$DPMFA_sink_micro
 NR_SBR_fractions <- DPMFA_SBoutput$NR_SBR_fractions
+
+save(DPMFA_SBoutput, 
+     paste0("vignettes/Case studies/Casedata/DPMFAoutput_LEON-T_D3.5_TWP_", 
+            format(Sys.Date(),"%Y_%m_%d"),".RData"))
