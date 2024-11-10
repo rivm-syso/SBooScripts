@@ -24,5 +24,5 @@ Parameters <- read_Prob4SB(path_parameters_file = "vignettes/Case studies/CaseDa
 )
 
 save(Parameters, 
-     paste0("vignettes/Case studies/CaseData/Parameters_LEON-T_D3.5_TWP_", 
-            format(Sys.Date(),"%Y_%m_%d"),".RData"))
+     file = paste0("vignettes/Case studies/CaseData/Parameters_LEON-T_D3.5_TWP_", 
+            format(Sys.Date(),"%Y%m%d"),".RData"))
