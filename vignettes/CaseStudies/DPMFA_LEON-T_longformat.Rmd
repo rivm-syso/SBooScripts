@@ -31,7 +31,7 @@ library(trapezoid)
 library(triangle)
 
 # Path to excel file with parameters
-path_parameters_file <- "vignettes/Case studies/CaseData/Microplastic_variables_v1.xlsx"
+path_parameters_file <- "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx"
 
 source("baseScripts/initWorld_onlyPlastics.R")
 ```
@@ -56,7 +56,7 @@ MFAtype <- "DPMFA" # other option is DPMFA
 
 if(MFAtype == "PMFA"){
   # Load EU data
-  abspath <- "vignettes/Case Studies/CaseData/PMFA_EU.RData"
+  abspath <- "vignettes/CaseStudies/CaseData/PMFA_EU.RData"
   load(abspath)
   
   # Convert to long format
@@ -70,7 +70,7 @@ if(MFAtype == "PMFA"){
     mutate(SBscale = ifelse(Scale == "EU", "C", "R"))
     
   # Load NL data
-  abspath <- "vignettes/Case Studies/CaseData/PMFA_NL.RData"
+  abspath <- "vignettes/CaseStudies/CaseData/PMFA_NL.RData"
   load(abspath)
   
   # Convert to long format
@@ -575,12 +575,12 @@ print(paste0("Elapsed time is ", elapsed_time))
 # Save the output as RData file
 if(is.na(source_of_interest)){
   save(Output, report_table, 
-     file = paste0("vignettes/Case studies/Casedata/LEON-T_output_OTHER_", MFAtype, "_", as.character(n_samples) , "_RUNS_", format(Sys.Date(),"%Y_%m_%d"),".RData"),
+     file = paste0("vignettes/CaseStudies/Casedata/LEON-T_output_OTHER_", MFAtype, "_", as.character(n_samples) , "_RUNS_", format(Sys.Date(),"%Y_%m_%d"),".RData"),
      compress = "xz",
      compression_level = 9)   
 } else if(source_of_interest == "Tyre wear"){
   save(Output, NR_SBR_fractions, report_table,
-     file = paste0("vignettes/Case studies/Casedata/LEON-T_output_TYRE_WEAR_", MFAtype, "_", as.character(n_samples) , "_RUNS_", format(Sys.Date(),"%Y_%m_%d"),".RData"),
+     file = paste0("vignettes/CaseStudies/Casedata/LEON-T_output_TYRE_WEAR_", MFAtype, "_", as.character(n_samples) , "_RUNS_", format(Sys.Date(),"%Y_%m_%d"),".RData"),
      compress = "xz",
      compression_level = 9)  
 }
@@ -592,7 +592,7 @@ if(is.na(source_of_interest)){
 otherdataname <- "LEON-T_output_OTHER_DPMFA_10_RUNS_2024_11_04.RData"
 twdataname <- "LEON-T_output_TYRE_WEAR_DPMFA_10_RUNS_2024_11_04.RData"
 
-data_folder <-  "vignettes/Case Studies/CaseData/"
+data_folder <-  "vignettes/CaseStudies/CaseData/"
 
 Solution <- data.frame()
 Concentrations <- data.frame()
@@ -743,7 +743,7 @@ if(MFAtype == "DPMFA"){
       
       print(mass_p)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Mass_plot_comparison_", scale, ".png"), plot=mass_p, width = 20, height = 10)
+      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Mass_plot_comparison_", scale, ".png"), plot=mass_p, width = 20, height = 10)
     
       # Mass plot for tyre wear
       mass_p <- ggplot(sol_plot_data_TW, mapping = aes(x = SubCompart, y = Mass, fill = SubCompart)) +  
@@ -760,7 +760,7 @@ if(MFAtype == "DPMFA"){
       
       print(mass_p)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Mass_plot_TW_", scale, ".png"), plot=mass_p, width = 20, height = 10)
+      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Mass_plot_TW_", scale, ".png"), plot=mass_p, width = 20, height = 10)
       
       # Concentration plot comparing tyre wear and other sources
       conc_p <- ggplot(conc_plot_data, mapping = aes(x = SubCompartName, y = Concentration, fill = Source)) +  
@@ -776,7 +776,7 @@ if(MFAtype == "DPMFA"){
       
       print(conc_p)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Concentration_plot_comparison_", scale, ".png"), plot=conc_p, width = 20, height = 10)
+      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Concentration_plot_comparison_", scale, ".png"), plot=conc_p, width = 20, height = 10)
     
       # Concentration plot for tyre wear
       conc_p <- ggplot(conc_plot_data_TW, mapping = aes(x = SubCompartName, y = Concentration, fill = SubCompart)) +  
@@ -793,7 +793,7 @@ if(MFAtype == "DPMFA"){
       
       print(conc_p)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Concentration_plot_TW_", scale, ".png"), plot=conc_p, width = 20, height = 10)
+      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Concentration_plot_TW_", scale, ".png"), plot=conc_p, width = 20, height = 10)
       
       conc_time_p <- ggplot(conc_over_time_TW, mapping = aes(x = Year, y = Mean, colour = SubCompartName, group = SubCompartName)) +
         geom_line(size = 1) +
@@ -809,7 +809,7 @@ if(MFAtype == "DPMFA"){
       
       print(conc_time_p)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Concentration_plot_TW_", scale, ".png"), plot=conc_p, width = 20, height = 10)
+      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Concentration_plot_TW_", scale, ".png"), plot=conc_p, width = 20, height = 10)
       
       conc_time_2 <- ggplot(conc_over_time_TW, aes(x = Year, y = Mean, group = SubCompartName)) +
         geom_ribbon(aes(ymin = p25, ymax = p75, fill = SubCompartName), alpha = 0.2) +
@@ -829,7 +829,7 @@ if(MFAtype == "DPMFA"){
       
       print(conc_time_2)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Concentration_plot_TW_uncertain", scale, ".png"), plot=conc_p, width = 20, height = 10)
+      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Concentration_plot_TW_uncertain", scale, ".png"), plot=conc_p, width = 20, height = 10)
   }
 }
 

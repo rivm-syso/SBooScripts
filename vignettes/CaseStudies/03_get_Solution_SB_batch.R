@@ -2,7 +2,7 @@
 # SimpleBox preparation
 #
 ###########
-path_parameters_file = "vignettes/Case studies/CaseData/Microplastic_variables_v1.xlsx"
+path_parameters_file = "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx"
 
 ###############################
 # # Code to be able to use batch computation             
@@ -15,8 +15,8 @@ library(tidyverse)
 #   DPMFA_sink_micro with n samples
 #   Parameters with n samples
 
-load(paste0("vignettes/Case studies/CaseData/DPMFAoutput_LEON-T_D3.5_TWP_20241110.RData"))
-load(paste0("vignettes/Case studies/CaseData/Parameters_LEON-T_D3.5_TWP_20241110.RData"))
+load(paste0("vignettes/CaseStudies/CaseData/DPMFAoutput_LEON-T_D3.5_TWP_20241110.RData"))
+load(paste0("vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_TWP_20241110.RData"))
 
 ### initialize ###
 source_of_interest =  "Tyre wear"
@@ -90,7 +90,7 @@ print(paste0("Elapsed time is ", elapsed_time))
 
 
 save(Output, NR_SBR_fractions, Parameters, elapsed_time,
-     file = paste0("vignettes/Case studies/CaseData/SBoutput_LEON-T_D3.5_TWP", 
+     file = paste0("vignettes/CaseStudies/CaseData/SBoutput_LEON-T_D3.5_TWP", 
                    min(RUNSamples), "_", max(RUNSamples) , "_RUNS_",seed, format(Sys.Date(),"%Y_%m_%d"),".RData"),
      compress = "xz",
      compression_level = 9)  

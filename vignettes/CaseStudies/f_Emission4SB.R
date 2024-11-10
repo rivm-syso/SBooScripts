@@ -5,7 +5,7 @@
 Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_EU.RData", 
                           abspath_NL = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_NL.RData", # data file location
                           source_of_interest = "Tyre wear", # a specific source or NA for all
-                          path_parameters_file = "vignettes/Case studies/CaseData/Microplastic_variables_v1.xlsx",
+                          path_parameters_file = "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx",
                           TESTING = T # if set to T, using only first 2 runs.
 ){
   library(tidyverse)

@@ -9,11 +9,11 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
   World$substance <- "microplastic"
 }
 
-source("vignettes/Case studies/f_Parameters4SB.R")
+source("vignettes/CaseStudies/f_Parameters4SB.R")
 
 
 ## Get the parameters, Parameters object needed for further solving using SB
-Parameters <- read_Prob4SB(path_parameters_file = "vignettes/Case studies/CaseData/Microplastic_variables_v1.xlsx",
+Parameters <- read_Prob4SB(path_parameters_file = "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx",
                            source_of_interest=source_of_interest,
                            n_samples = nrow(DPMFA_sink_micro$Emis[[1]]), # Number of emission runs 
                            # materials <- unique(Material_Parameters$Polymer)
@@ -24,5 +24,5 @@ Parameters <- read_Prob4SB(path_parameters_file = "vignettes/Case studies/CaseDa
 )
 
 save(Parameters, 
-     file = paste0("vignettes/Case studies/CaseData/Parameters_LEON-T_D3.5_TWP_", 
+     file = paste0("vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_TWP_", 
             format(Sys.Date(),"%Y%m%d"),".RData"))

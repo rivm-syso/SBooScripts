@@ -16,7 +16,7 @@ library(tidyverse)
 library(scales)
 library(openxlsx)
 
-data_folder <-  "vignettes/Case Studies/CaseData/"
+data_folder <-  "vignettes/CaseStudies/CaseData/"
 
 ```
 
@@ -256,7 +256,7 @@ ggsave(paste0("/Figures/Emission_plots/","Env_comp_barplot_", MFAtype, "_", form
 otherdataname <- "LEON-T_output_OTHER_DPMFA_10_RUNS_2024_11_04.RData"
 twdataname <- "LEON-T_output_TYRE_WEAR_DPMFA_10_RUNS_2024_11_04.RData"
 
-data_folder <-  "vignettes/Case Studies/CaseData/"
+data_folder <-  "vignettes/CaseStudies/CaseData/"
 
 Solution <- data.frame()
 Concentrations <- data.frame()
@@ -426,7 +426,7 @@ if(MFAtype == "DPMFA"){
       
       print(mass_p)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Mass_plot_comparison_", scale, ".png"), plot=mass_p, width = 20, height = 10)
+      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Mass_plot_comparison_", scale, ".png"), plot=mass_p, width = 20, height = 10)
     
       # Mass plot for tyre wear
       mass_p <- ggplot(sol_plot_data_TW, mapping = aes(x = SubCompart, y = Mass, fill = SubCompart)) +  
@@ -443,7 +443,7 @@ if(MFAtype == "DPMFA"){
       
       print(mass_p)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Mass_plot_TW_", scale, ".png"), plot=mass_p, width = 20, height = 10)
+      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Mass_plot_TW_", scale, ".png"), plot=mass_p, width = 20, height = 10)
       
       # Concentration plot comparing tyre wear and other sources
       conc_p <- ggplot(conc_plot_data, mapping = aes(x = SubCompartName, y = Concentration, fill = Source)) +  
@@ -459,7 +459,7 @@ if(MFAtype == "DPMFA"){
       
       print(conc_p)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Concentration_plot_comparison_", scale, ".png"), plot=conc_p, width = 20, height = 10)
+      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Concentration_plot_comparison_", scale, ".png"), plot=conc_p, width = 20, height = 10)
     
       # Concentration plot for tyre wear
       conc_p <- ggplot(conc_plot_data_TW, mapping = aes(x = SubCompartName, y = Concentration, fill = SubCompart)) +  
@@ -476,7 +476,7 @@ if(MFAtype == "DPMFA"){
       
       print(conc_p)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Concentration_plot_TW_", scale, ".png"), plot=conc_p, width = 20, height = 10)
+      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Concentration_plot_TW_", scale, ".png"), plot=conc_p, width = 20, height = 10)
       
       # Mean tyre wear concentrations over time
       conc_time_p <- ggplot(conc_over_time_TW, mapping = aes(x = Year, y = Mean, colour = SubCompartName, group = SubCompartName)) +
@@ -493,7 +493,7 @@ if(MFAtype == "DPMFA"){
       
       print(conc_time_p)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Concentration_plot_TW_", scale, ".png"), plot=conc_time_p, width = 20, height = 10)
+      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Concentration_plot_TW_", scale, ".png"), plot=conc_time_p, width = 20, height = 10)
       
       # Tyre wear concentrations over time with uncertainty
       conc_time_2 <- ggplot(conc_over_time_TW, aes(x = Year, group = SubCompartName)) +
@@ -513,7 +513,7 @@ if(MFAtype == "DPMFA"){
         guides(colour = guide_legend(title = NULL))
       print(conc_time_2)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Concentration_plot_TW_uncertain", scale, ".png"), plot=conc_time_2, width = 20, height = 10)
+      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Concentration_plot_TW_uncertain", scale, ".png"), plot=conc_time_2, width = 20, height = 10)
 
       # Mass and concentration plots of SBR vs NR
       NR_SBR_data <- Concentrations_long |>
@@ -553,7 +553,7 @@ if(MFAtype == "DPMFA"){
         plot_theme
       species_dist_barplot
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/Concentration_species_barplot", scale, ".png"), plot=species_dist_barplot, width = 20, height = 10)
+      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Concentration_species_barplot", scale, ".png"), plot=species_dist_barplot, width = 20, height = 10)
       
       # Concentration plot for tyre wear (SBR/NR)
       conc_p <- ggplot(NR_SBR_data, mapping = aes(x = SubCompartName, y = Concentration, fill = Polymer)) +  
@@ -569,7 +569,7 @@ if(MFAtype == "DPMFA"){
       
       print(conc_p)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/NR_SBR_Concentration_", scale, ".png"), plot=species_dist_barplot, width = 20, height = 10)
+      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/NR_SBR_Concentration_", scale, ".png"), plot=species_dist_barplot, width = 20, height = 10)
       
       # Concentration plot for tyre wear (SBR/NR)
       mass_p <- ggplot(NR_SBR_data, mapping = aes(x = SubCompart, y = Mass, fill = Polymer)) +  
@@ -585,7 +585,7 @@ if(MFAtype == "DPMFA"){
       
       print(mass_p)
       
-      ggsave(paste0("vignettes/Case Studies/CaseData/Figures/NR_SBR_Mass_", scale, ".png"), plot=species_dist_barplot, width = 20, height = 10)
+      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/NR_SBR_Mass_", scale, ".png"), plot=species_dist_barplot, width = 20, height = 10)
   }
 }
 
