@@ -13,7 +13,7 @@ read_Prob4SB <- function(path_parameters_file = "vignettes/Case studies/CaseData
   
   source("vignettes/Case studies/ProbDistributionFun.R")
   
-  Material_Parameters <- read_excel(path_parameters_file, sheet = "Polymer_data") |> 
+  Material_Parameters <- readxl::read_excel(path_parameters_file, sheet = "Polymer_data") |> 
     # change um to nm unit conversion
     mutate(across(c(a, b, c, d), as.numeric)) |>
     mutate(across(c(a, b, c, d), ~ case_when(
@@ -125,7 +125,7 @@ read_Prob4SB <- function(path_parameters_file = "vignettes/Case studies/CaseData
     separate_rows(SubCompart, sep = "__") |> 
     rename(Source = MP_source)
   
-  return(list(report_table,
-              Material_Parameters_n))
+  return(list(Parameter_summary=report_table,
+              Material_Parameters_n = Material_Parameters_n))
   
 }

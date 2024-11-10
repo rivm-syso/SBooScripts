@@ -8,7 +8,7 @@ Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering W
                           path_parameters_file = "vignettes/Case studies/CaseData/Microplastic_variables_v1.xlsx",
                           TESTING = T # if set to T, using only first 2 runs.
 ){
-  
+  library(tidyverse)
   load(abspath_EU)
   
   # Convert to long format
@@ -85,7 +85,7 @@ Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering W
   # If the source is tyre wear, separate the mass into NR and SBR, according to a triangular distribution based on data of LEON-T deliverable 3.2
   if(source_of_interest == "Tyre wear"){
     
-    TRWP_data <- read_excel(path_parameters_file, sheet = "TRWP_data") |>
+    TRWP_data <- readxl::read_excel(path_parameters_file, sheet = "TRWP_data") |>
       select(NR_Average_fraction) 
     TRWP_data <- na.omit(TRWP_data)
     a <- min(TRWP_data$NR_Average_fraction)
@@ -93,7 +93,7 @@ Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering W
     c <- mean(TRWP_data$NR_Average_fraction)
     
     nsamples <- max(DPMFA_sink_micro$RUN)
-    NR_SBR_fractions <- rtriangle(nsamples, a, b, c) 
+    NR_SBR_fractions <- triangle::rtriangle(nsamples, a, b, c)
     NR_SBR_fractions <- data.frame(NR_SBR_fractions) |>
       mutate(RUN = 1:nsamples) |>
       rename(NR_fraction = NR_SBR_fractions)
@@ -121,5 +121,6 @@ Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering W
     mutate(Timed = as.double(Year)*(365.25*24*3600)) |>
     nest(Emis = c(RUN, value))
   
-  return(DPMFA_sink_micro)
+  return(list(DPMFA_sink_micro=DPMFA_sink_micro,
+              NR_SBR_fractions=NR_SBR_fractions))
 }
