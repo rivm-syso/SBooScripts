@@ -9,33 +9,24 @@ library("batch")
 
 seed <- 10001
 
+batch_n = 2
+batch_max = 6 # should be multiple of batch_n
+
 pars <- expand.grid(
-  RUN1=seq(10,1000,10),
-  material = c("NR","SBR")
+  RUN1=seq(batch_n,batch_max,batch_n) #,
+#  material = c("NR","SBR") # now not used, but can also be part of batch
 )
+
 pars <-
   pars |> mutate(RUN2 = RUN1-9)
 
-pars <- pars[c(4,8),]
-
-pars$rname <- "hom.het.Ilona"
+pars$rname <- "test_parallel_SBoo"
 
 for(i in 1:length(pars[,1]))
-  seed <- rbatch("SimpleBox.r", seed = seed, 
-                 alpha.hom = pars$alpha.hom[i],
-                 alpha.het = pars$alpha.het[i],
-                 NPMrho = pars$NPMrho[i],
-                 Df = pars$Df[i],
-                 G = pars$G[i],
-                 C0npm = pars$C0npm[i],
-                 amax = pars$amax[i],
-                 a1 = pars$a1[i],
-                 C0 = pars$C0[i],
-                 avgNPMa=pars$avgNPMa[i],
-                 runname = pars$rname[i],
-                 psd=pars$psd[i],
-                 nanoparticle=pars$nanoparticle[i]
-  )
+  seed <- rbatch("03_get_Solution_SB_batch.r", 
+                 seed = seed, 
+                 RUNSamples = c(pars$RUN1[i]:pars$RUN2[i])
+                 )
 
 ## Only for local (but it does not hurt to run in other situations,
 ##  so suggested in all cases).
