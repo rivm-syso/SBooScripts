@@ -13,3 +13,5 @@ RnwWeave: Sweave
 LaTeX: pdfLaTeX
 
 QuitChildProcessesOnExit: Yes
+
+MarkdownWrap: Sentence
