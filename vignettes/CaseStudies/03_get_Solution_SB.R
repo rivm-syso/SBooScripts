@@ -15,8 +15,10 @@ library(tidyverse)
 #   DPMFA_sink_micro with n samples
 #   Parameters with n samples
 
-load(paste0("vignettes/CaseStudies/CaseData/DPMFAoutput_LEON-T_D3.5_TWP_20241110.RData"))
-load(paste0("vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_TWP_20241110.RData"))
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241110.RData"))
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241110.RData"))
+# load(paste0("vignettes/CaseStudies/CaseData/DPMFAoutput_LEON-T_D3.5_TWP_20241110.RData"))
+# load(paste0("vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_TWP_20241110.RData"))
 
 ### initialize ###
 source_of_interest =  "Tyre wear"
@@ -31,8 +33,8 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
 
 
 #### Select subset of RUNs from emission and parameters ####
-RUNSamples = c(300:399) #  Set the runs that need to be run, should be consequetive from x to y.
-print(paste("LOG: run start", min(RUNSamples)))
+RUNSamples = c(400:410) #  Set the runs that need to be run, should be consequetive from x to y.
+print(paste("LOG: run started for", min(RUNSamples), "to", max(RUNSamples)))
 ##
 subsetRuns <- function(dfRUNs,nummers){ #Function to select RUNsamples from emision data
   dfRUNs |> filter(RUN == nummers)
@@ -91,7 +93,7 @@ print(paste0("Elapsed time is ", elapsed_time))
 
 
 save(Output, Sel_DPMFA_micro, Material_Parameters_n, elapsed_time,
-     file = paste0("vignettes/Case studies/CaseData/SBout_LEONT_TWP", 
+     file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SBout_LEONT_TWP", 
                     "_RUNS_",min(RUNSamples), "_", max(RUNSamples),"_" , format(Sys.Date(),"%Y%m%d"),".RData"),
      compress = "xz",
      compression_level = 9)  
