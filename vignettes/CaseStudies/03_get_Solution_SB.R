@@ -31,19 +31,20 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
 
 
 #### Select subset of RUNs from emission and parameters ####
-RUNSamples = c(1:99) #  Set the runs that need to be run, should be consequetive from x to y.
+RUNSamples = c(300:399) #  Set the runs that need to be run, should be consequetive from x to y.
+print(paste("LOG: run start", min(RUNSamples)))
 ##
 subsetRuns <- function(dfRUNs,nummers){ #Function to select RUNsamples from emision data
   dfRUNs |> filter(RUN == nummers)
 }
-# Filter out emission subcompartments for which SimpleBox does not have a compartment (yet)
-Sel_DPMFA_micro <-
-  DPMFA_SBoutput$DPMFA_sink_micro |> filter(Subcompartment %in% World$fetchData("AbbrC")$AbbrC) |> 
-  mutate(Emis = map(Emis, subsetRuns,nummers=RUNSamples))
-
 subsetRuns2 <- function(dfRUNs,nummers){ #Function to select RUNsamples from parameter data
   dfRUNs[nummers,]
 }
+# Filter out emission subcompartments for which SimpleBox does not have a compartment (yet)
+Sel_DPMFA_micro <-
+  DPMFA_SBoutput$DPMFA_sink_micro |> filter(Subcompartment %in% World$fetchData("AbbrC")$AbbrC) |> 
+  mutate(Emis = map(Emis, subsetRuns2,nummers=RUNSamples))
+
 Material_Parameters_n <- Parameters$Material_Parameters_n |> 
   mutate(data = map(data, subsetRuns2, nummers = RUNSamples))
 
