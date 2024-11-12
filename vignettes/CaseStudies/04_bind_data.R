@@ -17,7 +17,12 @@ if(env == "local"){
   filepaths <- paste0(folderpath, filepaths)
 }
 
-filepath = filepaths[1]
+# Fix old filenames
+selected_filepaths <- filepaths[grep("20241112", filepaths)]
+filepaths_new <- gsub("20241112", "v1", selected_filepaths)
+for(i in 1:length(selected_filepaths)){
+  file.rename(selected_filepaths[i], filepaths_new[i])
+}
 
 TW_concentrations <- tibble()
 TW_solutions <- tibble()
@@ -64,24 +69,43 @@ for(filepath in filepaths){
       mutate(Polymer= polymer)
     sol$RUN <- new_run_values[sol$RUN]  
     
+    States <- polymer_outcome$States
+    Units <- polymer_outcome$DynamicCons$Units
+    
     if("NR" %in% unique(Output$Polymer)){
+      conc <- conc |>
+        mutate(Source = "Tyre wear")
+      
+      sol <- sol |>
+        mutate(Source = "Tyre wear")
       TW_concentrations <- bind_rows(TW_concentrations, conc)
       TW_solutions <- bind_rows(TW_solutions, sol)
     } else {
+      
+      conc <- conc |>
+        mutate(Source = "Other sources")
+      
+      sol <- sol |>
+        mutate(Source = "Other sources")
+      
       Other_concentrations <- bind_rows(Other_concentrations, conc)
       Other_solutions <- bind_rows(Other_solutions, sol)
     }
   }
 }
 
+# Bind the rows of the concentration and solution dataframes together for both sources 
+Concentrations <- bind_rows(TW_concentrations, Other_concentrations)
+Solution <- bind_rows(TW_solutions, Other_solutions) 
+
 # Save the outcome 
 if(env == "local"){
-  save(TW_concentrations, TW_solutions, Other_concentrations, Other_solutions, Material_Parameters_long,
+  save(Concentrations, Solution, Material_Parameters_long, States, Units,
        file = "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Long_solution_v1.Rdata",
        compress = "xz",
        compression_level = 9)
 } else if(env == "OOD"){
-  save(TW_concentrations, TW_solutions, Other_concentrations, Other_solutions, Material_Parameters_long,
+  save(Concentration, Solution, Material_Parameters_long, States, Units,
        file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Long_solution_v1.RData",
        compress = "xz",
        compression_level = 9) 
