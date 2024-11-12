@@ -2,26 +2,47 @@
 # SimpleBox preparation
 #
 ###########
+
+### initialize ###
+
+# Specify the environment
+#env <- "OOD"
+env <- "local"
+
+# Specify the source
+source_of_interest <- NA
+#source_of_interest <- "Tyre wear"
+
+if(env == "local"){
+  setwd("N:/Documents/GitHub/SimpleBox/SBooScripts")
+}
+
 path_parameters_file = "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx"
 
-###############################
-# # Code to be able to use batch computation             
-# library("batch")
-# parseCommandArgs()
-# set.seed(seed)
 # ################################
 library(tidyverse)
 # Requirements:
 #   DPMFA_sink_micro with n samples
 #   Parameters with n samples
 
-load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241110.RData"))
-load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241110.RData"))
-# load(paste0("vignettes/CaseStudies/CaseData/DPMFAoutput_LEON-T_D3.5_TWP_20241110.RData"))
-# load(paste0("vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_TWP_20241110.RData"))
+if(env == "Local"){
+  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
+    load(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241110.RData"))
+    load(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241110.RData"))
+  } else if(is.na(source_of_interest)){
+    load(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_Other_20241111.RData"))
+    load(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241111.RData"))
+  }
+} else if(env == "OOD"){
+  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
+    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241110.RData"))
+    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241110.RData"))
+  } else if(is.na(source_of_interest)){
+    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_Other_20241111.RData"))
+    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241111.RData"))
+  }
+}
 
-### initialize ###
-source_of_interest =  "Tyre wear"
 source("baseScripts/initWorld_onlyPlastics.R")
 
 if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_interest == "Tyre wear") {
@@ -33,7 +54,8 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
 
 
 #### Select subset of RUNs from emission and parameters ####
-RUNSamples = c(661:710) #  Set the runs that need to be run, should be consequetive from x to y.
+#  Set the runs that need to be run, should be consequetive from x to y.
+RUNSamples = c(1:2)
 print(paste("LOG: run started for", min(RUNSamples), "to", max(RUNSamples)))
 ##
 subsetRuns <- function(dfRUNs,nummers){ #Function to select RUNsamples from emision data
@@ -51,7 +73,6 @@ Material_Parameters_n <- Parameters$Material_Parameters_n |>
   mutate(data = map(data, subsetRuns2, nummers = RUNSamples))
 
 #### Get SB World ####
-
 
 
 # Read in data to change Regional scale to fit NL scale DPMFA data
@@ -91,9 +112,33 @@ for(pol in unique(Sel_DPMFA_micro$Polymer)){
 elapsed_time <- Sys.time() - start_time
 print(paste0("Elapsed time is ", elapsed_time))
 
-
-save(Output, Sel_DPMFA_micro, Material_Parameters_n, elapsed_time,
-     file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SBout_TWP", 
-                    "_RUNS_",min(RUNSamples), "_", max(RUNSamples),"_" ,"v1.RData"),
-     compress = "xz",
-     compression_level = 9)  
+# Save the outcome 
+if(env == "local"){
+  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
+    save(Output, Sel_DPMFA_micro, Material_Parameters_n, elapsed_time,
+         file = paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SBout_TWP", 
+                       "_RUNS_",min(RUNSamples), "_", max(RUNSamples),"_" , "v1.RData"),
+         compress = "xz",
+         compression_level = 9)
+  } else if(is.na(source_of_interest)){
+    save(Output, Sel_DPMFA_micro, Material_Parameters_n, elapsed_time,
+         file = paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SBout_Other", 
+                       "_RUNS_",min(RUNSamples), "_", max(RUNSamples),"_" , "v1.RData"),
+         compress = "xz",
+         compression_level = 9)
+  }
+} else if(env == "OOD"){
+  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
+    save(Output, Sel_DPMFA_micro, Material_Parameters_n, elapsed_time,
+         file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SBout_TWP", 
+                       "_RUNS_",min(RUNSamples), "_", max(RUNSamples),"_" , "v1.RData"),
+         compress = "xz",
+         compression_level = 9) 
+  } else if(is.na(source_of_interest)){
+    save(Output, Sel_DPMFA_micro, Material_Parameters_n, elapsed_time,
+         file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SBout_Other", 
+                       "_RUNS_",min(RUNSamples), "_", max(RUNSamples),"_" , "v1.RData"),
+         compress = "xz",
+         compression_level = 9) 
+  }
+}
