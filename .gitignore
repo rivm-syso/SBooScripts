@@ -100,3 +100,6 @@ Backup of *.doc*
 
 # ignore case study data files
 CaseData/
+
+# ignore BatchFiles folder
+BatchFiles/

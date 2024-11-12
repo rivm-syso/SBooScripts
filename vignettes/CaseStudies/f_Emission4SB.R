@@ -6,7 +6,7 @@ Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering W
                           abspath_NL = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_NL.RData", # data file location
                           source_of_interest = "Tyre wear", # a specific source or NA for all
                           path_parameters_file = "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx",
-                          TESTING = T # if set to T, using only first 2 runs.
+                          TESTING = F # if set to T, using only first 2 runs.
 ){
   library(tidyverse)
   load(abspath_EU)
@@ -22,7 +22,6 @@ Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering W
     mutate(SBscale = ifelse(Scale == "EU", "C", "R")) 
   
   # Load NL data
-  abspath <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_NL.RData"
   load(abspath_NL)
   
   # Convert to long format
@@ -83,7 +82,7 @@ Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering W
     select(Abbr, Year, Polymer, value, RUN, Subcompartment)
   
   # If the source is tyre wear, separate the mass into NR and SBR, according to a triangular distribution based on data of LEON-T deliverable 3.2
-  if(source_of_interest == "Tyre wear"){
+  if (!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
     
     TRWP_data <- readxl::read_excel(path_parameters_file, sheet = "TRWP_data") |>
       select(NR_Average_fraction) 
@@ -121,6 +120,11 @@ Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering W
     mutate(Timed = as.double(Year)*(365.25*24*3600)) |>
     nest(Emis = c(RUN, value))
   
-  return(list(DPMFA_sink_micro=DPMFA_sink_micro,
-              NR_SBR_fractions=NR_SBR_fractions))
+  if (!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
+    return(list(DPMFA_sink_micro=DPMFA_sink_micro,
+                NR_SBR_fractions=NR_SBR_fractions))
+  } else {
+    return(list(DPMFA_sink_micro=DPMFA_sink_micro))
+  }
+  
 }

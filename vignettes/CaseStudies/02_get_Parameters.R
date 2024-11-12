@@ -1,6 +1,16 @@
 # creating distributions for SB parameters
 
-source_of_interest =  "Tyre wear"
+# Specify the environment
+#env <- "OOD"
+env <- "local"
+
+if(env == "local"){
+  path_parameters_file = "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.xlsx"
+} else if(env == "OOD"){
+  path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.xlsx"
+}
+
+source_of_interest =  NA
 source("baseScripts/initWorld_onlyPlastics.R")
 
 if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_interest == "Tyre wear") {
@@ -11,9 +21,8 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
 
 source("vignettes/CaseStudies/f_Parameters4SB.R")
 
-
 ## Get the parameters, Parameters object needed for further solving using SB
-Parameters <- read_Prob4SB(path_parameters_file = "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx",
+Parameters <- read_Prob4SB(path_parameters_file = path_parameters_file,
                            source_of_interest=source_of_interest,
                            n_samples = nrow(DPMFA_sink_micro$Emis[[1]]), # Number of emission runs 
                            # materials <- unique(Material_Parameters$Polymer)
@@ -23,6 +32,25 @@ Parameters <- read_Prob4SB(path_parameters_file = "vignettes/CaseStudies/CaseDat
                            species = union((World$FromDataAndTo()$fromSpecies),(World$FromDataAndTo()$toSpecies))
 )
 
-save(Parameters, 
-     file = paste0("vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_TWP_", 
-            format(Sys.Date(),"%Y%m%d"),".RData"))
+# Save the outcome 
+if(env == "local"){
+  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
+    save(Parameters, 
+         file = paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_", 
+                       format(Sys.Date(),"%Y%m%d"),".RData"))
+  } else if(is.na(source_of_interest)){
+    save(Parameters, 
+         file = paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_", 
+                       format(Sys.Date(),"%Y%m%d"),".RData"))
+  }
+} else if(env == "OOD"){
+  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
+    save(Parameters, 
+         file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_", 
+                       format(Sys.Date(),"%Y%m%d"),".RData"))
+  } else if(is.na(source_of_interest)){
+    save(Parameters, 
+         file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_", 
+                       format(Sys.Date(),"%Y%m%d"),".RData"))
+  }
+}
