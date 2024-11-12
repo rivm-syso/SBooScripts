@@ -70,7 +70,7 @@ for(filepath in filepaths){
     sol$RUN <- new_run_values[sol$RUN]  
     
     States <- polymer_outcome$States
-    Units <- polymer_outcome$DynamicCons$Units
+    Units <- polymer_outcome$DynamicConc$Units
     
     if("NR" %in% unique(Output$Polymer)){
       conc <- conc |>
@@ -98,14 +98,43 @@ for(filepath in filepaths){
 Concentrations <- bind_rows(TW_concentrations, Other_concentrations)
 Solution <- bind_rows(TW_solutions, Other_solutions) 
 
+# Make longformat dfs
+# Prepare the data for making figures
+units <- Units |>
+  pivot_longer(cols = everything(), names_to = "Abbr", values_to = "Unit")
+
+# Make different concentration dfs for different plots
+Concentrations_long <- Concentrations |>
+  pivot_longer(!c(time, RUN, Polymer, Source), names_to = "Abbr", values_to = "Concentration") |>
+  mutate(time = as.numeric(time)) |>
+  mutate(RUN = as.integer(RUN)) |>
+  mutate(Concentration = as.double(Concentration)) |>
+  mutate(Year = time/(365.25*24*3600))  |>
+  left_join(units, by="Abbr") |>
+  left_join(States, by="Abbr") |>
+  mutate(SubCompartName  = paste0(SubCompart, " (", Unit, ")"))
+
+Solution_long <- Solution |>
+  pivot_longer(!c(time, RUN, Polymer, Source), names_to = "Abbr", values_to = "Mass") |>
+  mutate(time = as.numeric(time)) |>
+  mutate(RUN = as.integer(RUN)) |>
+  mutate(Mass = as.double(Mass)) |>
+  mutate(Year = time/(365.25*24*3600)) |>
+  filter(!str_starts(Abbr, "emis")) |>
+  left_join(States, by="Abbr") |>
+  mutate(SubCompart = case_when(
+    str_detect(SubCompart, "cloudwater") ~ "air",
+    TRUE ~ SubCompart)) |>
+  ungroup()
+
 # Save the outcome 
 if(env == "local"){
-  save(Concentrations, Solution, Material_Parameters_long, States, Units,
+  save(Concentrations_long, Solution_long, Material_Parameters_long, States, Units,
        file = "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Long_solution_v1.Rdata",
        compress = "xz",
        compression_level = 9)
 } else if(env == "OOD"){
-  save(Concentration, Solution, Material_Parameters_long, States, Units,
+  save(Concentrations_long, Solution_long, Material_Parameters_long, States, Units,
        file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Long_solution_v1.RData",
        compress = "xz",
        compression_level = 9) 
