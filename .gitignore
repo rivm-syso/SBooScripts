@@ -103,3 +103,4 @@ CaseData/
 
 # ignore BatchFiles folder
 BatchFiles/
+vignettes/CaseStudies/HPC_commands.txt
