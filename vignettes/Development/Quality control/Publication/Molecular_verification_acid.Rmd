@@ -164,6 +164,64 @@ mergedkaas$diff <- mergedkaas$k_R - mergedkaas$k_Excel #compare R k to Excel K
 mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff/k_R)  
 ```
 
+## preliminary matrix check
+In the chunk below we check if our matrix is as large as we expect it to be. 
+
+i) Matrix 
+The SimpleBox model operates over 5 scales, 12 subcompartments and 4 different speciations. For molecules, this is already filtered to only include one species: Unbound. As such, we would expect our matrix to have 5 * 12 * 1 = 60 rows. However, some exceptions exist within our SB world: 
+
+- The Regional and Continental scale do now have a deepocean layer (w3), reducing the matrix by 2 * 1  = 2 rows. 
+- The Global Scales (Arctic, Moderate, Tropic) only have one type of soil instead of 3, reducing the matrix by 3 * 2  = 6 rows.
+- The Global Scales (Arctic, Moderate, Tropic) only have one type of sediment instead of 3, reducing the matrix by 3 * 2  = 6 rows.
+- The Global Scales (Arctic, Moderate, Tropic) only have one type of water instead of 3, reducing the matrix by 3 * 2  = 6 rows.
+- Cloudwater (compartment) does not have any values, reducing our matrix by 5 * 1 * 1 = 5 rows. 
+
+With these exceptions, we expect our matrix to be 60- 25 = 35 rows. This script will stop running if this is not the case. 
+
+ii) We expect all processes to be included in Processes4SpeciesTp.csv to also be calculated. Therefore, we compare the calculated unique processes with the processes defined in this csv. 
+
+```{r check if matrix is 155x155, include=TRUE, echo=FALSE, warning=FALSE}
+dims <- dim(diagonal_R)
+
+# Check if the matrix is 155x155
+is_155x155 <- all(dims == c(35, 2))
+
+# If the matrix is not 155x155, stop the execution
+if (!is_155x155) {
+  stop("The matrix does not have 155 rows. Execution stopped.")
+}
+
+# Continue with the rest of the code if the matrix is 155x155
+matrix_info <- list(dimensions = dims, is_155x155 = is_155x155)
+
+
+## check if all processes included
+Processes4SpeciesTp <- read.csv("data/Processes4SpeciesTp.csv")
+Functions <- Processes4SpeciesTp$Process[grepl("[a-z,A-Z]", Processes4SpeciesTp$Molecular)]
+Functions <- paste0("k_", Functions)
+Functions[!Functions %in% unique(World$kaas$process)]
+world_processes <- unique(World$kaas$process)
+
+# Check if Functions and unique world_processes match exactly
+if (!setequal(Functions, world_processes)) {
+  # Find elements in world_processes not in Functions
+  missing_from_functions <- world_processes[!world_processes %in% Functions]
+  
+  # Find elements in Functions not in world_processes
+  extra_in_functions <- Functions[!Functions %in% world_processes]
+  
+  # Print the mismatched elements
+  cat("The following process names are missing from Functions:\n")
+  print(missing_from_functions)
+  cat("The following process names are extra in Functions:\n")
+  print(extra_in_functions)
+  
+  # Stop the script
+  stop("Mismatch found between Functions and unique(World$kaas$process).")
+}
+
+```
+
 ## Compare k's
 When comparing k's between R and excel, the goal is that the relative difference is less
 than 1 percentile for each k. The reason is that smaller differences often are 

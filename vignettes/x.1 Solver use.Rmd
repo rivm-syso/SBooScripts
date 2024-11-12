@@ -13,7 +13,7 @@ editor_options:
 
 ```{r}
 library(dplyr)
-source("baseScripts/initWorld_onlyParticulate.R")
+source("baseScripts/initWorld_onlyMolec.R")
 ```
 
 ## *NewSolver*
@@ -47,7 +47,7 @@ World$NewSolver("SBsteady")
 *To solve this set of differential equations we thus need an emission, e.g. 1 ton/year to air.*
 
 ```{r constant emission}
-emissions <- data.frame(Abbr = "aCS", Emis = 1000/(365.25*24*60*60)) # convert 1 t/y to si units: kg/s
+emissions <- data.frame(Abbr = "aCU", Emis = 1000/(365.25*24*60*60)) # convert 1 t/y to si units: kg/s
 
 # TODO: explain what is the reason for this Abbr? Why is it not a relational table defining scale, compartment and species as for all other data?
 ```
@@ -58,169 +58,105 @@ emissions <- data.frame(Abbr = "aCS", Emis = 1000/(365.25*24*60*60)) # convert 1
 World$Solve(emissions)
 ```
 
-## *SBdynamic*
+## *DynApproxSolve*
 
-*It is possible to solve the differential equations dynamicallly in time, but the optimal implementation is still work in progress.*
+The DynApproxSolve solver is used to solve the matrix dynamically using approx functions. 
 
-```{r}
-file_paths <- 
-  list.files("data/emissions/SUNSHINE/",recursive = TRUE)
+The emissions can be delivered to the solver in two formats: 
+1. A dataframe with three columns: Abbr, Emis and Timed
+2. A list with approx functions for each compartment that has emissions
 
+### 1: Dataframe with emissions
+
+Create a dataframe with emissions
+```{r Dataframe with emissions}
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU","aRU", "s2RU", "w1RU"), Emis = c(10, 10, 10,20, 20, 20), Timed = c(1, 2, 3, 4, 5, 6)) # convert 1 t/y to si units: kg/s
+
+emissions <- emissions |>
+  mutate(Timed = Timed*(365.25*24*60*60)) |> ungroup()
+
+tmax <- 365.25*24*60*60*10
+times <- seq(0, tmax, length.out = 10)
 
 ```
 
-### *Prepare DPMFA data*
+Solve using the dynamic solver
+```{r Solve for emission df}
+World$NewSolver("DynApproxSolve")
+solved <- World$Solve(tmax = tmax, emissions, needdebug = F)
+```
 
-*Data from an DPMFA model should be prepared to fit the SBoo world. For instance the time unit should be correct, the mass unit is not as important as this will be the same in the output then, but for good measure we use kg.*
+### 2: List with approx functions 
 
-```{r WIPscript}
+Create a list of approx funs using the emission df created  in the previous step:
 
-Emissions <-
-  read_csv(paste0("data/emissions/SUNSHINE/",file_paths), id="file_name", col_names = c("RUN",0:24),skip = 1) # unit: Metric tonnes
-
-# TODO: solve for every RUN
-Emissions <- 
-  Emissions |>
-  pivot_longer(
-    cols = !c(file_name,RUN),
-    names_to = "year",
-    values_to = "emission_t" ) |> mutate_at('year',as.numeric) |> 
-  ungroup() |> 
-  group_by(file_name,year) |> 
-  summarise(Emission_p50_kg = quantile(emission_t,probs = 0.5)*1000,
-            Emission_mean_kg = mean(emission_t)*1000) |> ungroup()
-
-Emissions <- 
-  Emissions |> 
-  mutate(compartment = 
-           case_when(str_detect(file_name, "(?i)Air") ~ "Air",
-                     str_detect(file_name, "(?i)Soil") ~ "SludgeTreatedSoil",
-                     str_detect(file_name, "(?i)Water") ~ "SurfaceWater",
-                     str_detect(file_name, "(?i)Subsurface") ~ "Subsurface",
-                     TRUE ~ "Other"),
-         scale = 
-           case_when(str_detect(file_name, "(?i)EU") ~ "EU",
-                     str_detect(file_name, "(?i)Ireland") ~ "Ireland",
-                     str_detect(file_name, "(?i)Switzerland") ~ "Switzerland",
-                     TRUE ~ "Other"),
-         Substance = "GO-Chitosan",
+```{r Make list of approx funs}
+SBEmissions3 <- 
+  emissions |> 
+  group_by(Abbr) |> 
+  summarise(n=n(),
+            EmisFun = list(
+              approxfun(
+                data.frame(Timed = c(0,Timed), 
+                           Emis=c(0,Emis)),
+                rule = 2) # Change to rule 1:1 for no extrapolation
+            )
   )
 
-Emissions <-
-  Emissions |> 
-  # Emission in year 0 is the cummulative that is actually added up to the last second of the first year (so at time point (365.25*24*60*60)) at time 0 emission is 0.
-  mutate(time_s = year*(365.25*24*60*60)+(365.25*24*60*60)) |> 
-  group_by(compartment,scale,Substance) |> 
-  summarise(n=n(),
-            EmisFun = list(approxfun(
-              data.frame(time_s = c(0,time_s), emis_kg=c(0,Emission_mean_kg)),rule = 1:1)))
-
-# EmisFun with input in seconds and output in kg's going from 0 to 25 years in seconds.
-
-
-### filter and name the emissions that we actually have states for: 
-### needs manual tweaking for correct matching
-SBemissions <-
-  Emissions |> mutate(
-    Abr_comp =  case_match(compartment,
-                           "Air" ~ "a",
-                           "SludgeTreatedSoil" ~ "s2",
-                           "SurfaceWater" ~ "w1",
-                           .default = NA
-    ),
-    Abr_scale =  case_match(scale,
-                            "EU" ~ "C",
-                            "Switzerland" ~ "R",
-                            .default = NA
-    ),
-    Abr_species = "S"
-    
-  ) |> drop_na() |>  mutate(Abr = paste0(Abr_comp,Abr_scale,Abr_species))
-
-  funlist <- SBemissions$EmisFun
-  names(funlist) <- SBemissions$Abr
-
-# EmisFun2emist <- function(x,
-#                           SBNames, # states requiring an EmisFun
-#                           SBemissions, # tibble with defined emissions
-#                           t){
-#   default = approxfun(
-#     data.frame(time_s = c(0,1), emis_kg=c(0,0)),rule = 2:2)
-#   
-#   data = tibble(
-#     SBnames = SBNames) |> 
-#     full_join(SBemissions,join_by(SBnames == Abr)) |> 
-#     replace_na(list(EmisFun = list(default))) |> select(SBnames,EmisFun)
-#   
-#   funlist <- data$EmisFun
-#   names(funlist) = data$SBnames
-#   
-#   funlist[[x]](t)
-#   
-# }
-# seperate functions
-
-# Emis2fun <- function(
-#                               # SBNames, # states requiring an EmisFun
-#                           SBemissions # tibble with defined emissions
-#                           ){
-#   # default = approxfun(
-#   #   data.frame(time_s = c(0,1), emis_kg=c(0,0)),rule = 2:2)
-#   # 
-#   # data = tibble(
-#   #   SBnames = SBNames) |> 
-#   #   full_join(SBemissions,join_by(SBnames == Abr)) |> 
-#   #   replace_na(list(0)) |> select(SBnames,EmisFun)
-#   
-#   funlist = SBemissions$EmisFun
-#   names(funlist) = SBemissions$Abr
-#   # funlist <- data$EmisFun
-#   # names(funlist) = data$SBnames
-# 
-#   return(funlist)
-#   
-# }
-# x=SBNames[1]
-
-
-SimpleBoxODE = function(t, m, parms) {
-  Fun2Emis <- function(x,funlist,t){
-    funlist[[x]](t)
-}
-  with(as.list(c(parms, m)), {
-    
-    NamesK = colnames(Kmatrix)
-    
-    e = data.frame(emis = rep(0, length(NamesK)),
-                              NamesK = NamesK)
-    
-   emt = sapply(names(funlist),Fun2Emis,funlist,t)
-   emt = as.data.frame(emt)
-   emt = cbind(emt,data.frame(NamesK=row.names(emt)))
-   
-   e <- merge(e, emt, by = "NamesK", all.x = TRUE)
-e$emis <- ifelse(!is.na(e$emt), e$emt, e$emis)
-e <- as.vector(e[, c("emis")])
-
-    dm <- K%*% m + e
-    res <- c(dm)
-    list(res, signal = e)
-  })
-}
-
-Kmatrix <- World$exportEngineR()
-NamesK <- colnames(Kmatrix)
-SB.m0 <- rep(0, length(NamesK))
-SBtime <- seq(0,365.25*24*60*60*25,length.out = 25*12)
-
-out <- deSolve::ode(
-  y = as.numeric(SB.m0),
-  times = SBtime ,
-  func = SimpleBoxODE,
-  parms = list(K = Kmatrix, funlist),
-  rtol = 1e-10, atol = 1e-2)
-
-plot(out)
-
+funlist <- SBEmissions3$EmisFun
+names(funlist) <- SBEmissions3$Abbr
 
 ```
+
+Plot the approx funs
+```{r Plot approx funs}
+times <- seq(0, 25*365.25*24*3600, by=10000)
+PlotEmis <- funlist[["s2RU"]]
+values <- sapply(times, PlotEmis)
+
+plot(times, values, type = "l", lwd=2)
+```
+
+Solve the matrix
+```{r Solve using list of approx funs}
+
+World$NewSolver("DynApproxSolve")
+solved <- World$Solve(tmax = tmax, funlist, needdebug = F)
+```
+
+### Plot the outcomes
+
+```{r Plot outcomes}
+sol <- data.frame(solved) |>
+  select(!starts_with("emis")) |>
+  pivot_longer(cols = -c("time"),
+               names_to = "Abbr",
+               values_to = "Mass") |>
+  mutate(time = time/(365.25*24*3600))
+
+Abbrs <- c("a", "s", "w")
+
+plot_theme <-  theme(
+    axis.title.x = element_text(size = 12),    
+    axis.title.y = element_text(size = 12),    
+    axis.text.x = element_text(size = 12, angle = 45, hjust = 1),     
+    axis.text.y = element_text(size = 12),
+    title = element_text(size=16)
+  )
+
+for(i in Abbrs){
+  df <- sol |>
+    filter(startsWith(Abbr, i)) 
+  
+  p1 <- ggplot(df, mapping = aes(x = time, y = Mass, colour = Abbr)) +
+    geom_line() + 
+    plot_theme +
+    labs(x = "Time (years)",
+           y = "Mass (kg)") +
+    ggtitle("Masses over time") 
+  print(p1)
+
+}
+
+```
+

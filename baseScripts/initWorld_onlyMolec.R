@@ -3,6 +3,10 @@
 #script to faking the future library(SBoo)
 source("baseScripts/fakeLib.R")
 
+library(parallel)
+library(doParallel)
+library(foreach)
+
 #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
 ClassicStateModule <- ClassicNanoWorld$new("data") #by default Substance = "default substance"
 
@@ -13,7 +17,7 @@ World$filterStates <- list(SpeciesName = "Molecular")
 
 # To proceed with testing we set
 if (is.na(World$fetchData("kdis"))) {
-  warning("kdis is missing, setting kdis = 1e-20")
+  warning("kdis is missing, setting kdis = 0")
   World$SetConst(kdis = 0)
 }
 
