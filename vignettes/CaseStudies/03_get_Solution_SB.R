@@ -4,6 +4,7 @@
 ###########
 
 ### initialize ###
+library(tidyverse)
 
 # Specify the environment
 #env <- "OOD"
@@ -17,10 +18,13 @@ if(env == "local"){
   setwd("N:/Documents/GitHub/SimpleBox/SBooScripts")
 }
 
-path_parameters_file = "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx"
+if(env == "local"){
+  path_parameters_file = "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.xlsx"
+} else if(env == "OOD"){
+  path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.xlsx"
+}
 
 # ################################
-library(tidyverse)
 # Requirements:
 #   DPMFA_sink_micro with n samples
 #   Parameters with n samples
