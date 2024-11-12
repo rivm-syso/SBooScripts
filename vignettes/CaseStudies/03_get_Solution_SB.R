@@ -33,7 +33,7 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
 
 
 #### Select subset of RUNs from emission and parameters ####
-RUNSamples = c(400:410) #  Set the runs that need to be run, should be consequetive from x to y.
+RUNSamples = c(661:710) #  Set the runs that need to be run, should be consequetive from x to y.
 print(paste("LOG: run started for", min(RUNSamples), "to", max(RUNSamples)))
 ##
 subsetRuns <- function(dfRUNs,nummers){ #Function to select RUNsamples from emision data
@@ -93,7 +93,7 @@ print(paste0("Elapsed time is ", elapsed_time))
 
 
 save(Output, Sel_DPMFA_micro, Material_Parameters_n, elapsed_time,
-     file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SBout_LEONT_TWP", 
-                    "_RUNS_",min(RUNSamples), "_", max(RUNSamples),"_" , format(Sys.Date(),"%Y%m%d"),".RData"),
+     file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SBout_TWP", 
+                    "_RUNS_",min(RUNSamples), "_", max(RUNSamples),"_" ,"v1.RData"),
      compress = "xz",
      compression_level = 9)  
