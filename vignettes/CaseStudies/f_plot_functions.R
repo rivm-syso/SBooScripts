@@ -59,7 +59,7 @@ plot_variable <- function(Material_parameters_df, PlotVariable){
   params <- Material_Parameters_long |>
     filter(VarName == PlotVariable)
   
-  if(PlotVariable %in% c("kfrag", "kdeg")){
+  if(PlotVariable %in% c("kfrag", "kdeg", "alpha")){
     params <- params |>
       filter(SubCompart %in% c("freshwatersediment", "naturalsoil", "sea")) |>
       mutate(SubCompart = case_when(
