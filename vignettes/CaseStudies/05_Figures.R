@@ -355,6 +355,8 @@ ggsave(paste0(figurefolder, "SBR_NR_measurement_comparison",".png"), plot=conc_T
 for(var in unique(Material_Parameters_long$VarName)){
   plot <- plot_variable(Material_Parameters_long, var)
   print(plot)
+
+ggsave(paste0(figurefolder, "Variable_plot_", var, ".png"), plot=plot, width=40, height=20)  
 }
 
 
