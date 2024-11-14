@@ -63,6 +63,8 @@ Other_solutions <- results_cleaned[["Other_solutions"]]
 Material_Parameters_long <- results_cleaned[["Material_Parameters_long"]]
 Units <- results_cleaned[["Units"]] |>
   distinct()
+States <- results_cleaned[["States"]] |>
+  distinct()
 
 # Bind the rows of the concentration and solution dataframes together for both sources 
 Concentrations <- bind_rows(TW_concentrations, Other_concentrations)
