@@ -25,7 +25,8 @@ process_filepath <- function(filepath) {
     Other_concentrations = tibble(),
     Other_solutions = tibble(),
     Material_Parameters_long = Material_Parameters_n,
-    Units = Units
+    Units = tibble(),
+    States = tibble()
   )
   
   # Process outcomes
@@ -38,6 +39,9 @@ process_filepath <- function(filepath) {
     
     sol <- polymer_outcome$DynamicMass |>
       mutate(RUN = new_run_values[as.integer(RUN)], Polymer = polymer)
+    
+    output_data$Units <- polymer_outcome$DynamicConc$Units
+    output_data$States <- polymer_outcome$States
     
     if ("NR" %in% unique(Output$Polymer)) {
       conc <- conc |> mutate(Source = "Tyre wear")
