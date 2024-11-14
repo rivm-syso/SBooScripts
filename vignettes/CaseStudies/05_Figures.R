@@ -14,7 +14,7 @@ if(env == "local"){
   figurefolder <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figures/SB_plots/"
   abs_path_TNO <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/LEONT_WP3_results.xlsx"
 } else if(env == "OOD"){
-  abs_path_SB_data <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Long_solution_v1.RData"
+  abs_path_SB_data <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Long_solution_v1.3.RData"
   load(abs_path_SB_data)
   figurefolder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figures/SB_plots/"
   abs_path_TNO <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/LEONT_WP3_results.xlsx"

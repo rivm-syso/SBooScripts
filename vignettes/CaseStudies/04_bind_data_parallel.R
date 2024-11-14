@@ -10,15 +10,13 @@ env <- "OOD"
 #env <- "local"
 #env <- "HPC"
 
-Sys.info()
-
 # Find file paths 
 if(env == "local"){
   folderpath <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Output/" 
   filepaths <- list.files(folderpath)
   filepaths <- paste0(folderpath, filepaths)
 } else if(env == "OOD"){
-  folderpath <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Output/"
+  folderpath <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HPC_output/"
   filepaths <- list.files(folderpath)
   filepaths <- paste0(folderpath, filepaths)
 } else if(env == "HPC"){
@@ -28,7 +26,7 @@ if(env == "local"){
 }
 
 if(env == "local" | env == "OOD"){
-  source("vignettes/CaseStudies/f_Read_SB_data.R")
+  source("/rivm/n/hidsa/Documents/GitHub/SimpleBox/SBooScripts/vignettes/CaseStudies/f_Read_SB_data.R")
 } else if(env == "HPC"){
   source("/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/f_Read_SB_data.R")
 }
@@ -56,11 +54,13 @@ stopCluster(cl)
 
 results_cleaned <- keep(results, ~ nrow(.) > 0)
 
-TW_concentrations<- results_cleaned[["TW_concentrations"]]
-TW_solutions <- results_cleaned[["TW_solutions"]]
-Other_concentrations <- results_cleaned[["Other_concentrations"]]
-Other_solutions <- results_cleaned[["Other_solutions"]]
-Material_Parameters_long <- results_cleaned[["Material_Parameters_long"]]
+# Filter out tibbles with the specified name and bind rows together
+Other_concentrations <- bind_rows(results_cleaned[names(results_cleaned) == "Other_concentrations"])
+TW_concentrations <- bind_rows(results_cleaned[names(results_cleaned) == "TW_concentrations"])
+Other_solutions <- bind_rows(results_cleaned[names(results_cleaned) == "Other_solutions"])
+TW_solutions <- bind_rows(results_cleaned[names(results_cleaned) == "TW_solutions"])
+Material_Parameters_long <- bind_rows(results_cleaned[names(results_cleaned) == "Material_Parameters_long"])
+
 Units <- results_cleaned[["Units"]] |>
   distinct()
 States <- results_cleaned[["States"]] |>
@@ -107,7 +107,7 @@ if(env == "local"){
        compression_level = 9)
 } else if(env == "OOD"){
   save(Concentrations_long, Solution_long, Material_Parameters_long, States, Units,
-       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Long_solution_v1.2.RData",
+       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Long_solution_v1.3.RData",
        compress = "xz",
        compression_level = 9) 
 } else if(env == "HPC"){
@@ -116,3 +116,4 @@ if(env == "local"){
        compress = "xz",
        compression_level = 9) 
 }
+
