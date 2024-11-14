@@ -4,8 +4,9 @@
 library(stringr)
 library(tidyverse)
 # Specify the environment
-#env <- "OOD"
-env <- "local"
+env <- "OOD"
+#env <- "local"
+#env <- "HPC"
 
 if(env == "local"){
   folderpath <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Output/" 
@@ -15,13 +16,10 @@ if(env == "local"){
   folderpath <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Output/"
   filepaths <- list.files(folderpath)
   filepaths <- paste0(folderpath, filepaths)
-}
-
-# Fix old filenames
-selected_filepaths <- filepaths[grep("20241112", filepaths)]
-filepaths_new <- gsub("20241112", "v1", selected_filepaths)
-for(i in 1:length(selected_filepaths)){
-  file.rename(selected_filepaths[i], filepaths_new[i])
+} else if(env == "HPC"){
+  folderpath <- "data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/LEON-T_output/"
+  filepaths <- list.files(folderpath)
+  filepaths <- past0(folderpath, filepaths)
 }
 
 TW_concentrations <- tibble()
@@ -135,7 +133,12 @@ if(env == "local"){
        compression_level = 9)
 } else if(env == "OOD"){
   save(Concentrations_long, Solution_long, Material_Parameters_long, States, Units,
-       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Long_solution_v1.RData",
+       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Long_solution_v1.2.RData",
+       compress = "xz",
+       compression_level = 9) 
+} else if(env == "HPC"){
+  save(Concentrations_long, Solution_long, Material_Parameters_long, States, Units,
+       file = "data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/CaseData/Long_solution_v1.2.RData",
        compress = "xz",
        compression_level = 9) 
 }
