@@ -3,6 +3,16 @@ var <- "alpha"
 
 load("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Material_parameters.RData")
 
+for(pol in unique(Material_Parameters$Polymer)){
+  data <- Material_Parameters |>
+    filter(Polymer == pol)
+  
+  plot <- ggplot(data, aes(x=value,y=Concentration)) +
+    geom_point()+
+    facet_wrap(vars(Species, SubCompart))+
+    xlab(var) +
+    ggtitle(pol)
+
 Material_Parameters <- Material_Parameters_long |>
   mutate(Source = case_when(
     is.na(Source) ~ "Other sources",
