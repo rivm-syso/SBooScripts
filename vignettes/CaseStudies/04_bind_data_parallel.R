@@ -17,7 +17,7 @@ if(env == "OOD"){
 } else if(env == "HPC"){
   folderpath <- "/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/LEON-T_output/"
   filepaths <- list.files(folderpath)
-  filepaths <- past0(folderpath, filepaths)
+  filepaths <- paste0(folderpath, filepaths)
 }
 
 if(env == "OOD"){
