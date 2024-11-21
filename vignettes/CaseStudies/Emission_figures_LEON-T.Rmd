@@ -10,49 +10,19 @@ editor_options:
 ---
 
 ```{r load data}
-
 library(ggplot2)
 library(tidyverse)
 library(scales)
 library(openxlsx)
 
-data_folder <-  "vignettes/CaseStudies/CaseData/"
-#figure_folder <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figures/Emission_plots/"
-figure_folder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figures/Emission_plots/"
+Figure_folder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figures/Emission_plots/"
+MFAtype <- "DPMFA"
 ```
 
 # Prepare data for plotting
 ```{r}
-MFAtype <- "DPMFA"
-
-load(file = paste0(data_folder, MFAtype, "_EU", ".RData"))
-
-data_long_EU <- 
-  DPMFA_inflow |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
-  pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
-               names_to = "Year",
-               values_to = "Mass_Polymer_kt") |>
-  select(-c(Scale, iD_source))
-
-load(file = paste0(data_folder, MFAtype, "_NL", ".RData"))
-
-data_long_NL <-
-  DPMFA_inflow |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |>
-  pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
-               names_to = "Year",
-               values_to = "Mass_Polymer_kt") |>
-  select(-c(Scale, iD_source))
-
-data_long <- data_long_EU  |>
-  left_join(data_long_NL, by = c("Type", "Source", "Polymer", "To_Compartment", "Material_Type", "RUN", "Year")) |>
-  mutate(Mass_Polymer_kt = Mass_Polymer_kt.x + Mass_Polymer_kt.y) |>
-  select(-c(Mass_Polymer_kt.x, Mass_Polymer_kt.y)) |>
-  mutate(Scale = "EU")
-
-save("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_emission_data.RData")
-load("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_emission_data.RData")
-
-###################### Dataframe manipulation for plots ########################
+# Load emission data 
+load(file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_emission_data.RData")
 
 Years_available <- unique(data_long$Year)
 
@@ -61,8 +31,7 @@ SelectYear = 2019
 # Create a dataframe for just selectyear
 data_Year <- data_long |>
   filter(Year == SelectYear) |>
-  mutate(Mass_Polymer_t = Mass_Polymer_kt * 1000, .keep = "unused") |> # conert kt to ton
-  filter(To_Compartment %in% unique(DPMFA_sink$To_Compartment) & Type == "Inflow") |> # only sinks
+  mutate(Mass_Polymer_t = Mass_Polymer_kt * 1000, .keep = "unused") |> # convert kt to ton
   mutate(`Environmental_compartment` = # make column indicating of this an air, water or soil sink.
            case_when(
              str_detect(To_Compartment, 'water') ~ "water",
@@ -72,11 +41,10 @@ data_Year <- data_long |>
            )) |> filter(`Environmental_compartment` != "none") |> # remove sinks that are not environmental
   mutate(IenW_Source = # aggregate inputs to the Major sources classes the study focusses on
            case_when(
-             str_detect(Source, 'Clothing') ~ "Textile",
-             str_detect(Source, 'Household textiles') ~ "Textile",
-             str_detect(Source, 'Technical textiles') ~ "Textile", 
              str_detect(Source, 'Import of primary plastics') ~ "Pre-production pellets",
              str_detect(Source, 'Domestic primary plastic production') ~ "Pre-production pellets",
+             str_detect(Source, 'Clothing') ~ "Clothing",
+             str_detect(Source, 'Household textiles') ~ "Household textiles",
              .default = Source
            )) |>
   filter(!is.na(Mass_Polymer_t))
@@ -115,18 +83,18 @@ plot_theme = theme(
   axis.title.y = element_text(size = 32),
   plot.background = element_rect(fill = 'white'),
   panel.background = element_rect(fill = 'white'),
-  panel.grid.major = element_blank(),
-  panel.grid.minor = element_blank(),
   axis.line = element_line(color='black'),
   plot.margin = margin(2, 4, 2, 2, "cm"),
-  legend.title = element_blank()
-  #panel.grid.major = element_line(colour = "grey",size=0.25)
+  legend.title = element_blank(),  
+  panel.grid.major = element_line(color = "lightgrey", size = 0.5),  # Major grid lines in light grey
+  panel.grid.minor = element_line(color = "lightgrey", size = 0.25)
 )
 
 # Define colors for groups
 source_colors <- c(
   "Agriculture" = "#F8766D",
-  "Clothing and home textiles" = "#E58700",
+  "Clothing" = "#E58700",
+  "Household textiles" = "#E76BF3",
   "Intentionally produced microparticles" = "#C99800",
   "Macroplastic" = "#A3A500",
   "Packaging" = "#619cff",
@@ -148,16 +116,17 @@ micro_macro_colors <- c(
 )
 
 sink_colors <- c(
-  "water" = "dodgerblue4",
-  "air" = "slategray3",
-  "soil" = "darkgoldenrod"
+  "Sea water" = "dodgerblue4",
+  "Air" = "slategray3",
+  "Other soil" = "darkgoldenrod",
+  "Fresh water" = "cyan3",
+  "Roadside soil" = "azure4"
 )
 ```
 
 Figure comparing all micro emissions per source
 ```{r}
-source_comparison_micro_data <- data_Year_sep_macro |>
-  filter(Source != "Macroplastic")
+source_comparison_micro_data <- data_Year_sep_macro
 
 micro_source_plot <- ggplot(source_comparison_micro_data, aes(x = IenW_Source, y = Mass_Polymer_t, fill=IenW_Source)) +
   geom_violin() +
@@ -195,9 +164,6 @@ micro_macro_plot <- ggplot(micro_macro, aes(x = Material_Type, y = Mass_Polymer_
 
 micro_macro_plot
 
-# ggsave(paste0("/Figures/Emission_plots/","Micro_macro_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
-#        path = data_folder, width = 20, height = 10)  
-
 ggsave(paste0(Figure_folder, "Micro_macro_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
        width = 20, height = 10)
 ```
@@ -220,8 +186,6 @@ TW_Other_micro_plot <- ggplot(Data_TW_separated, aes(x = TW_class, y = Mass_Poly
 
 TW_Other_micro_plot
 
-# ggsave(paste0("/Figures/Emission_plots/","TW_other_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
-#        path = data_folder, width = 20, height = 10)  
 ggsave(paste0(Figure_folder, "TW_other_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
        width = 20, height = 10)
 ```
@@ -243,9 +207,6 @@ TW_env_comp_plot <- ggplot(TW_data, aes(x = To_Compartment, y = Mass_Polymer_t, 
 
 TW_env_comp_plot
 
-# ggsave(paste0("/Figures/Emission_plots/","TW_to_env_comps_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
-#        path = data_folder, width = 20, height = 10)  
-
 ggsave(paste0(Figure_folder, "TW_to_env_comps_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
        width = 20, height = 10)
 ```
@@ -256,6 +217,17 @@ Stacked barplot distribution over different sinks TWP vs. other sources
 barplot_data <- data_micro_summed_over_polymers |>
   mutate(TW_class = ifelse(Source == "Tyre wear", "Tyre wear", "Other sources")) |>
   ungroup() |> 
+  mutate(Environmental_compartment = case_when(
+    Environmental_compartment == "soil" ~ "Other soil",
+    Environmental_compartment == "air" ~ "Air",
+    .default = Environmental_compartment
+  )) |>
+  mutate(Environmental_compartment = case_when(
+    To_Compartment == "Road side soil (micro)" ~ "Roadside soil",
+    To_Compartment == "Surface water (micro)" ~ "Fresh water",
+    To_Compartment == "Sea water (micro)" ~ "Sea water",
+    .default = Environmental_compartment
+  )) |>
   group_by(Scale, TW_class, To_Compartment, Environmental_compartment, Year, Type, Material_Type) |> 
   summarise(Mass_Polymer_t = mean(Mass_Polymer_t),
             n = n()) |> 
@@ -264,7 +236,6 @@ barplot_data <- data_micro_summed_over_polymers |>
   summarise(Mass_Polymer_t = sum(Mass_Polymer_t),
             n= n())
 
-#### sinks barplot ####
 # Make a stacked barplot for what percentage goes to air, soil and water
 sink_dist_barplot <- ggplot(barplot_data, aes(fill = Environmental_compartment, x = TW_class, y = Mass_Polymer_t)) +
   geom_bar(position = "fill", stat="identity", color = "transparent") +
@@ -274,12 +245,43 @@ sink_dist_barplot <- ggplot(barplot_data, aes(fill = Environmental_compartment, 
   plot_theme +
   labs(y= "Distribution",
        x="") +
-  labs(fill='Sink type')
-sink_dist_barplot
+  labs(fill='Sink type') +
+   theme( # Override specific elements
+    panel.grid.major = element_blank(), # Major grid lines removed
+    panel.grid.minor = element_blank()  # Minor grid lines removed
+  ) 
 
-# ggsave(paste0("/Figures/Emission_plots/","Env_comp_barplot_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
-#        path = data_folder, width = 20, height = 10)  
+sink_dist_barplot
 
 ggsave(paste0(Figure_folder, "Env_comp_barplot_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
        width = 20, height = 10)
 ```
+
+Figure comparing NL, EU and NL+EU emissions
+
+```{r}
+
+```
+
+Figure violin plot from each source to soil types
+
+```{r}
+soil_data <- data_Year |>
+  filter(Environmental_compartment == "soil") |>
+  filter(Material_Type == "micro")
+
+source_soil_plot <- ggplot(soil_data, aes(x = IenW_Source, y = Mass_Polymer_t, fill = To_Compartment)) +
+  geom_violin() +
+  scale_fill_discrete()+
+  theme(legend.position="right")+
+  scale_y_log10(labels = scales::number_format())+          
+  labs(x = "", y = "Microplastic emissions (ton)") +                   # Adjust labels
+  coord_flip() +
+  plot_theme 
+
+source_soil_plot
+
+ggsave(paste0(Figure_folder, "Sources_to_soil_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
+       width = 20, height = 10)
+```
+
