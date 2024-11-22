@@ -99,8 +99,6 @@ Conc_summed_over_pol <- Concentrations_species |>
 # Make plots data for continental scale and polymers over time (concentration)
 continental_polymer_data <- Concentrations_long |>
   filter(Scale == "Continental") |>
-  group_by(Polymer, Year, Source, Scale, SubCompart, SubCompartName, Unit) |>
-  summarise(Concentration = sum(Concentration)) |>
   group_by(Polymer, Year, Source, SubCompart, SubCompartName, Scale, Unit) |>
   summarise(Concentration = mean(Concentration))
 
@@ -144,16 +142,14 @@ SB_data_TW <- Concentrations_long |>
   group_by(SubCompartName, SubCompart, RUN) |>
   summarise(Concentration = sum(Concentration)) |>
   mutate(Polymer = "SBR + NR") |>
-  filter(SubCompart %in% subcomparts) |>
   mutate(source = "SimpleBox") 
 
 # Mass and concentrations of SBR vs NR
 NR_SBR_data <- Concentrations_long |>
   filter(Source == "Tyre wear") |>
   left_join(Solution_long, by=c("Scale", "Year", "RUN", "SubCompart", "Species", "time", "Polymer", "Source", "Abbr")) |>
-  filter(Scale == scale) |>
   filter(Year == year) |>
-  group_by(SubCompartName, SubCompart, Polymer, RUN) |>
+  group_by(SubCompartName, SubCompart, Polymer, Scale, Year, RUN) |>
   summarise(Concentration = sum(Concentration),
             Mass = sum(Mass))
 
@@ -183,8 +179,7 @@ if(env == "OOD"){
   save(Emissions, 
        file = "/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/CaseData/SB_Emissions.RData",
        compress = "xz",
-       compression_level = 9
-       )
+       compression_level = 9)
   save(Concentrations_long, Solution_long, Emissions,
        file = "/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/CaseData/SB_Long_solutions.RData",
        compress = "xz",
