@@ -32,8 +32,48 @@ load(paste0(data_path, Mat_file_name))
 # Load functions
 source("vignettes/CaseStudies/f_plot_functions.R")
 
-############ Set plot theme and colors
+####################### Calculate concentrations from masses ###################
+source("baseScripts/initWorld_onlyPlastics.R")
 
+# Function to adjust concentration to dry weight for soil and sediment compartments
+adjustconc = function(CompConc, Fracw, Fraca, RHOsolid, RhoWater_value){
+  CompConc  / (Fracw * RhoWater_value + (1 - Fracw - Fraca) * RHOsolid)
+}
+
+# Recalculate concentrations from masses
+volumes <- World$fetchData("Volume")
+fracw <- World$fetchData("FRACw")
+fraca <- World$fetchData("FRACa")
+rho <- World$fetchData("rhoMatrix")
+
+head(Solution_long_summed_over_pol)
+
+Solution_long_summed_over_pol2 <- Solution_long_summed_over_pol |>
+  mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
+  group_by(Scale, SubCompart, RUN) |>
+  summarise(Mass = sum(Mass)) |>
+  ungroup()
+
+head(Solution_long_summed_over_pol2)
+
+sol_with_volume <- Solution_long_summed_over_pol2 |>
+  left_join(volumes, by=c("Scale", "SubCompart", "RUN")) |>
+  mutate(Mass = as.numeric(Mass)) |>
+  mutate(Volume = as.numeric(Volume)) |>
+  mutate(conc = Mass/Volume)
+
+head(sol_with_volume)
+
+air_water_comps <- c("sea", "river", "lake", "deepocean", "air", "cloudwater")
+soil_sediment_comps <- c("freshwatersediment", "naturalsoil", "agriculturalsoil", "othersoil", "marinesediment")
+
+Solutions_air_water <- Solution_long_summed_over_pol |>
+  filter(SubCompart %in% air_water_comps)
+
+Solutions_soil_sediment <- Solution_long_summed_over_pol |>
+  filter(SubCompart %in% soil_sediment_comps)
+
+############ Set plot theme and colors
 # Create a plot theme
 plot_theme <-  theme(
   axis.title.x = element_text(size = 30),    
@@ -72,7 +112,6 @@ year <- 2019
 scales <- c("Continental", "Regional")
 
 ################ Concentration plots
-year = 2019
 for(scale in scales){
   conc_plot_data <- Conc_summed_over_pol |>
     filter(Scale == scale) |>
@@ -203,16 +242,21 @@ for(scale in scales){
 }
 
 ############################### Tyre wear plots ################################
-
 #Make plots for continental scale and polymers over time (concentration)
 for(subcomp in unique(continental_polymer_data$SubCompart)) {
   plotdata_TW <- continental_polymer_data |>
     filter(SubCompart == subcomp) |>
-    filter(Source == "Tyre wear") 
+    filter(Source == "Tyre wear") |>
+    group_by(Polymer, Year, Source, SubCompart, SubCompartName, Scale) |>
+    summarise(Mean_Concentration = mean(Concentration)) |>
+    ungroup()
   
   plotdata_Other <- continental_polymer_data |>
     filter(SubCompart == subcomp) |>
-    filter(Source == "Other sources")
+    filter(Source == "Other sources") |>
+    group_by(Polymer, Year, Source, SubCompart, SubCompartName, Scale) |>
+    summarise(Mean_Concentration = mean(Concentration)) |>
+    ungroup()
   
   cont_pol_plot_Other <- ggplot(plotdata_Other, mapping = aes(x = Year, y = Mean_Concentration, color = Polymer)) +
     geom_line(size = 2) +
@@ -220,8 +264,7 @@ for(subcomp in unique(continental_polymer_data$SubCompart)) {
     labs(
       title = paste0("Microplastic concentrations in ", subcomp, " at Continental scale"),
       x = "Year",
-      y = paste0("Concentration (", unique(plotdata_Other$Unit), ")")
-    ) +
+      y = paste0("Concentration (", unique(plotdata_Other$Unit), ")")) +
     plot_theme
   
   print(cont_pol_plot_Other)
@@ -245,13 +288,18 @@ for(subcomp in unique(continental_polymer_data$SubCompart)) {
 
 ##### Make plot of NR fractions over time
 
-NR_fraction_over_time <- continental_polymer_data |>
+continental_polymer_data_mean <- continental_polymer_data |>
   filter(Source == "Tyre wear") |> 
+  group_by(Year, Source, SubCompart, Polymer, SubCompartName, Scale)|>
+  summarise(Concentration = mean(Concentration)) |>
+  ungroup()
+
+NR_fraction_over_time <- continental_polymer_data_mean |>
   group_by(Year, Source, SubCompart, SubCompartName, Scale) |>
-  summarise(Concentration_TW = sum(Mean_Concentration)) |>
-  left_join(continental_polymer_data, by=c("Source", "Year", "SubCompart", "SubCompartName", "Scale")) |>
+  summarise(Concentration_TW = sum(Concentration)) |>
+  left_join(continental_polymer_data_mean, by=c("Source", "Year", "SubCompart", "SubCompartName", "Scale")) |>
   filter(Polymer != "SBR")|>
-  mutate(fraction_NR = Mean_Concentration/Concentration_TW)
+  mutate(fraction_NR = Concentration/Concentration_TW)
 
 mean_NR_time_plot <- ggplot(NR_fraction_over_time, mapping = aes(x = Year, y = fraction_NR, color = SubCompart)) +
   geom_line(size = 2) +
@@ -259,9 +307,7 @@ mean_NR_time_plot <- ggplot(NR_fraction_over_time, mapping = aes(x = Year, y = f
   labs(
     title = paste0("Mean natural rubber fraction at Continental scale"),
     x = "Year",
-    y = paste0("Fraction")
-  ) +
-  plot_theme
+    y = paste0("Fraction")) +  plot_theme
 
 print(mean_NR_time_plot)
 
@@ -270,7 +316,7 @@ ggsave(paste0(figurefolder, "Natural_rubber_fraction_over_time_continental_scale
 # Plot variables
 for(var in unique(Material_Parameters_long$VarName)){
   plot <- plot_variable(Material_Parameters_long, var)
-  print(plot)
+  #print(plot)
 
   ggsave(paste0(figurefolder, "Variable_plot_", var, ".png"), plot=plot, width=40, height=20, dpi = 1000)
 }
