@@ -12,12 +12,12 @@ env <- "OOD"
 #env <- "HPC"
 
 # Specify the source
-source_of_interest <- NA
+source_of_interest <- "Tyre wear"
 
 if(env == "local"){
   setwd("N:/Documents/GitHub/SimpleBox/SBooScripts")
 } else if(env == "OOD"){
-  setwd("/rivm/n/hidsa/Documents/GitHub/SimpleBox/SBooScripts")
+  # setwd("/rivm/n/hidsa/Documents/GitHub/SimpleBox/SBooScripts") # please work in R studion projects with git! This resolves the need for these type of setwd.
 } else if(env == "HPC"){
   mainfolder <- "/data/BioGrid/hidsa/SimpleBox/SBooScripts/"
 }
@@ -76,7 +76,7 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
 
 #### Select subset of RUNs from emission and parameters ####
 #  Set the runs that need to be run, should be consequetive from x to y.
-RUNSamples = c(1:2)
+RUNSamples = c(711:761)
 print(paste("LOG: run started for", min(RUNSamples), "to", max(RUNSamples)))
 ##
 subsetRuns <- function(dfRUNs,nummers){ #Function to select RUNsamples from emision data
@@ -131,7 +131,8 @@ for(pol in unique(Sel_DPMFA_micro$Polymer)){
 }
 
 elapsed_time <- Sys.time() - start_time
-print(paste0("Elapsed time is ", elapsed_time))
+print(elapsed_time)
+# print(paste0("Elapsed time is ", elapsed_time))
 
 # Save the outcome 
 if(env == "local"){
@@ -151,7 +152,7 @@ if(env == "local"){
 } else if(env == "OOD"){
   if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
     save(Output, Sel_DPMFA_micro, Material_Parameters_n, elapsed_time,
-         file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SBout_TWP", 
+         file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SBout_LEONT_TWP", 
                        "_RUNS_",min(RUNSamples), "_", max(RUNSamples),"_" , "v1.RData"),
          compress = "xz",
          compression_level = 9) 
