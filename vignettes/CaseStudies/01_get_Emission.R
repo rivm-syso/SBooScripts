@@ -3,13 +3,13 @@
 # Initialize
 source("vignettes/CaseStudies/f_Emission4SB.R")
 
-source_of_interest = NA
+source_of_interest = "Tyre wear"
 
 ### initialize ###
 
 # Specify the environment
-#env <- "OOD"
-env <- "local"
+env <- "OOD"
+# env <- "local"
 
 if(env == "local"){
   abspath_EU = "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_EU.RData"
