@@ -78,8 +78,8 @@ Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering W
     group_by(Abbr, Year, RUN, Polymer, Subcompartment) |>
     summarise(Mass_Polymer_kg_s = sum(Mass_Polymer_kg_s)) |>
     ungroup() |>
-    rename(value = Mass_Polymer_kg_s) |>
-    select(Abbr, Year, Polymer, value, RUN, Subcompartment)
+    # rename(value = Mass_Polymer_kg_s) |>
+    select(Abbr, Year, Polymer, Mass_Polymer_kg_s, RUN, Subcompartment)
   
   # If the source is tyre wear, separate the mass into NR and SBR, according to a triangular distribution based on data of LEON-T deliverable 3.2
   if (!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
@@ -102,13 +102,13 @@ Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering W
     
     NR_df <- DPMFA_sink_micro |>
       mutate(Polymer = "NR") |>
-      mutate(value = value*NR_fraction) |>
+      mutate(Mass_Polymer_kg_s = Mass_Polymer_kg_s*NR_fraction) |>
       select(-NR_fraction)
     
     SBR_df <- DPMFA_sink_micro |>
       mutate(Polymer = "SBR") |>
       mutate(SBR_fraction = 1-NR_fraction) |>
-      mutate(value = value*SBR_fraction) |>
+      mutate(Mass_Polymer_kg_s = Mass_Polymer_kg_s*SBR_fraction) |>
       select(-c(NR_fraction, SBR_fraction))
     
     DPMFA_sink_micro <- rbind(NR_df, SBR_df)
@@ -118,7 +118,7 @@ Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering W
   
   DPMFA_sink_micro <- DPMFA_sink_micro |>
     mutate(Timed = as.double(Year)*(365.25*24*3600)) |>
-    nest(Emis = c(RUN, value))
+    nest(Emis = c(RUN, Mass_Polymer_kg_s))
   
   if (!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
     return(list(DPMFA_sink_micro=DPMFA_sink_micro,
