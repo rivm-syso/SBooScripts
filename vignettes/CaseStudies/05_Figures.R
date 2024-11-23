@@ -16,16 +16,16 @@ Mat_file_name <- "SB_Material_parameters.RData"
 if(env == "local"){
   data_path <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/" # Define path to plot data
   figurefolder <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figures/SB_plots/" # Define figure folder path
-  abs_path_TNO <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/LEONT_WP3_results.xlsx"  # Define path to TNO data
+  abs_path_Measurements <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/LEONT_WP3_results.xlsx"  # Define path to LEON-T data
 } else if(env == "OOD"){
   data_path <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/" # Define path to plot data
   figurefolder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figures/SB_plots/" # Define figure folder path
-  abs_path_TNO <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/LEONT_WP3_results.xlsx" # Define path to TNO data
+  abs_path_Measurements <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/LEONT_WP3_results.xlsx" # Define path to LEON-T data
 }
 
 # Load the data
 load(paste0(data_path, conc_file_name))
-#load(paste0(data_path, mass_file_name))
+load(paste0(data_path, mass_file_name))
 load(paste0(data_path, TW_file_name))
 load(paste0(data_path, Mat_file_name))
 
@@ -41,37 +41,62 @@ adjustconc = function(CompConc, Fracw, Fraca, RHOsolid, RhoWater_value){
 }
 
 # Recalculate concentrations from masses
-volumes <- World$fetchData("Volume")
-fracw <- World$fetchData("FRACw")
+volumes <- 
+  fracw <- World$fetchData("FRACw")
 fraca <- World$fetchData("FRACa")
-rho <- World$fetchData("rhoMatrix")
+rho <- World$fetchData("RHO")
 
 head(Solution_long_summed_over_pol)
+Solution_long_summed_over_pol |> distinct(Source)
 
-Solution_long_summed_over_pol2 <- Solution_long_summed_over_pol |>
+# sum cloudwater and dry air mass
+Solution_long_summed_over_pol2 <- 
+  Solution_long_summed_over_pol |>
   mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
-  group_by(Scale, SubCompart, RUN) |>
+  ungroup() |> 
+  group_by(time, RUN, Source, Year,Scale,SubCompart) |>
   summarise(Mass = sum(Mass)) |>
   ungroup()
 
-head(Solution_long_summed_over_pol2)
+Solution_long_summed_over_pol2
 
-sol_with_volume <- Solution_long_summed_over_pol2 |>
-  left_join(volumes, by=c("Scale", "SubCompart", "RUN")) |>
-  mutate(Mass = as.numeric(Mass)) |>
-  mutate(Volume = as.numeric(Volume)) |>
-  mutate(conc = Mass/Volume)
+Solution_long_summed_over_pol2 <- 
+  Solution_long_summed_over_pol2 |>
+  left_join(World$fetchData("Volume"), 
+            by=c("Scale", "SubCompart")) |>
+  # mutate(Mass = as.numeric(Mass)) |>
+  # mutate(Volume = as.numeric(Volume)) |>
+  mutate(conc_kg_m3 = Mass/Volume) |> 
+  left_join(World$fetchData("FRACw"),
+            by=c("Scale", "SubCompart")) |> 
+  left_join(World$fetchData("FRACa"),
+            by=c("Scale", "SubCompart")) |> 
+  left_join(World$fetchData("rhoMatrix"),
+            by=c("SubCompart")) |> 
+  left_join(World$fetchData("Matrix"),
+            by=c("SubCompart"))
+World$fetchData("Matrix")
 
-head(sol_with_volume)
+Solution_long_summed_over_pol2 |> 
+  mutate(    unit = "kg/m3"  ) |> 
+  mutate(Concentration =
+           case_match(Matrix,
+                      "air" ~ conc_kg_m3/1000000,
+                      "water" ~ conc_kg_m3/1000,
+                      "soil" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix), # RhoWater needed (we need to define subcompartment variables for rhoWater, rhoSolid and rhoAir)
+                      "sediment" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix),
+                      .default = conc_kg_m3),
+         unit =
+           case_match(Matrix,
+                      "air" ~ "mg/m3",
+                      "water" ~ "mg/L",
+                      "soil" ~ "mg/kg dw",
+                      "sediment" ~ "mg/kg dw",
+                      .default = unit)
+  ) |> 
+  filter(Year == 2019)
 
-air_water_comps <- c("sea", "river", "lake", "deepocean", "air", "cloudwater")
-soil_sediment_comps <- c("freshwatersediment", "naturalsoil", "agriculturalsoil", "othersoil", "marinesediment")
 
-Solutions_air_water <- Solution_long_summed_over_pol |>
-  filter(SubCompart %in% air_water_comps)
-
-Solutions_soil_sediment <- Solution_long_summed_over_pol |>
-  filter(SubCompart %in% soil_sediment_comps)
 
 ############ Set plot theme and colors
 # Create a plot theme
@@ -119,7 +144,7 @@ for(scale in scales){
   
   conc_plot_data_TW <- conc_plot_data |>
     filter(Source == "Tyre wear")
-
+  
   conc_over_time_TW <- Conc_summed_over_pol |>
     filter(Scale == scale) |>
     filter(Source == "Tyre wear") |>
@@ -129,7 +154,7 @@ for(scale in scales){
               p5 = quantile(Concentration, probs = 0.05, na.rm = T),
               p95 = quantile(Concentration, probs = 0.95, na.rm = T)) |>
     arrange(SubCompartName, Year) 
-
+  
   # Concentration plot comparing tyre wear and other sources
   conc_p <- ggplot(conc_plot_data, mapping = aes(x = SubCompartName, y = Concentration, fill = Source)) +  
     geom_violin() + 
@@ -270,7 +295,7 @@ for(subcomp in unique(continental_polymer_data$SubCompart)) {
   print(cont_pol_plot_Other)
   
   ggsave(paste0(figurefolder, "Concentration_over_time_Other_sources_Continental_", subcomp, ".png"), plot=cont_pol_plot_Other, width = 25, height = 15, dpi = 1000) 
-
+  
   cont_pol_plot_TW <- ggplot(plotdata_TW, mapping = aes(x = Year, y = Mean_Concentration, color = Polymer)) +
     geom_line(size = 2) +
     scale_y_continuous(trans = "log10") +
@@ -317,7 +342,7 @@ ggsave(paste0(figurefolder, "Natural_rubber_fraction_over_time_continental_scale
 for(var in unique(Material_Parameters_long$VarName)){
   plot <- plot_variable(Material_Parameters_long, var)
   #print(plot)
-
+  
   ggsave(paste0(figurefolder, "Variable_plot_", var, ".png"), plot=plot, width=40, height=20, dpi = 1000)
 }
 
@@ -345,16 +370,16 @@ ggsave(paste0(figurefolder, "Concentration_plot_year_comparison.png"), plot=conc
 ##### Make plots compared to measurements
 
 # Prepare the measurement data for plotting
-TNO_TWP_data <- prep_TNO_data(abs_path_TNO)
+LEONT_TWP_data <- prep_LEONT_data(abs_path_Measurements)
 
-subcomparts <- c(unique(TNO_TWP_data$SubCompart), "agriculturalsoil")
+subcomparts <- c(unique(LEONT_TWP_data$SubCompart), "agriculturalsoil")
 
 # Prepare SimpleBox data for plotting
 SB_data_TW <- SB_data_TW |>
   filter(SubCompart %in% subcomparts) 
 
-# Make plot comparing TNO and SB data
-TNO_SB_SBR_NR <- bind_rows(TNO_TWP_data, SB_data_TW) |>
+# Make plot comparing LEONT and SB data
+LEONT_SB_SBR_NR <- bind_rows(LEONT_TWP_data, SB_data_TW) |>
   filter(Polymer == "SBR + NR") |>
   mutate(SubCompartName = case_when(
     SubCompart == "othersoil" ~ "roadsidesoil (g/kg dw)",
@@ -363,7 +388,7 @@ TNO_SB_SBR_NR <- bind_rows(TNO_TWP_data, SB_data_TW) |>
   SubCompartName = factor(SubCompartName, levels = c("air (g/m^3)", "freshwatersediment (g/kg dw)", "river (g/L)", "roadsidesoil (g/kg dw)", "agriculturalsoil (g/kg dw)")))
 
 # Concentration plot comparing tyre wear and other sources
-conc_TNO_SB_SBR_NR <- ggplot(TNO_SB_SBR_NR, mapping = aes(x = SubCompartName, y = Concentration, fill = source)) +  
+conc_LEONT_SB_SBR_NR <- ggplot(LEONT_SB_SBR_NR, mapping = aes(x = SubCompartName, y = Concentration, fill = source)) +  
   geom_violin() + 
   labs(title = paste0("SBR + NR concentrations at Regional scale, ", as.character(year)),
        x = "Compartment",
@@ -373,70 +398,70 @@ conc_TNO_SB_SBR_NR <- ggplot(TNO_SB_SBR_NR, mapping = aes(x = SubCompartName, y 
   theme(legend.position = "bottom") +   
   guides(fill = guide_legend(title = NULL))  
 
-print(conc_TNO_SB_SBR_NR)
+print(conc_LEONT_SB_SBR_NR)
 
-ggsave(paste0(figurefolder, "SBR_NR_measurement_comparison",".png"), plot=conc_TNO_SB_SBR_NR, width = 25, height = 15, dpi = 1000)
+ggsave(paste0(figurefolder, "SBR_NR_measurement_comparison",".png"), plot=conc_LEONT_SB_SBR_NR, width = 25, height = 15, dpi = 1000)
 
 ################################ Solution plots ################################
 #for(scale in scales){
-  # sol_plot_data <- Solution_long_summed_over_pol |>
-  #   filter(Scale == scale) |>
-  #   filter(Year == year) |>
-  #   group_by(RUN, Source, Year, Scale, SubCompart) |>
-  #   summarise(Mass = sum(Mass))
-  # 
-  # sol_plot_data_TW <- sol_plot_data |>
-  #   filter(Source == "Tyre wear")
-  
-  
-  # # Mass plot comparing tyre wear and other sources
-  # mass_p <- ggplot(sol_plot_data, mapping = aes(x = SubCompart, y = Mass, fill = Source)) +  
-  #   geom_violin() + 
-  #   labs(title = paste0("Masses at ", scale, " scale, ", as.character(year)),
-  #        x = "Compartment",
-  #        y = "Mass (kg)") +
-  #   plot_theme +
-  #   scale_y_continuous(trans = 'log10') +
-  #   scale_fill_manual(values = Source_colors) +
-  #   theme(legend.position = "bottom") +   
-  #   guides(fill = guide_legend(title = NULL))  
-  # 
-  # print(mass_p)
-  # 
-  # ggsave(paste0(figurefolder, "Mass_plot_comparison_", scale, ".png"), plot=mass_p, width = 25, height = 15, dpi = 1000)
-  # 
-  # # Mass plot for tyre wear
-  # mass_p <- ggplot(sol_plot_data_TW, mapping = aes(x = SubCompart, y = Mass, fill = SubCompart)) +  
-  #   geom_violin() + 
-  #   labs(title = paste0("Tyre wear rubber masses at ", scale, " scale, ", as.character(year)),
-  #        x = "Compartment",
-  #        y = "Mass (kg)") +
-  #   plot_theme +
-  #   scale_y_continuous(trans = 'log10') +
-  #   scale_fill_viridis_d() + 
-  #   theme(axis.text.x = element_blank(),  
-  #         legend.position = "bottom") +   
-  #   guides(fill = guide_legend(title = NULL))  
-  # 
-  # print(mass_p)
-  # 
-  # ggsave(paste0(figurefolder, "Mass_plot_TW_", scale, ".png"), plot=mass_p, width = 25, height = 15, dpi = 1000)
-  
-  # # Mass plot for tyre wear (SBR/NR)
-  # mass_p <- ggplot(NR_SBR_data, mapping = aes(x = SubCompart, y = Mass, fill = Polymer)) +  
-  #   geom_violin() + 
-  #   labs(title = paste0("Tyre wear rubber masses at ", scale, " scale, ", as.character(year)),
-  #        x = "Compartment",
-  #        y = "Mass (kg)") +
-  #   plot_theme +
-  #   scale_y_continuous(trans = 'log10') +
-  #   scale_fill_manual(values = NR_SBR_colors) + 
-  #   theme(legend.position = "bottom") +   
-  #   guides(fill = guide_legend(title = NULL))  
-  # 
-  # print(mass_p)
-  # 
-  # ggsave(paste0(figurefolder, "NR_SBR_Mass_", scale, ".png"), plot=mass_p, width = 25, height = 15, dpi = 1000)
+# sol_plot_data <- Solution_long_summed_over_pol |>
+#   filter(Scale == scale) |>
+#   filter(Year == year) |>
+#   group_by(RUN, Source, Year, Scale, SubCompart) |>
+#   summarise(Mass = sum(Mass))
+# 
+# sol_plot_data_TW <- sol_plot_data |>
+#   filter(Source == "Tyre wear")
+
+
+# # Mass plot comparing tyre wear and other sources
+# mass_p <- ggplot(sol_plot_data, mapping = aes(x = SubCompart, y = Mass, fill = Source)) +  
+#   geom_violin() + 
+#   labs(title = paste0("Masses at ", scale, " scale, ", as.character(year)),
+#        x = "Compartment",
+#        y = "Mass (kg)") +
+#   plot_theme +
+#   scale_y_continuous(trans = 'log10') +
+#   scale_fill_manual(values = Source_colors) +
+#   theme(legend.position = "bottom") +   
+#   guides(fill = guide_legend(title = NULL))  
+# 
+# print(mass_p)
+# 
+# ggsave(paste0(figurefolder, "Mass_plot_comparison_", scale, ".png"), plot=mass_p, width = 25, height = 15, dpi = 1000)
+# 
+# # Mass plot for tyre wear
+# mass_p <- ggplot(sol_plot_data_TW, mapping = aes(x = SubCompart, y = Mass, fill = SubCompart)) +  
+#   geom_violin() + 
+#   labs(title = paste0("Tyre wear rubber masses at ", scale, " scale, ", as.character(year)),
+#        x = "Compartment",
+#        y = "Mass (kg)") +
+#   plot_theme +
+#   scale_y_continuous(trans = 'log10') +
+#   scale_fill_viridis_d() + 
+#   theme(axis.text.x = element_blank(),  
+#         legend.position = "bottom") +   
+#   guides(fill = guide_legend(title = NULL))  
+# 
+# print(mass_p)
+# 
+# ggsave(paste0(figurefolder, "Mass_plot_TW_", scale, ".png"), plot=mass_p, width = 25, height = 15, dpi = 1000)
+
+# # Mass plot for tyre wear (SBR/NR)
+# mass_p <- ggplot(NR_SBR_data, mapping = aes(x = SubCompart, y = Mass, fill = Polymer)) +  
+#   geom_violin() + 
+#   labs(title = paste0("Tyre wear rubber masses at ", scale, " scale, ", as.character(year)),
+#        x = "Compartment",
+#        y = "Mass (kg)") +
+#   plot_theme +
+#   scale_y_continuous(trans = 'log10') +
+#   scale_fill_manual(values = NR_SBR_colors) + 
+#   theme(legend.position = "bottom") +   
+#   guides(fill = guide_legend(title = NULL))  
+# 
+# print(mass_p)
+# 
+# ggsave(paste0(figurefolder, "NR_SBR_Mass_", scale, ".png"), plot=mass_p, width = 25, height = 15, dpi = 1000)
 #}
 
 
