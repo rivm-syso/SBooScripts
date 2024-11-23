@@ -1,8 +1,8 @@
 
-prep_TNO_data <- function(abs_file_path){
-  TNO_data <- read_excel(abs_file_path)
+prep_LEONT_data <- function(abs_file_path){
+  LEONT_data <- read_excel(abs_file_path)
   
-  TNO_data2 <- TNO_data |>
+  LEONT_data2 <- LEONT_data |>
     select(Medium, Locatie, `TWP (TNO)`, Beschrijving, `TWP (SBR+NR)`, `TWP (AVG)...9`, SBR, NR, eenheid...12) |>
     mutate(SubCompart = case_when(
       str_detect(Beschrijving, "350mtr") ~ "agriculturalsoil",
@@ -15,11 +15,11 @@ prep_TNO_data <- function(abs_file_path){
     filter(!Medium %in% c("runoff", "deposition")) |>
     mutate(Scale = "Regional") |>
     rename("eenheid" = "eenheid...12") |>
-    rename("TNO_SBR_NR" = `TWP (SBR+NR)`) |>
-    mutate(TNO_SBR_NR = as.numeric(TNO_SBR_NR)) |>
-    mutate(TNO_SBR_NR_converted = case_when(
-      eenheid == "µg/m3" ~ TNO_SBR_NR/1000,
-      eenheid == "mg/g" ~ TNO_SBR_NR,
+    rename("LEONT_SBR_NR" = `TWP (SBR+NR)`) |>
+    mutate(LEONT_SBR_NR = as.numeric(LEONT_SBR_NR)) |>
+    mutate(LEONT_SBR_NR_converted = case_when(
+      eenheid == "µg/m3" ~ LEONT_SBR_NR/1000,
+      eenheid == "mg/g" ~ LEONT_SBR_NR,
       TRUE ~ NA
     )) |>
     mutate(Unit = case_when(
@@ -29,13 +29,13 @@ prep_TNO_data <- function(abs_file_path){
       TRUE ~ NA
     )) |>
     mutate(SBR = as.numeric(SBR)) |>
-    mutate(TNO_SBR_converted = case_when(
+    mutate(LEONT_SBR_converted = case_when(
       eenheid == "µg/m3" ~ SBR/1000,
       eenheid == "mg/g" ~ SBR,
       TRUE ~ NA
     )) |>
     mutate(NR = as.numeric(NR)) |>
-    mutate(TNO_NR_converted = case_when(
+    mutate(LEONT_NR_converted = case_when(
       eenheid == "µg/m3" ~ NR/1000,
       eenheid == "mg/g" ~ NR,
       TRUE ~ NA
@@ -45,11 +45,11 @@ prep_TNO_data <- function(abs_file_path){
   
   # Optional: add SBR and NR concentrations separately
   
-  TNO_TWP_data <- TNO_data2 |>
-    select(TNO_SBR_NR_converted, Unit, SubCompart, SubCompartName) |>
-    rename("Concentration" = "TNO_SBR_NR_converted") |>
+  LEONT_TWP_data <- LEONT_data2 |>
+    select(LEONT_SBR_NR_converted, Unit, SubCompart, SubCompartName) |>
+    rename("Concentration" = "LEONT_SBR_NR_converted") |>
     mutate(Polymer = "SBR + NR") |>
-    mutate(source = "TNO measurement") |>
+    mutate(source = "LEONT measurement") |>
     filter(!is.na(Concentration))
   
 }
