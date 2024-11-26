@@ -102,10 +102,11 @@ ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |>
 load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241126.RData"))
 Material_Parameters_n <- Parameters$Material_Parameters_n
 PlotVariable = "alpha"
-ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable & Polymer == "ABS") |> unnest(data), aes(x=value,y=SubCompart)) +
   geom_violin()+
   facet_wrap(vars(Polymer,Species))+
   xlab(PlotVariable)+ scale_x_log10() 
+# above alpha's the same for all polymers
 
 PlotVariable = "RadS"
 ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=VarName)) +
@@ -116,7 +117,7 @@ ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data),
 PlotVariable = "RhoS"
 ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=VarName)) +
   geom_violin()+
-  facet_wrap(vars(Polymer,Source))+
+  facet_wrap(vars(Polymer))+
   xlab(paste(PlotVariable)) 
 
 PlotVariable = "kdeg"
@@ -125,6 +126,7 @@ ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |>
   geom_violin()+
   facet_wrap(vars(Polymer,Species))+
   xlab(paste(PlotVariable))  + scale_x_log10() 
+# aboev kdeg same for all polymers
 
 PlotVariable = "kfrag"
 ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> 
@@ -178,6 +180,19 @@ Example run of SimpleBox4Plastics and analysis of P species as TRWP, instead of 
 ```{r SimpleBox4Plastics}
 
 # test Rho and RadCP for Rad and Rho of SAP species.
+source("baseScripts/initWorld_onlyPlastics.R")
+
+if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_interest == "Tyre wear") {
+  World$substance <- "TRWP"
+} else {
+  World$substance <- "microplastic"
+}
+
+Parameters$Parameter_summary
+Parameters$Material_Parameters_n
+
+# Calculate distribution of RadP and RhoP for air and water
+Parameters$Material_Parameters_n |> filter(VarName == RadS)
 
 
 ```
