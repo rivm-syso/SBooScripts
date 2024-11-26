@@ -99,10 +99,18 @@ data_long_EU <-
                names_to = "Year",
                values_to = "Mass_Polymer_kt") |>
     rename(Cum_Mass_Polymer_kt = Mass_Polymer_kt) |> 
-  mutate(Mass_Polymer_kt = Cum_Mass_Polymer_kt - lag(Cum_Mass_Polymer_kt, default = 0)) |> 
+  ungroup() |> 
+  group_by(Scale,Source,Polymer,To_Compartment, Material_Type, RUN) |> 
+  reframe(
+    Mass_Polymer_kt = Cum_Mass_Polymer_kt - lag(Cum_Mass_Polymer_kt, default = 0),
+    Year = Year) |> 
+  ungroup() |> 
   mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |> # Convert kt/year to kg/s
   # filter(Material_Type == "micro") |> # Select microplastics only
-  mutate(SBscale = ifelse(Scale == "EU", "C", "R")) 
+  mutate(SBscale = ifelse(Scale == "EU", "C", "R"))
+
+data_long_EU |> filter(Mass_Polymer_kg_s < 0)
+
 
 data_long_EU |> 
   filter(Source == "Tyre wear") |> 
