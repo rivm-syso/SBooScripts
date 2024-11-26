@@ -56,7 +56,7 @@ prep_LEONT_data <- function(abs_file_path){
 
 plot_variable <- function(Material_parameters_df, PlotVariable){
 
-  params <- Material_Parameters_long |>
+  params <- Material_parameters_df |>
     filter(VarName == PlotVariable)
   
   if(PlotVariable %in% c("kfrag", "kdeg", "alpha")){
