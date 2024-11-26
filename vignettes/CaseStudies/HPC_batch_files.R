@@ -3,10 +3,11 @@ library(tidyverse)
 # Initialize variables
 
 ## Define batch parameters
-batch_n <- 2
-batch_max <- 1000  # Should be a multiple of batch_n for the loop logic to work
+#batch_n <- 2
+#batch_max <- 10  # Should be a multiple of batch_n for the loop logic to work
 
-Source <- NA
+#Source <- NA
+#Source <- '"Tyre wear"'
 
 ## Create parameter grid
 pars <- expand.grid(
@@ -31,7 +32,7 @@ if (dir.exists(folder_path)) {
 }
 
 for(i in 1:nrow(pars)){
-  file <- readLines("vignettes/CaseStudies/03_get_Solution_SB.r")
+  file <- readLines("vignettes/CaseStudies/03_get_Solution_SB.R")
   
   target_string_runs <- "RUNSamples = c"
   replacement_string_runs <- paste0("RUNSamples = c(", pars$MinRun[i], ":", pars$MaxRun[i], ")")
