@@ -17,6 +17,8 @@ Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering W
     pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
                  names_to = "Year",
                  values_to = "Mass_Polymer_kt") |>
+    rename(Cum_Mass_Polymer_kt = Mass_Polymer_kt) |> 
+    mutate(Mass_Polymer_kt = Cum_Mass_Polymer_kt - lag(Cum_Mass_Polymer_kt, default = 0)) |> # calculate yearly emission from cummulative
     mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |> # Convert kt/year to kg/s
     filter(Material_Type == "micro") |> # Select microplastics only
     mutate(SBscale = ifelse(Scale == "EU", "C", "R")) 
@@ -30,6 +32,8 @@ Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering W
     pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
                  names_to = "Year",
                  values_to = "Mass_Polymer_kt") |>
+    rename(Cum_Mass_Polymer_kt = Mass_Polymer_kt) |> 
+    mutate(Mass_Polymer_kt = Cum_Mass_Polymer_kt - lag(Cum_Mass_Polymer_kt, default = 0)) |> # calculate yearly emission from cummulative
     mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |> # Convert kt/year to kg/s
     filter(Material_Type == "micro") |> # Select microplastics only
     mutate(SBscale = ifelse(Scale == "EU", "C", "R")) 
