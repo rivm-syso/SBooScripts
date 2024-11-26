@@ -17,470 +17,61 @@ projectRoot <- paste(getwd(), "..", "..", sep = "/")
 knitr::opts_knit$set(root.dir = projectRoot) 
 ```
 
-# *Initializing World and Substance*
-
-Depending on the substance you want to analyze, a selection needs to be
-made from the three different"worlds" : Molecular, Particulate and
-Plastics. Here, we initialize the world for plastics.
-
-```{r Initialize World}
-library(lhs)
-library(readxl)
-library(viridis)
-library(trapezoid)
-library(triangle)
-
-# Path to excel file with parameters
-path_parameters_file <- "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx"
-
-source("baseScripts/initWorld_onlyPlastics.R")
+```{r Load packages}
+library(tidyverse)
+library(ggplot2)
 ```
 
-# Load the DPMFA data and make a nested emission dataframe
+# 01: Make emission dataframes for tyre wear and other sources and save them as RData files 
 
-```{r Load DPMFA data}
-# source_of_interest <- NA # NA for all except TWP (needs to be run separately)
+The sourced script reads in the DPMFA output data, and links the emissions to the relevant SimpleBox compartments. The 
+emission data in kt/y is converted to kg/s. 
+```{r 01 Make emission RData files}
+# Make emission RData file for tyre wear
 source_of_interest <- "Tyre wear"
+source("vignettes/CaseStudies/01_get_Emission.R")
 
-# Choose substance based on chosen sources
-if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_interest == "Tyre wear") {
-  World$substance <- "TRWP"
-} else {
-  World$substance <- "microplastic"
-}
-
-# Select PMFA data for 2019
-PMFA_year <- 2019
-
-MFAtype <- "DPMFA" # other option is DPMFA
-
-if(MFAtype == "PMFA"){
-  # Load EU data
-  abspath <- "vignettes/CaseStudies/CaseData/PMFA_EU.RData"
-  load(abspath)
-  
-  # Convert to long format
-  data_long_EU <- 
-    DPMFA_sink |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
-    pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
-                 names_to = "Year",
-                 values_to = "Mass_Polymer_kt") |>
-    mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |> # Convert kt/year to kg/s
-    filter(Material_Type == "micro") |> # Select microplastics only
-    mutate(SBscale = ifelse(Scale == "EU", "C", "R"))
-    
-  # Load NL data
-  abspath <- "vignettes/CaseStudies/CaseData/PMFA_NL.RData"
-  load(abspath)
-  
-  # Convert to long format
-  data_long_NL <- 
-    DPMFA_sink |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
-    pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
-                 names_to = "Year",
-                 values_to = "Mass_Polymer_kt") |>
-    mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |> # Convert kt/year to kg/s
-    filter(Material_Type == "micro") |> # Select microplastics only
-    mutate(SBscale = ifelse(Scale == "EU", "C", "R"))
-  
-  data_long <- rbind(data_long_EU, data_long_NL)
-  
-  if (all(!is.na(source_of_interest))) {
-    # Check if all the elements of source_of_interest are present in data_long$Source
-    if (!all(source_of_interest %in% unique(data_long$Source))) {
-      print("Selected source(s) not in dataframe")
-    } else {
-      sources <- source_of_interest
-    }
-  } else if (all(is.na(source_of_interest))) {
-    # If all elements are NA, return all unique sources
-    sources <- unique(data_long$Source)
-    sources <- sources[sources != "Tyre wear"]
-  }
-  
-  # Assign SB compartments to DPMFA compartments
-  DPMFA_sink_micro <- data_long |>
-    filter(Year == PMFA_year) |>
-    filter(Source %in% sources) |>
-    select(Source, To_Compartment, Mass_Polymer_kg_s, Year, RUN, Polymer, SBscale) |>
-    rename(Scale = SBscale) |>
-    filter(To_Compartment != "Sub-surface soil (micro)") |> # Exclude sub-surface soil because this is currently outside the scope of SimpleBox
-    mutate(Compartment = case_when(
-      str_detect(To_Compartment, "soil") ~ "s",
-      str_detect(To_Compartment, "water") ~ "w",
-      str_detect(To_Compartment, "air") ~ "a"
-    )) |>
-    mutate(Subcompartment = case_when(
-      str_detect(To_Compartment, "Agricultural") ~ "2",
-      str_detect(To_Compartment, "Natural") ~ "1",
-      str_detect(To_Compartment, "Road side") ~ "3",
-      str_detect(To_Compartment, "Residential") ~ "3",
-      str_detect(To_Compartment, "Sea") ~ "2",
-      str_detect(To_Compartment, "Surface") ~ "1",
-      str_detect(To_Compartment, "Outdoor") ~ ""
-    )) |>
-    mutate(Species = case_when(
-      Source == "Tyre wear" ~ "P",
-      TRUE ~ "S")) |>
-    mutate(Abbr = paste0(Compartment, Subcompartment, Scale, Species)) |>
-    mutate(Subcompartment = paste0(Compartment, Subcompartment)) |>
-    group_by(Abbr, Year, Polymer, RUN, Subcompartment) |>
-    summarise(Mass_Polymer_kg_s = sum(Mass_Polymer_kg_s)) |>
-    ungroup() |>
-    rename(value = Mass_Polymer_kg_s)
-} else if(MFAtype == "DPMFA"){
-   # Load EU data
-  abspath <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_EU.RData"
-  load(abspath)
-  
-  # Convert to long format
-  data_long_EU <- 
-    DPMFA_sink |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
-    pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
-                 names_to = "Year",
-                 values_to = "Mass_Polymer_kt") |>
-    mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |> # Convert kt/year to kg/s
-    filter(Material_Type == "micro") |> # Select microplastics only
-    mutate(SBscale = ifelse(Scale == "EU", "C", "R")) 
-  
-  # Load NL data
-  abspath <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_NL.RData"
-  load(abspath)
-  
-  # Convert to long format
-  data_long_NL <- 
-    DPMFA_sink |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
-    pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
-                 names_to = "Year",
-                 values_to = "Mass_Polymer_kt") |>
-    mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |> # Convert kt/year to kg/s
-    filter(Material_Type == "micro") |> # Select microplastics only
-    mutate(SBscale = ifelse(Scale == "EU", "C", "R")) 
-  
-  data_long <- rbind(data_long_EU, data_long_NL)
-  
-  if (all(!is.na(source_of_interest))) {
-    # Check if all the elements of source_of_interest are present in data_long$Source
-    if (!all(source_of_interest %in% unique(data_long$Source))) {
-      print("Selected source(s) not in dataframe")
-    } else {
-      sources <- source_of_interest
-    }
-  } else if (all(is.na(source_of_interest))) {
-    # If all elements are NA, return all unique sources
-    sources <- unique(data_long$Source)
-    sources <- sources[sources != "Tyre wear"]
-  }
-
-  # Assign SB compartments to DPMFA compartments
-  DPMFA_sink_micro <- data_long |>
-    filter(Source %in% sources) |>
-    select(Source, To_Compartment, Mass_Polymer_kg_s, Year, RUN, Polymer, SBscale) |>
-    rename(Scale = SBscale) |>
-    filter(To_Compartment != "Sub-surface soil (micro)") |> # Exclude sub-surface soil because this is currently outside the scope of SimpleBox
-    mutate(Compartment = case_when(
-      str_detect(To_Compartment, "soil") ~ "s",
-      str_detect(To_Compartment, "water") ~ "w",
-      str_detect(To_Compartment, "air") ~ "a"
-    )) |>
-    mutate(Subcompartment = case_when(
-      str_detect(To_Compartment, "Agricultural") ~ "2",
-      str_detect(To_Compartment, "Natural") ~ "1",
-      str_detect(To_Compartment, "Road side") ~ "3",
-      str_detect(To_Compartment, "Residential") ~ "3",
-      str_detect(To_Compartment, "Sea") ~ "2",
-      str_detect(To_Compartment, "Surface") ~ "1",
-      str_detect(To_Compartment, "Outdoor") ~ ""
-    )) |>
-    mutate(Species = case_when(
-      Source == "Tyre wear" ~ "P",
-      TRUE ~ "S")) |>
-    mutate(Abbr = paste0(Compartment, Subcompartment, Scale, Species)) |>
-    mutate(Subcompartment = paste0(Compartment, Subcompartment)) |>
-    group_by(Abbr, Year, RUN, Polymer, Subcompartment) |>
-    summarise(Mass_Polymer_kg_s = sum(Mass_Polymer_kg_s)) |>
-    ungroup() |>
-    rename(value = Mass_Polymer_kg_s) |>
-    select(Abbr, Year, Polymer, value, RUN, Subcompartment)
-  
-  # If the source is tyre wear, separate the mass into NR and SBR, according to a triangular distribution based on data of LEON-T deliverable 3.2
-  if(!is.na(source_of_interest)){
-      
-    TRWP_data <- read_excel(path_parameters_file, sheet = "TRWP_data") |>
-      select(NR_Average_fraction) 
-    TRWP_data <- na.omit(TRWP_data)
-    a <- min(TRWP_data$NR_Average_fraction)
-    b <- max(TRWP_data$NR_Average_fraction)
-    c <- mean(TRWP_data$NR_Average_fraction)
-    
-    nsamples <- max(DPMFA_sink_micro$RUN)
-    NR_SBR_fractions <- rtriangle(nsamples, a, b, c) 
-    NR_SBR_fractions <- data.frame(NR_SBR_fractions) |>
-      mutate(RUN = 1:nsamples) |>
-      rename(NR_fraction = NR_SBR_fractions)
-    
-    DPMFA_sink_micro <- DPMFA_sink_micro |> 
-      left_join(NR_SBR_fractions, by = "RUN") 
-    
-    NR_df <- DPMFA_sink_micro |>
-      mutate(Polymer = "NR") |>
-      mutate(value = value*NR_fraction) |>
-      select(-NR_fraction)
-    
-    SBR_df <- DPMFA_sink_micro |>
-      mutate(Polymer = "SBR") |>
-      mutate(SBR_fraction = 1-NR_fraction) |>
-      mutate(value = value*SBR_fraction) |>
-      select(-c(NR_fraction, SBR_fraction))
-    
-    DPMFA_sink_micro <- rbind(NR_df, SBR_df)
-  }
-}
+# Make emission RData file for other sources
+source_of_interest <- NA
+source("vignettes/CaseStudies/01_get_Emission.R")
 ```
 
-```{r Set the regional scale to NL}
-# Make a df in the correct format for mutateVars
-Regional_Parameters <- read_excel(path_parameters_file, sheet = "Netherlands_data") |>
-  rename(varName = Variable) |>
-  rename(Waarde = Value) |>
-  select(-Unit) 
+# 02: Make parameter dataframes for tyre wear and other sources and save them as RData files
+```{r 02 Make parameter RData files}
+# Make parameters file for tyre wear
+source_of_interest <- "Tyre wear"
+source("vignettes/CaseStudies/02_get_Parameters.R")
 
-# Recalculate the area's
-World$mutateVars(Regional_Parameters)
-World$UpdateDirty(unique(Regional_Parameters$varName))
-
+# Make emission RData file for other sources
+source_of_interest <- NA
+source("vignettes/CaseStudies/02_get_Parameters.R")
 ```
 
-```{r Make a df with the emissions}
-TESTING = T
-if(TESTING==TRUE) DPMFA_sink_micro <- DPMFA_sink_micro |> filter(RUN<2)
-
-# Filter out emission subcompartments for which SimpleBox does not have a compartment (yet)
-DPMFA_sink_micro <-
-  DPMFA_sink_micro |> filter(Subcompartment %in% World$fetchData("AbbrC")$AbbrC)
-
-if(MFAtype == "PMFA"){
-  DPMFA_sink_micro <- DPMFA_sink_micro |>
-    nest(Emis = c(RUN, value))
-} else if(MFAtype == "DPMFA"){ 
-  DPMFA_sink_micro <- DPMFA_sink_micro |>
-    mutate(Timed = as.double(Year)*(365.25*24*3600)) |>
-    nest(Emis = c(RUN, value))
-}
-```
-
-```{r Functions for distributions}
-# Define triangular distribution function
-triangular <- function(u, a, b, c) {               # u = samples, a = min, b = max, c = peak
-  ifelse(u < (c-a)/(b-a),
-         a + sqrt(u * (b-a) * (c-a)),
-         b - sqrt((1-u) * (b-a) * (b-c)))
-}
-
-# Define uniform distribution function
-uniform <- function(u, a, b) {                     # u = samples, a = min, b = max
-  transformed_samples <- a + (b - a) * u
-  return(transformed_samples)
-}
-
-log_uniform <- function(u, a, b) {
-
-  log_scaled <- -log(1 - u)
-  transformed_samples <- a + (b - a) * (log_scaled / max(log_scaled))
-  return(transformed_samples)
-}
-
-# Define power law distribution function
-power_law <- function(u, a, b, c){                 # u = samples, a = min, b = max, c = alpha
-  
-  # Ensure that samples are within [0, 1]
-  samples <- pmin(pmax(u, 0), 1)
-  
-  # Transform samples to the power-law distribution
-  scaled_samples <- a * ((b / a) ^ samples) ^ (1 / (1 - c))
-  
-  return(scaled_samples)
-}
-
-trapezoidal <- function(u, a, b, c, d) {
-  # Ensure u is in the range [0, 1]
-  u <- pmin(pmax(u, 0), 1)  # Clip u to [0, 1]
-  
-  # Total width of the trapezoid
-  width_total <- d - a
-  base1 <- b - a    # Width of the left base
-  base2 <- d - c    # Width of the right base
-  
-  # Calculate the CDF segments
-  CDF_left <- base1 / width_total         # Area under the left triangle
-  CDF_flat <- 1 - base2 / width_total     # Area under the flat top
-  
-  result <- ifelse(u < (base1 / width_total), 
-                   a + sqrt(u * (base1) * width_total),  # Left triangle
-                   ifelse(u <= (CDF_flat + base1 / width_total), 
-                          b + (u - base1 / width_total) * (d - b),  # Flat top
-                          d - sqrt((1 - u) * (base2) * width_total)  # Right triangle
-                   )
-  )
-  return(result)
-}
-
-# Function to scale TRWP size to data from LEON-T deliverable 3.2
-TRWP_size_dist <- function(u, path_to_file) {
-  
-  # Read the data and process it
-  TRWP_data <- read_excel(path_parameters_file, sheet = "TRWP_data") |>
-    separate(`Size Fraction (µm)`,
-             into = c("Size_um","max_size_um"), sep = "-") |> 
-    mutate(Size_um = as.numeric(gsub("400", "1000", Size_um))) |>  # Change "400" to "1000"
-    mutate(PSD_um = as.numeric(PSD_um)) |> # Assuming PSD_um is the particle size distribution (weights)
-    mutate(cdf = cumsum(PSD_um)) |>
-    mutate(cdf = cdf / max(cdf))  # Normalize the CDF
-  
-  # Use the approx function to interpolate Size_um based on the CDF
-  scaled_samples <- approx(x = TRWP_data$cdf, y = TRWP_data$Size_um, xout = u, rule = 2)$y
-  
-  return(scaled_samples)
-}
-```
-
-# Create dataset with uncertain variables
-
-## Prepare excel data
-
-```{r Prepare excel data}
-Material_Parameters <- read_excel(path_parameters_file, sheet = "Polymer_data") |> 
-  # change um to nm unit conversion
-  mutate(across(c(a, b, c, d), as.numeric)) |>
-  mutate(across(c(a, b, c, d), ~ case_when(
-    str_detect(Unit, "um") ~ . * 1000,
-    TRUE ~ .
-  ))) |>
-  mutate(Unit = case_when(
-    str_detect(Unit, "um") ~ "nm",
-    TRUE ~ Unit
-  ))
-
-if(!is.na(source_of_interest)){
-  Material_Parameters <- Material_Parameters |>
-    filter(MP_source == "Tyre wear")
-} else if(is.na(source_of_interest)){
-  Material_Parameters <- Material_Parameters |>
-    filter(is.na(MP_source))
-}
-
-# materials <- unique(Material_Parameters$Polymer)
-materials <- unique(DPMFA_sink_micro$Polymer) # materials in selected sources
-
-explodeF <- function(df, target_col, explode_value, new_values) {
-  df %>%
-    # Use mutate to create a new column if the target column equals explode_value
-    mutate(!!sym(target_col) := ifelse(!!sym(target_col) == explode_value, list(new_values), !!sym(target_col))) %>%
-    # Unnest the target column to duplicate rows
-    unnest(!!sym(target_col))
-}
-
-DefinedVariables <- lapply(unique(Material_Parameters$VarName),World$fetchData)
-names(DefinedVariables) = unique(Material_Parameters$VarName)
-
-# how to cope with any. For now this, but materials should be only for material being calculated for.
-suppressWarnings({
-  Material_Parameters <- explodeF(Material_Parameters, target_col = "Polymer", explode_value = "any", new_values = materials)
-})
-
-```
-
-```{r Make sample df}
-# Generate the correct number of samples
-n_samples <- nrow(DPMFA_sink_micro$Emis[[1]]) # Number of emission runs 
-
-polymers <- unique(DPMFA_sink_micro$Polymer)
-
-Material_Parameters_n <- data.frame()
-
-for(pol in polymers){
-
-  input_vars <- 
-    Material_Parameters |>
-    filter(!is.na(Distribution)) |>
-    filter(Polymer == pol) #|> 
-
-  n_vars <- nrow(input_vars)
-  
-  # Generate LHS
-  lhs_samples <- randomLHS(n_samples, n_vars)
-  
-  # Scale the lhs samples to the correct distributions
-  sample_df_var <-  
-    input_vars |> 
-    mutate(nvar = c(1:n_vars)) |> 
-    rowwise() |> 
-    mutate(
-      data = 
-        case_match(Distribution,
-                   "Triangular" ~ list(tibble(value=triangular(lhs_samples[, nvar], a, b, c))),
-                   "Uniform" ~  list(tibble(value=uniform(lhs_samples[, nvar], a, b))),
-                   "Powerlaw" ~  list(tibble(value=power_law(lhs_samples[, nvar], a, b, c))),
-                   "Trapezoidal" ~  list(tibble(value=trapezoidal(lhs_samples[, nvar], a, b, c, d))),
-                   "TRWP_size" ~ list(tibble(value=TRWP_size_dist(lhs_samples[, nvar], path_parameters_file))),
-                   "Log uniform" ~ list(tibble(value=log_uniform(lhs_samples[, nvar], a, b))),
-                   .default = NA
-        )
-    ) 
-
-  Material_Parameters_n <- rbind(Material_Parameters_n, sample_df_var)
-}
-
-# Make a table with statistics of the samples
-report_table <- Material_Parameters_n |>
-  select(-c(a, b, c, d, Reasoning, Comment, Description, nvar)) |>
-  unnest(data) |>
-  group_by(VarName, Scale, SubCompart, Species, Distribution, Polymer, Unit, `Data Source`) |>
-  mutate(min = min(value),
-         p5 = quantile(value, 0.05),
-         p25 = quantile(value, 0.25),
-         p50 = quantile(value, 0.50),
-         mean = mean(value),
-         p75 = quantile(value, 0.75),
-         p95 = quantile(value, 0.95)) |>
-  select(-value) |>
-  distinct()
-
-scales <- union((World$FromDataAndTo()$fromScale),(World$FromDataAndTo()$toScale))
-subCompartments <-  union((World$FromDataAndTo()$fromSubCompart),(World$FromDataAndTo()$toSubCompart))
-species <- union((World$FromDataAndTo()$fromSpecies),(World$FromDataAndTo()$toSpecies))
-
-Material_Parameters_n <- 
-  Material_Parameters_n %>% 
-  separate_rows(Species, sep = "_") |> 
-  separate_rows(SubCompart, sep = "_") |>
-  mutate( Scale = str_replace_all(Scale, "any",
-                                  paste(scales,collapse="__"))) |> 
-  separate_rows(Species, sep = "__") |> 
-  mutate( SubCompart = str_replace_all(SubCompart, "Water",
-                                       paste(c("lake", "sea", "deepocean", "river"),
-                                             collapse = "__"))) |> 
-  separate_rows(SubCompart, sep = "__") |> 
-  mutate( SubCompart = str_replace_all(SubCompart, "Soil",
-                                       paste(subCompartments |> str_subset(c("soil")),
-                                             collapse = "__"))) |> 
-  separate_rows(SubCompart, sep = "__") |> 
-  mutate( SubCompart = str_replace_all(SubCompart, "Sediment",
-                                       paste(subCompartments |> str_subset(c("sediment")),
-                                             collapse = "__"))) |> 
-  separate_rows(SubCompart, sep = "__") |> 
-  mutate( Species = str_replace_all(Species, "any",
-                                    paste(species,collapse="__"))) |> 
-  separate_rows(Species, sep = "__") |> 
-  mutate( SubCompart = str_replace_all(SubCompart, "any",
-                                       paste(subCompartments,collapse="__"))) |> 
-  separate_rows(SubCompart, sep = "__") |> 
-  rename(Source = MP_source)
-
-```
+# Visualize the variable distributions for tyre wear
 
 ```{r Make some figures to show the values chosen from the distributions}
+source_of_interest <- "Tyre wear"
+env <- "OOD"
 
+if(env == "Local"){
+  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
+    #load(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241110.RData"))
+    load(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241110.RData"))
+  } else if(is.na(source_of_interest)){
+    #load(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_Other_20241111.RData"))
+    load(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241111.RData"))
+  }
+} else if(env == "OOD"){
+  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
+    #load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241110.RData"))
+    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_", format(Sys.Date(),"%Y%m%d"), ".RData"))
+  } else if(is.na(source_of_interest)){
+    #load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_Other_20241111.RData"))
+    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_", format(Sys.Date(),"%Y%m%d"), ".RData"))
+  }
+}
+
+Material_Parameters_n <- Parameters$Material_Parameters_n
 #Example of plot:
 #TODO: include units
 
@@ -515,322 +106,52 @@ ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data),
   xlab(paste(PlotVariable)) 
 ```
 
-# Solve the matrix and calculate concentrations
+# Make batch files for the High Performance Cluster
+Calculating dynamic masses with uncertainty for 1950 to 2050 with 1000 runs takes too
+much computing power to calculate in RStudio. Therefore, a high performance cluster (HPC)
+was used to calculate the results. The script sourced below divides the 1000 runs for 
+tyre wear and other sources between different 'batch scripts', which can then
+be sent separately to the HPC. This significantly lowers the computing time, 
+as the results are calculated in parallel and a large number of nodes is 
+available. 
 
-Solve the matrix depending on the type of input emissions given (PMFA =
-Steady state, DPMFA = dynamic)
+The following packages should be installed in the environment of your linux terminal:
+- tidyverse
 
-```{r Solve steady state}
-start_time <- Sys.time()
+## Make batch scripts for tyre wear
+The chunk below creates batch scripts for tyre wear, and a txt files with LSF commands. 
+Copy the LSF commands into your linux terminal to run the batch scripts. 
+```{r Create batch scripts for tyre wear}
+# Define batch parameters for tyre wear
+batch_n <- 2
+batch_max <- 1000  # Should be a multiple of batch_n for the loop logic to work
+Source <- '"Tyre wear"'
 
-Output <- tibble(Polymer = polymers, 
-                 SBoutput = NA)
-
-if(MFAtype == "PMFA"){ 
-  World$NewSolver("UncertainSolver")
-  
-  for(pol in polymers){
-    emis_source <- DPMFA_sink_micro |>
-      filter(Polymer == pol) |>
-      select(Abbr, Year, Polymer, Emis)
-    
-    sample_source <- Material_Parameters_n |>
-      filter(Polymer == pol) |>
-      select(VarName, Scale, SubCompart, Species, data) |> 
-      rename(varName = VarName)
-    
-    solved <- World$Solve((emis_source), needdebug = F, sample_source)
-    solved$SteadyStateConc <- World$GetConcentration()
-    
-    Output$SBoutput[Output$Polymer == pol] <- list(solved)
-  }
-  
-} else if(MFAtype == "DPMFA"){
-  World$NewSolver("UncertainDynamicSolver")
-  tmax <- max(DPMFA_sink_micro$Timed)
-  
-  for(pol in polymers){
-    emis_source <- DPMFA_sink_micro |>
-      filter(Polymer == pol) |>
-      select(Abbr, Timed, Emis)
-    
-    sample_source <- Material_Parameters_n |>
-      filter(Polymer == pol) |>
-      select(VarName, Scale, SubCompart, Species, data) |> 
-      rename(varName = VarName)
-    
-    solved <- World$Solve((emis_source), sample_source, tmax = tmax, needdebug = F)
-    solved$DynamicConc <- World$GetConcentration()
-    
-    Output$SBoutput[Output$Polymer == pol] <- list(solved)
-    
-  }
-}
-end_time <- Sys.time()
-
-elapsed_time <- end_time - start_time
-
-print(paste0("Elapsed time is ", elapsed_time))
-
-# Save the output as RData file
-if(is.na(source_of_interest)){
-  save(Output, report_table, 
-     file = paste0("vignettes/CaseStudies/Casedata/LEON-T_output_OTHER_", MFAtype, "_", as.character(n_samples) , "_RUNS_", format(Sys.Date(),"%Y_%m_%d"),".RData"),
-     compress = "xz",
-     compression_level = 9)   
-} else if(source_of_interest == "Tyre wear"){
-  save(Output, NR_SBR_fractions, report_table,
-     file = paste0("vignettes/CaseStudies/Casedata/LEON-T_output_TYRE_WEAR_", MFAtype, "_", as.character(n_samples) , "_RUNS_", format(Sys.Date(),"%Y_%m_%d"),".RData"),
-     compress = "xz",
-     compression_level = 9)  
-}
+source("vignettes/CaseStudies/HPC_batch_files.R")
 ```
 
-# Prep data and make plots
+## Make batch scripts for other sources
+The chunk below creates batch scripts for other sources, and a txt files with LSF commands. 
+Copy the LSF commands into your linux terminal to run the batch scripts. 
+```{r Create batch scripts for other sources}
+# Define batch parameters for other sources
+batch_n <- 2
+batch_max <- 1000  # Should be a multiple of batch_n for the loop logic to work
+Source <- NA
 
-```{r Load output data}
-otherdataname <- "LEON-T_output_OTHER_DPMFA_10_RUNS_2024_11_04.RData"
-twdataname <- "LEON-T_output_TYRE_WEAR_DPMFA_10_RUNS_2024_11_04.RData"
-
-data_folder <-  "vignettes/CaseStudies/CaseData/"
-
-Solution <- data.frame()
-Concentrations <- data.frame()
-
-if(MFAtype == "DPMFA"){
-  load(paste0(data_folder, otherdataname))
-  
-  for(i in 1:nrow(Output)){
-    output <- Output$SBoutput[i]
-    output <- output[[1]]
-    
-    solution <- output$DynamicMass |>
-      mutate(Source = "Other sources") |>
-      mutate(Polymer = Output$Polymer[i])
-      
-    Solution <- rbind(Solution, solution)
-    
-    concentration <- output$DynamicConc$Concentrations |>
-      mutate(Source = "Other sources") |>
-      mutate(Polymer = Output$Polymer[i])
-    
-    Concentrations <- rbind(Concentrations, concentration)
-    
-    States <- output$States
-  }
-  load(paste0(data_folder, twdataname))
-  
-  for(i in 1:nrow(Output)){
-    output <- Output$SBoutput[i]
-    output <- output[[1]]
-    
-    solution <- output$DynamicMass |>
-      mutate(Source = "Tyre wear") |>
-      mutate(Polymer = Output$Polymer[i])
-      
-    Solution <- rbind(Solution, solution)
-    
-    concentration <- output$DynamicConc$Concentrations |>
-      mutate(Source = "Tyre wear") |>
-      mutate(Polymer = Output$Polymer[i])
-    
-    Concentrations <- rbind(Concentrations, concentration)
-  }
-  
-  units <- output$DynamicConc$Units |>
-    pivot_longer(cols = everything(), names_to = "Abbr", values_to = "Unit")
-  
-  Concentrations_long <- Concentrations |>
-    pivot_longer(!c(time, RUN, Polymer, Source), names_to = "Abbr", values_to = "Concentration") |>
-    mutate(time = as.numeric(time)) |>
-    mutate(RUN = as.integer(RUN)) |>
-    mutate(Concentration = as.double(Concentration)) |>
-    mutate(Year = time/(365.25*24*3600))  |>
-    left_join(units, by="Abbr") |>
-    group_by(time, RUN, Source, Abbr, Year, Unit) |>
-    summarise(Concentration = sum(Concentration))|>
-    left_join(States, by="Abbr") |>
-    ungroup() |>
-    group_by(time, RUN, Source, Abbr, Year, Scale, SubCompart, Unit) |>
-    summarise(Concentration = sum(Concentration)) |>
-    mutate(SubCompartName  = paste0(SubCompart, " (", Unit, ")"))
-  
-  Solution_long <- Solution |>
-    pivot_longer(!c(time, RUN, Polymer, Source), names_to = "Abbr", values_to = "Mass") |>
-    mutate(time = as.numeric(time)) |>
-    mutate(RUN = as.integer(RUN)) |>
-    mutate(Mass = as.double(Mass)) |>
-    mutate(Year = time/(365.25*24*3600)) |>
-    filter(!str_starts(Abbr, "emis")) |>
-    group_by(time, RUN, Source, Abbr, Year) |>
-    summarise(Mass = sum(Mass)) |>
-    left_join(States, by="Abbr") |>
-    mutate(SubCompart = case_when(
-      str_detect(SubCompart, "cloudwater") ~ "air",
-      TRUE ~ SubCompart)) |>
-    ungroup() |>
-    group_by(time, RUN, Source, Abbr, Year, Scale, SubCompart) |>
-    summarise(Mass = sum(Mass))
-}
+source("vignettes/CaseStudies/HPC_batch_files.R")
 ```
 
-```{r}
+# Bind the data
+Once the batch scripts have been run, the data can be bound together. This is done
+using the a script that binds data in parallel, as this saves time. 
 
-# Create a plot theme
-plot_theme <-  theme(
-  axis.title.x = element_text(size = 14),    
-  axis.title.y = element_text(size = 14),    
-  axis.text.x = element_text(size = 12, angle = 45, hjust = 1),     
-  axis.text.y = element_text(size = 12),
-  title = element_text(size=20),
-  panel.background = element_rect(fill = "white"),  # White background
-  panel.grid.major = element_line(color = "lightgrey", size = 0.5),  # Major grid lines in light grey
-  panel.grid.minor = element_line(color = "lightgrey", size = 0.25)
-)
+Needed packages : 
+- tidyverse
+- stringr
+- doParallel
 
-Source_colors <- c(
-  "Tyre wear" = "#2D708EFF",
-  "Other sources" = "#440154FF"
-)
-
-year <- 2019
-
-if(MFAtype == "DPMFA"){
-  scales <- unique(Solution_long$Scale)
-  
-  for(scale in scales){
-    sol_plot_data <- Solution_long |>
-      filter(Scale == scale) |>
-      filter(Year == year) |>
-      group_by(RUN, Source, Year, Scale, SubCompart) |>
-      summarise(Mass = sum(Mass))
-    
-    sol_plot_data_TW <- sol_plot_data |>
-      filter(Source == "Tyre wear")
-    
-    conc_plot_data <- Concentrations_long |>
-      filter(Scale == scale) |>
-      filter(Year == year)|>
-      group_by(RUN, Source, Year, Scale, SubCompart, SubCompartName) |>
-      summarise(Concentration = sum(Concentration))
-    
-    conc_plot_data_TW <- conc_plot_data |>
-      filter(Source == "Tyre wear")
-    
-    conc_over_time_TW <- Concentrations_long |>
-      filter(Scale == scale) |>
-      filter(Source == "Tyre wear") |>
-      group_by(RUN, Source, Year, Scale, SubCompart, SubCompartName) |>
-      summarise(Concentration = sum(Concentration)) |>
-      ungroup() |>
-      group_by(Source, Year, Scale, SubCompartName) |>
-      summarise(Mean = mean(Concentration),
-                p25 = quantile(Concentration, probs = 0.25, na.rm = T),
-                p75 = quantile(Concentration, probs = 0.75, na.rm = T)) |>
-      arrange(SubCompartName, Year) 
-    
-    # Mass plot comparing tyre wear and other sources
-      mass_p <- ggplot(sol_plot_data, mapping = aes(x = SubCompart, y = Mass, fill = Source)) +  
-        geom_violin() + 
-        labs(title = paste0("Masses at ", scale, " scale, ", as.character(year)),
-             x = "Compartment",
-             y = "Mass (kg)") +
-        plot_theme +
-        scale_y_continuous(trans = 'log10') +
-        scale_fill_manual(values = Source_colors) +
-        theme(legend.position = "bottom") +   
-        guides(fill = guide_legend(title = NULL))  
-      
-      print(mass_p)
-      
-      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Mass_plot_comparison_", scale, ".png"), plot=mass_p, width = 20, height = 10)
-    
-      # Mass plot for tyre wear
-      mass_p <- ggplot(sol_plot_data_TW, mapping = aes(x = SubCompart, y = Mass, fill = SubCompart)) +  
-        geom_violin() + 
-        labs(title = paste0("Tyre wear rubber masses at ", scale, " scale, ", as.character(year)),
-             x = "Compartment",
-             y = "Mass (kg)") +
-        plot_theme +
-        scale_y_continuous(trans = 'log10') +
-        scale_fill_viridis_d() + 
-        theme(axis.text.x = element_blank(),  
-              legend.position = "bottom") +   
-        guides(fill = guide_legend(title = NULL))  
-      
-      print(mass_p)
-      
-      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Mass_plot_TW_", scale, ".png"), plot=mass_p, width = 20, height = 10)
-      
-      # Concentration plot comparing tyre wear and other sources
-      conc_p <- ggplot(conc_plot_data, mapping = aes(x = SubCompartName, y = Concentration, fill = Source)) +  
-        geom_violin() + 
-        labs(title = paste0("Concentrations at ", scale, " scale, ", as.character(year)),
-             x = "Compartment",
-             y = "Mass (kg)") +
-        plot_theme +
-        scale_y_continuous(trans = 'log10') +
-        scale_fill_manual(values = Source_colors) +
-        theme(legend.position = "bottom") +   
-        guides(fill = guide_legend(title = NULL))  
-      
-      print(conc_p)
-      
-      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Concentration_plot_comparison_", scale, ".png"), plot=conc_p, width = 20, height = 10)
-    
-      # Concentration plot for tyre wear
-      conc_p <- ggplot(conc_plot_data_TW, mapping = aes(x = SubCompartName, y = Concentration, fill = SubCompart)) +  
-        geom_violin() + 
-        labs(title = paste0("Tyre wear rubber concentrations at ", scale, " scale, ", as.character(year)),
-             x = "Compartment",
-             y = "Mass (kg)") +
-        plot_theme +
-        scale_y_continuous(trans = 'log10') +
-        scale_fill_viridis_d() + 
-        theme(axis.text.x = element_blank(),  
-              legend.position = "bottom") +   
-        guides(fill = guide_legend(title = NULL))  
-      
-      print(conc_p)
-      
-      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Concentration_plot_TW_", scale, ".png"), plot=conc_p, width = 20, height = 10)
-      
-      conc_time_p <- ggplot(conc_over_time_TW, mapping = aes(x = Year, y = Mean, colour = SubCompartName, group = SubCompartName)) +
-        geom_line(size = 1) +
-        labs(title = paste0("Tyre wear rubber mean concentrations over time at ", scale, " scale"),
-             x = "Year",
-             y = "Concentration") +
-        plot_theme +
-        scale_y_continuous(trans = 'log10') + 
-        scale_color_viridis_d() +
-        theme(axis.text.x = element_text(),  
-              legend.position = "bottom") +   
-        guides(colour = guide_legend(title = NULL)) 
-      
-      print(conc_time_p)
-      
-      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Concentration_plot_TW_", scale, ".png"), plot=conc_p, width = 20, height = 10)
-      
-      conc_time_2 <- ggplot(conc_over_time_TW, aes(x = Year, y = Mean, group = SubCompartName)) +
-        geom_ribbon(aes(ymin = p25, ymax = p75, fill = SubCompartName), alpha = 0.2) +
-        geom_line(aes(color = SubCompartName), size = 1.2) +
-        scale_color_viridis_d(option = "D") +  
-        scale_fill_viridis_d(option = "D") +   
-        labs(title = "Concentration of Tyre Wear over Time",
-             x = "Year",
-             y = "Concentration (Mean, p25, p75)",
-             color = "Sub-Compartment",
-             fill = "Sub-Compartment") +
-        plot_theme +
-        scale_y_continuous(trans = 'log10') +
-        theme(axis.text.x = element_text(),  
-              legend.position = "bottom") +   
-        guides(colour = guide_legend(title = NULL))
-      
-      print(conc_time_2)
-      
-      ggsave(paste0("vignettes/CaseStudies/CaseData/Figures/Concentration_plot_TW_uncertain", scale, ".png"), plot=conc_p, width = 20, height = 10)
-  }
-}
+```{r 04: Bind data in parallel}
+source("vignettes/CaseStudies/04_bind_data_parallel.R")
 
 ```
