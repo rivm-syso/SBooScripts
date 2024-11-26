@@ -22,21 +22,29 @@ library(tidyverse)
 library(ggplot2)
 ```
 
-# 01: Make emission dataframes for tyre wear and other sources and save them as RData files 
+# Tyre Wear fate modelling using SimpleBox4Plastics
+
+The model is run for Tyre Wear Particles and for other microplastics sources separately.
+
+## 01: Make emission dataframes for tyre wear and other sources and save them as RData files 
 
 The sourced script reads in the DPMFA output data, and links the emissions to the relevant SimpleBox compartments. The 
 emission data in kt/y is converted to kg/s. 
+
 ```{r 01 Make emission RData files}
 # Make emission RData file for tyre wear
 source_of_interest <- "Tyre wear"
 source("vignettes/CaseStudies/01_get_Emission.R")
+# check within the script that the DPMFA source data is available via abspath_EU and abspath_NL.
 
 # Make emission RData file for other sources
 source_of_interest <- NA
 source("vignettes/CaseStudies/01_get_Emission.R")
+# check within the script that the DPMFA source data is available via abspath_EU and abspath_NL.
+
 ```
 
-# 02: Make parameter dataframes for tyre wear and other sources and save them as RData files
+## 02: Make parameter dataframes for tyre wear and other sources and save them as RData files
 ```{r 02 Make parameter RData files}
 # Make parameters file for tyre wear
 source_of_interest <- "Tyre wear"
@@ -47,29 +55,12 @@ source_of_interest <- NA
 source("vignettes/CaseStudies/02_get_Parameters.R")
 ```
 
-# Visualize the variable distributions for tyre wear
+### Visualize the variable distributions for tyre wear
 
 ```{r Make some figures to show the values chosen from the distributions}
-source_of_interest <- "Tyre wear"
-env <- "OOD"
 
-if(env == "Local"){
-  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
-    #load(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241110.RData"))
-    load(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241110.RData"))
-  } else if(is.na(source_of_interest)){
-    #load(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_Other_20241111.RData"))
-    load(paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241111.RData"))
-  }
-} else if(env == "OOD"){
-  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
-    #load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241110.RData"))
-    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_", format(Sys.Date(),"%Y%m%d"), ".RData"))
-  } else if(is.na(source_of_interest)){
-    #load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_Other_20241111.RData"))
-    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_", format(Sys.Date(),"%Y%m%d"), ".RData"))
-  }
-}
+# load Parameters object from file if not already in memory
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241126.RData"))
 
 Material_Parameters_n <- Parameters$Material_Parameters_n
 #Example of plot:
@@ -79,31 +70,69 @@ PlotVariable = "alpha"
 ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
   geom_violin()+
   facet_wrap(vars(Polymer,Species))+
-  xlab(PlotVariable)
+  xlab(PlotVariable)+ scale_x_log10() 
 
 PlotVariable = "RadS"
-ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=VarName)) +
   geom_violin()+
   facet_wrap(vars(Polymer,Source))+
-  xlab(paste(PlotVariable)) #+ scale_x_log10() 
+  xlab(paste(PlotVariable)) + scale_x_log10() 
 
 PlotVariable = "RhoS"
-ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=VarName)) +
   geom_violin()+
   facet_wrap(vars(Polymer,Source))+
   xlab(paste(PlotVariable)) 
 
 PlotVariable = "kdeg"
-ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |>
+         filter(Species != "Unbound") |> unnest(data), aes(x=value,y=SubCompart)) +
   geom_violin()+
   facet_wrap(vars(Polymer,Species))+
-  xlab(paste(PlotVariable)) 
+  xlab(paste(PlotVariable))  + scale_x_log10() 
 
 PlotVariable = "kfrag"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> 
+         filter(Species != "Solid") |>unnest(data), aes(x=value,y=SubCompart)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Species))+
+  xlab(paste(PlotVariable))  + scale_x_log10() 
+
+# load Parameters object from file if not already in memory
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241126.RData"))
+Material_Parameters_n <- Parameters$Material_Parameters_n
+PlotVariable = "alpha"
 ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
   geom_violin()+
   facet_wrap(vars(Polymer,Species))+
+  xlab(PlotVariable)+ scale_x_log10() 
+
+PlotVariable = "RadS"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=VarName)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer))+
+  xlab(paste(PlotVariable)) + scale_x_log10() 
+
+PlotVariable = "RhoS"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=VarName)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Source))+
   xlab(paste(PlotVariable)) 
+
+PlotVariable = "kdeg"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |>
+         filter(Species != "Unbound") |> unnest(data), aes(x=value,y=SubCompart)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Species))+
+  xlab(paste(PlotVariable))  + scale_x_log10() 
+
+PlotVariable = "kfrag"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> 
+         filter(Species != "Solid") |>unnest(data), aes(x=value,y=SubCompart)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Species))+
+  xlab(paste(PlotVariable))  + scale_x_log10() 
+
 ```
 
 # Make batch files for the High Performance Cluster
@@ -141,6 +170,21 @@ Source <- NA
 
 source("vignettes/CaseStudies/HPC_batch_files.R")
 ```
+
+# SimpleBox4Plastics
+
+## TRWP
+Example run of SimpleBox4Plastics and analysis of P species as TRWP, instead of S as TWP.
+```{r SimpleBox4Plastics}
+
+# test Rho and RadCP for Rad and Rho of SAP species.
+
+
+```
+
+## other microplastics
+
+...
 
 # Bind the data
 Once the batch scripts have been run, the data can be bound together. This is done
