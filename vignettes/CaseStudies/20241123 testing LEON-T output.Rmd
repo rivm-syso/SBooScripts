@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 HPC_output_path <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HPC_output"
 HPC_SBout_files <- list.files(HPC_output_path)
+HPC_SBout_files[501]
 
 load(paste0(HPC_output_path,"/",HPC_SBout_files[502]))
 
@@ -76,7 +77,6 @@ Material_Parameters_n |>
   # filter(VarName == "kdeg") |> 
   distinct(nvar,.keep_all = TRUE)
 
-
 rm(list = objects())
 
 ```
@@ -100,7 +100,6 @@ data_long_EU <-
   mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |> # Convert kt/year to kg/s
   # filter(Material_Type == "micro") |> # Select microplastics only
   mutate(SBscale = ifelse(Scale == "EU", "C", "R")) 
-
 
 data_long_EU |> 
   filter(Source == "Tyre wear") |> 
@@ -128,7 +127,99 @@ data_long_EU |>
             max_Emis_kt = max(TotEmission_kt)) |> 
   filter(Year == 2019)
 
+abspath_EU_test <-  "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_data_EU2024_11_26.RData"
+
+load(abspath_EU_test)
+
+# Convert to long format
+data_long_EU_test <- 
+  DPMFA_sink |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
+  pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
+               names_to = "Year",
+               values_to = "Mass_Polymer_kt") |>
+  mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |> # Convert kt/year to kg/s
+  # filter(Material_Type == "micro") |> # Select microplastics only
+  mutate(SBscale = ifelse(Scale == "EU", "C", "R")) 
+
+data_long_EU_test_TW <- data_long_EU_test|> 
+  filter(Source == "Tyre wear") |> 
+  ungroup() |> 
+  group_by(RUN,Year) |> 
+  summarise(TotEmission_kt = sum(Mass_Polymer_kt)) |> 
+  ungroup() |> 
+  group_by(Year) |> 
+  summarise(Avg_Emis_kt = mean(TotEmission_kt),
+            min_Emis_kt = min(TotEmission_kt),
+            max_Emis_kt = max(TotEmission_kt)) |> 
+  filter(Year == 2019)
+
+data_long_EU |> distinct(Source)
+data_long_EU |> 
+  filter(Source == "Domestic primary plastic production") |> 
+  ungroup() |> 
+  group_by(RUN,Year) |> 
+  summarise(TotEmission_kt = sum(Mass_Polymer_kt)) |> 
+  ungroup() |> 
+  group_by(Year) |> 
+  summarise(Avg_Emis_kt = mean(TotEmission_kt),
+            min_Emis_kt = min(TotEmission_kt),
+            max_Emis_kt = max(TotEmission_kt)) |> 
+  filter(Year == 2019)
+
+
 rm(list = objects()[-grep("HPC_",objects())])
+```
+
+```{r Test with DPMFA_inflow instead of DPMFA_sink}
+abspath_EU_test <-  "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_data_EU2024_11_26.RData"
+load(abspath_EU_test)
+
+######## Use DPMFA inflow instead of sinks, because DPMFA_sink is cumulative over years ######
+sinks <- unique(DPMFA_sink$To_Compartment)
+
+# Convert to long format
+data_long_EU_test <- DPMFA_inflow|>
+  filter(To_Compartment %in% sinks) |>
+  unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 
+  pivot_longer(cols=-c(Type, Scale, Source, Polymer, To_Compartment, Material_Type, iD_source, RUN),
+               names_to = "Year",
+               values_to = "Mass_Polymer_kt") |>
+  mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |> # Convert kt/year to kg/s
+  # filter(Material_Type == "micro") |> # Select microplastics only
+  mutate(SBscale = ifelse(Scale == "EU", "C", "R")) 
+
+data_long_EU_test_TW <- data_long_EU_test|> 
+  filter(Source == "Tyre wear") |> 
+  ungroup() |> 
+  group_by(RUN,Year) |> 
+  summarise(TotEmission_kt = sum(Mass_Polymer_kt)) |> 
+  ungroup() |> 
+  group_by(Year) |> 
+  summarise(Avg_Emis_kt = mean(TotEmission_kt),
+            min_Emis_kt = min(TotEmission_kt),
+            max_Emis_kt = max(TotEmission_kt)) |> 
+  filter(Year == 2019)
+
+####### Test with all data ##########
+
+# TO DO: Add test with all DPMFA_EU data, using DPMFA_sink 
+```
+
+```{r Material parameters}
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241110.RData"))
+Material_Parameters_n <- Parameters$Material_Parameters_n
+Material_Parameters_long <- Material_Parameters_n |>
+  rowwise() |>
+  mutate(data = list(data |> mutate(RUN = row_number()))) |>
+  ungroup() |>
+  unnest(data)
+
+source("vignettes/CaseStudies/f_plot_functions.R")
 
 ```
+
+
+
+
+
 
