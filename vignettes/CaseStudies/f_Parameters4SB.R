@@ -41,8 +41,10 @@ read_Prob4SB <- function(path_parameters_file = "vignettes/CaseStudies/CaseData/
       unnest(!!sym(target_col))
   }
   
-  DefinedVariables <- lapply(unique(Material_Parameters$VarName),World$fetchData)
-  names(DefinedVariables) = unique(Material_Parameters$VarName)
+  VarNames <- na.omit(unique(Material_Parameters$VarName))
+  
+  DefinedVariables <- lapply(VarNames,World$fetchData)
+  names(DefinedVariables) = VarNames
   
   # how to cope with any. For now this, but materials should be only for material being calculated for.
   suppressWarnings({
