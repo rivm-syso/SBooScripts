@@ -1,16 +1,17 @@
 # creating distributions for SB parameters
 
-# Specify the environment
-#env <- "OOD"
-env <- "local"
+#source_of_interest =  "Tyre wear"
 
-if(env == "local"){
-  path_parameters_file = "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.xlsx"
-} else if(env == "OOD"){
-  path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.xlsx"
+path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.xlsx"
+
+if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
+  load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241110.RData"))
+} else {
+  load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_Other_20241111.RData"))
 }
 
-source_of_interest =  NA
+DPMFA_sink_micro <- DPMFA_SBoutput$DPMFA_sink_micro
+
 source("baseScripts/initWorld_onlyPlastics.R")
 
 if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_interest == "Tyre wear") {
