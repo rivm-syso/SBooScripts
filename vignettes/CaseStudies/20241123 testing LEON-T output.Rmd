@@ -12,9 +12,71 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r HPC output}
 ## internal output file testing:
-
 HPC_output_path <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HPC_output"
 HPC_SBout_files <- list.files(HPC_output_path)
+
+TWP_indeces <- grep("TWP", HPC_SBout_files)
+Other_indeces <- grep("Other", HPC_SBout_files)
+
+# Randomly select 10 files for each source so we don't have to test everything
+TWP_file_sample <- sample(TWP_indeces, 10)
+Other_file_sample <- sample(Other_indeces, 10)
+
+TWP_HPC_files <- HPC_SBout_files[TWP_file_sample]
+Other_HPC_files <- HPC_SBout_files[Other_file_sample]
+
+##### Check contents of TWP files
+TWP_pols = data.frame()
+for(i in 1:length(TWP_HPC_files)){
+  filename <- paste0(HPC_output_path, "/", TWP_HPC_files[i])
+  load(filename)
+  
+  pols <- Output$Polymer
+  for(pol in pols){
+    polymer_output <- Output |>
+      filter(Polymer == pol)
+    polymer_output <- polymer_output$SBoutput[[1]]
+    polymer_mass <- polymer_output$DynamicMass
+    NRUNS <- length(unique(polymer_mass$RUN))
+  }
+  
+  TWP_pols_i <- data.frame(Polymer = (Output$Polymer),
+                         NRUNS= NRUNS,
+                         filename = filename,
+                         Category = "TWP")
+  
+  TWP_pols <- bind_rows(TWP_pols, TWP_pols_i)
+}
+
+##### Check contents of TWP files
+Other_pols = data.frame()
+for(i in 1:length(Other_HPC_files)){
+  filename <- paste0(HPC_output_path, "/", Other_HPC_files[i])
+  load(filename)
+  
+  pols <- Output$Polymer
+  for(pol in pols){
+    polymer_output <- Output |>
+      filter(Polymer == pol)
+    polymer_output <- polymer_output$SBoutput[[1]]
+    polymer_mass <- polymer_output$DynamicMass
+    NRUNS <- length(unique(polymer_mass$RUN))
+  }
+  
+  Other_pols_i <- data.frame(Polymer = (Output$Polymer),
+                         File_no = i,
+                         NRUNS= NRUNS,
+                         filename = filename,
+                         Category = "Other")
+  
+  Other_pols <- bind_rows(Other_pols, Other_pols_i)
+}
+
+
+
+
+
+
 HPC_SBout_files[501]
 
 load(paste0(HPC_output_path,"/",HPC_SBout_files[502]))

@@ -1,13 +1,15 @@
 # creating distributions for SB parameters
 
-#source_of_interest =  "Tyre wear"
+env <- "OOD"
+
+source_of_interest =  NA
 
 path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.xlsx"
 
 if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
-  load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241110.RData"))
+  load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241126.RData"))
 } else {
-  load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_Other_20241111.RData"))
+  load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_Other_20241126.RData"))
 }
 
 DPMFA_sink_micro <- DPMFA_SBoutput$DPMFA_sink_micro
