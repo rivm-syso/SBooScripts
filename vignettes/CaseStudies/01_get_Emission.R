@@ -1,9 +1,8 @@
-### DPMFA part 2
+### Script for combining DPMFA output from two scales for Tyre Wear and other Microplastic sources
+### Created for LEON-T Case study
 
 # Initialize
 source("vignettes/CaseStudies/f_Emission4SB.R")
-
-source_of_interest = "Tyre wear"
 
 ### initialize ###
 
@@ -19,32 +18,42 @@ if(env == "local"){
   abspath_NL = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_NL.RData"
 }
 
-DPMFA_SBoutput <- Load_DPMFA4SB(abspath_EU = abspath_EU, 
-                                  abspath_NL = abspath_NL,
-                                  source_of_interest = source_of_interest,
-                                  path_parameters_file = "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx",
-                                  TESTING = FALSE)
+source_of_interest = "Tyre wear"
 
-DPMFA_sink_micro <- DPMFA_SBoutput$DPMFA_sink_micro
+DPMFA_SBoutput <- Load_DPMFA4SB(abspath_EU = abspath_EU, 
+                                abspath_NL = abspath_NL,
+                                source_of_interest = source_of_interest,
+                                path_parameters_file = "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx",
+                                TESTING = FALSE)
+
+# DPMFA_sink_micro <- DPMFA_SBoutput$DPMFA_sink_micro
 
 if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
   NR_SBR_fractions <- DPMFA_SBoutput$NR_SBR_fractions
 }
 
 if(env == "local"){
-  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
-    save(DPMFA_SBoutput, NR_SBR_fractions, file = paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_", 
-                                       format(Sys.Date(),"%Y%m%d"),".RData"))
-  } else{
-    save(DPMFA_SBoutput, file = paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_Other_", 
-                                       format(Sys.Date(),"%Y%m%d"),".RData"))
-  }
+  save(DPMFA_SBoutput, NR_SBR_fractions, file = paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_", 
+                                                       format(Sys.Date(),"%Y%m%d"),".RData"))
 } else if(env == "OOD"){
-  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
-    save(DPMFA_SBoutput, NR_SBR_fractions, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_", 
-                                       format(Sys.Date(),"%Y%m%d"),".RData"))
-  } else{
-    save(DPMFA_SBoutput, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_Other_", 
-                                       format(Sys.Date(),"%Y%m%d"),".RData"))
-  }
+  save(DPMFA_SBoutput, NR_SBR_fractions, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_", 
+                                                       format(Sys.Date(),"%Y%m%d"),".RData"))
 }
+
+source_of_interest = NA
+DPMFA_SBoutput <- Load_DPMFA4SB(abspath_EU = abspath_EU, 
+                                abspath_NL = abspath_NL,
+                                source_of_interest = source_of_interest,
+                                path_parameters_file = "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx",
+                                TESTING = FALSE)
+
+# DPMFA_sink_micro <- DPMFA_SBoutput$DPMFA_sink_micro
+
+if(env == "local"){
+  save(DPMFA_SBoutput, file = paste0("R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_Other_", 
+                                     format(Sys.Date(),"%Y%m%d"),".RData"))
+} else if(env == "OOD"){
+  save(DPMFA_SBoutput, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_Other_", 
+                                     format(Sys.Date(),"%Y%m%d"),".RData"))
+}
+

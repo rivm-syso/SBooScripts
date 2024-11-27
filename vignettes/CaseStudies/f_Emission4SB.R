@@ -18,7 +18,11 @@ Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering W
                  names_to = "Year",
                  values_to = "Mass_Polymer_kt") |>
     rename(Cum_Mass_Polymer_kt = Mass_Polymer_kt) |> 
-    mutate(Mass_Polymer_kt = Cum_Mass_Polymer_kt - lag(Cum_Mass_Polymer_kt, default = 0)) |> # calculate yearly emission from cummulative
+    ungroup() |> 
+    group_by(Scale,Source,Polymer,To_Compartment, Material_Type, RUN) |> 
+    reframe(Mass_Polymer_kt = Cum_Mass_Polymer_kt - lag(Cum_Mass_Polymer_kt, default = 0),
+            Year = Year) |> # calculate yearly emission from cummulative
+    ungroup() |> 
     mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |> # Convert kt/year to kg/s
     filter(Material_Type == "micro") |> # Select microplastics only
     mutate(SBscale = ifelse(Scale == "EU", "C", "R")) 
@@ -33,7 +37,11 @@ Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering W
                  names_to = "Year",
                  values_to = "Mass_Polymer_kt") |>
     rename(Cum_Mass_Polymer_kt = Mass_Polymer_kt) |> 
-    mutate(Mass_Polymer_kt = Cum_Mass_Polymer_kt - lag(Cum_Mass_Polymer_kt, default = 0)) |> # calculate yearly emission from cummulative
+    ungroup() |> 
+    group_by(Scale,Source,Polymer,To_Compartment, Material_Type, RUN) |> 
+    reframe(Mass_Polymer_kt = Cum_Mass_Polymer_kt - lag(Cum_Mass_Polymer_kt, default = 0), # calculate yearly emission from cummulative
+            Year = Year) |> 
+    ungroup() |> 
     mutate(Mass_Polymer_kg_s = Mass_Polymer_kt*1000000/(365.25*24*3600)) |> # Convert kt/year to kg/s
     filter(Material_Type == "micro") |> # Select microplastics only
     mutate(SBscale = ifelse(Scale == "EU", "C", "R")) 
@@ -82,7 +90,6 @@ Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering W
     group_by(Abbr, Year, RUN, Polymer, Subcompartment) |>
     summarise(Mass_Polymer_kg_s = sum(Mass_Polymer_kg_s)) |>
     ungroup() |>
-    # rename(value = Mass_Polymer_kg_s) |>
     select(Abbr, Year, Polymer, Mass_Polymer_kg_s, RUN, Subcompartment)
   
   # If the source is tyre wear, separate the mass into NR and SBR, according to a triangular distribution based on data of LEON-T deliverable 3.2
@@ -121,8 +128,9 @@ Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering W
   if(TESTING==TRUE)  DPMFA_sink_micro <- DPMFA_sink_micro |> filter(RUN<3)
   
   DPMFA_sink_micro <- DPMFA_sink_micro |>
+    rename(Mass_kg_s = Mass_Polymer_kg_s) |> # Input of uncertain solver needs columns with name "Mass_kg_s".
     mutate(Timed = as.double(Year)*(365.25*24*3600)) |>
-    nest(Emis = c(RUN, Mass_Polymer_kg_s))
+    nest(Emis = c(RUN, Mass_kg_s))
   
   if (!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
     return(list(DPMFA_sink_micro=DPMFA_sink_micro,

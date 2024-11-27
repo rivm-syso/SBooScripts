@@ -13,9 +13,9 @@ Polymers_of_interest <- c("NR", "SBR")
 
 
 if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
-  load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241110.RData"))
+  load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241126.RData"))
 } else if(is.na(source_of_interest)){
-  load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241111.RData"))
+  load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241126.RData"))
 }
 
 if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_interest == "Tyre wear") {
@@ -69,17 +69,17 @@ EmisSourceFF <- expand_grid(Scale = c("Regional","Continental"),
                             EmisUnified = NA)
 EmisSourceFF$EmisUnified[(EmisSourceFF[["Scale"]] == "Regional")] <- 
   list(  list(
-    Air = tibble(Abbr = c("aRS",
+    Air = tibble(Abbr = c("aRP",
                           "s3RP",
                           "w1RP",
                           "w0RP"),
                  Emis = c(1,0,0,0)),
-    Soil = tibble(Abbr = c("aRS",
+    Soil = tibble(Abbr = c("aRP",
                            "s3RP",
                            "w1RP",
                            "w0RP"),
                   Emis = c(0,1,0,0)),
-    Water = tibble(Abbr = c("aRS",
+    Water = tibble(Abbr = c("aRP",
                             "s3RP",
                             "w1RP",
                             "w0RP"),
@@ -92,11 +92,11 @@ EmisSourceFF$EmisUnified[(EmisSourceFF[["Scale"]] == "Regional")] <-
 
 EmisSourceFF$EmisUnified[(EmisSourceFF[["Scale"]] == "Continental")] <- 
   list(  list(
-    Air = tibble(Abbr = c("aRS",
+    Air = tibble(Abbr = c("aRP",
                           "s3RP",
                           "w1RP",
                           "w0RP",
-                          "aCS",
+                          "aCP",
                           "s3CP",
                           "w1CP",
                           "w0CP"),
@@ -104,11 +104,11 @@ EmisSourceFF$EmisUnified[(EmisSourceFF[["Scale"]] == "Continental")] <-
                           0,0,0,
                           1*(1-FracArea_aRC),
                           0,0,0)),
-    Soil = tibble(Abbr = c("aRS",
+    Soil = tibble(Abbr = c("aRP",
                            "s3RP",
                            "w1RP",
                            "w0RP",
-                           "aCS",
+                           "aCP",
                            "s3CP",
                            "w1CP",
                            "w0CP"),
@@ -116,11 +116,11 @@ EmisSourceFF$EmisUnified[(EmisSourceFF[["Scale"]] == "Continental")] <-
                            0,0,
                            0,1*(1-FracArea_sRC),
                            0,0)),
-    Water = tibble(Abbr = c("aRS",
+    Water = tibble(Abbr = c("aRP",
                             "s3RP",
                             "w1RP",
                             "w0RP",
-                            "aCS",
+                            "aCP",
                             "s3CP",
                             "w1CP",
                             "w0CP"),
@@ -170,7 +170,7 @@ elapsed_time <- Sys.time() - start_time
 print(paste0("Elapsed time is ", elapsed_time))
 elapsed_time
 
-save(Output, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_LEON-T_D3.5_TWP_20241110.RData"))
+save(Output, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FateFactors_LEON-T_D3.5_TWP_20241126.RData"))
 
 FF_allScale <- Output |> unnest(SBoutput) |> mutate(OutputType = names(SBoutput)) |> 
   rename(EmisScale = Scale) |> 
@@ -217,5 +217,5 @@ FF_EU <- FF_allScale |>
             FF_SteadyState_std = sd(EqMass_SAP)) |> 
   mutate(Unit = "kg[ss]/kg[e] seconds")
 
-write_csv(FF_NL, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_NL_LEON-T_D3.5_TWP_20241110.csv"))
-write_csv(FF_EU, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_EU_LEON-T_D3.5_TWP_20241110.csv"))
+write_csv(FF_NL, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_NL_LEON-T_D3.5_TWP_20241126.csv"))
+write_csv(FF_EU, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_EU_LEON-T_D3.5_TWP_20241126.csv"))
