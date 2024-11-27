@@ -32,17 +32,17 @@ The sourced script reads in the DPMFA output data, and links the emissions to th
 emission data in kt/y is converted to kg/s. 
 
 ```{r 01 Make emission RData files}
+
 # Make emission RData file for tyre wear
-source_of_interest <- "Tyre wear"
 source("vignettes/CaseStudies/01_get_Emission.R")
 # check within the script that the DPMFA source data is available via abspath_EU and abspath_NL.
 
-# Make emission RData file for other sources
-source_of_interest <- NA
-source("vignettes/CaseStudies/01_get_Emission.R")
-# check within the script that the DPMFA source data is available via abspath_EU and abspath_NL.
+# Overview figure
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241126.RData"))
+
 
 ```
+
 
 ## 02: Make parameter dataframes for tyre wear and other sources and save them as RData files
 ```{r 02 Make parameter RData files}
@@ -60,7 +60,7 @@ source("vignettes/CaseStudies/02_get_Parameters.R")
 ```{r Make some figures to show the values chosen from the distributions}
 
 # load Parameters object from file if not already in memory
-load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241126.RData"))
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241127.RData"))
 
 Material_Parameters_n <- Parameters$Material_Parameters_n
 #Example of plot:
@@ -188,30 +188,116 @@ source("vignettes/CaseStudies/HPC_batch_files.R")
 ## TRWP
 Example run of SimpleBox4Plastics and analysis of P species as TRWP, instead of S as TWP.
 ```{r SimpleBox4Plastics}
-
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241127.RData"))
 # test Rho and RadCP for Rad and Rho of SAP species.
 source("baseScripts/initWorld_onlyPlastics.R")
+World$substance <- "TRWP"
 
-if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_interest == "Tyre wear") {
-  World$substance <- "TRWP"
-} else {
-  World$substance <- "microplastic"
-}
-
-Parameters$Parameter_summary
-Parameters$Material_Parameters_n$data[[1]]
-
+# Parameters$Parameter_summary
+# Parameters$Material_Parameters_n$data[[1]]
+# Parameters$Material_Parameters_n |> distinct(VarName)
 # Calculate distribution of RadP and RhoP for air and water
-Parameters$Material_Parameters_n |> 
+SpeciesP <- 
+  Parameters$Material_Parameters_n |> 
   filter((VarName == "RadS" |VarName == "RhoS") & Polymer == "SBR") |> 
-  unnest(data) |> 
-  pivot_wider()
+  unnest(data, keep_empty = TRUE) |> 
+  group_by(VarName) |> 
+  mutate(RUN = 1:1000) |> 
+  ungroup() |> 
+  select(VarName, Source, Polymer, RUN, value) |>
+  pivot_wider(names_from = c(VarName),
+              values_from = value) |> 
+  cross_join(World$fetchData("RhoCP")) |> 
+  full_join(World$fetchData("RadCP")) |> 
+  rowwise() |>
+  mutate(RadS = RadS*1e-9) |> # change if/when data is in nm instead of micrometer.
+  mutate(RhoP = 
+           ((RhoS*4/3*pi*RadS^3+
+               RhoCP*4/3*pi*RadCP^3)/(4/3*pi*(RadS^3+RadCP^3))),
+         RadP = (RadCP^3+RadS^3)^(1/3)
+  )
 
+SpeciesP |> group_by(SubCompart) |> 
+  filter(SubCompart %in% c("air", "river", "othersoil")) |> 
+  summarise(RadS_avg = mean(RadS),
+            RadP_avg = mean(RadP),
+            RadS_p50 = quantile(RadS,probs = 0.5),
+            RadP_p50 = quantile(RadP,probs = (0.5)),
+            RhoS_avg = mean(RhoS),
+            RhoP_avg = mean(RhoP),
+            RhoS_p50 = quantile(RhoS,probs = 0.5),
+            RhoP_p50 = quantile(RhoP,probs = 0.5),
+            n = n())
+
+
+World$fetchData("Df")
+World$fetchData("RadS")
 # goal, get graphs for RadP and RhoP
+# ggplot(SpeciesP |> filter(SubCompart == "othersoil") ,aes (x=RadP) )+
+  # geom_histogram()
+
+plot_data1 <- 
+
+SpeciesP_long <- 
+  SpeciesP |> 
+  pivot_longer(cols = -c(Source,Polymer,RUN,SubCompart),
+               names_to = "VarName",
+               values_to = "value") |> 
+  filter(SubCompart %in% c("air", "river", "othersoil"))
+
+PlotVariables = c("RadS", "RadP")
+ggplot(SpeciesP_long |> filter(VarName %in% PlotVariables & SubCompart!="othersoil") ,aes (x=value, y=VarName) )+
+  geom_violin() + 
+facet_wrap(vars(SubCompart,Source))+xlab( "Radius (um)")+
+ scale_x_log10()
+
+PlotVariables = c("RhoS", "RhoP")
+ggplot(SpeciesP_long |> filter(VarName %in% PlotVariables) ,aes (x=value, y=VarName) )+
+  geom_violin() + 
+facet_wrap(vars(SubCompart,Source))+xlab( "density (kg/m3)")
+ # scale_x_log10()
+
+# RhoP vs RadP
+PlotVariables = c("RadP", "RhoP")
+ggplot(SpeciesP_long |> filter(VarName %in% PlotVariables) |> pivot_wider(names_from = c(VarName),
+              values_from = value) ,aes (y=RhoP, x=RadP*1e6) )+
+  geom_point() + 
+facet_wrap(vars(SubCompart,Source))+scale_x_log10()+
+  xlab( "Radius TRWP (um)")+
+  ylab( "Density TRWP (kg/m3)")
+
+# RhoP vs RadP
+PlotVariables = c("RadS", "RadP")
+ggplot(SpeciesP_long |> filter(VarName %in% PlotVariables) |> pivot_wider(names_from = c(VarName),
+              values_from = value) ,aes (x=RadP, y=RadS) )+
+  geom_point() + 
+facet_wrap(vars(SubCompart,Source))+scale_y_log10()
+
+PlotVariables = c("RhoS", "RhoP")
+ggplot(SpeciesP_long |> filter(VarName %in% PlotVariables) |> pivot_wider(names_from = c(VarName),
+              values_from = value) ,aes (x=RhoP, y=RhoS) )+
+  geom_point() + 
+facet_wrap(vars(SubCompart,Source))+scale_y_log10()
+
+PlotVariables = c("RadP")
+ggplot(SpeciesP_long |> filter(VarName %in% PlotVariables) ,aes (x=value*1e6, y=VarName) )+
+  geom_violin() + 
+facet_wrap(vars(SubCompart))+xlab( "Radius (um)")+
+ scale_x_log10()
+
 PlotVariable = "RadP"
-ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=VarName)) +
-  geom_violin()+
+ggplot(SpeciesP_long |> filter(SubCompart == "othersoil") ,aes (x=value,y = SubCompart) )+
+  geom_violin() +
   facet_wrap(vars(Polymer,Source))+
+  xlab(paste(PlotVariable)) + scale_x_log10() 
+
+
+
+
+PlotVariables = "RadS"
+ggplot(Parameters$Material_Parameters_n |> filter(VarName %in% PlotVariables) |> unnest(data), aes(x=value,y=VarName)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer))+
   xlab(paste(PlotVariable)) + scale_x_log10() 
 
 PlotVariable = "RhoP" 
