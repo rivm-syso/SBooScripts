@@ -7,6 +7,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
 ```
 
 
@@ -19,8 +20,8 @@ TWP_indeces <- grep("TWP", HPC_SBout_files)
 Other_indeces <- grep("Other", HPC_SBout_files)
 
 # Randomly select 10 files for each source so we don't have to test everything
-TWP_file_sample <- sample(TWP_indeces, 10)
-Other_file_sample <- sample(Other_indeces, 10)
+TWP_file_sample <- sample(TWP_indeces, 5)
+Other_file_sample <- sample(Other_indeces, 5)
 
 TWP_HPC_files <- HPC_SBout_files[TWP_file_sample]
 Other_HPC_files <- HPC_SBout_files[Other_file_sample]
@@ -38,18 +39,24 @@ for(i in 1:length(TWP_HPC_files)){
     polymer_output <- polymer_output$SBoutput[[1]]
     polymer_mass <- polymer_output$DynamicMass
     NRUNS <- length(unique(polymer_mass$RUN))
+    nyear <- length(unique(polymer_mass$time))
+    years <- polymer_mass |>
+      mutate(Year = time/(365.25*24*3600))
+    print(unique(years$Year))
   }
   
   TWP_pols_i <- data.frame(Polymer = (Output$Polymer),
                          NRUNS= NRUNS,
                          filename = filename,
-                         Category = "TWP")
+                         Category = "TWP",
+                         Nyear = nyear)
   
   TWP_pols <- bind_rows(TWP_pols, TWP_pols_i)
 }
 
 ##### Check contents of TWP files
 Other_pols = data.frame()
+i=1
 for(i in 1:length(Other_HPC_files)){
   filename <- paste0(HPC_output_path, "/", Other_HPC_files[i])
   load(filename)
@@ -61,42 +68,23 @@ for(i in 1:length(Other_HPC_files)){
     polymer_output <- polymer_output$SBoutput[[1]]
     polymer_mass <- polymer_output$DynamicMass
     NRUNS <- length(unique(polymer_mass$RUN))
+    nyear <- length(unique(polymer_mass$time))
+    years <- polymer_mass |>
+      mutate(Year = time/(365.25*24*3600))
+    print(unique(years$Year))
+    minrow <- polymer_mass |>
+      filter(time == min(time))
   }
   
   Other_pols_i <- data.frame(Polymer = (Output$Polymer),
                          File_no = i,
                          NRUNS= NRUNS,
                          filename = filename,
-                         Category = "Other")
+                         Category = "Other",
+                         Nyear = nyear)
   
   Other_pols <- bind_rows(Other_pols, Other_pols_i)
 }
-
-
-
-
-
-
-HPC_SBout_files[501]
-
-load(paste0(HPC_output_path,"/",HPC_SBout_files[502]))
-
-Output
-# This output is not expected.
-
-rm(list = objects()[-grep("HPC_",objects())])
-
-# another folder with output
-HPC_output_path <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Output"
-HPC_SBout_files <- list.files(HPC_output_path)
-
-load(paste0(HPC_output_path,"/",HPC_SBout_files[501]))
-
-Output
-
-rm(list = objects()[-grep("HPC_",objects())])
-
-
 
 ```
 
@@ -291,7 +279,36 @@ source("vignettes/CaseStudies/f_plot_functions.R")
 
 ```
 
+```{r DPMFA_SBoutput files}
+load("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241126.RData")
 
+DPMFA_sink_micro <- DPMFA_SBoutput$DPMFA_sink_micro |>
+   unnest(Emis) |>
+   mutate(Mass_kt_y = Mass_kg_s*(365.25*24*3600)/1000000)
+
+# Plot the mean emissions per polymer and per subcompart over time
+for(abbr in unique(DPMFA_sink_micro$Abbr)){
+  for(pol in unique(DPMFA_sink_micro$Polymer)){
+    DPMFA_data <- DPMFA_sink_micro |>
+      filter(Abbr == abbr) |>
+      filter(Polymer == pol) |>
+      group_by(Abbr, Year, Polymer, Subcompartment) |>
+      summarise(Mean_kt_y = mean(Mass_kt_y))
+    
+    plot(DPMFA_data$Year, DPMFA_data$Mean_kt_y, title(paste0(abbr, ", ", pol)))
+  }
+}
+
+DPMFA_sink_sum <- DPMFA_sink_micro |>
+  mutate(id = row_number()) |>
+  pivot_wider(names_from = Abbr, values_from = Mass_kt_y, id_expand = FALSE)
+
+
+
+load("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_Other_20241126.RData")
+
+
+```
 
 
 
