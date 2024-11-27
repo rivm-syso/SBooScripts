@@ -2,6 +2,7 @@
 library(tidyverse)
 library(readxl)
 library(viridis)
+library(scales)
 
 # Specify the environment
 env <- "OOD"
@@ -18,13 +19,12 @@ if(env == "local"){
   figurefolder <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figures/SB_plots/" # Define figure folder path
   abs_path_Measurements <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/LEONT_WP3_results.xlsx"  # Define path to LEON-T data
 } else if(env == "OOD"){
-  data_path <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/" # Define path to plot data
+  data_path <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Data_old/" # Define path to plot data
   figurefolder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figures/SB_plots/" # Define figure folder path
   abs_path_Measurements <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/LEONT_WP3_results.xlsx" # Define path to LEON-T data
 }
 
 # Load the data
-load(paste0(data_path, conc_file_name))
 load(paste0(data_path, mass_file_name))
 load(paste0(data_path, TW_file_name))
 load(paste0(data_path, Mat_file_name))
@@ -33,39 +33,20 @@ load(paste0(data_path, Mat_file_name))
 source("vignettes/CaseStudies/f_plot_functions.R")
 
 ####################### Calculate concentrations from masses ###################
+
 source("baseScripts/initWorld_onlyPlastics.R")
+Matrix <- World$fetchData("Matrix")
 
-# Function to adjust concentration to dry weight for soil and sediment compartments
-adjustconc = function(CompConc, Fracw, Fraca, RHOsolid, RhoWater_value){
-  CompConc  / (Fracw * RhoWater_value + (1 - Fracw - Fraca) * RHOsolid)
-}
-
-# Recalculate concentrations from masses
-volumes <- 
-  fracw <- World$fetchData("FRACw")
-fraca <- World$fetchData("FRACa")
-rho <- World$fetchData("RHO")
-
-head(Solution_long_summed_over_pol)
-Solution_long_summed_over_pol |> distinct(Source)
-
-# sum cloudwater and dry air mass
-Solution_long_summed_over_pol2 <- 
+# Calculate concentrations for masses summed over polymers
+mass_conc_summed_over_pol <- 
   Solution_long_summed_over_pol |>
   mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
   ungroup() |> 
-  group_by(time, RUN, Source, Year,Scale,SubCompart) |>
+  group_by(RUN, Source, Year,Scale,SubCompart) |>
   summarise(Mass = sum(Mass)) |>
-  ungroup()
-
-Solution_long_summed_over_pol2
-
-Solution_long_summed_over_pol2 <- 
-  Solution_long_summed_over_pol2 |>
+  ungroup() |>
   left_join(World$fetchData("Volume"), 
             by=c("Scale", "SubCompart")) |>
-  # mutate(Mass = as.numeric(Mass)) |>
-  # mutate(Volume = as.numeric(Volume)) |>
   mutate(conc_kg_m3 = Mass/Volume) |> 
   left_join(World$fetchData("FRACw"),
             by=c("Scale", "SubCompart")) |> 
@@ -74,29 +55,133 @@ Solution_long_summed_over_pol2 <-
   left_join(World$fetchData("rhoMatrix"),
             by=c("SubCompart")) |> 
   left_join(World$fetchData("Matrix"),
-            by=c("SubCompart"))
-World$fetchData("Matrix")
-
-Solution_long_summed_over_pol2 |> 
-  mutate(    unit = "kg/m3"  ) |> 
+            by=c("SubCompart"))|> 
+  mutate(Unit = "kg/m3") |> 
   mutate(Concentration =
            case_match(Matrix,
-                      "air" ~ conc_kg_m3/1000000,
-                      "water" ~ conc_kg_m3/1000,
-                      "soil" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix), # RhoWater needed (we need to define subcompartment variables for rhoWater, rhoSolid and rhoAir)
-                      "sediment" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix),
+                      "air" ~ conc_kg_m3*1000000,
+                      "water" ~ conc_kg_m3*1000,
+                      "soil" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix)*1000, # RhoWater needed (we need to define subcompartment variables for rhoWater, rhoSolid and rhoAir)
+                      "sediment" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix)*1000,
                       .default = conc_kg_m3),
-         unit =
+         Unit =
            case_match(Matrix,
                       "air" ~ "mg/m3",
                       "water" ~ "mg/L",
-                      "soil" ~ "mg/kg dw",
-                      "sediment" ~ "mg/kg dw",
-                      .default = unit)
-  ) |> 
-  filter(Year == 2019)
+                      "soil" ~ "g/kg dw",
+                      "sediment" ~ "g/kg dw",
+                      .default = Unit)) |>
+  mutate(SubCompartName = paste0(SubCompart, " (", Unit, ")"))
 
+head(mass_conc_summed_over_pol)
 
+# Calculate concentrations for NR SBR dataframe
+NR_SBR_data <- NR_SBR_data |>
+  mutate(Source = "Tyre wear")
+
+mass_conc_NR_SBR <- NR_SBR_data |>
+  mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
+  ungroup() |> 
+  group_by(RUN, Source, Year, Scale, SubCompart, Polymer) |>
+  summarise(Mass = sum(Mass)) |>
+  ungroup() |>
+  left_join(World$fetchData("Volume"), 
+            by=c("Scale", "SubCompart")) |>
+  mutate(conc_kg_m3 = Mass/Volume) |> 
+  left_join(World$fetchData("FRACw"),
+            by=c("Scale", "SubCompart")) |> 
+  left_join(World$fetchData("FRACa"),
+            by=c("Scale", "SubCompart")) |> 
+  left_join(World$fetchData("rhoMatrix"),
+            by=c("SubCompart")) |> 
+  left_join(World$fetchData("Matrix"),
+            by=c("SubCompart"))|> 
+  mutate(Unit = "kg/m3") |> 
+  mutate(Concentration =
+           case_match(Matrix,
+                      "air" ~ conc_kg_m3*1000000,
+                      "water" ~ conc_kg_m3*1000,
+                      "soil" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix)*1000, # RhoWater needed (we need to define subcompartment variables for rhoWater, rhoSolid and rhoAir)
+                      "sediment" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix)*1000,
+                      .default = conc_kg_m3),
+         Unit =
+           case_match(Matrix,
+                      "air" ~ "mg/m3",
+                      "water" ~ "mg/L",
+                      "soil" ~ "g/kg dw",
+                      "sediment" ~ "g/kg dw",
+                      .default = Unit))  |>
+  mutate(SubCompartName = paste0(SubCompart, " (", Unit, ")"))
+
+# # Calculate concentrations for continental polymer data
+# mass_conc_continental_polymer <- continental_polymer_data |>
+#   mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
+#   ungroup() |> 
+#   group_by(RUN, Source, Year, Scale, SubCompart, Polymer) |>
+#   summarise(Mass = sum(Mass)) |>
+#   ungroup() |>
+#   left_join(World$fetchData("Volume"), 
+#             by=c("Scale", "SubCompart")) |>
+#   mutate(conc_kg_m3 = Mass/Volume) |> 
+#   left_join(World$fetchData("FRACw"),
+#             by=c("Scale", "SubCompart")) |> 
+#   left_join(World$fetchData("FRACa"),
+#             by=c("Scale", "SubCompart")) |> 
+#   left_join(World$fetchData("rhoMatrix"),
+#             by=c("SubCompart")) |> 
+#   left_join(World$fetchData("Matrix"),
+#             by=c("SubCompart"))|> 
+#   mutate(Unit = "kg/m3") |> 
+#   mutate(Concentration =
+#            case_match(Matrix,
+#                       "air" ~ conc_kg_m3*1000000,
+#                       "water" ~ conc_kg_m3*1000,
+#                       "soil" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix)*1000, # RhoWater needed (we need to define subcompartment variables for rhoWater, rhoSolid and rhoAir)
+#                       "sediment" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix)*1000,
+#                       .default = conc_kg_m3),
+#          Unit =
+#            case_match(Matrix,
+#                       "air" ~ "mg/m3",
+#                       "water" ~ "mg/L",
+#                       "soil" ~ "g/kg dw",
+#                       "sediment" ~ "g/kg dw",
+#                       .default = Unit))  |>
+#   mutate(SubCompartName = paste0(SubCompart, " (", Unit, ")"))
+
+# # Calculate concentrations for SB_data_TW
+# mass_conc_SB_data_TW <- SB_data_TW |>
+#   mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
+#   ungroup() |> 
+#   group_by(RUN, Source, Year, Scale, SubCompart) |>
+#   summarise(Mass = sum(Mass)) |>
+#   ungroup() |>
+#   left_join(World$fetchData("Volume"), 
+#             by=c("Scale", "SubCompart")) |>
+#   mutate(conc_kg_m3 = Mass/Volume) |> 
+#   left_join(World$fetchData("FRACw"),
+#             by=c("Scale", "SubCompart")) |> 
+#   left_join(World$fetchData("FRACa"),
+#             by=c("Scale", "SubCompart")) |> 
+#   left_join(World$fetchData("rhoMatrix"),
+#             by=c("SubCompart")) |> 
+#   left_join(World$fetchData("Matrix"),
+#             by=c("SubCompart"))|> 
+#   mutate(Unit = "kg/m3") |> 
+#   mutate(Concentration =
+#            case_match(Matrix,
+#                       "air" ~ conc_kg_m3*1000000,
+#                       "water" ~ conc_kg_m3*1000,
+#                       "soil" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix)*1000, # RhoWater needed (we need to define subcompartment variables for rhoWater, rhoSolid and rhoAir)
+#                       "sediment" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix)*1000,
+#                       .default = conc_kg_m3),
+#          Unit =
+#            case_match(Matrix,
+#                       "air" ~ "mg/m3",
+#                       "water" ~ "mg/L",
+#                       "soil" ~ "g/kg dw",
+#                       "sediment" ~ "g/kg dw",
+#                       .default = Unit))  |>
+#mutate(SubCompartName = paste0(SubCompart, " (", Unit, ")"))
 
 ############ Set plot theme and colors
 # Create a plot theme
@@ -138,14 +223,14 @@ scales <- c("Continental", "Regional")
 
 ################ Concentration plots
 for(scale in scales){
-  conc_plot_data <- Conc_summed_over_pol |>
+  conc_plot_data <- mass_conc_summed_over_pol  |>
     filter(Scale == scale) |>
     filter(Year == year)
   
   conc_plot_data_TW <- conc_plot_data |>
     filter(Source == "Tyre wear")
   
-  conc_over_time_TW <- Conc_summed_over_pol |>
+  conc_over_time_TW <- mass_conc_summed_over_pol  |>
     filter(Scale == scale) |>
     filter(Source == "Tyre wear") |>
     group_by(Source, Year, Scale, SubCompartName) |>
@@ -162,11 +247,17 @@ for(scale in scales){
          x = "Compartment",
          y = "Concentration") +
     plot_theme +
-    scale_y_log10(breaks = c(0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+    scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    annotation_logticks(sides="l",  
+                        short = unit(0.07, "cm"),
+                        mid = unit(0.07, "cm"),
+                        long = unit(0.1, "cm"),
+                        size = 0.25) +
     scale_fill_manual(values = Source_colors) +
     theme(legend.position = "bottom") +   
-    guides(fill = guide_legend(title = NULL))  
-  
+    guides(fill = guide_legend(title = NULL))
+    
   print(conc_p)
   
   ggsave(paste0(figurefolder, "Concentration_plot_comparison_", scale, ".png"), plot=conc_p, width = 25, height = 15, dpi = 1000)
@@ -178,7 +269,13 @@ for(scale in scales){
          x = "Compartment",
          y = "Concentration") +
     plot_theme +
-    scale_y_log10(breaks = c(0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+    scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    annotation_logticks(sides="l",  
+                        short = unit(0.07, "cm"),
+                        mid = unit(0.07, "cm"),
+                        long = unit(0.1, "cm"),
+                        size = 0.25) +
     scale_fill_viridis_d() + 
     theme(axis.text.x = element_blank(),  
           legend.position = "bottom") +   
@@ -226,27 +323,27 @@ for(scale in scales){
   # ggsave(paste0(figurefolder, "Concentration_plot_TW_uncertain", scale, ".png"), plot=conc_time_2, width = 25, height = 15, dpi = 1000)
   
   # Make a stacked barplot for what percentage goes to air, soil and water
-  species_dist_barplot <- ggplot(conc_Tyre_wear, aes(fill = Species, x = SubCompartName, y = Mean)) +
-    geom_bar(position = "fill", stat="identity", color = "transparent") +
-    scale_fill_manual(values = species_colors) +
-    scale_x_discrete(labels = wrap_format(10)) +                   # Wraps text longer than 10 characters
-    scale_y_continuous(labels = scales::percent) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 14),  # Increase x-axis text size
-          axis.text.y = element_text(size = 14),                    # Increase y-axis text size
-          axis.title.y = element_text(size = 16),                   # Increase y-axis title size
-          legend.title = element_text(size = 14),                   # Increase legend title text size
-          legend.text = element_text(size = 12),                    # Increase legend text size
-          plot.title = element_text(size = 18),                     # Increase plot title text size (if you have a title)
-          plot_theme) +
-    labs(y= "Fraction to environmental compartment",
-         x="") +
-    labs(fill='Sink type') +
-    plot_theme
-  print(species_dist_barplot)
+  # species_dist_barplot <- ggplot(conc_Tyre_wear, aes(fill = Species, x = SubCompartName, y = Mean)) +
+  #   geom_bar(position = "fill", stat="identity", color = "transparent") +
+  #   scale_fill_manual(values = species_colors) +
+  #   scale_x_discrete(labels = wrap_format(10)) +                   # Wraps text longer than 10 characters
+  #   scale_y_continuous(labels = scales::percent) +
+  #   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 14),  # Increase x-axis text size
+  #         axis.text.y = element_text(size = 14),                    # Increase y-axis text size
+  #         axis.title.y = element_text(size = 16),                   # Increase y-axis title size
+  #         legend.title = element_text(size = 14),                   # Increase legend title text size
+  #         legend.text = element_text(size = 12),                    # Increase legend text size
+  #         plot.title = element_text(size = 18),                     # Increase plot title text size (if you have a title)
+  #         plot_theme) +
+  #   labs(y= "Fraction to environmental compartment",
+  #        x="") +
+  #   labs(fill='Sink type') +
+  #   plot_theme
+  # print(species_dist_barplot)
+  # 
+  # ggsave(paste0(figurefolder, "Concentration_species_barplot_", scale, ".png"), plot=species_dist_barplot, width = 25, height = 15, dpi = 1000)
   
-  ggsave(paste0(figurefolder, "Concentration_species_barplot_", scale, ".png"), plot=species_dist_barplot, width = 25, height = 15, dpi = 1000)
-  
-  NR_SBR_plot_data <- NR_SBR_data |>
+  NR_SBR_plot_data <- mass_conc_NR_SBR |>
     filter(Scale == scale)
   
   # Concentration plot for tyre wear (SBR/NR)
@@ -256,7 +353,13 @@ for(scale in scales){
          x = "Compartment",
          y = "Concentration") +
     plot_theme +
-    scale_y_log10(breaks = c(0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+    scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    annotation_logticks(sides="l",  
+                        short = unit(0.07, "cm"),
+                        mid = unit(0.07, "cm"),
+                        long = unit(0.1, "cm"),
+                        size = 0.25) +
     scale_fill_manual(values = NR_SBR_colors) + 
     theme(legend.position = "bottom") +   
     guides(fill = guide_legend(title = NULL))  
@@ -268,15 +371,15 @@ for(scale in scales){
 
 ############################### Tyre wear plots ################################
 #Make plots for continental scale and polymers over time (concentration)
-for(subcomp in unique(continental_polymer_data$SubCompart)) {
-  plotdata_TW <- continental_polymer_data |>
+for(subcomp in unique(mass_conc_continental_polymer$SubCompart)) {
+  plotdata_TW <- mass_conc_continental_polymer |>
     filter(SubCompart == subcomp) |>
     filter(Source == "Tyre wear") |>
     group_by(Polymer, Year, Source, SubCompart, SubCompartName, Scale) |>
     summarise(Mean_Concentration = mean(Concentration)) |>
     ungroup()
   
-  plotdata_Other <- continental_polymer_data |>
+  plotdata_Other <- mass_conc_continental_polymer |>
     filter(SubCompart == subcomp) |>
     filter(Source == "Other sources") |>
     group_by(Polymer, Year, Source, SubCompart, SubCompartName, Scale) |>
@@ -285,7 +388,13 @@ for(subcomp in unique(continental_polymer_data$SubCompart)) {
   
   cont_pol_plot_Other <- ggplot(plotdata_Other, mapping = aes(x = Year, y = Mean_Concentration, color = Polymer)) +
     geom_line(size = 2) +
-    scale_y_log10(breaks = c(0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+    scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    annotation_logticks(sides="l",  
+                        short = unit(0.07, "cm"),
+                        mid = unit(0.07, "cm"),
+                        long = unit(0.1, "cm"),
+                        size = 0.25) +
     labs(
       title = paste0("Microplastic concentrations in ", subcomp, " at Continental scale"),
       x = "Year",
@@ -313,7 +422,7 @@ for(subcomp in unique(continental_polymer_data$SubCompart)) {
 
 ##### Make plot of NR fractions over time
 
-continental_polymer_data_mean <- continental_polymer_data |>
+continental_polymer_data_mean <- mass_conc_continental_polymer |>
   filter(Source == "Tyre wear") |> 
   group_by(Year, Source, SubCompart, Polymer, SubCompartName, Scale)|>
   summarise(Concentration = mean(Concentration)) |>
@@ -347,7 +456,7 @@ for(var in unique(Material_Parameters_long$VarName)){
 }
 
 # Make plot comparing 2019 emissions to 2023 emissions
-conc_years <- Conc_summed_over_pol |>
+conc_years <- mass_conc_summed_over_pol |>
   filter(Source == "Tyre wear") |>
   filter(Year %in% c(1990, 1995, 2019, 2020, 2023, 2030, 2050)) |>
   filter(Scale == "Continental") |>
@@ -359,7 +468,13 @@ conc_years_plot <- ggplot(conc_years, mapping = aes(x = SubCompartName, y = Conc
        x = "Compartment",
        y = "Concentration") +
   plot_theme +
-  scale_y_log10(breaks = c(0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  annotation_logticks(sides="l",  
+                      short = unit(0.07, "cm"),
+                      mid = unit(0.07, "cm"),
+                      long = unit(0.1, "cm"),
+                      size = 0.25) +
   scale_fill_manual(values = year_colors) +
   theme(legend.position = "bottom") +   
   guides(fill = guide_legend(title = NULL))  
@@ -375,11 +490,11 @@ LEONT_TWP_data <- prep_LEONT_data(abs_path_Measurements)
 subcomparts <- c(unique(LEONT_TWP_data$SubCompart), "agriculturalsoil")
 
 # Prepare SimpleBox data for plotting
-SB_data_TW <- SB_data_TW |>
+mass_conc_SB_data_TW <- mass_conc_SB_data_TW |>
   filter(SubCompart %in% subcomparts) 
 
 # Make plot comparing LEONT and SB data
-LEONT_SB_SBR_NR <- bind_rows(LEONT_TWP_data, SB_data_TW) |>
+LEONT_SB_SBR_NR <- bind_rows(LEONT_TWP_data, mass_conc_SB_data_TW) |>
   filter(Polymer == "SBR + NR") |>
   mutate(SubCompartName = case_when(
     SubCompart == "othersoil" ~ "roadsidesoil (g/kg dw)",
@@ -394,7 +509,13 @@ conc_LEONT_SB_SBR_NR <- ggplot(LEONT_SB_SBR_NR, mapping = aes(x = SubCompartName
        x = "Compartment",
        y = "Concentration") +
   plot_theme +
-  scale_y_log10(breaks = c(0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  annotation_logticks(sides="l",  
+                      short = unit(0.07, "cm"),
+                      mid = unit(0.07, "cm"),
+                      long = unit(0.1, "cm"),
+                      size = 0.25) +
   theme(legend.position = "bottom") +   
   guides(fill = guide_legend(title = NULL))  
 
