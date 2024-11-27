@@ -67,12 +67,13 @@ TRWP_size_dist <- function(u, path_parameters_file) {
     separate(`Size Fraction (µm)`,
              into = c("Size_um","max_size_um"), sep = "-") |> 
     mutate(Size_um = as.numeric(gsub("400", "1000", Size_um))) |>  # Change "400" to "1000"
+    mutate(Size_nm = Size_um*1000) |> # convert sizes to nanometer
     mutate(PSD_um = as.numeric(PSD_um)) |> # Assuming PSD_um is the particle size distribution (weights)
     mutate(cdf = cumsum(PSD_um)) |>
     mutate(cdf = cdf / max(cdf))  # Normalize the CDF
   
   # Use the approx function to interpolate Size_um based on the CDF
-  scaled_samples <- approx(x = TRWP_data$cdf, y = TRWP_data$Size_um, xout = u, rule = 2)$y
+  scaled_samples <- approx(x = TRWP_data$cdf, y = TRWP_data$Size_nm, xout = u, rule = 2)$y
   
   return(scaled_samples)
 }
