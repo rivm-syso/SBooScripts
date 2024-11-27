@@ -88,7 +88,7 @@ read_Prob4SB <- function(path_parameters_file = "vignettes/CaseStudies/CaseData/
   
   # Make a table with statistics of the samples
   report_table <- Material_Parameters_n |>
-    select(-c(a, b, c, d, Reasoning, Comment, Description, nvar)) |>
+    select(c(VarName, MP_source, Scale, SubCompart, Species, Distribution, Polymer, Unit, data, `Data Source`)) |>
     unnest(data) |> 
     ungroup() |> 
     group_by(VarName, Scale, SubCompart, Species, Distribution, Polymer, Unit, `Data Source`) |>
