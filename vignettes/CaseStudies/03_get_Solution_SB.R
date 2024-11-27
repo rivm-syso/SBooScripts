@@ -12,7 +12,7 @@ env <- "OOD"
 #env <- "HPC"
 
 # Specify the source
-source_of_interest <- "Tyre wear"
+source_of_interest <- NA
 
 if(env == "local"){
   setwd("N:/Documents/GitHub/SimpleBox/SBooScripts")
@@ -46,10 +46,10 @@ if(env == "Local"){
 } else if(env == "OOD"){
   if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
     load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241126.RData"))
-    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241126.RData"))
+    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241127.RData"))
   } else if(is.na(source_of_interest)){
     load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_Other_20241126.RData"))
-    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241126.RData"))
+    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241127.RData"))
   }
 } else if(env == "HPC"){
   if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
@@ -76,7 +76,7 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
 
 #### Select subset of RUNs from emission and parameters ####
 #  Set the runs that need to be run, should be consequetive from x to y.
-RUNSamples = c(711:761)
+RUNSamples = c(711:712)
 print(paste("LOG: run started for", min(RUNSamples), "to", max(RUNSamples)))
 ##
 subsetRuns <- function(dfRUNs,nummers){ #Function to select RUNsamples from emision data
