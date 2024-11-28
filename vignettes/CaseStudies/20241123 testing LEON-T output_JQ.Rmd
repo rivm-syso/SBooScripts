@@ -36,7 +36,7 @@ HPC_output_path = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HP
 # 1. test to see if solver made output for 101 time steps
 # ...
 check_HPC_output <- function(HPC_fileName = HPC_SBout_files[1],
-                             HPC_output_path = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HPC_output") {
+                             HPC_output_path = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5") {
   
   load(paste0(HPC_output_path,"/",HPC_fileName))
   log_info(paste0(HPC_output_path,"/",HPC_fileName))
@@ -69,7 +69,7 @@ check_HPC_output <- function(HPC_fileName = HPC_SBout_files[1],
 
 sapply(HPC_SBout_files,check_HPC_output,HPC_output_path = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HPC_output_test")
 
-
+check_HPC_output(HPC_fileName = "SBout_LEONT_TWP_RUNS_1_2_v1.1.RData")
 ```
 
 

@@ -166,7 +166,7 @@ Copy the LSF commands into your linux terminal to run the batch scripts.
 # Define batch parameters for tyre wear
 batch_n <- 2
 batch_max <- 1000  # Should be a multiple of batch_n for the loop logic to work
-Source <- '"Tyre wear"'
+Source <- NA
 
 source("vignettes/CaseStudies/HPC_batch_files.R")
 ```
@@ -309,6 +309,15 @@ ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data),
 ```
 
 ## other microplastics
+```{r run batchfiles}
+
+BatchFiles <- list.files("vignettes/CaseStudies/BatchFiles")
+
+for(Bfile in BatchFiles){
+  source(paste0("vignettes/CaseStudies/BatchFiles/",Bfile))
+}
+
+```
 
 ...
 
