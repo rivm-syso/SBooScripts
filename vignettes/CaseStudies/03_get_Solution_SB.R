@@ -12,7 +12,7 @@ env <- "OOD"
 #env <- "HPC"
 
 # Specify the source
-source_of_interest <- "Tyre wear"
+source_of_interest <- NA
 
 if(env == "local"){
   setwd("N:/Documents/GitHub/SimpleBox/SBooScripts")
@@ -76,6 +76,7 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
 
 #### Select subset of RUNs from emission and parameters ####
 #  Set the runs that need to be run, should be consequetive from x to y.
+
 RUNSamples = c(51:52)
 print(paste("LOG: run started for", min(RUNSamples), "to", max(RUNSamples)))
 ##

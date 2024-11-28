@@ -1,0 +1,77 @@
+---
+title: "LEON-T TWP data analysis"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+
+log_warning <- function(warning_message) {
+  cat(paste(Sys.time(), "WARNING:", warning_message, "\n"), file = "warnings.log", append = TRUE)
+}
+
+log_info <- function(warning_message) {
+  cat(paste(Sys.time(), "INFO:", warning_message, "\n"), file = "warnings.log", append = TRUE)
+}
+
+
+
+```
+
+
+```{r HPC output}
+## internal output file testing:
+HPC_output_path <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HPC_output_test"
+HPC_SBout_files <- list.files(HPC_output_path)
+
+HPC_fileName = HPC_SBout_files[1]
+HPC_output_path = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HPC_output_test"
+
+# function for testing.
+# now includes:
+# 1. test to see if solver made output for 101 time steps
+# ...
+check_HPC_output <- function(HPC_fileName = HPC_SBout_files[1],
+                             HPC_output_path = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HPC_output") {
+  
+  load(paste0(HPC_output_path,"/",HPC_fileName))
+  log_info(paste0(HPC_output_path,"/",HPC_fileName))
+  
+  test_time1 <-  
+    Output |>
+    unnest(cols = c(SBoutput)) |> 
+    mutate(OutputType = names(SBoutput)) |> 
+    filter(OutputType == "DynamicMass") |> 
+    unnest(SBoutput) |> 
+    ungroup() |> group_by(Polymer) |> 
+    count(RUN) |> filter(n<101) |> rename(Timed_length = n)
+
+  
+  tryCatch({
+    if(length(test_time1$RUN)>0){
+    
+    warning_message <- "Not 100 years in RUN:\n"
+    test_time1_text <- capture.output(print(as.data.frame(test_time1)))
+    warning_message <-
+      paste(warning_message, paste(test_time1_text, collapse = "\n"),
+            "\n See file",paste(HPC_fileName))
+    
+    warning(warning_message)
+    log_warning(warning_message)
+    }
+  }
+  )
+}
+
+sapply(HPC_SBout_files,check_HPC_output,HPC_output_path = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HPC_output_test")
+
+
+```
+
+
+
+
