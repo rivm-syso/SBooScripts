@@ -3,7 +3,7 @@
 library(tidyverse)
 # based on Material_Parameters_n distributions
 # load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241111.RData"))
-path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.xlsx"
+path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.1.xlsx"
 
 source("baseScripts/initWorld_onlyPlastics.R")
 
