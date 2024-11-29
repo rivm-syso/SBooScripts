@@ -40,7 +40,7 @@ Material_Parameters_n <- Parameters$Material_Parameters_n |>
 Regional_Parameters <- readxl::read_excel(path_parameters_file, sheet = "Netherlands_data") |>
   rename(varName = Variable) |>
   rename(Waarde = Value) |>
-  select(-Unit) 
+  select(-c(Unit,`...6`,`...7`) )
 
 # Recalculate the area's
 World$mutateVars(Regional_Parameters)
@@ -170,7 +170,8 @@ elapsed_time <- Sys.time() - start_time
 print(paste0("Elapsed time is ", elapsed_time))
 elapsed_time
 
-save(Output, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FateFactors_LEON-T_D3.5_TWP_20241127.RData"))
+save(Output, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FateFactors_LEON-T_D3.5_TWP_", 
+                           format(Sys.Date(),"%Y%m%d"),".RData"))
 
 FF_allScale <- Output |> unnest(SBoutput) |> mutate(OutputType = names(SBoutput)) |> 
   rename(EmisScale = Scale) |> 
@@ -217,5 +218,5 @@ FF_EU <- FF_allScale |>
             FF_SteadyState_std = sd(EqMass_SAP)) |> 
   mutate(Unit = "kg[ss]/kg[e] seconds")
 
-write_csv(FF_NL, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_NL_LEON-T_D3.5_TWP_20241127.csv"))
-write_csv(FF_EU, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_EU_LEON-T_D3.5_TWP_20241127.csv"))
+write_csv(FF_NL, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_NL_LEON-T_D3.5_TWP_20241128.csv"))
+write_csv(FF_EU, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_EU_LEON-T_D3.5_TWP_20241128.csv"))
