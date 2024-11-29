@@ -15,7 +15,7 @@ knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct s
 ```
 
 ```{r message=FALSE, warning=FALSE}
-substance <- "TRWP"
+substance <- "Microplastic"
 source("baseScripts/initWorld_onlyParticulate.R")
 
 ```
