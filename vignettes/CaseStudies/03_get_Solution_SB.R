@@ -23,11 +23,11 @@ if(env == "local"){
 }
 
 if(env == "local"){
-  path_parameters_file = "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.xlsx"
+  path_parameters_file = "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.1.xlsx"
 } else if(env == "OOD"){
-  path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.xlsx"
+  path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.1.xlsx"
 } else if(env == "HPC"){
-  path_parameters_file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx")
+  path_parameters_file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.1.xlsx")
 }
 
 # ################################
@@ -77,7 +77,7 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
 #### Select subset of RUNs from emission and parameters ####
 #  Set the runs that need to be run, should be consequetive from x to y.
 
-RUNSamples = c(51:52)
+RUNSamples = c(131:132)
 print(paste("LOG: run started for", min(RUNSamples), "to", max(RUNSamples)))
 ##
 subsetRuns <- function(dfRUNs,nummers){ #Function to select RUNsamples from emision data
@@ -114,7 +114,7 @@ Output <- tibble(Polymer = unique(Sel_DPMFA_micro$Polymer),
 start_time <- Sys.time() # to see how long it all takes...
 
 World$NewSolver("UncertainDynamicSolver")
-tmax <- max(Sel_DPMFA_micro$Timed)
+# tmax <- max(Sel_DPMFA_micro$Timed)
 for(pol in unique(Sel_DPMFA_micro$Polymer)){
   emis_source <- Sel_DPMFA_micro |>
     filter(Polymer == pol) |>
@@ -125,7 +125,8 @@ for(pol in unique(Sel_DPMFA_micro$Polymer)){
     select(VarName, Scale, SubCompart, Species, data) |> 
     rename(varName = VarName)
   
-  solved <- World$Solve((emis_source), sample_source, tmax = tmax, needdebug = F)
+  solved <- World$Solve((emis_source), sample_source, needdebug = F,
+                        rtol_ode=1e-30, atol_ode = 0.5e-2)
   solved$DynamicConc <- World$GetConcentration()
   
   Output$SBoutput[Output$Polymer == pol] <- list(solved)
