@@ -15,10 +15,12 @@ if(env == "OOD"){
   filepaths <- list.files(folderpath)
   filepaths <- paste0(folderpath, filepaths)
 } else if(env == "HPC"){
-  folderpath <- "/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/LEON-T_output/"
+  folderpath <- "/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/LEON-T_output_v1/"
   filepaths <- list.files(folderpath)
   filepaths <- paste0(folderpath, filepaths)
 }
+
+#filepaths <- filepaths[grep("TWP", filepaths)]
 
 if(env == "OOD"){
   source("/rivm/n/hidsa/Documents/GitHub/SimpleBox/SBooScripts/vignettes/CaseStudies/f_Read_SB_data.R")
@@ -30,9 +32,9 @@ if(env == "OOD"){
 if (env == "local"){
   n_cores <- detectCores() - 1 
 } else if (env == "OOD") {
-  n_cores <- 1
+  n_cores <- 4
 } else if (env == "HPC") {
-  n_cores <- detectCores()
+  n_cores <- 12
 }
 
 cl <- makeCluster(n_cores)
@@ -115,14 +117,15 @@ Solution_species <- Solution_long |>
   summarise(Mass = sum(Mass)) 
 
 Solution_long_summed_over_pol <- Solution_species |>
-  group_by(RUN, Source, Year, Scale, SubCompart) |>
+  group_by(time, RUN, Source, Year, Scale, SubCompart) |>
   summarise(Mass = sum(Mass))
 
 # Make plots data for continental scale and polymers over time (concentration)
 continental_polymer_data <- Solution_long |>
   filter(Scale == "Continental") |>
-  group_by(Polymer, Year, Source, SubCompart, Scale, Unit) |>
-  summarise(Mass = mean(Mass))
+  group_by(Polymer, Year, Source, SubCompart, Scale, RUN) |>
+  summarise(Mass = sum(Mass)) |> # sum over species
+  ungroup()
 
 # Species barplot data for tyre wear
 conc_Tyre_wear <- Concentrations_species |>
@@ -136,10 +139,9 @@ conc_Tyre_wear <- Concentrations_species |>
 # Prepare SimpleBox data for plotting
 SB_data_TW <- Solution_long |>
   filter(Source == "Tyre wear") |>
-  left_join(Solution_long, by=c("Scale", "Year", "RUN", "SubCompart", "Species", "time", "Polymer", "Source", "Abbr")) |>
   filter(Scale == "Regional") |>
   filter(Year == year) |>
-  group_by(SubCompart, RUN, Scale, Source, Year) |>
+  group_by(SubCompart, RUN, Scale, Year, Source) |>
   summarise(Mass = sum(Mass)) |>
   mutate(Polymer = "SBR + NR") |>
   mutate(source = "SimpleBox") 
@@ -147,17 +149,32 @@ SB_data_TW <- Solution_long |>
 # Mass and concentrations of SBR vs NR
 NR_SBR_data <- Solution_long |>
   filter(Source == "Tyre wear") |>
-  left_join(Solution_long, by=c("Scale", "Year", "RUN", "SubCompart", "Species", "time", "Polymer", "Source", "Abbr")) |>
   filter(Year == year) |>
-  group_by(SubCompart, Polymer, Scale, Year, RUN, Source) |>
+  group_by(SubCompart, Polymer, Scale, Year, RUN) |>
   summarise(Mass = sum(Mass))
 
 # Save the outcome 
 if(env == "OOD"){
-  save(Concentrations_long, Solution_long, Material_Parameters_long, States, Units,
-       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Long_solution_v1.3.RData",
+  save(Concentrations_species, Conc_summed_over_pol, 
+       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Concentrations.RData",
        compress = "xz",
        compression_level = 9) 
+  save(Solution_species, Solution_long_summed_over_pol, continental_polymer_data,
+       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Masses.RData",
+       compress = "xz",
+       compression_level = 9) 
+  save(conc_Tyre_wear, NR_SBR_data, SB_data_TW,
+       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Tyre_wear_data.RData",
+       compress = "xz",
+       compression_level = 9) 
+  save(Material_Parameters_long,
+       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Material_parameters.RData",
+       compress = "xz",
+       compression_level = 9) 
+  save(Emissions, 
+       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Emissions.RData",
+       compress = "xz",
+       compression_level = 9)
 } else if(env == "HPC"){
   save(Concentrations_species, Conc_summed_over_pol, 
        file = "/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/CaseData/SB_Concentrations.RData",
@@ -179,12 +196,5 @@ if(env == "OOD"){
        file = "/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/CaseData/SB_Emissions.RData",
        compress = "xz",
        compression_level = 9)
-  save(Concentrations_long, Solution_long, Emissions,
-       file = "/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/CaseData/SB_Long_solutions.RData",
-       compress = "xz",
-       compression_level = 9)
-  save(Solution_long, 
-       file = "/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/CaseData/SB_Long_masses.RData",
-       compress = "xz",
-       compression_level = 9)
 }
+
