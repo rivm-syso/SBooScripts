@@ -67,9 +67,10 @@ check_HPC_output <- function(HPC_fileName = HPC_SBout_files[1],
   )
 }
 
-sapply(HPC_SBout_files,check_HPC_output,HPC_output_path = HPC_output_path)
+# sapply(HPC_SBout_files,check_HPC_output,HPC_output_path = HPC_output_path)
 
-check_HPC_output(HPC_fileName = HPC_SBout_files[1],HPC_output_path)
+check_HPC_output(HPC_fileName = "SBout_Other_RUNS_131_132_v1.RData","/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/")
+
 ```
 
 ## test ode solver
@@ -91,7 +92,7 @@ source("baseScripts/initWorld_onlyPlastics.R")
 #Manually change based on Run you want to test:
 
 World$substance <- "microplastic"
-RUNSamples = c(1:2)
+RUNSamples = c(131:132)
 pol="RUBBER"
 
 subsetRuns2 <- function(dfRUNs,nummers){ #Function to select RUNsamples from parameter data
@@ -128,7 +129,11 @@ DPMFA_SBoutput$DPMFA_sink_micro  |>
 
 emis_source <- Sel_DPMFA_micro |>
   filter(Polymer == pol) |>
-  select(Abbr, Timed, Emis)
+  select(Abbr, Timed, Emis) 
+
+ # Sel_DPMFA_micro |>
+ #  filter(Polymer == pol) |>
+ #  select(Abbr, Timed, Emis) |> filter(Timed == 61537320000) |> unnest(Emis)
 
 
 Material_Parameters_n <- Parameters$Material_Parameters_n |> 
@@ -155,7 +160,7 @@ sample_source <- Material_Parameters_n |>
 
 World$NewSolver("UncertainDynamicSolver") # with browser() before the ode commad for testing below.
 solved <- World$Solve((emis_source), sample_source, needdebug = F,
-                      rtol_ode=1e-30, atol_ode = 1e-2)
+                      rtol_ode=1e-30, atol_ode = 0.5e-2)
 solved$DynamicMass |>
   ungroup()  |> 
   count(RUN)

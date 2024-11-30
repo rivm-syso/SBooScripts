@@ -126,7 +126,7 @@ for(pol in unique(Sel_DPMFA_micro$Polymer)){
     rename(varName = VarName)
   
   solved <- World$Solve((emis_source), sample_source, needdebug = F,
-                        rtol_ode=1e-30, atol_ode = 1e-2)
+                        rtol_ode=1e-30, atol_ode = 0.5e-2)
   solved$DynamicConc <- World$GetConcentration()
   
   Output$SBoutput[Output$Polymer == pol] <- list(solved)
