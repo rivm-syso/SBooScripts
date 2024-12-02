@@ -696,20 +696,6 @@ deg_conc_TW <- mass_conc_NR_SBR |>
   filter(Scale == "Continental") |>
   filter(!is.na(value))
 
-for(i in unique(deg_conc_TW$SubCompart)){
-  for(j in unique(deg_conc_TW$Polymer)){
-    deg_plot_data <- deg_conc_TW |>
-      filter(SubCompart == i) |>
-      filter(Polymer == j)
-  
-    deg_plot <- ggplot(deg_plot_data, aes(x=value, y=Concentration)) + 
-      geom_point() +
-      ggtitle(paste0(i, ", ", j))
-  
-    print(deg_plot)
-  }
-}
-
 for(j in unique(deg_conc_TW$Polymer)){
   deg_plot_data <- deg_conc_TW |>
     filter(Polymer == j)
@@ -726,6 +712,94 @@ for(j in unique(deg_conc_TW$Polymer)){
   ggsave(paste0(figurefolder, "kdeg_scatterplot_continental_", j, ".png"), plot=water_plot, width = 20, height = 20, dpi = 1000)
 }
 
+#################### Relation between concentration and kdeg ###################
+
+rads <- Material_Parameters_long |>
+  filter(VarName == "RadS") |>
+  filter(Source == "Tyre wear") |>
+  select(-c(Scale, SubCompart, Species))
+
+rads_conc_TW <- mass_conc_NR_SBR |>
+  filter(Source == "Tyre wear") |>
+  left_join(rads, by=c("Polymer", "RUN")) |>
+  filter(Scale == "Continental") |>
+  filter(!is.na(value))
+
+for(j in unique(rads_conc_TW$Polymer)){
+  rads_plot_data <- rads_conc_TW |>
+    filter(Polymer == j)
+  
+  rads_plot <- ggplot(rads_plot_data, aes(x=value, y=Concentration, color=SubCompart)) + 
+    geom_point() +
+    scale_color_discrete() +
+    ggtitle(paste0("RadS, ", j)) +
+    scale_x_log10() + 
+    scale_y_log10()
+  
+  print(rads_plot)
+  
+  ggsave(paste0(figurefolder, "rads_scatterplot_continental_", j, ".png"), plot=rads_plot, width = 20, height = 20, dpi = 1000)
+}
+
+################ Find out why 'Other sources' runs often don't work 
+
+## Check if there is a relation between complete runs and radii for each polymer
+yearcount_other <- yearcount |>
+  filter(Source == "Other sources")
+
+Material_Parameters_long_other <- Material_Parameters_long |>
+  filter(is.na(Source)) |>
+  mutate(Source = "Other sources")
+
+for(pol in unique(Material_Parameters_long_other$Polymer)){
+  
+  rads <- Material_Parameters_long_other |>
+    filter(is.na(Source)) |>
+    filter(Polymer == pol) |>
+    filter(VarName == "RadS") |>
+    full_join(yearcount_other, by=c("Source", "RUN")) |>
+    mutate(complete_run = case_when(
+      is.na(nyear) ~ "False",
+      !is.na(nyear) ~ "True"))
+  
+  rads_hist <- ggplot(rads, aes(x = value, fill = complete_run)) +
+    geom_histogram(color = "black", alpha = 0.7) + 
+    theme_minimal() +
+    xlab("Particle radius (nm)") +
+    ylab("Count") +
+    ggtitle(paste0("Histogram of ", pol ," Radii (other sources)")) +
+    scale_fill_discrete() 
+  
+  print(rads_hist)
+}
+
+## Check if there is a relation between complete runs and kdeg values
+
+comps <- c("sea", "naturalsoil")
+
+kdeg <- Material_Parameters_long_other |>
+  filter(VarName == "kdeg") |>
+  filter(SubCompart %in% comps) |>
+  full_join(yearcount_other, by=c("Source", "RUN")) |>
+  mutate(complete_run = case_when(
+    is.na(nyear) ~ "False",
+    !is.na(nyear) ~ "True")) |>
+  filter(Polymer == "RUBBER")
+
+for(i in comps){
+  kdeg_plot_data <- kdeg |>
+    filter(SubCompart == i)
+  
+  kdeg_plot <- ggplot(kdeg_plot_data, aes(x = value, fill = complete_run)) +
+    geom_histogram(color = "black", alpha = 0.7) + 
+    theme_minimal() +
+    xlab("Particle radius (nm)") +
+    ylab("Count") +
+    ggtitle(paste0("Histogram of kdeg ", i)) +
+    scale_fill_discrete() 
+  
+  print(kdeg_plot)
+}
 
 
 
