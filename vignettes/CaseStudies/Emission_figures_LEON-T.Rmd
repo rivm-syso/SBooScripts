@@ -18,7 +18,7 @@ library(networkD3)
 library(webshot)
 library(jsonlite)
 library(viridis)
-webshot::install_phantomjs()
+#webshot::install_phantomjs()
 
 Figure_folder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figures/Emission_plots/"
 MFAtype <- "DPMFA"
@@ -325,6 +325,10 @@ ggsave(paste0(Figure_folder, "TW_other_EU_", MFAtype, "_", format(Sys.time(),'%Y
 Plot comparing EU, NL and NL EU emissions
 ```{r}
 TW_other <- bind_rows(Data_TW_separated, Data_TW_separated_EU, Data_TW_separated_NL) |>
+    mutate(
+    Scale = str_replace_all(Scale, "EU_with_NL", "EU + NL"),
+    Scale = factor(Scale, levels = c("EU + NL", "EU", "NL")) # Reorder levels
+  ) |>
   mutate(as.factor(Scale)) 
 
 TW_other_scale_plot <- ggplot(TW_other, aes(x = Scale, y = Mass_Polymer_t, fill=TW_class)) +
