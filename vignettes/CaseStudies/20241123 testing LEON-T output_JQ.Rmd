@@ -25,11 +25,11 @@ log_info <- function(warning_message) {
 
 ```{r HPC output}
 ## internal output file testing:
-HPC_output_path <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HPC_output_v1"
+HPC_output_path <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HPC_output_v3"
 HPC_SBout_files <- list.files(HPC_output_path)
 
 HPC_fileName = HPC_SBout_files[1]
-HPC_output_path = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HPC_output_test"
+#HPC_output_path = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HPC_output_test"
 
 # function for testing.
 # now includes:
@@ -67,9 +67,9 @@ check_HPC_output <- function(HPC_fileName = HPC_SBout_files[1],
   )
 }
 
-# sapply(HPC_SBout_files,check_HPC_output,HPC_output_path = HPC_output_path)
+sapply(HPC_SBout_files,check_HPC_output,HPC_output_path = HPC_output_path)
 
-check_HPC_output(HPC_fileName = "SBout_Other_RUNS_131_132_v1.RData","/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/")
+#check_HPC_output(HPC_fileName = "SBout_Other_RUNS_131_132_v1.RData","/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/")
 
 ```
 
