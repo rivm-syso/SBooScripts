@@ -11,11 +11,11 @@ env <- "OOD"
 
 # Find file paths 
 if(env == "OOD"){
-  folderpath <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HPC_output/"
+  folderpath <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HPC_output_v3/"
   filepaths <- list.files(folderpath)
   filepaths <- paste0(folderpath, filepaths)
 } else if(env == "HPC"){
-  folderpath <- "/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/LEON-T_output_v1/"
+  folderpath <- "/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/LEON-T_output_v3/"
   filepaths <- list.files(folderpath)
   filepaths <- paste0(folderpath, filepaths)
 }
@@ -156,23 +156,23 @@ NR_SBR_data <- Solution_long |>
 # Save the outcome 
 if(env == "OOD"){
   save(Concentrations_species, Conc_summed_over_pol, 
-       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Concentrations.RData",
+       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Concentrations_Other.RData",
        compress = "xz",
        compression_level = 9) 
   save(Solution_species, Solution_long_summed_over_pol, continental_polymer_data,
-       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Masses.RData",
+       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Masses_Other.RData",
        compress = "xz",
        compression_level = 9) 
   save(conc_Tyre_wear, NR_SBR_data, SB_data_TW,
-       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Tyre_wear_data.RData",
+       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Tyre_wear_data_Other.RData",
        compress = "xz",
        compression_level = 9) 
   save(Material_Parameters_long,
-       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Material_parameters.RData",
+       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Material_parameters_Other.RData",
        compress = "xz",
        compression_level = 9) 
   save(Emissions, 
-       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Emissions.RData",
+       file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Emissions_Other.RData",
        compress = "xz",
        compression_level = 9)
 } else if(env == "HPC"){
