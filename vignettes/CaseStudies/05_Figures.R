@@ -8,7 +8,6 @@ library(scales)
 env <- "OOD"
 #env <- "local"
 
-conc_file_name <- "SB_Concentrations.RData"
 mass_file_name <- "SB_Masses.RData"
 TW_file_name <- "SB_Tyre_wear_data.RData"
 Mat_file_name <- "SB_Material_parameters.RData"
@@ -600,4 +599,135 @@ conc_LEONT_SB_SBR_NR <- ggplot(LEONT_SB_SBR_NR, aes(x = SubCompartName, y = Conc
 print(conc_LEONT_SB_SBR_NR)
 
 ggsave(paste0(figurefolder, "SBR_NR_measurement_comparison",".png"), plot=conc_LEONT_SB_SBR_NR, width = 13, height = 23, dpi = 1000)
+
+################################### NR fraction ################################
+
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241126.RData"))
+
+Mean <- mean(NR_SBR_fractions$NR_fraction)     
+Median <- median(NR_SBR_fractions$NR_fraction)
+q5 <- quantile(NR_SBR_fractions$NR_fraction, 0.05)
+q25 <- quantile(NR_SBR_fractions$NR_fraction, 0.25)
+q75 <- quantile(NR_SBR_fractions$NR_fraction, 0.75)
+q95 <- quantile(NR_SBR_fractions$NR_fraction, 0.95)
+
+# Make a histogram of the NR fraction distribution
+hist_NR_fraction <- ggplot(NR_SBR_fractions, aes(x=NR_fraction)) +
+  geom_histogram(color="black", fill="white") +
+  plot_theme +
+  xlab("NR fraction") +
+  ylab("Count") +
+  ggtitle("NR fraction distribution")
+
+hist_NR_fraction
+
+ggsave(paste0(figurefolder, "NR_fraction_histogram",".png"), plot=hist_NR_fraction, width = 20, height = 15, dpi = 1000)
+
+############################## TWP radius histogram ############################ 
+
+Material_Parameters_TW <- Material_Parameters_long |>
+  filter(Source == "Tyre wear") |>
+  filter(VarName == "RadS")
+
+hist_TWP_radius <- ggplot(Material_Parameters_TW, aes(x=value)) +
+  geom_histogram(color="black", fill="white") +
+  plot_theme +
+  xlab("Particle radius (nm)") +
+  ylab("Count") +
+  ggtitle("TWP radius distribution") + 
+  scale_x_log10(
+    breaks = trans_breaks("log10", function(x) 10^x),
+    labels = trans_format("log10", math_format(10^.x))
+  ) +
+  annotation_logticks(
+    sides = "b",  
+    short = unit(0.2, "cm"),
+    mid = unit(0.2, "cm"),
+    long = unit(0.3, "cm"),
+    size = 0.25
+  )
+
+hist_TWP_radius
+
+ggsave(paste0(figurefolder, "TWP_radius_histogram",".png"), plot=hist_TWP_radius, width = 20, height = 15, dpi = 1000)
+
+######## Plot comparing NR and SBR concentration in water compartments #########
+
+water_twp <- mass_conc_NR_SBR |>
+  filter(Source == "Tyre wear") |>
+  filter(SubCompart %in% c("lake", "sea", "river")) |>
+  filter(Year == 2019) 
+
+water_plot <- ggplot(water_twp, aes(y=Concentration, x=SubCompart, fill=Polymer)) + 
+  geom_violin() +
+  scale_y_log10(
+    breaks = trans_breaks("log10", function(x) 10^x),
+    labels = trans_format("log10", math_format(10^.x))
+  ) +
+    annotation_logticks(
+      sides = "l",  
+      short = unit(0.2, "cm"),
+      mid = unit(0.2, "cm"),
+      long = unit(0.3, "cm"),
+      size = 0.25
+    ) + 
+  plot_theme + 
+  scale_fill_manual(values=NR_SBR_colors) +
+  labs(title = "Concentration at continental scale, 2019",
+       subtitle = paste0(TWruns, " runs for Tyre wear"),
+       x = "Compartment",
+       y = "Concentration")
+
+water_plot
+
+ggsave(paste0(figurefolder, "NR_SBR_water_compartments_comparison",".png"), plot=water_plot, width = 15, height = 20, dpi = 1000)
+
+#################### Relation between concentration and kdeg ###################
+
+degradation_in_water <- Material_Parameters_long |>
+  filter(VarName == "kdeg") |>
+  filter(Source == "Tyre wear") |>
+  filter(Species == "Small") |>
+  select(-Scale)
+
+deg_conc_TW <- mass_conc_NR_SBR |>
+  filter(Source == "Tyre wear") |>
+  left_join(degradation_in_water, by=c("Polymer", "RUN", "SubCompart", "Source")) |>
+  filter(Scale == "Continental") |>
+  filter(!is.na(value))
+
+for(i in unique(deg_conc_TW$SubCompart)){
+  for(j in unique(deg_conc_TW$Polymer)){
+    deg_plot_data <- deg_conc_TW |>
+      filter(SubCompart == i) |>
+      filter(Polymer == j)
+  
+    deg_plot <- ggplot(deg_plot_data, aes(x=value, y=Concentration)) + 
+      geom_point() +
+      ggtitle(paste0(i, ", ", j))
+  
+    print(deg_plot)
+  }
+}
+
+for(j in unique(deg_conc_TW$Polymer)){
+  deg_plot_data <- deg_conc_TW |>
+    filter(Polymer == j)
+  
+  deg_plot <- ggplot(deg_plot_data, aes(x=value, y=Concentration, color=SubCompart)) + 
+    geom_point() +
+    scale_color_discrete() +
+    ggtitle(paste0(j)) +
+    scale_x_log10() + 
+    scale_y_log10()
+  
+  print(deg_plot)
+  
+  ggsave(paste0(figurefolder, "kdeg_scatterplot_continental_", j, ".png"), plot=water_plot, width = 20, height = 20, dpi = 1000)
+}
+
+
+
+
+
 
