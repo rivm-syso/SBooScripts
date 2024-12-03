@@ -48,7 +48,7 @@ read_Prob4SB <- function(path_parameters_file = "vignettes/CaseStudies/CaseData/
   
   # how to cope with any. For now this, but materials should be only for material being calculated for.
   suppressWarnings({
-    Material_Parameters <- explodeF(Material_Parameters, target_col = "Polymer", explode_value = "any", new_values = materials)
+    Material_Parameters <- explodeF(Material_Parameters, target_col = "Polymer", explode_value = "any", new_values = materials) # move this after and save unique values (n=same as in xlsx)
   })
   
   Material_Parameters_n <- data.frame()
