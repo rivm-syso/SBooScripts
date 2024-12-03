@@ -257,7 +257,7 @@ year_colors <- c("1990" = viridis_colors[1],
 year <- 2019
 
 scales <- c("Continental", "Regional")
-scale <- "Regional"
+
 ################ Concentration plots
 for(scale in scales){
   conc_plot_data <- mass_conc_summed_over_pol  |>
@@ -680,7 +680,7 @@ water_plot <- ggplot(water_twp, aes(y=Concentration, x=SubCompart, fill=Polymer)
 
 water_plot
 
-ggsave(paste0(figurefolder, "NR_SBR_water_compartments_comparison",".png"), plot=water_plot, width = 15, height = 20, dpi = 1000)
+ggsave(paste0(figurefolder, "NR_SBR_water_compartments_comparison",".png"), plot=water_plot, width = 15, height = 20, dpi = 600)
 
 #################### Relation between concentration and kdeg ###################
 
@@ -709,7 +709,7 @@ for(j in unique(deg_conc_TW$Polymer)){
   
   print(deg_plot)
   
-  ggsave(paste0(figurefolder, "kdeg_scatterplot_continental_", j, ".png"), plot=water_plot, width = 20, height = 20, dpi = 1000)
+  ggsave(paste0(figurefolder, "kdeg_scatterplot_continental_", j, ".png"), plot=deg_plot, width = 15, height = 15, dpi = 600)
 }
 
 #################### Relation between concentration and kdeg ###################
@@ -738,7 +738,7 @@ for(j in unique(rads_conc_TW$Polymer)){
   
   print(rads_plot)
   
-  ggsave(paste0(figurefolder, "rads_scatterplot_continental_", j, ".png"), plot=rads_plot, width = 20, height = 20, dpi = 1000)
+  ggsave(paste0(figurefolder, "rads_scatterplot_continental_", j, ".png"), plot=rads_plot, width = 15, height = 15, dpi = 600)
 }
 
 ################ Find out why 'Other sources' runs often don't work 
