@@ -60,7 +60,7 @@ source("vignettes/CaseStudies/02_get_Parameters.R")
 ```{r Make some figures to show the values chosen from the distributions}
 
 # load Parameters object from file if not already in memory
-load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241127.RData"))
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241130.RData"))
 
 Material_Parameters_n <- Parameters$Material_Parameters_n
 #Example of plot:
@@ -99,7 +99,7 @@ ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |>
   xlab(paste(PlotVariable))  + scale_x_log10() 
 
 # load Parameters object from file if not already in memory
-load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241127.RData"))
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241130.RData"))
 Material_Parameters_n <- Parameters$Material_Parameters_n
 PlotVariable = "alpha"
 ggplot(Material_Parameters_n |> filter(VarName == PlotVariable & Polymer == "ABS") |> unnest(data), aes(x=value,y=SubCompart)) +
@@ -189,7 +189,7 @@ source("vignettes/CaseStudies/HPC_batch_files.R")
 ## TRWP
 Example run of SimpleBox4Plastics and analysis of P species as TRWP, instead of S as TWP.
 ```{r SimpleBox4Plastics}
-load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241127.RData"))
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241130.RData"))
 # test Rho and RadCP for Rad and Rho of SAP species.
 source("baseScripts/initWorld_onlyPlastics.R")
 World$substance <- "TRWP"
