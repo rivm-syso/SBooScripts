@@ -12,15 +12,17 @@ mass_file_name <- "SB_Masses.RData"
 TW_file_name <- "SB_Tyre_wear_data.RData"
 Mat_file_name <- "SB_Material_parameters.RData"
 
+#plot_data_file_name <- "SB_plot_data.RData"
+
 # Load in the data
 if(env == "local"){
   data_path <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/" # Define path to plot data
   figurefolder <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figures/SB_plots/" # Define figure folder path
-  abs_path_Measurements <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/LEONT_WP3_results.xlsx"  # Define path to LEON-T data
+  abs_path_Measurements <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/LEONT_TNO_measurements_clean.xlsx"  # Define path to LEON-T data
 } else if(env == "OOD"){
   data_path <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/" # Define path to plot data
   figurefolder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figures/SB_plots/" # Define figure folder path
-  abs_path_Measurements <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/LEONT_WP3_results.xlsx" # Define path to LEON-T data
+  abs_path_Measurements <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/LEONT_TNO_measurements_clean.xlsx" # Define path to LEON-T data
 }
 
 # Load the data
@@ -28,13 +30,12 @@ load(paste0(data_path, mass_file_name))
 load(paste0(data_path, TW_file_name))
 load(paste0(data_path, Mat_file_name))
 
+#load(paste0(data_path, plot_data_file_name))
+
 # Load functions
 source("vignettes/CaseStudies/f_plot_functions.R")
 
-####################### Calculate concentrations from masses ###################
-
-source("baseScripts/initWorld_onlyPlastics.R")
-Matrix <- World$fetchData("Matrix")
+####################### Calculate number of complete runs ######################
 
 ### Get a dataframe with complete runs
 yearcount <- continental_polymer_data |>
@@ -48,16 +49,34 @@ yearcount <- continental_polymer_data |>
   filter(nyear == 101) |>
   select(Source, RUN, nyear)
 
+## Make a table with the number of complete runs per polymer for SI 6.3.3
+yearcountpolymer <- continental_polymer_data |>
+  group_by(Source, RUN, Polymer) |>
+  summarise(Year_count = n_distinct(Year), .groups = "drop") |>
+  mutate(complete = 
+           case_when(Year_count == 101 ~ 1,
+                     Year_count != 101 ~ 0)) |>
+  group_by(Source, Polymer) |>
+  summarise(Complete_runs = sum(complete))
+
+####################### Calculate concentrations from masses ###################
+
+source("baseScripts/initWorld_onlyPlastics.R")
+Matrix <- World$fetchData("Matrix")
+
 # Calculate concentrations for masses summed over polymers
 mass_conc_summed_over_pol <- 
   Solution_long_summed_over_pol |>
+  left_join(World$fetchData("Volume"), 
+          by=c("Scale", "SubCompart")) |>
+  # Change 'cloudwater' to 'air', and then sum the masses and volumes of these compartments together
   mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
   ungroup() |> 
   group_by(RUN, Source, Year, Scale, SubCompart) |>
-  summarise(Mass = sum(Mass)) |>
+  summarise(Mass = sum(Mass),
+            Volume = sum(Volume)) |>
   ungroup() |>
-  left_join(World$fetchData("Volume"), 
-            by=c("Scale", "SubCompart")) |>
+  # Calculate the concentrations
   mutate(conc_kg_m3 = Mass/Volume) |> 
   left_join(World$fetchData("FRACw"),
             by=c("Scale", "SubCompart")) |> 
@@ -85,8 +104,8 @@ mass_conc_summed_over_pol <-
   mutate(SubCompartName = paste0(SubCompart, " (", Unit, ")")) |>
   select(-c(conc_kg_m3, FRACw, FRACa, rhoMatrix, Matrix, Volume))
 
-mass_conc_summed_over_pol <- yearcount |>
-  left_join(mass_conc_summed_over_pol, by = c("RUN", "Source"))
+mass_conc_summed_over_pol <- mass_conc_summed_over_pol |>
+  inner_join(yearcount, by = c("RUN", "Source"))
 
 # Calculate concentrations for NR SBR dataframe
 NR_SBR_data <- NR_SBR_data |>
@@ -127,8 +146,8 @@ mass_conc_NR_SBR <- NR_SBR_data |>
   mutate(SubCompartName = paste0(SubCompart, " (", Unit, ")")) |>
   select(-c(conc_kg_m3, FRACw, FRACa, rhoMatrix, Matrix, Volume))
 
-mass_conc_NR_SBR <- yearcount |>
-  left_join(mass_conc_NR_SBR, by = c("RUN", "Source"))
+mass_conc_NR_SBR <- mass_conc_NR_SBR |>
+  inner_join(yearcount, by = c("RUN", "Source"))
 
 # Calculate concentrations for continental polymer data
 mass_conc_continental_polymer <- continental_polymer_data |>
@@ -166,8 +185,8 @@ mass_conc_continental_polymer <- continental_polymer_data |>
   mutate(SubCompartName = paste0(SubCompart, " (", Unit, ")")) |>
   select(-c(conc_kg_m3, FRACw, FRACa, rhoMatrix, Matrix, Volume))
 
-mass_conc_continental_polymer <- yearcount |>
-  left_join(mass_conc_continental_polymer, by = c("RUN", "Source"))
+mass_conc_continental_polymer <- mass_conc_continental_polymer |>
+  inner_join(yearcount, by = c("RUN", "Source"))
 
 # Calculate concentrations for SB_data_TW
 mass_conc_SB_data_TW <- SB_data_TW |>
@@ -205,8 +224,8 @@ mass_conc_SB_data_TW <- SB_data_TW |>
   mutate(SubCompartName = paste0(SubCompart, " (", Unit, ")")) |>
   select(-c(conc_kg_m3, FRACw, FRACa, rhoMatrix, Matrix, Volume))
 
-mass_conc_SB_data_TW <- yearcount |>
-  left_join(mass_conc_SB_data_TW, by = c("RUN", "Source"))
+mass_conc_SB_data_TW <- mass_conc_SB_data_TW |>
+  inner_join(yearcount, by = c("RUN", "Source"))
 
 nruns <- yearcount |>
   group_by(Source) |>
@@ -537,35 +556,31 @@ ggsave(paste0(figurefolder, "Concentration_plot_year_comparison.png"), plot=conc
 # Prepare the measurement data for plotting
 LEONT_TWP_data <- prep_LEONT_data(abs_path_Measurements) 
 
-subcomparts <- c(unique(LEONT_TWP_data$SubCompart), "agriculturalsoil")
+subcomparts <- unique(LEONT_TWP_data$SubCompart)
 
 # Prepare SimpleBox data for plotting
-mass_conc_SB_data_TW <- mass_conc_SB_data_TW |>
+mass_conc_SB_data_TW2 <- mass_conc_SB_data_TW |>
   mutate(Concentration = case_when(
-    SubCompart == "air" ~ Concentration/1000,
-    SubCompart == "river" ~ Concentration/1000,
+    SubCompart == "air" ~ Concentration*1000,
+    SubCompart == "river" ~ Concentration*1000,
     TRUE ~ Concentration
   )) |>
   mutate(Unit = case_when(
-    SubCompart == "air" ~ "g/m^3",
-    SubCompart == "river" ~ "g/L",
+    SubCompart == "air" ~ "µg/m^3",
+    SubCompart == "river" ~ "µg/L",
+    Unit == "g/kg dw" ~ "mg/g dw",
     TRUE ~ Unit
   )) |>
   mutate(SubCompartName = paste0(SubCompart, " (", Unit, ")" )) |>
   mutate(Polymer = "SBR + NR") |>
   mutate(source = "SimpleBox") |>
   filter(SubCompart %in% subcomparts) |>
-  select(colnames(LEONT_TWP_data)) |>
-  mutate(Unit = paste0("(", Unit, ")"))
+  mutate(Locatie = "SimpleBox") |>
+  select(colnames(LEONT_TWP_data)) 
 
 # Make plot comparing LEONT and SB data
-LEONT_SB_SBR_NR <- bind_rows(LEONT_TWP_data, mass_conc_SB_data_TW) |>
-  filter(Polymer == "SBR + NR") |>
-  mutate(SubCompartName = case_when(
-    SubCompart == "othersoil" ~ "roadsidesoil (g/kg dw)",
-    TRUE ~ SubCompartName
-  ),
-  SubCompartName = factor(SubCompartName, levels = c("air (g/m^3)", "freshwatersediment (g/kg dw)", "river (g/L)", "roadsidesoil (g/kg dw)", "agriculturalsoil (g/kg dw)")))
+LEONT_SB_SBR_NR <- bind_rows(LEONT_TWP_data, mass_conc_SB_data_TW2) |>
+  filter(Polymer == "SBR + NR") 
 
 # Concentration plot comparing tyre wear and other sources
 conc_LEONT_SB_SBR_NR <- ggplot(LEONT_SB_SBR_NR, aes(x = SubCompartName, y = Concentration, fill = source)) +  
@@ -599,6 +614,121 @@ conc_LEONT_SB_SBR_NR <- ggplot(LEONT_SB_SBR_NR, aes(x = SubCompartName, y = Conc
 print(conc_LEONT_SB_SBR_NR)
 
 ggsave(paste0(figurefolder, "SBR_NR_measurement_comparison",".png"), plot=conc_LEONT_SB_SBR_NR, width = 13, height = 23, dpi = 1000)
+
+#### Scatter plot comparing SB to measurements
+conc_LEONT_SB_SBR_NR_scatter <- ggplot(LEONT_SB_SBR_NR, aes(x = SubCompartName, y = Concentration, col = source)) + 
+  geom_jitter(position = position_jitterdodge(dodge.width = 0.8, jitter.width = 0.3, jitter.height = 0), alpha = 1) + 
+  labs(
+    title = paste0("SBR + NR concentrations at Regional scale, ", as.character(year)),
+    subtitle = paste0(TWruns, " runs for Tyre wear"),
+    x = "Compartment",
+    y = "Concentration"
+  ) +
+  plot_theme + # Cleaner theme
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + # Rotate x-axis labels for readability
+  scale_y_log10(
+    breaks = trans_breaks("log10", function(x) 10^x),
+    labels = trans_format("log10", math_format(10^.x))
+  ) +
+  annotation_logticks(
+    sides = "l",  
+    short = unit(0.07, "cm"),
+    mid = unit(0.07, "cm"),
+    long = unit(0.1, "cm"),
+    size = 0.25
+  ) +
+  theme(
+    legend.position = "bottom",   
+    panel.grid.major = element_line(color = "lightgrey", size = 0.7), # Major grid lines
+    panel.grid.minor = element_line(color = "lightgrey", size = 0.5)  # Minor grid lines
+  ) +
+  guides(fill = guide_legend(title = NULL))  # Remove legend title
+
+conc_LEONT_SB_SBR_NR_scatter
+  
+ggsave(paste0(figurefolder, "SBR_NR_measurement_comparison_scatter",".png"), plot=conc_LEONT_SB_SBR_NR_scatter, width = 20, height = 23, dpi = 1000)
+ 
+#### Color measurements by location
+conc_LEONT_SB_SBR_NR_scatter_location <- ggplot(LEONT_SB_SBR_NR, aes(x = SubCompartName, y = Concentration, col = Locatie, group = source)) + 
+  geom_jitter(position = position_jitterdodge(dodge.width = 0.8, jitter.width = 0.3, jitter.height = 0), alpha = 1, size=4) + 
+  labs(
+    title = paste0("SBR + NR concentrations at Regional scale, ", as.character(year)),
+    subtitle = paste0(TWruns, " runs for Tyre wear"),
+    x = "Compartment",
+    y = "Concentration"
+  ) +
+  plot_theme + # Cleaner theme
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + # Rotate x-axis labels for readability
+  scale_y_log10(
+    breaks = trans_breaks("log10", function(x) 10^x),
+    labels = trans_format("log10", math_format(10^.x))
+  ) +
+  annotation_logticks(
+    sides = "l",  
+    short = unit(0.07, "cm"),
+    mid = unit(0.07, "cm"),
+    long = unit(0.1, "cm"),
+    size = 0.25
+  ) +
+  theme(
+    legend.position = "bottom",   
+    panel.grid.major = element_line(color = "lightgrey", size = 0.7), # Major grid lines
+    panel.grid.minor = element_line(color = "lightgrey", size = 0.5)  # Minor grid lines
+  ) +
+  guides(fill = guide_legend(title = NULL))  # Remove legend title
+
+conc_LEONT_SB_SBR_NR_scatter_location
+
+ggsave(paste0(figurefolder, "SBR_NR_measurement_comparison_scatter_location",".png"), plot=conc_LEONT_SB_SBR_NR_scatter_location, width = 20, height = 23, dpi = 1000)
+
+#### Make plot with gradient color for radius
+Material_Parameters_rads <- Material_Parameters_long |>
+  filter(VarName == "RadS") |>
+  select(Unit, value, Polymer, RUN)
+
+NR_SBR_params <- mass_conc_NR_SBR |>
+  filter(Source == "Tyre wear") |>
+  left_join(Material_Parameters_rads, by = c("Polymer", "RUN"), relationship = "many-to-many")
+
+for(i in unique(NR_SBR_params$Polymer)){
+  Polymer_conc_rad <- NR_SBR_params |>
+    filter(Polymer == i) |>
+    filter(Scale == "Regional")
+  
+  NR_SBR_radius_scatter <- ggplot(Polymer_conc_rad, aes(x = SubCompartName, y = Concentration, col = value)) + 
+    geom_jitter(position = position_jitterdodge(dodge.width = 0.8, jitter.width = 0.5, jitter.height = 0.5), alpha = 1, size=3) + 
+    labs(
+      title = paste0(i, " concentrations at Regional scale, ", as.character(year)),
+      subtitle = paste0(TWruns, " runs for Tyre wear"),
+      x = "Particle radius (nm)",
+      y = "Concentration"
+    ) +
+    plot_theme + # Cleaner theme
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) + # Rotate x-axis labels for readability
+    scale_y_log10(
+      breaks = trans_breaks("log10", function(x) 10^x),
+      labels = trans_format("log10", math_format(10^.x))
+    ) +
+    annotation_logticks(
+      sides = "l",  
+      short = unit(0.07, "cm"),
+      mid = unit(0.07, "cm"),
+      long = unit(0.1, "cm"),
+      size = 0.25
+    ) +
+    theme(
+      legend.position = "bottom",   
+      panel.grid.major = element_line(color = "lightgrey", size = 0.7), # Major grid lines
+      panel.grid.minor = element_line(color = "lightgrey", size = 0.5)  # Minor grid lines
+    ) +
+    scale_color_gradient(low = "blue", high = "red")+
+    theme(legend.title = element_blank()) +
+    theme(legend.key.width = unit(5, "cm"))
+  
+  print(NR_SBR_radius_scatter)
+  
+  ggsave(paste0(figurefolder, i, "_radius_scatter",".png"), plot=NR_SBR_radius_scatter, width = 20, height = 23, dpi = 1000)
+}
 
 ################################### NR fraction ################################
 
@@ -703,9 +833,12 @@ for(j in unique(deg_conc_TW$Polymer)){
   deg_plot <- ggplot(deg_plot_data, aes(x=value, y=Concentration, color=SubCompart)) + 
     geom_point() +
     scale_color_discrete() +
-    ggtitle(paste0(j)) +
+    labs(title = j,
+         x = "Degradation rate constant (s^-1)",
+         y = "Concentration") +
     scale_x_log10() + 
-    scale_y_log10()
+    scale_y_log10() + 
+    plot_theme
   
   print(deg_plot)
   
@@ -732,9 +865,12 @@ for(j in unique(rads_conc_TW$Polymer)){
   rads_plot <- ggplot(rads_plot_data, aes(x=value, y=Concentration, color=SubCompart)) + 
     geom_point() +
     scale_color_discrete() +
-    ggtitle(paste0("RadS, ", j)) +
     scale_x_log10() + 
-    scale_y_log10()
+    scale_y_log10() + 
+    plot_theme +
+    labs(title = j,
+         x = "Particle radius (nm)",
+         y = "Concentration")
   
   print(rads_plot)
   
