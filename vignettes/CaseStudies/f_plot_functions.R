@@ -19,7 +19,7 @@ prep_LEONT_data <- function(abs_file_path){
     select(Locatie, TWP_AVG, Unit, SubCompart, SubCompartName) |>
     rename("Concentration" = "TWP_AVG") |>
     mutate(Polymer = "SBR + NR") |>
-    mutate(source = "LEONT measurement") |>
+    mutate(source = "LEON-T measurement") |>
     mutate(RUN = NA) |>
     mutate(Concentration = str_replace(Concentration, ",", ".")) |>
     mutate(Concentration = as.numeric(Concentration))
