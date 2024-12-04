@@ -830,7 +830,7 @@ for(j in unique(deg_conc_TW$Polymer)){
   deg_plot_data <- deg_conc_TW |>
     filter(Polymer == j)
   
-  deg_plot <- ggplot(deg_plot_data, aes(x=value, y=Concentration, color=SubCompart)) + 
+  deg_plot <- ggplot(deg_plot_data, aes(x=value, y=Concentration, color=SubCompartName)) + 
     geom_point() +
     scale_color_discrete() +
     labs(title = j,
@@ -838,14 +838,15 @@ for(j in unique(deg_conc_TW$Polymer)){
          y = "Concentration") +
     scale_x_log10() + 
     scale_y_log10() + 
-    plot_theme
+    plot_theme +
+    theme(legend.title = element_blank())
   
   print(deg_plot)
   
   ggsave(paste0(figurefolder, "kdeg_scatterplot_continental_", j, ".png"), plot=deg_plot, width = 15, height = 15, dpi = 600)
 }
 
-#################### Relation between concentration and kdeg ###################
+#################### Relation between concentration and rads for TW ###################
 
 rads <- Material_Parameters_long |>
   filter(VarName == "RadS") |>
@@ -862,7 +863,7 @@ for(j in unique(rads_conc_TW$Polymer)){
   rads_plot_data <- rads_conc_TW |>
     filter(Polymer == j)
   
-  rads_plot <- ggplot(rads_plot_data, aes(x=value, y=Concentration, color=SubCompart)) + 
+  rads_plot <- ggplot(rads_plot_data, aes(x=value, y=Concentration, color=SubCompartName)) + 
     geom_point() +
     scale_color_discrete() +
     scale_x_log10() + 
@@ -870,7 +871,42 @@ for(j in unique(rads_conc_TW$Polymer)){
     plot_theme +
     labs(title = j,
          x = "Particle radius (nm)",
-         y = "Concentration")
+         y = "Concentration") +
+    theme(legend.title = element_blank())
+  
+  print(rads_plot)
+  
+  ggsave(paste0(figurefolder, "rads_scatterplot_continental_", j, ".png"), plot=rads_plot, width = 15, height = 15, dpi = 600)
+}
+
+#################### Relation between concentration and rads for other pols ###################
+
+rads <- Material_Parameters_long |>
+  filter(VarName == "RadS") |>
+  filter(is.na(Source)) |>
+  select(-c(Scale, SubCompart, Species))
+
+rads_conc_Other <- mass_conc_continental_polymer |>
+  filter(Year == year) |>
+  filter(Source == "Other sources") |>
+  left_join(rads, by=c("Polymer", "RUN")) |>
+  filter(Scale == "Continental") |>
+  filter(!is.na(value))
+
+for(j in unique(rads_conc_Other$Polymer)){
+  rads_plot_data <- rads_conc_Other |>
+    filter(Polymer == j)
+  
+  rads_plot <- ggplot(rads_plot_data, aes(x=value, y=Concentration, color=SubCompartName)) + 
+    geom_point() +
+    scale_color_discrete() +
+    scale_x_log10() + 
+    scale_y_log10() + 
+    plot_theme +
+    labs(title = j,
+         x = "Particle radius (nm)",
+         y = "Concentration") +
+    theme(legend.title = element_blank())
   
   print(rads_plot)
   
