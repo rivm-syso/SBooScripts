@@ -317,7 +317,8 @@ Figure_18 <- ggplot(rads_plot_data, aes(x=value, y=Concentration, color=SubCompa
                       mid = unit(0.07, "cm"),
                       long = unit(0.1, "cm"),
                       size = 0.25) +
-  theme(legend.title = element_blank())
+  theme(legend.title = element_blank()) + 
+  guides(color = guide_legend(override.aes = list(size = 10)))
 
 Figure_18
 

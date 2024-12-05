@@ -146,12 +146,12 @@ sink_colors <- c(
 )
 
 to_comp_colors <- c(
-  "Agricultural soil" = "darkolivegreen3",
-  "Outdoor air" = "deepskyblue",
+  "Agricultural soil" = "#ff67a4",
+  "Outdoor air" = "purple",
   "Residential soil" = "chartreuse4",
   "Road side soil" = "azure4",
   "Surface water" = "cyan3",
-  "Sub-surface soil" = "chocolate4"
+  "Sub-surface soil" = "orange"
 )
 
 ##### 
@@ -266,7 +266,7 @@ Figure_15 <- ggplot(TW_mean_data, aes(x = Year, y = Mean, colour = To_Compartmen
                       long = unit(0.1, "cm"),
                       size = 0.25) +
   labs(x = "Year", y = "Mean microplastic emission (ton)", title = "Tyre wear emissions to environmental compartments") +
-  scale_color_manual(values = to_comp_colors)
+  scale_color_manual(values = to_comp_colors) 
 
 Figure_15
 
