@@ -9,7 +9,7 @@
 ## Initialize
 library(tidyverse)
 library(readxl)
-library(viridis)
+#library(viridis)
 library(scales)
 
 ## Define paths 
@@ -350,7 +350,9 @@ Figure_19 <- ggplot(NR_fraction_over_time, mapping = aes(x = Year, y = fraction_
   labs(
     title = paste0("Mean natural rubber fraction at Continental scale"),
     x = "Year",
-    y = paste0("Fraction")) +  plot_theme
+    y = paste0("Fraction")) +  
+  plot_theme +
+  theme(legend.title = "Subcompartment")
 
 Figure_19
 
@@ -486,17 +488,17 @@ Figure_S1
 
 ggsave(paste0(figurefolder, "Figure_S1",".png"), plot=Figure_S1, width = 20, height = 15, dpi = 1000)
 
-## Figure S3
-Figure_S3 <- ggplot(NR_SBR_fractions, aes(x=NR_fraction)) +
+## Figure S2
+Figure_S2 <- ggplot(NR_SBR_fractions, aes(x=NR_fraction)) +
   geom_histogram(color="black", fill="white") +
   plot_theme +
   xlab("NR fraction") +
   ylab("Count") +
   ggtitle("NR fraction distribution")
 
-Figure_S3
+Figure_S2
 
-ggsave(paste0(figurefolder, "Figure_S3",".png"), plot=Figure_S3 , width = 20, height = 15, dpi = 1000)
+ggsave(paste0(figurefolder, "Figure_S2",".png"), plot=Figure_S2 , width = 20, height = 15, dpi = 1000)
 
 #####
 ## Table S18

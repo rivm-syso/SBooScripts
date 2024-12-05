@@ -174,13 +174,6 @@ Figure_12 <- ggplot(TW_other, aes(x = Scale, y = Mass_Polymer_t, fill=TW_class))
   labs(x = "",
        y = "Microplastic emissions (ton)")+
   coord_flip() +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  annotation_logticks(sides="b",  
-                      short = unit(0.07, "cm"),
-                      mid = unit(0.07, "cm"),
-                      long = unit(0.1, "cm"),
-                      size = 0.25) +
   plot_theme 
 
 Figure_12
@@ -243,13 +236,6 @@ Figure_14 <- ggplot(TW_data, aes(x = To_Compartment, y = Mass_Polymer_t, fill=To
   scale_y_log10(labels = scales::number_format())+          
   labs(x = "", y = "Microplastic emissions (ton)") +                   # Adjust labels
   coord_flip() +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  annotation_logticks(sides="b",  
-                      short = unit(0.07, "cm"),
-                      mid = unit(0.07, "cm"),
-                      long = unit(0.1, "cm"),
-                      size = 0.25) +
   plot_theme 
 
 Figure_14
@@ -288,7 +274,7 @@ ggsave(paste0(Figure_folder, "Figure_15", ".png"), plot=Figure_15,
        width = 20, height = 10)
 
 #####
-## Figure S2
+## Figure S3
 palette_name <-"RdYlBu"
 
 # Calculate mean flows for TW
@@ -348,7 +334,7 @@ sankey <- sankeyNetwork(Links = links,
 
 sankey 
 
-filename<- "Figure_S2"
+filename<- "Figure_S3"
 
 # Save the sankey diagram as an HTML file
 html_file <- paste0(Figure_folder, filename, ".html")
