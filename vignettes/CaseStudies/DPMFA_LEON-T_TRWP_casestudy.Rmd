@@ -324,7 +324,7 @@ for(Bfile in BatchFiles){
 Once the batch scripts have been run, the data can be bound together. This is done
 using the a script that binds data in parallel, as this saves time. 
 
-Needed packages : 
+Needed packages: 
 - tidyverse
 - stringr
 - doParallel
@@ -333,3 +333,37 @@ Needed packages :
 source("vignettes/CaseStudies/04_bind_data_parallel.R")
 
 ```
+
+# Make figures from SimpleBox output
+The script below was used to create the SimpleBox output figures as in LEON-T
+Deliverable 3.5. Before running, change the paths to the RDatafiles created in 
+script 04 to where the files are located on your computer. 
+
+Needed packages: 
+- tidyverse
+- readxl
+- scales
+
+```{r 05: Make SimpleBox output figures}
+source("vignettes/CaseStudies/05_SimpleBox_figures_D3.5.R")
+
+```
+
+# Prepare the DPMFA emission output for plotting
+Before being able to make figures from the DPMFA emission output data, the data 
+is converted to smaller datasets that RStudio is better able to handle. 
+
+```{r 06: Prepare emission data}
+source("vignettes/CaseStudies/06_save_emission_figure_data.R")
+
+```
+
+# Make emission output figures
+This script was used to make the DPMFA output figures. Please change the filepaths 
+at the beginning of the script to the 
+
+```{r 08: Make DPMFA output figures}
+source("vignettes/CaseStudies/08_emission_figures_D3.5.R")
+
+```
+
