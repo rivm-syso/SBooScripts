@@ -12,13 +12,15 @@ SimpleBox (SBoo) has specific solvers available that allow running the model det
 1.  UncertainSolver for running the model n times calculating steady state output (mass/concentration)
 2.  UncertainDynamicSolver for running the model n times calculating dynamic output
 
-For both the world needs to be initialized first, in this case for only the Molecular species.
+For both the world needs to be initialized first, in this case for only the Molecular species, and init the UncertainSolver.
 
 ```{r Initialize World, warning=FALSE, message=FALSE}
 
 library(tidyverse)
 
-source("baseScripts/initWorld_onlyMolec.R")
+source("baseScripts/initWorld_onlyMolec.R") # creates World
+
+World$NewSolver("UncertainSolver")
 ```
 
 ## 1. Probabilistic Solver - Steady state
@@ -34,13 +36,85 @@ Method 1 will be explained first, then method 2.
 
 #### Create tibble with samples for uncertain variables
 
-The first step is to determine the number of uncertain variables, the number of compartments that have emissions and the number of runs.
+The first step is to determine the independent uncertain variables, including emissions, and the number of runs. Each independent variable is sampled using latin hypercube sampling (lhs), which is efficient, but creates samples in the 0 - 1 range. Each variable needs a function to transpose the 0 - 1 sample to the proper range and distribution. We have a convenience method to help create for instance triangular functions.
+
+```{r Define triangular distribution function, warning=FALSE, message=FALSE}
+triangular_cdf_inv <- World$Make_inv_unif01(fun_type = "triangular", pars = list (a=0.5, b=1.5, c=1))
+par(mfrow = c(1, 2))
+curve(triangular_cdf_inv, from = 0, to = 1)
+#check sampling 
+hist(triangular_cdf_inv(runif(5000)), breaks = 40)
+par(mfrow = c(1, 2))
+```
+
+##### Prepare variable samples
+
+Now we are ready to prepare the variable data and define the min, max and peak value of the distribution for each variable.
+
+In this example the following three variables are used:
+
+1.  TODO
+2.  TODO
+3.  TODO
+
+In the chunk below, the name, scale, subcompartment, min, max and peak value are defined for each variable, based on the values in the 'World'.
+
+```{r Get min, max and peak value of variable values, warning=FALSE, message=FALSE}
+# Define the names of the uncertain variables
+
+Boxvars <- data.frame( # TODO? "waarde"
+  varName = "kdeg",
+  SubCompart = c("river", "air", "agriculturalsoil")
+) |> World$fetch_current()
+
+
+Boxvars <- Boxvars |>
+  mutate(
+    a = waarde*0.5,
+    b = waarde*1.5) 
+
+#Define funs
+varFuns <- apply(Boxvars, 1, function(aRow){
+  World$Make_inv_unif01("triangular", as.list(aRow[c("a", "b", "waarde")]))
+})
+
+```
+
+##### Prepare emission data
+
+In this example, we will take a steady state emission data frame as the starting point for creating the triangular distributions. You could also directly enter the min, max and peak values if you have them.
+
+```{r Create steady state emission dataframe, warning=FALSE, message=FALSE}
+# Create the steady state emission dataframe
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: kg/s
+
+MW <- World$fetchData("MW")
+
+emissions <- emissions |>
+  mutate(Emis = Emis*1000/(365*24*60*60)) 
+
+```
+
+
+Now that the emission data frame is made, we can scale the samples we took earlier to the triangular distribution just like we did for the variables.
+
+```{r Scale the emissions to the distributions, warning=FALSE, message=FALSE}
+
+emissions$a <- emissions$Emis * 0.7
+emissions$b <- emissions$Emis * 1.3
+
+emisFuns <- apply(rowwise(emissions) |> select(a, b, Emis), 1, function(therow){
+  World$Make_inv_unif01("triangular", as.list(therow))
+})
+
+```
+
 
 ```{r Create samples, warning=FALSE, message=FALSE}
 library(lhs)
 
-n_vars <- 3 # The number of variables you want to create a distribution for
-n_emiscomps <- 3 # The number of compartments that have emissions
+n_vars <- length(varFuns) # The number of variables you want to create a distribution for
+n_emiscomps <- length(emisFuns) # The number of compartments that have emissions
 n_samples <- 100 # The number of samples you want to pull from the distributions for each variable
 
 n_lhs <- n_vars + n_emiscomps # Total number of vectors to create with latin hypercube sampling (lhs)
@@ -52,71 +126,35 @@ lhs_samples_vars <- lhs_samples[, 1:n_vars]
 lhs_samples_emis <- lhs_samples[, (n_vars + 1):ncol(lhs_samples)]
 ```
 
-The lhs samples are pulled from a uniform distribution between 0 and 1. So these numbers have to be scaled to the real values you want to use, and it is possible to transform this uniform distribution to a different distribution. In this example, a triangular distribution will be used.
+If you think your variables are correlated you can use:
+```{r}
+# Define the desired correlation matrix
+desired_correlation <- matrix(c(1, 0.8, 0.5,
+                                0.8, 1, 0.3,
+                                0.5, 0.3, 1), nrow = 3)
 
-Define triangular distribution function:
+# Perform Cholesky decomposition on the desired correlation matrix
+L <- chol(desired_correlation)
 
-```{r Define triangular distribution function, warning=FALSE, message=FALSE}
-# Triangular distribution function
-triangular_cdf_inv <- function(u, # LH scaling factor
-                               a, # Minimum
-                               b, # Maximum
-                               c) { # Peak value
-  ifelse(u < (c-a)/(b-a),
-         a + sqrt(u * (b-a) * (c-a)),
-         b - sqrt((1-u) * (b-a) * (b-c)))
-}
+# Transform the LHS samples to have the desired correlation structure
+correlated_samples <- lhs_samples_vars %*% L
+#TODO now values are out of the 0-1 range! ????
+
 ```
 
-##### Prepare variable samples
+#### Solve
 
-Now we are ready to prepare the variable data and define the min, max and peak value of the distribution for each variable.
+The UncertainSolver is needed to apply simplebox probabilistically using a tibble with nested samples.
 
-In this example the following three variables are used:
+```{r Solve, warning=FALSE, message=FALSE}
 
-1.  Area for regional sea
-2.  Area for regional river
-3.  Erosion of agricultural soil
+solved <- World$Solve(emissions, lhsFuns, needdebug = F, sample_df)
 
-In the chunk below, the name, scale, subcompartment, min, max and peak value are defined for each variable.
-
-```{r Get min, max and peak value of variable values, warning=FALSE, message=FALSE}
-# Define the names of the uncertain variables
-var1Name <- "kdeg"
-
-var1 <- World$fetchData(var1Name) |>
-  mutate(Scale = NA) |>
-  filter(SubCompart == "river")
-
-# Set the parameters for the triangular distribution
-var1$a <- var1$kdeg*0.5    # Minimum value
-var1$b <- var1$kdeg*1.5    # Maximum value
-var1$c <- var1$kdeg        # peak value (peak)
-
-# Define the names of the uncertain variables
-var2Name <- "kdeg"
-
-var2 <- World$fetchData(var2Name) |>
-  mutate(Scale = NA) |>
-  filter(SubCompart == "air")
-
-# Set the parameters for the triangular distribution
-var2$a <- var2$kdeg*0.5    # Minimum value
-var2$b <- var2$kdeg*1.5    # Maximum value
-var2$c <- var2$kdeg         # peak value (peak)
-
-# Define the names of the uncertain variables
-var3Name <- "kdeg"
-
-var3 <- World$fetchData(var3Name) |>
-  filter(SubCompart == "agriculturalsoil") |>
-  mutate(Scale = NA)
-
-# Set the parameters for the triangular distribution
-var3$a <- var3$kdeg*0.5    # Minimum value
-var3$b <- var3$kdeg*1.5    # Maximum value
-var3$c <- var3$kdeg         # peak value (peak)
 ```
+
+
+
+
 
 Now this data needs to be combined into a tibble, and the function for the triangular distribution written earlier is applied to the tibble. The result is a nested tibble, containing the name, scale and subcompartment for each variable, and the sample data is nested.
 
@@ -150,104 +188,8 @@ for (i in 1:n_vars) {
 }
 ```
 
-##### Prepare emission data
 
-In this example, we will take a steady state emission data frame as the starting point for creating the triangular distributions. You could also directly enter the min, max and peak values if you have them.
 
-```{r Create steady state emission dataframe, warning=FALSE, message=FALSE}
-# Create the steady state emission dataframe
-emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: kg/s
-
-MW <- World$fetchData("MW")
-
-emissions <- emissions |>
-  mutate(Emis = Emis*1000/(365*24*60*60)) 
-
-```
-
-Now that the emission data frame is made, we can scale the samples we took earlier to the triangular distribution just like we did for the variables.
-
-```{r Scale the emissions to the distributions, warning=FALSE, message=FALSE}
-
-# Define the names of the uncertain variables
-comp1Name <- "aRU"
-
-comp1 <-  emissions |>
-  filter(Abbr == comp1Name)
-
-# Set the parameters for the triangular distribution
-comp1$a <- comp1$Emis*0.7    # Minimum value
-comp1$b <- comp1$Emis*1.3    # Maximum value
-comp1$c <- comp1$Emis        # peak value (peak)
-
-comp1 <- comp1 |>
-  select(-Emis)
-
-# Define the names of the uncertain variables
-comp2Name <- "s2RU"
-
-comp2 <-  emissions |>
-  filter(Abbr == comp2Name)
-
-# Set the parameters for the triangular distribution
-comp2$a <- comp2$Emis*0.7    # Minimum value
-comp2$b <- comp2$Emis*1.3    # Maximum value
-comp2$c <- comp2$Emis        # peak value (peak)
-
-comp2 <- comp2 |>
-  select(-Emis)
-
-# Define the names of the uncertain variables
-comp3Name <- "w1RU"
-
-comp3 <-  emissions |>
-  filter(Abbr == comp3Name)
-
-# Set the parameters for the triangular distribution
-comp3$a <- comp3$Emis*0.7    # Minimum value
-comp3$b <- comp3$Emis*1.3    # Maximum value
-comp3$c <- comp3$Emis        # peak value (peak)
-
-comp3 <- comp3 |>
-  select(-Emis)
-
-params <- tibble(
-  Abbr = c(comp1Name, comp2Name, comp3Name),
-  Emis = list(
-    tibble(id = c("a", "b", "c"), value = c(comp1$a, comp1$b, comp1$c)),
-    tibble(id = c("a", "b", "c"), value = c(comp2$a, comp2$b, comp2$c)),
-    tibble(id = c("a", "b", "c"), value = c(comp3$a, comp3$b, comp3$c))
-  )
-)
-
-emis_df <- params
-
-# Transform each LHS sample column to the corresponding triangular distribution
-for (i in 1:n_emiscomps) {
-  a <- filter(params$Emis[[i]], id == "a") %>% pull(value)
-  b <- filter(params$Emis[[i]], id == "b") %>% pull(value)
-  c <- filter(params$Emis[[i]], id == "c") %>% pull(value)
-  
-  samples <- triangular_cdf_inv(lhs_samples_emis[, i], a, b, c)
-  
-  # Create a new tibble for 'data' with samples replacing original values
-  new_data <- tibble(value = samples)
-  
-  # Update the data column in the sample_df
-  emis_df$Emis[[i]] <- new_data
-}
-
-```
-
-#### Solve
-
-The UncertainSolver is needed to apply simplebox probabilistically using a tibble with nested samples.
-
-```{r Solve, warning=FALSE, message=FALSE}
-World$NewSolver("UncertainSolver")
-solved <- World$Solve(emis_df, needdebug = F, sample_df)
-
-```
 
 # Make plots for every variable
 
