@@ -249,43 +249,50 @@ solved <- World$Solve(tmax = tmax, emissions, needdebug = F)
 ```
 
 ## Prepare the output for plotting
+A few things happen in the chunk below: 
+- The matrix is converted to a tibble
+- The tibble is converted from wide to long format
+- Year is calculated from time in seconds
+- Based on the column Abbr, the States dataframe is joined to the tibble
 
 ```{r}
-solved <- as.tibble(solved)
+solved <- as.tibble(solved) 
 
 solved_long <- solved |>
   select(!starts_with("emis")) |>
   pivot_longer(!time, names_to = "Abbr", values_to = "Mass") |>
-  mutate(Year = time/(365.25*24*60*60))
-
-solved_long_regional <- solved_long |>
-  filter(str_detect(Abbr, "R"))
-
-solved_long_continental <- solved_long |>
-  filter(str_detect(Abbr, "C"))
+  mutate(Year = time/(365.25*24*60*60)) |>
+  left_join(World$states$asDataFrame, by="Abbr") # Join the abbreviations to more understandable Scale, SubCompart and Species
 
 ```
 
-## Plot the dynamic masses
+## Plot the dynamic masses at specific scales
+The scales to choose from are "Regional", "Continental", "Moderate", "Tropic" and "Arctic".
 
 ```{r}
-# Plot masses on regional scale
-mass_plot_regional <- ggplot(solved_long_regional, aes(x=Year, y=Mass, col=Abbr)) + 
-  geom_line() +
-  ylab("Mass (kg)") +
-  theme_bw() +
-  ggtitle("Masses over time at regional scale")
 
-mass_plot_regional
+plot_scale <- function(mass_dataframe, scale){
+  # Filter masses for the specific scale
+  mass_data_scale <- mass_dataframe |>
+    filter(Scale == scale)
+  
+  # Plot masses on the specific scale
+  mass_plot <- ggplot(solved_long_regional, aes(x=Year, y=Mass, col=SubCompart)) + 
+    geom_line() +
+    ylab("Mass (kg)") +
+    theme_bw() +
+    ggtitle(paste0("Masses over time at ", scale, " scale")) +
+    scale_y_continuous() +
+    scale_x_continuous()
+  
+  return(mass_plot)
+}
 
-# Plot masses on continental scale
-mass_plot_continental <- ggplot(solved_long_continental, aes(x=Year, y=Mass, col=Abbr)) + 
-  geom_line() +
-  ylab("Mass (kg)") +
-  theme_bw()  +
-  ggtitle("Masses over time at continental scale")
+# Plot data for regional scale
+regional_plot <- plot_scale(solved_long, "Regional")
+print(regional_plot)
 
-mass_plot_continental
-
+# Plot data for continental scale
+continental_plot <- plot_scale(solved_long, "Continental")
+print(continental_plot)
 ```
-
