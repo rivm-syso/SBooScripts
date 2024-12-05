@@ -18,7 +18,6 @@ library(networkD3)
 library(webshot)
 library(jsonlite)
 library(viridis)
-#webshot::install_phantomjs()
 
 Figure_folder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figures/Emission_plots/"
 MFAtype <- "DPMFA"
