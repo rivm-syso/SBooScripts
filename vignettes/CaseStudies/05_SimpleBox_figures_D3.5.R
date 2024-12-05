@@ -271,7 +271,7 @@ Figure_17 <- ggplot(conc_plot_data, mapping = aes(x = SubCompartName, y = Concen
   theme(legend.position = "bottom") +   
   guides(fill = guide_legend(title = NULL))
 
-print(Figure_17)
+Figure_17
 
 ggsave(paste0(figurefolder, "Figure_17", ".png"), plot=Figure_17, width = 25, height = 15, dpi = 1000)
 
@@ -319,7 +319,7 @@ Figure_18 <- ggplot(rads_plot_data, aes(x=value, y=Concentration, color=SubCompa
                       size = 0.25) +
   theme(legend.title = element_blank())
 
-print(Figure_18)
+Figure_18
 
 ggsave(paste0(figurefolder, "Figure_18", ".png"), plot=Figure_18, width = 15, height = 15, dpi = 600)
 
@@ -352,7 +352,7 @@ Figure_19 <- ggplot(NR_fraction_over_time, mapping = aes(x = Year, y = fraction_
     x = "Year",
     y = paste0("Fraction")) +  plot_theme
 
-print(Figure_19)
+Figure_19
 
 ggsave(paste0(figurefolder, "Figure_19.png"), plot=Figure_19, width = 25, height = 15, dpi = 1000) 
 
@@ -395,7 +395,7 @@ Figure_20 <- ggplot(plotdata, mapping = aes(x = Year, y = Mean_Concentration, co
   ) +
   plot_theme
 
-print(Figure_20)
+Figure_20
 
 ggsave(paste0(figurefolder, "Figure_20",".png"), plot=Figure_20, width = 25, height = 15, dpi = 1000) 
 
