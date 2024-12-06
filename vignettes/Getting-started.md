@@ -1,11 +1,38 @@
 Getting started
 ================
 Anne Hids
-2024-07-18
+2024-12-06
 
 ## Initialize
 
 This vignette demonstrates how to use SimpleBox Object-Oriented (SBOO).
+
+Before starting, make sure your working directory is set to the
+SBooScripts folder.
+
+### See if required packages are installed
+
+``` r
+check_and_install <- function(package) {
+  tryCatch({
+    # Load the package
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "is already installed and loaded."))
+  }, error = function(e) {
+    # If an error occurs, install the package
+    message(paste("Package", package, "is not installed. Installing now..."))
+    install.packages(package, dependencies = TRUE)
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "has been successfully installed and loaded."))
+  })
+}
+
+# Install the required packages
+check_and_install("ggplot2")
+check_and_install("tidyverse")
+check_and_install("constants")
+check_and_install("deSolve")
+```
 
 ### Choose a substance
 
@@ -16,8 +43,7 @@ can be chosen from the “Substance” column of the data frame created
 below.
 
 ``` r
-#substances <- read.csv("data/Substances.csv")
-substances <- read.csv("~/GitHub/SimpleBox/SBooScripts/data/Substances.csv")
+substances <- read.csv("data/Substances.csv")
 
 # Assign a substance name from the Substance column to the variable "substance":
 substance <- "1-aminoanthraquinone"
@@ -44,20 +70,7 @@ and run based on the chosen substance:
 
 ``` r
 library(tidyverse)
-```
 
-    ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-    ## ✔ dplyr     1.1.4     ✔ readr     2.1.5
-    ## ✔ forcats   1.0.0     ✔ stringr   1.5.1
-    ## ✔ ggplot2   3.5.1     ✔ tibble    3.2.1
-    ## ✔ lubridate 1.9.3     ✔ tidyr     1.3.1
-    ## ✔ purrr     1.0.2     
-    ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-    ## ✖ dplyr::filter() masks stats::filter()
-    ## ✖ dplyr::lag()    masks stats::lag()
-    ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
-
-``` r
 chemclass <- substances |>
   filter(Substance == substance) |>
   select(ChemClass)
@@ -72,23 +85,6 @@ if(substance == "microplastic"){
   source("baseScripts/initWorld_onlyMolec.R")
 }
 ```
-
-    ## 
-    ## Attaching package: 'ggdag'
-    ## 
-    ## The following object is masked from 'package:stats':
-    ## 
-    ##     filter
-    ## 
-    ## 
-    ## Attaching package: 'rlang'
-    ## 
-    ## The following objects are masked from 'package:purrr':
-    ## 
-    ##     %@%, flatten, flatten_chr, flatten_dbl, flatten_int, flatten_lgl,
-    ##     flatten_raw, invoke, splice
-    ## 
-    ## Joining with `by = join_by(Matrix)`Joining with `by = join_by(Compartment)`
 
 ## Accessing variables and k’s
 
@@ -116,97 +112,93 @@ print(varnames)
     ##  [23] "ColRad"                    "Compartment"              
     ##  [25] "ContinentalInModerate"     "Corg"                     
     ##  [27] "CORG.susp"                 "CorgStandard"             
-    ##  [29] "D"                         "DefaultFRACarea"          
-    ##  [31] "DefaultNETsedrate"         "DefaultpH"                
-    ##  [33] "Description"               "Df"                       
-    ##  [35] "Dimension"                 "dischargeFRAC"            
-    ##  [37] "DragMethod"                "DynViscAirStandard"       
-    ##  [39] "DynViscWaterStandard"      "Ea.OHrad"                 
-    ##  [41] "epsilon"                   "Erosion"                  
-    ##  [43] "EROSIONsoil"               "FlowName"                 
-    ##  [45] "forWhich"                  "FRACa"                    
-    ##  [47] "FRACcldw"                  "FRACinf"                  
-    ##  [49] "FracROWatComp"             "FRACrun"                  
-    ##  [51] "FRACs"                     "FRACsea"                  
-    ##  [53] "FRACtwet"                  "FRACw"                    
-    ##  [55] "FricVel"                   "FRinaers"                 
-    ##  [57] "FRinaerw"                  "FRingas"                  
-    ##  [59] "FRinw"                     "fromScale"                
-    ##  [61] "fromSubCompart"            "FRorig"                   
-    ##  [63] "FRorig_spw"                "gamma.surf"               
-    ##  [65] "H0sol"                     "hamakerSP.w"              
-    ##  [67] "Intermediate_side"         "k_Adsorption"             
-    ##  [69] "k_CWscavenging"            "k_Deposition"             
-    ##  [71] "k_DryDeposition"           "k_HeteroAgglomeration.a"  
-    ##  [73] "k_HeteroAgglomeration.wsd" "k_Leaching"               
-    ##  [75] "k_Removal"                 "k_Runoff"                 
-    ##  [77] "k_Volatilisation"          "k_WetDeposition"          
-    ##  [79] "k0.OHrad"                  "Kacompw"                  
-    ##  [81] "Kaers"                     "Kaerw"                    
-    ##  [83] "Kaw25"                     "kdeg"                     
-    ##  [85] "KdegDorC"                  "Kow"                      
-    ##  [87] "Kow_default"               "Kp"                       
-    ##  [89] "Kp.col"                    "Kp.sed"                   
-    ##  [91] "Kp.soil"                   "Kp.susp"                  
-    ##  [93] "KpCOL"                     "Kscompw"                  
-    ##  [95] "Ksdcompw"                  "Ksw"                      
-    ##  [97] "Ksw.alt"                   "KswDorC"                  
-    ##  [99] "kwsd"                      "kwsd.sed"                 
-    ## [101] "kwsd.water"                "LakeFracRiver"            
-    ## [103] "landFRAC"                  "Longest_side"             
-    ## [105] "Mackay1"                   "Mackay2"                  
-    ## [107] "Matrix"                    "MaxPvap"                  
-    ## [109] "MOLMASSAIR"                "MTC_2a"                   
-    ## [111] "MTC_2s"                    "MTC_2sd"                  
-    ## [113] "MTC_2w"                    "MW"                       
-    ## [115] "NaturalPart"               "NETsedrate"               
-    ## [117] "NotInGlobal"               "NumConcAcc"               
-    ## [119] "NumConcCP"                 "NumConcNuc"               
-    ## [121] "OceanCurrent"              "OtherkAir"                
-    ## [123] "outdated"                  "outdated.1"               
-    ## [125] "outdated.2"                "penetration_depth_s"      
-    ## [127] "pH"                        "pKa"                      
-    ## [129] "Porosity"                  "Pvap25"                   
-    ## [131] "Pvap25_default"            "Q.10"                     
-    ## [133] "QSAR.ChemClass"            "QSAR.ChemClass"           
-    ## [135] "rad_species"               "RadCOL"                   
-    ## [137] "RadCP"                     "RadNuc"                   
-    ## [139] "RadS"                      "RainOnFreshwater"         
-    ## [141] "RAINrate"                  "relevant_depth_s"         
-    ## [143] "rho_species"               "RhoCOL"                   
-    ## [145] "RhoCP"                     "rhoMatrix"                
-    ## [147] "RhoNuc"                    "RhoS"                     
-    ## [149] "Runoff"                    "ScaleIsGlobal"            
-    ## [151] "ScaleName"                 "ScaleOrder"               
-    ## [153] "SettlingVelocity"          "SettlVelocitywater"       
-    ## [155] "Shape"                     "Shear"                    
-    ## [157] "Shortest_side"             "Sol25"                    
-    ## [159] "SpeciesName"               "SpeciesOrder"             
-    ## [161] "SubCompartName"            "SubCompartOrder"          
-    ## [163] "subFRACa"                  "subFRACs"                 
-    ## [165] "subFRACw"                  "Substance"                
-    ## [167] "SUSP"                      "t_half_Escape"            
-    ## [169] "T25"                       "table"                    
-    ## [171] "TAUsea"                    "tdry"                     
-    ## [173] "Temp"                      "Tempfactor"               
-    ## [175] "Test"                      "Tm"                       
-    ## [177] "Tm_default"                "toScale"                  
-    ## [179] "ToSI"                      "toSubCompart"             
-    ## [181] "TotalArea"                 "twet"                     
-    ## [183] "Udarcy"                    "Unit"                     
-    ## [185] "Unit"                      "VarName"                  
-    ## [187] "VarName"                   "VertDistance"             
-    ## [189] "Volume"                    "Waarde"                   
-    ## [191] "WINDspeed"                 "X"                        
-    ## [193] "X"                         "X"                        
-    ## [195] "X"                         "X.1"                      
-    ## [197] "X.1"                       "x_Advection_Air"          
-    ## [199] "x_ContRiver2Reg"           "x_ContSea2Reg"            
-    ## [201] "x_FromModerate2ArctWater"  "x_FromModerate2ContWater" 
-    ## [203] "x_FromModerate2TropWater"  "x_LakeOutflow"            
-    ## [205] "x_OceanMixing2Deep"        "x_OceanMixing2Sea"        
-    ## [207] "x_RegSea2Cont"             "x_RiverDischarge"         
-    ## [209] "x_ToModerateWater"
+    ##  [29] "D"                         "DefaultNETsedrate"        
+    ##  [31] "Description"               "Df"                       
+    ##  [33] "Dimension"                 "dischargeFRAC"            
+    ##  [35] "DragMethod"                "DynViscAirStandard"       
+    ##  [37] "DynViscWaterStandard"      "Ea.OHrad"                 
+    ##  [39] "epsilon"                   "Erosion"                  
+    ##  [41] "EROSIONsoil"               "FlowName"                 
+    ##  [43] "forWhich"                  "FRACa"                    
+    ##  [45] "FRACcldw"                  "FRACinf"                  
+    ##  [47] "FracROWatComp"             "FRACrun"                  
+    ##  [49] "FRACs"                     "FRACsea"                  
+    ##  [51] "FRACtwet"                  "FRACw"                    
+    ##  [53] "FricVel"                   "FRinaers"                 
+    ##  [55] "FRinaerw"                  "FRingas"                  
+    ##  [57] "FRinw"                     "fromScale"                
+    ##  [59] "fromSubCompart"            "FRorig"                   
+    ##  [61] "FRorig_spw"                "gamma.surf"               
+    ##  [63] "H0sol"                     "hamakerSP.w"              
+    ##  [65] "Intermediate_side"         "k_Adsorption"             
+    ##  [67] "k_CWscavenging"            "k_Deposition"             
+    ##  [69] "k_DryDeposition"           "k_HeteroAgglomeration.a"  
+    ##  [71] "k_HeteroAgglomeration.wsd" "k_Leaching"               
+    ##  [73] "k_Removal"                 "k_Runoff"                 
+    ##  [75] "k_Volatilisation"          "k_WetDeposition"          
+    ##  [77] "k0.OHrad"                  "Kacompw"                  
+    ##  [79] "Kaers"                     "Kaerw"                    
+    ##  [81] "Kaw25"                     "kdeg"                     
+    ##  [83] "KdegDorC"                  "kdis"                     
+    ##  [85] "Kow"                       "Kp"                       
+    ##  [87] "Kp.col"                    "Kp.sed"                   
+    ##  [89] "Kp.soil"                   "Kp.susp"                  
+    ##  [91] "KpCOL"                     "Kscompw"                  
+    ##  [93] "Ksdcompw"                  "Ksw"                      
+    ##  [95] "Ksw.alt"                   "KswDorC"                  
+    ##  [97] "kwsd"                      "kwsd.sed"                 
+    ##  [99] "kwsd.water"                "LakeFracRiver"            
+    ## [101] "landFRAC"                  "Longest_side"             
+    ## [103] "Mackay1"                   "Mackay2"                  
+    ## [105] "Matrix"                    "MaxPvap"                  
+    ## [107] "MTC_2a"                    "MTC_2s"                   
+    ## [109] "MTC_2sd"                   "MTC_2w"                   
+    ## [111] "MW"                        "NaturalPart"              
+    ## [113] "NETsedrate"                "NotInGlobal"              
+    ## [115] "NumConcAcc"                "NumConcCP"                
+    ## [117] "NumConcNuc"                "OceanCurrent"             
+    ## [119] "OtherkAir"                 "penetration_depth_s"      
+    ## [121] "pH"                        "pKa"                      
+    ## [123] "Porosity"                  "Pvap25"                   
+    ## [125] "Q.10"                      "QSAR.ChemClass"           
+    ## [127] "QSAR.ChemClass"            "rad_species"              
+    ## [129] "RadCOL"                    "RadCP"                    
+    ## [131] "RadNuc"                    "RadS"                     
+    ## [133] "RainOnFreshwater"          "RAINrate"                 
+    ## [135] "relevant_depth_s"          "rho_species"              
+    ## [137] "RhoCOL"                    "RhoCP"                    
+    ## [139] "rhoMatrix"                 "RhoNuc"                   
+    ## [141] "RhoS"                      "Runoff"                   
+    ## [143] "ScaleIsGlobal"             "ScaleName"                
+    ## [145] "ScaleOrder"                "SettlingVelocity"         
+    ## [147] "SettlVelocitywater"        "Shape"                    
+    ## [149] "Shear"                     "Shortest_side"            
+    ## [151] "Sol25"                     "SpeciesName"              
+    ## [153] "SpeciesOrder"              "SubCompartName"           
+    ## [155] "SubCompartOrder"           "subFRACa"                 
+    ## [157] "subFRACs"                  "subFRACw"                 
+    ## [159] "Substance"                 "SUSP"                     
+    ## [161] "t_half_Escape"             "T25"                      
+    ## [163] "table"                     "TAUsea"                   
+    ## [165] "tdry"                      "Temp"                     
+    ## [167] "Tempfactor"                "Test"                     
+    ## [169] "Tm"                        "Tm_default"               
+    ## [171] "toScale"                   "ToSI"                     
+    ## [173] "toSubCompart"              "TotalArea"                
+    ## [175] "twet"                      "Udarcy"                   
+    ## [177] "Unit"                      "VarName"                  
+    ## [179] "VarName"                   "VertDistance"             
+    ## [181] "Volume"                    "Waarde"                   
+    ## [183] "WINDspeed"                 "X"                        
+    ## [185] "X"                         "X"                        
+    ## [187] "X"                         "X.1"                      
+    ## [189] "X.1"                       "x_Advection_Air"          
+    ## [191] "x_ContRiver2Reg"           "x_ContSea2Reg"            
+    ## [193] "x_FromModerate2ArctWater"  "x_FromModerate2ContWater" 
+    ## [195] "x_FromModerate2TropWater"  "x_LakeOutflow"            
+    ## [197] "x_OceanMixing2Deep"        "x_OceanMixing2Sea"        
+    ## [199] "x_RegSea2Cont"             "x_RiverDischarge"         
+    ## [201] "x_ToModerateWater"
 
 ### Access variables
 
@@ -225,10 +217,11 @@ World$fetchData("AreaSea")
 
 ### Access k’s
 
-The “kaas” variable contains a data frame with the k’s, proccess name,
-to-subcompartment name from-subcompartment name, to-scale name,
-from-scale name, to-species name and from-species name. It can be
-accessed in the same way other variables are accessed:
+The “kaas” variable contains a data frame with the first order rate
+constants (k’s), proccess name, to-subcompartment name
+from-subcompartment name, to-scale name, from-scale name, to-species
+name and from-species name. It can be accessed in the same way other
+variables are accessed:
 
 ``` r
 df_ks <- World$fetchData("kaas")
@@ -337,9 +330,9 @@ print(emissions)
 ```
 
     ##   Abbr     Emis
-    ## 1  aRU 1.421964
-    ## 2 s2RU 1.421964
-    ## 3 w1RU 1.421964
+    ## 1  aRU 2.157129
+    ## 2 s2RU 2.157129
+    ## 3 w1RU 2.157129
 
 ### Solve the matrix
 
@@ -358,40 +351,137 @@ print(masses)
 ```
 
     ##      Abbr       Scale         SubCompart Species       EqMass
-    ## 196   aRU    Regional                air Unbound 8.086729e+04
-    ## 234  w1RU    Regional              river Unbound 4.397418e+07
-    ## 226  w0RU    Regional               lake Unbound 5.730855e+07
-    ## 210  w2RU    Regional                sea Unbound 2.335443e+06
-    ## 213 sd1RU    Regional freshwatersediment Unbound 1.250309e+06
-    ## 223 sd0RU    Regional       lakesediment Unbound 4.717787e+04
-    ## 183 sd2RU    Regional     marinesediment Unbound 1.952721e+04
-    ## 217  s1RU    Regional        naturalsoil Unbound 2.497620e+06
-    ## 182  s2RU    Regional   agriculturalsoil Unbound 6.189499e+07
-    ## 207  s3RU    Regional          othersoil Unbound 9.250446e+05
-    ## 204   aCU Continental                air Unbound 6.707175e+04
-    ## 208  w1CU Continental              river Unbound 3.046926e+06
-    ## 221  w0CU Continental               lake Unbound 7.132422e+06
-    ## 220  w2CU Continental                sea Unbound 1.434258e+08
-    ## 195 sd1CU Continental freshwatersediment Unbound 8.663267e+04
-    ## 192 sd0CU Continental       lakesediment Unbound 5.872169e+03
-    ## 197 sd2CU Continental     marinesediment Unbound 5.996089e+04
-    ## 235  s1CU Continental        naturalsoil Unbound 1.094860e+06
-    ## 187  s2CU Continental   agriculturalsoil Unbound 5.103918e+06
-    ## 233  s3CU Continental          othersoil Unbound 4.055037e+05
-    ## 211   aAU      Arctic                air Unbound 3.591206e+02
-    ## 215  w2AU      Arctic                sea Unbound 1.105069e+08
-    ## 203  w3AU      Arctic          deepocean Unbound 2.709207e+09
-    ## 219 sd2AU      Arctic     marinesediment Unbound 7.555334e+04
-    ## 214  s1AU      Arctic        naturalsoil Unbound 5.463468e+04
-    ## 224   aMU    Moderate                air Unbound 8.543204e+03
-    ## 225  w2MU    Moderate                sea Unbound 1.406985e+08
-    ## 231  w3MU    Moderate          deepocean Unbound 4.115150e+09
-    ## 206 sd2MU    Moderate     marinesediment Unbound 1.146926e+05
-    ## 188  s1MU    Moderate        naturalsoil Unbound 5.396266e+05
-    ## 227   aTU      Tropic                air Unbound 5.140824e+02
-    ## 193  w2TU      Tropic                sea Unbound 1.541285e+08
-    ## 201  w3TU      Tropic          deepocean Unbound 4.976039e+09
-    ## 228 sd2TU      Tropic     marinesediment Unbound 1.385302e+05
-    ## 202  s1TU      Tropic        naturalsoil Unbound 1.033855e+04
+    ## 196   aRU    Regional                air Unbound 6.697008e+05
+    ## 234  w1RU    Regional              river Unbound 1.185311e+06
+    ## 226  w0RU    Regional               lake Unbound 3.735155e+04
+    ## 210  w2RU    Regional                sea Unbound 4.381044e+04
+    ## 213 sd1RU    Regional freshwatersediment Unbound 3.158710e+05
+    ## 223 sd0RU    Regional       lakesediment Unbound 2.247901e+02
+    ## 183 sd2RU    Regional     marinesediment Unbound 3.039946e+03
+    ## 217  s1RU    Regional        naturalsoil Unbound 1.545975e+03
+    ## 182  s2RU    Regional   agriculturalsoil Unbound 2.237280e+07
+    ## 207  s3RU    Regional          othersoil Unbound 5.725835e+02
+    ## 204   aCU Continental                air Unbound 3.757802e+06
+    ## 208  w1CU Continental              river Unbound 1.574551e+03
+    ## 221  w0CU Continental               lake Unbound 1.899574e+03
+    ## 220  w2CU Continental                sea Unbound 1.212298e+06
+    ## 195 sd1CU Continental freshwatersediment Unbound 4.195985e+02
+    ## 192 sd0CU Continental       lakesediment Unbound 1.143621e+01
+    ## 197 sd2CU Continental     marinesediment Unbound 4.205982e+03
+    ## 235  s1CU Continental        naturalsoil Unbound 4.218642e+03
+    ## 187  s2CU Continental   agriculturalsoil Unbound 1.554283e+04
+    ## 233  s3CU Continental          othersoil Unbound 1.562460e+03
+    ## 211   aAU      Arctic                air Unbound 2.786144e+06
+    ## 215  w2AU      Arctic                sea Unbound 1.313178e+06
+    ## 203  w3AU      Arctic          deepocean Unbound 1.184931e+07
+    ## 219 sd2AU      Arctic     marinesediment Unbound 3.099945e+03
+    ## 214  s1AU      Arctic        naturalsoil Unbound 3.525621e+04
+    ## 224   aMU    Moderate                air Unbound 7.070864e+06
+    ## 225  w2MU    Moderate                sea Unbound 6.046481e+05
+    ## 231  w3MU    Moderate          deepocean Unbound 1.802514e+06
+    ## 206 sd2MU    Moderate     marinesediment Unbound 4.169132e+02
+    ## 188  s1MU    Moderate        naturalsoil Unbound 3.035969e+04
+    ## 227   aTU      Tropic                air Unbound 7.043872e+06
+    ## 193  w2TU      Tropic                sea Unbound 3.020686e+05
+    ## 201  w3TU      Tropic          deepocean Unbound 3.204656e+05
+    ## 228 sd2TU      Tropic     marinesediment Unbound 6.092532e+01
+    ## 202  s1TU      Tropic        naturalsoil Unbound 9.298216e+03
+
+### Model Output
+
+For now the most reliably is to output masses and manually calculate
+concentrations and other relevant output based on your needs
+\[5-12-2024\]. We are working on the Concentration module and have
+output of the mass flows and mass balance in preparation.
 
 ## Calculate dynamic output
+
+It is also possible to calculate the masses in each compartment over
+time using the ‘DynApproxSolve’ solver. The use of this solver is
+demonstrated below.
+
+### Make emission data frame
+
+To use the dynamic solver, an emission dataframe is needed with three
+columns: Abbr, Emis and Timed
+
+The column named “Abbr” contains the abbreviations, and the column
+“Emis” contains the emissions. In the example below, emissions in tonnes
+per year are converted to mol/s. The column “Timed” contains the times
+at which the emissions are emitted to the environment.
+
+*Note: There should be at least two emissions at different times per
+subcompartment for the solver to work*
+
+``` r
+# Make emission fata frame
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU","aRU", "s2RU", "w1RU"), Emis = c(5, 10, 15, 20, 25, 30), Timed = c(1, 2, 3, 4, 5, 6)) # convert 1 t/y to si units: kg/s
+
+MW <- World$fetchData("MW")
+
+emissions <- emissions |>
+  mutate(Timed = Timed*(365.25*24*60*60)) |> # Convert time from y to s
+  ungroup() |>
+  mutate(Emis = Emis*1000/(MW*365*24*60*60)) # convert 1 t/y to mol/s
+
+tmax <- 10*365.25*24*60*60 
+times <- seq(0, tmax, length.out = 100)
+
+World$NewSolver("DynApproxSolve")
+solved <- World$Solve(tmax = tmax, emissions, needdebug = F)
+```
+
+## Prepare the output for plotting
+
+A few things happen in the chunk below: - The matrix is converted to a
+tibble - The tibble is converted from wide to long format - Year is
+calculated from time in seconds - Based on the column Abbr, the States
+dataframe is joined to the tibble
+
+``` r
+solved <- as_tibble(solved) 
+
+solved_long <- solved |>
+  select(!starts_with("emis")) |>
+  pivot_longer(!time, names_to = "Abbr", values_to = "Mass") |>
+  mutate(Year = time/(365.25*24*60*60)) |>
+  left_join(World$states$asDataFrame, by="Abbr") # Join the abbreviations to more understandable Scale, SubCompart and Species
+```
+
+## Plot the dynamic masses at specific scales
+
+The scales to choose from are “Regional”, “Continental”, “Moderate”,
+“Tropic” and “Arctic”.
+
+``` r
+plot_scale <- function(mass_dataframe, scale){
+  # Filter masses for the specific scale
+  mass_data_scale <- mass_dataframe |>
+    filter(Scale == scale)
+  
+  # Plot masses on the specific scale
+  mass_plot <- ggplot(mass_data_scale, aes(x=Year, y=Mass, col=SubCompart)) + 
+    geom_line() +
+    ylab("Mass (kg)") +
+    theme_bw() +
+    ggtitle(paste0("Masses over time at ", scale, " scale")) +
+    scale_y_continuous() +
+    scale_x_continuous()
+  
+  return(mass_plot)
+}
+
+# Plot data for regional scale
+regional_plot <- plot_scale(solved_long, "Regional")
+print(regional_plot)
+```
+
+![](Getting-started_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
+
+``` r
+# Plot data for continental scale
+continental_plot <- plot_scale(solved_long, "Continental")
+print(continental_plot)
+```
+
+![](Getting-started_files/figure-gfm/unnamed-chunk-2-2.png)<!-- -->

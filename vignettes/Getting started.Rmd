@@ -9,13 +9,6 @@ editor_options:
     wrap: 72
 ---
 
-```{r setup, include=FALSE, warning=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
-
 ## Initialize
 
 This vignette demonstrates how to use SimpleBox Object-Oriented (SBOO).
@@ -216,6 +209,10 @@ print(masses)
 
 ```
 
+### Model Output
+For now the most reliably is to output masses and manually calculate concentrations and other relevant output based on your needs [5-12-2024].
+We are working on the Concentration module and have output of the mass flows and mass balance in preparation.
+
 ## Calculate dynamic output
 It is also possible to calculate the masses in each compartment over time using 
 the 'DynApproxSolve' solver. The use of this solver is demonstrated below. 
@@ -256,7 +253,7 @@ A few things happen in the chunk below:
 - Based on the column Abbr, the States dataframe is joined to the tibble
 
 ```{r}
-solved <- as.tibble(solved) 
+solved <- as_tibble(solved) 
 
 solved_long <- solved |>
   select(!starts_with("emis")) |>
@@ -277,7 +274,7 @@ plot_scale <- function(mass_dataframe, scale){
     filter(Scale == scale)
   
   # Plot masses on the specific scale
-  mass_plot <- ggplot(solved_long_regional, aes(x=Year, y=Mass, col=SubCompart)) + 
+  mass_plot <- ggplot(mass_data_scale, aes(x=Year, y=Mass, col=SubCompart)) + 
     geom_line() +
     ylab("Mass (kg)") +
     theme_bw() +
