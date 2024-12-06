@@ -4,21 +4,40 @@ author: "Anne Hids"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
-  chunk_output_type: inline
+  chunk_output_type: console
   markdown: 
     wrap: 72
 ---
 
-```{r setup, include=FALSE, warning=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
-
 ## Initialize
 
 This vignette demonstrates how to use SimpleBox Object-Oriented (SBOO).
+
+Before starting, make sure your working directory is set to the SBooScripts folder.
+
+### See if required packages are installed
+```{r install packages, message = FALSE}
+
+check_and_install <- function(package) {
+  tryCatch({
+    # Load the package
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "is already installed and loaded."))
+  }, error = function(e) {
+    # If an error occurs, install the package
+    message(paste("Package", package, "is not installed. Installing now..."))
+    install.packages(package, dependencies = TRUE)
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "has been successfully installed and loaded."))
+  })
+}
+
+# Install the required packages
+check_and_install("ggplot2")
+check_and_install("tidyverse")
+check_and_install("constants")
+check_and_install("deSolve")
+```
 
 ### Choose a substance
 
@@ -29,8 +48,7 @@ can be chosen from the "Substance" column of the data frame created
 below.
 
 ```{r Substance list, include=TRUE, warning=FALSE}
-#substances <- read.csv("data/Substances.csv")
-substances <- read.csv("~/GitHub/SimpleBox/SBooScripts/data/Substances.csv")
+substances <- read.csv("data/Substances.csv")
 
 # Assign a substance name from the Substance column to the variable "substance":
 substance <- "1-aminoanthraquinone"
@@ -55,7 +73,7 @@ different processes and variables are used to calculate the k's. With
 the chunk below, the correct initWorld script is automatically chosen
 and run based on the chosen substance:
 
-```{r Initialize World, include=TRUE, warning=FALSE}
+```{r Initialize World, include=TRUE, warning=FALSE, message=FALSE}
 library(tidyverse)
 
 chemclass <- substances |>
@@ -96,8 +114,8 @@ World$fetchData("AreaSea")
 
 ### Access k's
 
-The "kaas" variable contains a data frame with the k's, proccess name,
-to-subcompartment name from-subcompartment name, to-scale name,
+The "kaas" variable contains a data frame with the first order rate constants (k's), 
+proccess name, to-subcompartment name from-subcompartment name, to-scale name,
 from-scale name, to-species name and from-species name. It can be
 accessed in the same way other variables are accessed:
 
@@ -191,4 +209,87 @@ print(masses)
 
 ```
 
+### Model Output
+For now the most reliably is to output masses and manually calculate concentrations and other relevant output based on your needs [5-12-2024].
+We are working on the Concentration module and have output of the mass flows and mass balance in preparation.
+
 ## Calculate dynamic output
+It is also possible to calculate the masses in each compartment over time using 
+the 'DynApproxSolve' solver. The use of this solver is demonstrated below. 
+
+### Make emission data frame
+To use the dynamic solver, an emission dataframe is needed with three columns: 
+Abbr, Emis and Timed
+
+The column named "Abbr" contains the abbreviations, and the column "Emis" contains the
+emissions. In the example below, emissions in tonnes per year are converted to mol/s. 
+The column "Timed" contains the times at which the emissions are emitted to the environment. 
+
+*Note: There should be at least two emissions at different times per subcompartment for the solver to work*
+
+```{r Make dynamic emission dataframe, include=TRUE, warning=FALSE}
+# Make emission fata frame
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU","aRU", "s2RU", "w1RU"), Emis = c(5, 10, 15, 20, 25, 30), Timed = c(1, 2, 3, 4, 5, 6)) # convert 1 t/y to si units: kg/s
+
+MW <- World$fetchData("MW")
+
+emissions <- emissions |>
+  mutate(Timed = Timed*(365.25*24*60*60)) |> # Convert time from y to s
+  ungroup() |>
+  mutate(Emis = Emis*1000/(MW*365*24*60*60)) # convert 1 t/y to mol/s
+
+tmax <- 10*365.25*24*60*60 
+times <- seq(0, tmax, length.out = 100)
+
+World$NewSolver("DynApproxSolve")
+solved <- World$Solve(tmax = tmax, emissions, needdebug = F)
+```
+
+## Prepare the output for plotting
+A few things happen in the chunk below: 
+- The matrix is converted to a tibble
+- The tibble is converted from wide to long format
+- Year is calculated from time in seconds
+- Based on the column Abbr, the States dataframe is joined to the tibble
+
+```{r}
+solved <- as_tibble(solved) 
+
+solved_long <- solved |>
+  select(!starts_with("emis")) |>
+  pivot_longer(!time, names_to = "Abbr", values_to = "Mass") |>
+  mutate(Year = time/(365.25*24*60*60)) |>
+  left_join(World$states$asDataFrame, by="Abbr") # Join the abbreviations to more understandable Scale, SubCompart and Species
+
+```
+
+## Plot the dynamic masses at specific scales
+The scales to choose from are "Regional", "Continental", "Moderate", "Tropic" and "Arctic".
+
+```{r}
+
+plot_scale <- function(mass_dataframe, scale){
+  # Filter masses for the specific scale
+  mass_data_scale <- mass_dataframe |>
+    filter(Scale == scale)
+  
+  # Plot masses on the specific scale
+  mass_plot <- ggplot(mass_data_scale, aes(x=Year, y=Mass, col=SubCompart)) + 
+    geom_line() +
+    ylab("Mass (kg)") +
+    theme_bw() +
+    ggtitle(paste0("Masses over time at ", scale, " scale")) +
+    scale_y_continuous() +
+    scale_x_continuous()
+  
+  return(mass_plot)
+}
+
+# Plot data for regional scale
+regional_plot <- plot_scale(solved_long, "Regional")
+print(regional_plot)
+
+# Plot data for continental scale
+continental_plot <- plot_scale(solved_long, "Continental")
+print(continental_plot)
+```
