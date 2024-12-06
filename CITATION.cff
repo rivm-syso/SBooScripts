@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+title: 'SimpleBox in R - Object Oriented'
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - name: RIVM
+    website: 'https://www.rivm.nl/en/'
+repository-code: 'https://github.com/rivm-syso/SBoo'
+url: 'https://www.rivm.nl/en/soil-and-water/simplebox'
+repository-artifact: 'https://github.com/rivm-syso/SimpleBox'
