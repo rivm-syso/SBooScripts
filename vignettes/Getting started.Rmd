@@ -20,7 +20,7 @@ knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct s
 
 This vignette demonstrates how to use SimpleBox Object-Oriented (SBOO).
 
-Before starting, set your working directory to the SBooScripts folder.
+Before starting, make sure your working directory is set to the SBooScripts folder.
 
 ### See if required packages are installed
 ```{r install packages, message = FALSE}
