@@ -9,6 +9,13 @@ editor_options:
     wrap: 72
 ---
 
+```{r setup, include=FALSE, warning=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
 ## Initialize
 
 This vignette demonstrates how to use SimpleBox Object-Oriented (SBOO).
@@ -37,6 +44,7 @@ check_and_install("ggplot2")
 check_and_install("tidyverse")
 check_and_install("constants")
 check_and_install("deSolve")
+check_and_install("knitr")
 ```
 
 ### Choose a substance
@@ -74,8 +82,6 @@ the chunk below, the correct initWorld script is automatically chosen
 and run based on the chosen substance:
 
 ```{r Initialize World, include=TRUE, warning=FALSE, message=FALSE}
-library(tidyverse)
-
 chemclass <- substances |>
   filter(Substance == substance) |>
   select(ChemClass)
@@ -109,7 +115,7 @@ print(varnames)
 A specific variable (in this case AreaSea) can be accessed as follows:
 
 ```{r Access variables, include=TRUE, warning=FALSE}
-World$fetchData("AreaSea")
+kable(World$fetchData("AreaSea"))
 ```
 
 ### Access k's
@@ -121,6 +127,60 @@ accessed in the same way other variables are accessed:
 
 ```{r Access kaas, include=TRUE, warning=FALSE}
 df_ks <- World$fetchData("kaas")
+```
+
+## Change a landscape variable 
+
+To change a landscape variables value(s), first get the current variable with World$fetchData. 
+This is to see the dimensions of the variables dataframe. 
+
+Variable values are changed using World$MutateVars(). This function expects the 
+new variable values in a specific format: 
+
+- values should be in a column named 'Waarde'
+- the name of the variable should be in a column named 'varName'
+- the other columns can be 'Scale', 'SubCompart', 'Species' etc. You can see which columns need to be included by using fetchData() on the variable before using mutateVars()
+
+```{r Change landscape variable, include=TRUE, warning=FALSE}
+# Get the current dataframe of the variable
+kable(World$fetchData("TotalArea"))
+
+# Make a dataframe in the same format (also same column names)
+TotalArea <- data.frame(
+  Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"),
+  Waarde = c(4.25E+13, 7.43E+12, 8.50E+13, 4.13e+11, 1.27e+14)) |>
+  mutate(varName = "TotalArea")
+
+# Replace TotalArea variable with new values
+World$mutateVars(TotalArea)
+
+# Check if it worked 
+kable(World$fetchData("TotalArea"))
+
+# Recalulate all variables dependent on TotalArea
+World$UpdateDirty("TotalArea")
+```
+
+## Change a substance variable 
+
+When using World$fetchData(), sometimes a value is returned instead of a dataframe. 
+In that case we can still use the mutateVars() function, but give the function a named value instead of a dataframe.
+```{r Change substance variable, include=TRUE, warning=FALSE}
+# See the original value
+kable(World$fetchData("MW"))
+
+# Make a dataframe where varName = MW and Waarde is 150 
+MW_df <- data.frame(varName = "MW",
+                        Waarde = 150) # In g/mol, will be converted to SI unit (kg/mol) in the core. 
+
+# Use mutateVars() to update the variable
+World$mutateVars(MW_df)
+
+# See if the value is updated
+kable(World$fetchData("MW"))
+
+# Recalculate all variables dependent on MW
+World$UpdateDirty("MW")
 ```
 
 ## Calculate steady state output
@@ -138,7 +198,6 @@ another column containing the emission to that compartment.
 The abbreviations are as follows:
 
 ```{r Abbreviations, include=TRUE, warning=FALSE}
-library(knitr)
 scales <- data.frame(Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"), Abbreviation = c("A", "C", "M", "R", "T"))
 
 subcompartments <- read.csv("data/SubCompartSheet.csv") |>
@@ -150,9 +209,9 @@ species <- read.csv("data/SpeciesSheet.csv") |>
   select(Species, AbbrP) |>
   rename(Abbreviation = AbbrP)
 
-print(scales)
-print(subcompartments)
-print(species)
+kable(scales)
+kable(subcompartments)
+kable(species)
 
 ```
 
@@ -188,7 +247,7 @@ MW <- World$fetchData("MW")
 emissions <- emissions |>
   mutate(Emis = Emis*1000/(MW*365*24*60*60)) # convert 1 t/y to mol/s
 
-print(emissions)
+kable(emissions)
 
 ```
 
@@ -205,8 +264,7 @@ World$NewSolver("SB1Solve")
 # Use the emissions data frame and solve the matrix
 masses <- World$Solve(emissions)
 
-print(masses)
-
+kable(masses)
 ```
 
 ### Model Output
@@ -252,7 +310,7 @@ A few things happen in the chunk below:
 - Year is calculated from time in seconds
 - Based on the column Abbr, the States dataframe is joined to the tibble
 
-```{r}
+```{r Make dynamic masses dataframe, include=TRUE, warning=FALSE}
 solved <- as_tibble(solved) 
 
 solved_long <- solved |>
@@ -266,7 +324,7 @@ solved_long <- solved |>
 ## Plot the dynamic masses at specific scales
 The scales to choose from are "Regional", "Continental", "Moderate", "Tropic" and "Arctic".
 
-```{r}
+```{r Plot output, include=TRUE, warning=FALSE}
 
 plot_scale <- function(mass_dataframe, scale){
   # Filter masses for the specific scale
