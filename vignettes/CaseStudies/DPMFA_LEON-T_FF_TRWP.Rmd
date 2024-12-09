@@ -1,0 +1,362 @@
+---
+title: "DPMFA LEON-T"
+author: "Anne Hids, Joris Quik"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) 
+```
+
+# *Initializing World and Substance*
+
+Depending on the substance you want to analyze, a selection needs to be
+made from the three different"worlds" : Molecular, Particulate and
+Plastics. Here, we initialize the world for plastics.
+
+```{r Initialize World}
+library(lhs)
+library(readxl)
+library(viridis)
+library(trapezoid)
+
+source("baseScripts/initWorld_onlyPlastics.R")
+
+World$substance <- "TRWP"
+```
+
+# Fate Factor calculation
+
+- Emission can be to at regional scale (Neglecting Cont. and Global):
+Other soil - 1 kg/s
+Fresh water - 1 kg/s (fraction surface area corrected to lake/fresh water)
+Air - 1 kg/s
+
+FF for (At Regional Scale): 
+Other soil
+Natural + Aggriculatural soil
+Sea water
+Fresh water + Lake Water
+Sea water
+Freshwater sediment (+kw Sediment)
+Marine Sediment
+
+
+
+```{r Load DPMFA data}
+
+source_of_interest <- c("Tyre wear") # NA for all
+
+Area_w0R <- World$fetchData("Area") |> filter(Scale == "Regional" & SubCompart == "lake") |>  pull(Area)
+Area_w1R <- World$fetchData("Area") |> filter(Scale == "Regional" & SubCompart == "river") |>  pull(Area)
+
+FracArea_w0R = Area_w0R/(Area_w0R+Area_w1R)
+FracArea_w1R = Area_w1R/(Area_w0R+Area_w1R)
+
+EmisSourceFF <- list()
+EmisSourceFF$Air <- tibble(Abbr = c("aRS",
+                                    "s3RP",
+                                    "w1RP",
+                                    "w0RP"),
+                           Emis = c(1,0,0,0))
+EmisSourceFF$Soil <- tibble(Abbr = c("aRS",
+                                     "s3RP",
+                                     "w1RP",
+                                     "w0RP"),
+                            Emis = c(0,1,0,0))
+EmisSourceFF$Water <- tibble(Abbr = c("aRS",
+                                      "s3RP",
+                                      "w1RP",
+                                      "w0RP"),
+                             Emis = c(0,0,
+                                      1*FracArea_w1R,
+                                      1*FracArea_w0R))
+
+```
+
+```{r Functions for distributions}
+# Define triangular distribution function
+triangular <- function(u, a, b, c) {               # u = samples, a = min, b = max, c = peak
+  ifelse(u < (c-a)/(b-a),
+         a + sqrt(u * (b-a) * (c-a)),
+         b - sqrt((1-u) * (b-a) * (b-c)))
+}
+
+# Define uniform distribution function
+uniform <- function(u, a, b) {                     # u = samples, a = min, b = max
+  transformed_samples <- a + (b - a) * u
+  return(transformed_samples)
+}
+
+# Define power law distribution function
+power_law <- function(u, a, b, c){                 # u = samples, a = min, b = max, c = alpha
+  
+  # Ensure that samples are within [0, 1]
+  samples <- pmin(pmax(u, 0), 1)
+  
+  # Transform samples to the power-law distribution
+  scaled_samples <- a * ((b / a) ^ samples) ^ (1 / (1 - c))
+  
+  return(scaled_samples)
+}
+
+trapezoidal <- function(u, a, b, c, d) {
+  # Ensure u is in the range [0, 1]
+  u <- pmin(pmax(u, 0), 1)  # Clip u to [0, 1]
+  
+  # Total width of the trapezoid
+  width_total <- d - a
+  base1 <- b - a    # Width of the left base
+  base2 <- d - c    # Width of the right base
+  
+  # Calculate the CDF segments
+  CDF_left <- base1 / width_total         # Area under the left triangle
+  CDF_flat <- 1 - base2 / width_total     # Area under the flat top
+  
+  result <- ifelse(u < (base1 / width_total), 
+                   a + sqrt(u * (base1) * width_total),  # Left triangle
+                   ifelse(u <= (CDF_flat + base1 / width_total), 
+                          b + (u - base1 / width_total) * (d - b),  # Flat top
+                          d - sqrt((1 - u) * (base2) * width_total)  # Right triangle
+                   )
+  )
+  
+  return(result)
+}
+
+```
+
+# Create dataset with uncertain variables
+
+## Prepare excel data
+
+```{r Prepare excel data}
+# Path to excel file with distribution values
+#path_dist <- "N:/Documents/Simplebox/Microplastic_variables_v2.xlsx"
+path_parameters_file <- "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx"
+
+Material_Parameters <- read_excel(path_parameters_file, sheet = "Polymer_data") |> 
+  # change um to nm unit coversion
+  mutate(across(c(a, b, c, d), as.numeric)) |>
+  mutate(across(c(a, b, c, d), ~ case_when(
+    str_detect(Unit, "um") ~ . * 1000,
+    TRUE ~ .
+  ))) |>
+  mutate(Unit = case_when(
+    str_detect(Unit, "um") ~ "nm",
+    TRUE ~ Unit
+  ))
+
+material <-  "RUBBER"
+
+
+
+# Only the ones with data in xlsx or with emission data are needed no? Why this vector?
+# materials <- c("HDPE", "LDPE", "PP", "PS", "PVC", "Acryl", "PA", "PET", "ABS", "EPS", "PC", "PMMA", "PUR", "RUBBER", "OTHER")
+explodeF <- function(df, target_col, explode_value, new_values) {
+  df %>%
+    # Use mutate to create a new column if the target column equals explode_value
+    mutate(!!sym(target_col) := ifelse(!!sym(target_col) == explode_value, list(new_values), !!sym(target_col))) %>%
+    # Unnest the target column to duplicate rows
+    unnest(!!sym(target_col))
+}
+
+DefinedVariables <- lapply(unique(Material_Parameters$VarName),World$fetchData)
+names(DefinedVariables) = unique(Material_Parameters$VarName)
+
+
+# how to cope with any. For now this, but materials should be only for material being calculated for.
+suppressWarnings({
+  Material_Parameters <- explodeF(Material_Parameters, target_col = "Polymer", explode_value = "any", new_values = material)
+})
+
+```
+
+## take input samples
+```{r Make sample df}
+# Generate the correct number of samples
+n_samples <- 10 # Number of emission runs 
+
+Material_Parameters_n <- data.frame()
+
+# EmisSourceFF
+
+input_vars <- 
+  Material_Parameters |>
+  filter(if_all(c(Distribution, a, b), ~ !is.na(.) )) |> # filter out non defined distributions
+  filter(Polymer == material) |> 
+  # Not sure what the 3 lines below do.
+  group_by(VarName, Scale, SubCompart, Species, Polymer) |>
+  filter(if (n() > 1) MP_source == source_of_interest | (MP_source == "" & !any(MP_source == source_of_interest)) else TRUE) |>
+  mutate(MP_source = replace_na(MP_source, source_of_interest)) |> 
+  ungroup()
+
+n_vars <- nrow(input_vars)
+
+# Generate LHS
+lhs_samples <- randomLHS(n_samples, n_vars)
+# var_df_names <- c()
+
+# somthing like this should work to get the nested tibble with data of samples
+sample_df_var <-  
+  input_vars |> 
+  mutate(nvar = c(1:n_vars)) |> 
+  rowwise() |> 
+  mutate(
+    data = 
+      case_match(Distribution,
+                 "Triangular" ~ list(tibble(value=triangular(lhs_samples[, nvar], a, b, c))),
+                 "Uniform" ~  list(tibble(value=uniform(lhs_samples[, nvar], a, b))),
+                 "Powerlaw" ~  list(tibble( value=power_law(lhs_samples[, nvar], a, b, c))),
+                 "Trapezoidal" ~  list(tibble( value=trapezoidal(lhs_samples[, nvar], a, b, c, d))),
+                 .default = NA
+      )
+  ) 
+
+Material_Parameters_n <- rbind(Material_Parameters_n, sample_df_var)
+
+
+#TODO before explosion export table with some statistics of applied variable ranges for reporting in relation to input variables of each distribution. Aim at: min, p5, p50, mean, p95, max.
+
+scales <- union((World$FromDataAndTo()$fromScale),(World$FromDataAndTo()$toScale))
+subCompartments <-  union((World$FromDataAndTo()$fromSubCompart),(World$FromDataAndTo()$toSubCompart))
+species <- union((World$FromDataAndTo()$fromSpecies),(World$FromDataAndTo()$toSpecies))
+
+Material_Parameters_n <- 
+  Material_Parameters_n %>% 
+  separate_rows(Species, sep = "_") |> 
+  separate_rows(SubCompart, sep = "_") |>
+  mutate( Scale = str_replace_all(Scale, "any",
+                                  paste(scales,collapse="__"))) |> 
+  separate_rows(Species, sep = "__") |> 
+  mutate( SubCompart = str_replace_all(SubCompart, "Water",
+                                       paste(c("lake", "sea", "deepocean", "river"),
+                                             collapse = "__"))) |> 
+  separate_rows(SubCompart, sep = "__") |> 
+  mutate( SubCompart = str_replace_all(SubCompart, "Soil",
+                                       paste(subCompartments |> str_subset(c("soil")),
+                                             collapse = "__"))) |> 
+  separate_rows(SubCompart, sep = "__") |> 
+  mutate( SubCompart = str_replace_all(SubCompart, "Sediment",
+                                       paste(subCompartments |> str_subset(c("sediment")),
+                                             collapse = "__"))) |> 
+  separate_rows(SubCompart, sep = "__") |> 
+  mutate( Species = str_replace_all(Species, "any",
+                                    paste(species,collapse="__"))) |> 
+  separate_rows(Species, sep = "__") |> 
+  mutate( SubCompart = str_replace_all(SubCompart, "any",
+                                       paste(subCompartments,collapse="__"))) |> 
+  separate_rows(SubCompart, sep = "__") |> 
+  rename(Source = MP_source)
+
+
+
+
+
+```
+## plots inputs
+```{r Make some figures to show the values chosen from the distributions}
+
+#Example of plot:
+#TODO: include units
+
+PlotVariable = "alpha"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Species))+
+  xlab(PlotVariable) + scale_x_log10() 
+
+PlotVariable = "RadS"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Source))+
+  xlab(paste(PlotVariable)) + scale_x_log10() 
+
+PlotVariable = "RhoS"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Source))+
+  xlab(paste(PlotVariable)) 
+
+PlotVariable = "kdeg"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Species))+
+  xlab(paste(PlotVariable)) 
+
+PlotVariable = "kfrag"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Species))+
+  xlab(paste(PlotVariable)) 
+```
+
+# Solve the matrix and calculate concentrations
+
+Solve the matrix depending on the type of input emissions given (PMFA =
+Steady state, DPMFA = dynamic)
+
+```{r Solve steady state}
+start_time <- Sys.time()
+
+Output <- tibble(EmisComp = names(EmisSourceFF),
+                 SBoutput=NA) 
+
+World$NewSolver("UncertainSolver")
+
+for(i in 1:length(EmisSourceFF)){
+  emis_source <- EmisSourceFF[[i]]
+  sample_source <- Material_Parameters_n |>
+    filter(Source == "Tyre wear") |>
+    filter(Polymer == "RUBBER") |>
+    select(VarName, Scale, SubCompart, Species, data) |> 
+    rename(varName = VarName)
+  
+  solved <- World$Solve((emis_source), needdebug = F, sample_source)
+  
+  # Output$EmisComp[i] = names(EmisSourceFF) [i]
+  Output$SBoutput[i] <- list(solved$SteadyStateMass)
+}
+
+end_time <- Sys.time()
+
+elapsed_time <- end_time - start_time
+
+print(paste0("Elapsed time is ", elapsed_time/60, "minutes"))
+
+# 10000 runs will take 4 hours and 10 minutes per polymer-source combination.
+```
+
+# Fate Factor summary
+
+```{r}
+
+FF_R <-
+  Output |> unnest(SBoutput) |> filter(Scale == "Regional" & Species != "Unbound") |> ungroup() |> group_by(EmisComp,RUN,SubCompart,Unit) |> 
+  summarise(EqMass_SAP = sum(EqMass)) |> 
+  mutate(
+    CompartmentFF = case_when(
+      SubCompart == "agriculturalsoil" ~ "otherSoil",
+      SubCompart == "naturalsoil" ~ "otherSoil",
+      SubCompart == "othersoil" ~ "RoadSoil",
+      SubCompart == "cloudwater" ~ "air",
+      SubCompart == "lake" ~ "freshwater",
+      SubCompart == "river" ~ "freshwater",
+      SubCompart == "lakesediment" ~ "freshwatersediment",
+      TRUE ~ SubCompart)
+  ) |> ungroup() |> 
+  group_by(CompartmentFF,EmisComp) |> 
+  summarise(FF_SS = mean(EqMass_SAP))
+
+write_csv(FF_R, file = "vignettes/CaseStudies/CaseData/FateFactors.csv")
+
+```

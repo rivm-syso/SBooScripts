@@ -15,7 +15,7 @@ projectRoot <- paste(getwd(), "..", "..", sep = "/")
 knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
-## Introduction
+## Introduction [needs revision]
 We implemented a modest mechanism of setting "defaults" for your data. Through this mechanism you need to enter less (possibly redundant) row of data. This vignette demonstrates how to set defaults, and how to verify their application.
 
 ## Input data related to the 3 dimension
@@ -45,7 +45,7 @@ World$doInherit
 ```
 The fromData can be in 1) CONSTANTS 2) Matrix or 3) a dimension which is part of the dimensions of the toData. We demonstrate this with two examples.
 ```{r}
-World$fetchData("DefaultpH")
+World$fetchData("DefaultpH") #TODO change as DefaultpH does not exist
 World$fetchData("pH")
 World$doInherit("DefaultpH","pH")
 ```

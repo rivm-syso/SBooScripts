@@ -1,0 +1,369 @@
+---
+title: "DPMFA LEON-T"
+author: "Anne Hids, Joris Quik"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) 
+```
+
+```{r Load packages}
+library(tidyverse)
+library(ggplot2)
+```
+
+# Tyre Wear fate modelling using SimpleBox4Plastics
+
+The model is run for Tyre Wear Particles and for other microplastics sources separately.
+
+## 01: Make emission dataframes for tyre wear and other sources and save them as RData files 
+
+The sourced script reads in the DPMFA output data, and links the emissions to the relevant SimpleBox compartments. The 
+emission data in kt/y is converted to kg/s. 
+
+```{r 01 Make emission RData files}
+
+# Make emission RData file for tyre wear
+source("vignettes/CaseStudies/01_get_Emission.R")
+# check within the script that the DPMFA source data is available via abspath_EU and abspath_NL.
+
+# Overview figure
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241126.RData"))
+
+
+```
+
+
+## 02: Make parameter dataframes for tyre wear and other sources and save them as RData files
+```{r 02 Make parameter RData files}
+# Make parameters file for tyre wear
+source_of_interest <- "Tyre wear"
+source("vignettes/CaseStudies/02_get_Parameters.R")
+
+# Make emission RData file for other sources
+source_of_interest <- NA
+source("vignettes/CaseStudies/02_get_Parameters.R")
+```
+
+### Visualize the variable distributions for tyre wear
+
+```{r Make some figures to show the values chosen from the distributions}
+
+# load Parameters object from file if not already in memory
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241130.RData"))
+
+Material_Parameters_n <- Parameters$Material_Parameters_n
+#Example of plot:
+#TODO: include units
+
+PlotVariable = "alpha"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=SubCompart)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Species))+
+  xlab(PlotVariable)+ scale_x_log10() 
+
+PlotVariable = "RadS"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=VarName)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Source))+
+  xlab(paste(PlotVariable)) + scale_x_log10() 
+
+PlotVariable = "RhoS"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=VarName)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Source))+
+  xlab(paste(PlotVariable)) 
+
+PlotVariable = "kdeg"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |>
+         filter(Species != "Unbound") |> unnest(data), aes(x=value,y=SubCompart)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Species))+
+  xlab(paste(PlotVariable))  + scale_x_log10() 
+
+PlotVariable = "kfrag"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> 
+         filter(Species != "Solid") |>unnest(data), aes(x=value,y=SubCompart)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Species))+
+  xlab(paste(PlotVariable))  + scale_x_log10() 
+
+# load Parameters object from file if not already in memory
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241130.RData"))
+Material_Parameters_n <- Parameters$Material_Parameters_n
+PlotVariable = "alpha"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable & Polymer == "ABS") |> unnest(data), aes(x=value,y=SubCompart)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Species))+
+  xlab(PlotVariable)+ scale_x_log10() 
+# above alpha's the same for all polymers
+
+PlotVariable = "RadS"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=VarName)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer))+
+  xlab(paste(PlotVariable)) + scale_x_log10() 
+
+PlotVariable = "RhoS"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=VarName)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer))+
+  xlab(paste(PlotVariable)) 
+
+PlotVariable = "kdeg"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |>
+         filter(Species != "Unbound") |> unnest(data), aes(x=value,y=SubCompart)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Species))+
+  xlab(paste(PlotVariable))  + scale_x_log10() 
+# aboev kdeg same for all polymers
+
+PlotVariable = "kfrag"
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> 
+         filter(Species != "Solid") |>unnest(data), aes(x=value,y=SubCompart)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Species))+
+  xlab(paste(PlotVariable))  + scale_x_log10() 
+
+```
+
+### Fate Factor calculations
+Based on the above parameters and with a generic emission of 1 kg to air, freshwater or roadside soil (othersoil/s3 in SBoo) fate factors are calculation for emission at NL and EU scale for TRWP.
+Seperately following the SBR and NR fractions.
+```{r}
+# run the script:
+source("vignettes/CaseStudies/03ff_get_solution_FateFactors.R")
+# analysis is done sepeperately using xls.
+
+```
+
+
+# Make batch files for the High Performance Cluster
+Calculating dynamic masses with uncertainty for 1950 to 2050 with 1000 runs takes too
+much computing power to calculate in RStudio. Therefore, a high performance cluster (HPC)
+was used to calculate the results. The script sourced below divides the 1000 runs for 
+tyre wear and other sources between different 'batch scripts', which can then
+be sent separately to the HPC. This significantly lowers the computing time, 
+as the results are calculated in parallel and a large number of nodes is 
+available. 
+
+The following packages should be installed in the environment of your linux terminal:
+- tidyverse
+
+## Make batch scripts for tyre wear
+The chunk below creates batch scripts for tyre wear, and a txt files with LSF commands. 
+Copy the LSF commands into your linux terminal to run the batch scripts. 
+```{r Create batch scripts for tyre wear}
+# Define batch parameters for tyre wear
+batch_n <- 2
+batch_max <- 1000  # Should be a multiple of batch_n for the loop logic to work
+Source <- NA
+
+source("vignettes/CaseStudies/HPC_batch_files.R")
+```
+
+## Make batch scripts for other sources
+The chunk below creates batch scripts for other sources, and a txt files with LSF commands. 
+Copy the LSF commands into your linux terminal to run the batch scripts. 
+```{r Create batch scripts for other sources}
+# Define batch parameters for other sources
+batch_n <- 2
+batch_max <- 1000  # Should be a multiple of batch_n for the loop logic to work
+Source <- '"Tyre wear"'
+
+source("vignettes/CaseStudies/HPC_batch_files.R")
+```
+
+# SimpleBox4Plastics
+
+## TRWP
+Example run of SimpleBox4Plastics and analysis of P species as TRWP, instead of S as TWP.
+```{r SimpleBox4Plastics}
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241130.RData"))
+# test Rho and RadCP for Rad and Rho of SAP species.
+source("baseScripts/initWorld_onlyPlastics.R")
+World$substance <- "TRWP"
+
+# Parameters$Parameter_summary
+# Parameters$Material_Parameters_n$data[[1]]
+# Parameters$Material_Parameters_n |> distinct(VarName)
+# Calculate distribution of RadP and RhoP for air and water
+SpeciesP <- 
+  Parameters$Material_Parameters_n |> 
+  filter((VarName == "RadS" |VarName == "RhoS") & Polymer == "SBR") |> 
+  unnest(data, keep_empty = TRUE) |> 
+  group_by(VarName) |> 
+  mutate(RUN = 1:1000) |> 
+  ungroup() |> 
+  select(VarName, Source, Polymer, RUN, value) |>
+  pivot_wider(names_from = c(VarName),
+              values_from = value) |> 
+  cross_join(World$fetchData("RhoCP")) |> 
+  full_join(World$fetchData("RadCP")) |> 
+  rowwise() |>
+  mutate(RadS = RadS*1e-9) |> # change if/when data is in nm instead of micrometer.
+  mutate(RhoP = 
+           ((RhoS*4/3*pi*RadS^3+
+               RhoCP*4/3*pi*RadCP^3)/(4/3*pi*(RadS^3+RadCP^3))),
+         RadP = (RadCP^3+RadS^3)^(1/3)
+  )
+
+SpeciesP |> group_by(SubCompart) |> 
+  filter(SubCompart %in% c("air", "river", "othersoil")) |> 
+  summarise(RadS_avg = mean(RadS),
+            RadP_avg = mean(RadP),
+            RadS_p50 = quantile(RadS,probs = 0.5),
+            RadP_p50 = quantile(RadP,probs = (0.5)),
+            RhoS_avg = mean(RhoS),
+            RhoP_avg = mean(RhoP),
+            RhoS_p50 = quantile(RhoS,probs = 0.5),
+            RhoP_p50 = quantile(RhoP,probs = 0.5),
+            n = n())
+
+
+World$fetchData("Df")
+World$fetchData("RadS")
+# goal, get graphs for RadP and RhoP
+# ggplot(SpeciesP |> filter(SubCompart == "othersoil") ,aes (x=RadP) )+
+  # geom_histogram()
+
+SpeciesP_long <- 
+  SpeciesP |> 
+  pivot_longer(cols = -c(Source,Polymer,RUN,SubCompart),
+               names_to = "VarName",
+               values_to = "value") |> 
+  filter(SubCompart %in% c("air", "river", "othersoil"))
+
+PlotVariables = c("RadS", "RadP")
+ggplot(SpeciesP_long |> filter(VarName %in% PlotVariables & SubCompart!="othersoil") ,aes (x=value, y=VarName) )+
+  geom_violin() + 
+facet_wrap(vars(SubCompart,Source))+xlab( "Radius (um)")+
+ scale_x_log10()
+
+PlotVariables = c("RhoS", "RhoP")
+ggplot(SpeciesP_long |> filter(VarName %in% PlotVariables) ,aes (x=value, y=VarName) )+
+  geom_violin() + 
+facet_wrap(vars(SubCompart,Source))+xlab( "density (kg/m3)")
+ # scale_x_log10()
+
+# RhoP vs RadP
+PlotVariables = c("RadP", "RhoP")
+ggplot(SpeciesP_long |> filter(VarName %in% PlotVariables) |> pivot_wider(names_from = c(VarName),
+              values_from = value) ,aes (y=RhoP, x=RadP*1e6) )+
+  geom_point() + 
+facet_wrap(vars(SubCompart,Source))+scale_x_log10()+
+  xlab( "Radius TRWP (um)")+
+  ylab( "Density TRWP (kg/m3)")
+
+# RhoP vs RadP
+PlotVariables = c("RadS", "RadP")
+ggplot(SpeciesP_long |> filter(VarName %in% PlotVariables) |> pivot_wider(names_from = c(VarName),
+              values_from = value) ,aes (x=RadP, y=RadS) )+
+  geom_point() + 
+facet_wrap(vars(SubCompart,Source))+scale_y_log10()
+
+PlotVariables = c("RhoS", "RhoP")
+ggplot(SpeciesP_long |> filter(VarName %in% PlotVariables) |> pivot_wider(names_from = c(VarName),
+              values_from = value) ,aes (x=RhoP, y=RhoS) )+
+  geom_point() + 
+facet_wrap(vars(SubCompart,Source))+scale_y_log10()
+
+PlotVariables = c("RadP")
+ggplot(SpeciesP_long |> filter(VarName %in% PlotVariables) ,aes (x=value*1e6, y=VarName) )+
+  geom_violin() + 
+facet_wrap(vars(SubCompart))+xlab( "Radius (um)")+
+ scale_x_log10()
+
+PlotVariable = "RadP"
+ggplot(SpeciesP_long |> filter(SubCompart == "othersoil") ,aes (x=value,y = SubCompart) )+
+  geom_violin() +
+  facet_wrap(vars(Polymer,Source))+
+  xlab(paste(PlotVariable)) + scale_x_log10() 
+
+
+
+
+PlotVariables = "RadS"
+ggplot(Parameters$Material_Parameters_n |> filter(VarName %in% PlotVariables) |> unnest(data), aes(x=value,y=VarName)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer))+
+  xlab(paste(PlotVariable)) + scale_x_log10() 
+
+PlotVariable = "RhoP" 
+ggplot(Material_Parameters_n |> filter(VarName == PlotVariable) |> unnest(data), aes(x=value,y=VarName)) +
+  geom_violin()+
+  facet_wrap(vars(Polymer,Source))+
+  xlab(paste(PlotVariable)) 
+
+```
+
+## other microplastics
+```{r run batchfiles}
+
+BatchFiles <- list.files("vignettes/CaseStudies/BatchFiles")
+
+for(Bfile in BatchFiles){
+  source(paste0("vignettes/CaseStudies/BatchFiles/",Bfile))
+}
+
+```
+
+...
+
+# Bind the data
+Once the batch scripts have been run, the data can be bound together. This is done
+using the a script that binds data in parallel, as this saves time. 
+
+Needed packages: 
+- tidyverse
+- stringr
+- doParallel
+
+```{r 04: Bind data in parallel}
+source("vignettes/CaseStudies/04_bind_data_parallel.R")
+
+```
+
+# Make figures from SimpleBox output
+The script below was used to create the SimpleBox output figures as in LEON-T
+Deliverable 3.5. Before running, change the paths to the RDatafiles created in 
+script 04 to where the files are located on your computer. 
+
+Needed packages: 
+- tidyverse
+- readxl
+- scales
+
+```{r 05: Make SimpleBox output figures}
+source("vignettes/CaseStudies/05_SimpleBox_figures_D3.5.R")
+
+```
+
+# Prepare the DPMFA emission output for plotting
+Before being able to make figures from the DPMFA emission output data, the data 
+is converted to smaller datasets that RStudio is better able to handle. 
+
+```{r 06: Prepare emission data}
+source("vignettes/CaseStudies/06_save_emission_figure_data.R")
+
+```
+
+# Make emission output figures
+This script was used to make the DPMFA output figures. Please change the filepaths 
+at the beginning of the script to the 
+
+```{r 08: Make DPMFA output figures}
+source("vignettes/CaseStudies/08_emission_figures_D3.5.R")
+
+```
+
