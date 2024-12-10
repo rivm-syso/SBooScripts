@@ -163,8 +163,8 @@ kable(World$fetchData("TotalArea"))
 # Make a dataframe in the same format (also same column names)
 TotalArea <- data.frame(
   Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"),
-  Waarde = c(4.25E+13, 7.43E+12, 8.50E+13, 4.13e+11, 1.27e+14)) |>
-  mutate(varName = "TotalArea")
+  Waarde = c(4.25E+13, 7.43E+12, 8.50E+13, 4.13e+11, 1.27e+14),
+  varName = "TotalArea")
 
 # Replace TotalArea variable with new values
 World$mutateVars(TotalArea)
@@ -211,8 +211,9 @@ After changing the molecular weight, the value is 0.15.
 
 ## Calculate steady state output
 
-To calculate steady state masses, emissions and a solver are needed. The
-have to be given to the solver in a particular format.
+To calculate steady state masses we need to select the correct solver,
+e.g. SB1solve. Each solver requires a datafrme with emissions in a
+particular format.
 
 ### Create emissions data frame
 
@@ -323,7 +324,7 @@ kable(emissions)
 
 To solve the matrix, a solver first needs to be specified. To solve for
 a steady state we can use “SB1Solve”. In this case the resulting steady
-state masses are reported in the data frame “masses”.
+state masses are output but the `World$Solve()` function.
 
 ``` r
 # Specify which solver to use to the World object
@@ -375,10 +376,91 @@ kable(masses)
 
 ### Model Output
 
-For now the most reliably is to output masses and manually calculate
-concentrations and other relevant output based on your needs
-\[5-12-2024\]. We are working on the Concentration module and have
-output of the mass flows and mass balance in preparation.
+One approach to calculating concentrations is to use a small script
+using the masses \[5-12-2024\], which works for both molecules and
+particulate species. Another approach is to use the `Mass2Conc`
+function, but this currently does not allow for combining air and
+cloudwater for particulate species.
+
+``` r
+# tODO add example of Mass2Conc when ready
+masses |> 
+  left_join(World$fetchData("Volume"), 
+            by=c("Scale", "SubCompart")) |> 
+   mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>  # cloudwater is part of air
+   ungroup() |>
+  group_by(Scale, SubCompart,Species) |>
+  summarise(EqMass = sum(EqMass),
+            Volume = sum(Volume)) |>
+   left_join(World$fetchData("FRACw"),
+            by=c("Scale", "SubCompart")) |> 
+  left_join(World$fetchData("FRACa"),
+            by=c("Scale", "SubCompart")) |> 
+  left_join(World$fetchData("rhoMatrix"),
+            by=c("SubCompart")) |> 
+  left_join(World$fetchData("Matrix"),
+            by=c("SubCompart"))|> 
+  mutate(conc_kg_m3 = EqMass/Volume) |> 
+  mutate(Unit = "kg/m3") |> 
+mutate(Concentration =
+           case_match(Matrix,
+                      "air" ~ conc_kg_m3*1000000000,
+                      "water" ~ conc_kg_m3*1000000,
+                      "soil" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix)*1000, 
+                      "sediment" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix)*1000,
+                      .default = conc_kg_m3),
+         Unit =
+           case_match(Matrix,
+                      "air" ~ "ug/m3",
+                      "water" ~ "ug/L",
+                      "soil" ~ "g/kg dw",
+                      "sediment" ~ "g/kg dw",
+                      .default = Unit)) |>
+  mutate(SubCompartName = paste0(SubCompart, " (", Unit, ")")) |> 
+  select(Scale,SubCompart,Species,Concentration,Unit) |> 
+  kable()
+```
+
+    ## `summarise()` has grouped output by 'Scale', 'SubCompart'. You can override
+    ## using the `.groups` argument.
+
+| Scale       | SubCompart         | Species | Concentration | Unit    |
+|:------------|:-------------------|:--------|--------------:|:--------|
+| Arctic      | air                | Unbound |     0.0632439 | ug/m3   |
+| Arctic      | deepocean          | Unbound |     0.0001460 | ug/L    |
+| Arctic      | marinesediment     | Unbound |     0.0000000 | g/kg dw |
+| Arctic      | naturalsoil        | Unbound |     0.0000000 | g/kg dw |
+| Arctic      | sea                | Unbound |     0.0004855 | ug/L    |
+| Continental | agriculturalsoil   | Unbound |     0.0000000 | g/kg dw |
+| Continental | air                | Unbound |     0.5415794 | ug/m3   |
+| Continental | freshwatersediment | Unbound |     0.0000003 | g/kg dw |
+| Continental | lake               | Unbound |     0.0022099 | ug/L    |
+| Continental | lakesediment       | Unbound |     0.0000001 | g/kg dw |
+| Continental | marinesediment     | Unbound |     0.0000001 | g/kg dw |
+| Continental | naturalsoil        | Unbound |     0.0000001 | g/kg dw |
+| Continental | othersoil          | Unbound |     0.0000001 | g/kg dw |
+| Continental | river              | Unbound |     0.0055656 | ug/L    |
+| Continental | sea                | Unbound |     0.0016369 | ug/L    |
+| Moderate    | air                | Unbound |     0.0877466 | ug/m3   |
+| Moderate    | deepocean          | Unbound |     0.0000147 | ug/L    |
+| Moderate    | marinesediment     | Unbound |     0.0000000 | g/kg dw |
+| Moderate    | naturalsoil        | Unbound |     0.0000000 | g/kg dw |
+| Moderate    | sea                | Unbound |     0.0001480 | ug/L    |
+| Regional    | agriculturalsoil   | Unbound |     0.0002963 | g/kg dw |
+| Regional    | air                | Unbound |     2.2703092 | ug/m3   |
+| Regional    | freshwatersediment | Unbound |     0.0018334 | g/kg dw |
+| Regional    | lake               | Unbound |     0.3593058 | ug/L    |
+| Regional    | lakesediment       | Unbound |     0.0000144 | g/kg dw |
+| Regional    | marinesediment     | Unbound |     0.0001112 | g/kg dw |
+| Regional    | naturalsoil        | Unbound |     0.0000003 | g/kg dw |
+| Regional    | othersoil          | Unbound |     0.0000003 | g/kg dw |
+| Regional    | river              | Unbound |    34.3987273 | ug/L    |
+| Regional    | sea                | Unbound |     2.4027752 | ug/L    |
+| Tropic      | air                | Unbound |     0.0532605 | ug/m3   |
+| Tropic      | deepocean          | Unbound |     0.0000011 | ug/L    |
+| Tropic      | marinesediment     | Unbound |     0.0000000 | g/kg dw |
+| Tropic      | naturalsoil        | Unbound |     0.0000000 | g/kg dw |
+| Tropic      | sea                | Unbound |     0.0000318 | ug/L    |
 
 ## Calculate dynamic output
 
@@ -425,9 +507,7 @@ calculated from time in seconds - Based on the column Abbr, the States
 dataframe is joined to the tibble
 
 ``` r
-solved <- as_tibble(solved) 
-
-solved_long <- solved |>
+solved_long <- solved |> as_tibble() |> 
   select(!starts_with("emis")) |>
   pivot_longer(!time, names_to = "Abbr", values_to = "Mass") |>
   mutate(Year = time/(365.25*24*60*60)) |>
