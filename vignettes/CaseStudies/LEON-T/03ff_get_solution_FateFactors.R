@@ -8,9 +8,8 @@ path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3
 source("baseScripts/initWorld_onlyPlastics.R")
 
 # Select polymer's
-source_of_interest <- "Tyre wear"
-Polymers_of_interest <- c("NR", "SBR")
-
+# source_of_interest <- "Tyre wear"
+source_of_interest <- NA
 
 if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
   load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241127.RData"))
@@ -18,9 +17,13 @@ if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
   load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241127.RData"))
 }
 
+Polymers_of_interest <- unique(Parameters$Material_Parameters_n$Polymer)
+
 if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_interest == "Tyre wear") {
+  source <- "TWP"
   World$substance <- "TRWP"
 } else {
+  source <- "Other"
   World$substance <- "microplastic"
 }
 
@@ -154,7 +157,7 @@ for(ecomp in unique(Output$EmisComp)){
         dplyr::select(VarName, Scale, SubCompart, Species, data) |> 
         rename(varName = VarName) # SBoo uses varName TODO: make Capital...
       
-      solved <- World$Solve((emis_source), needdebug = F, sample_source)
+      solved <- World$Solve((emis_source), needdebug = T, sample_source)
       
       # Output$EmisComp[i] = names(EmisSourceFF) [i]
       
@@ -170,7 +173,7 @@ elapsed_time <- Sys.time() - start_time
 print(paste0("Elapsed time is ", elapsed_time))
 elapsed_time
 
-save(Output, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FateFactors_LEON-T_D3.5_TWP_", 
+save(Output, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FateFactors_LEON-T_D3.5_", source, "_", 
                            format(Sys.Date(),"%Y%m%d"),".RData"))
 
 FF_allScale <- Output |> unnest(SBoutput) |> mutate(OutputType = names(SBoutput)) |> 
@@ -218,5 +221,7 @@ FF_EU <- FF_allScale |>
             FF_SteadyState_std = sd(EqMass_SAP)) |> 
   mutate(Unit = "kg[ss]/kg[e] seconds")
 
-write_csv(FF_NL, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_NL_LEON-T_D3.5_TWP_20241128.csv"))
-write_csv(FF_EU, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_EU_LEON-T_D3.5_TWP_20241128.csv"))
+write_csv(FF_NL, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_NL_LEON-T_D3.5_", source, "_", 
+                               format(Sys.Date(),"%Y%m%d"),".csv"))
+write_csv(FF_EU, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_EU_LEON-T_D3.5_", source, "_", 
+                               format(Sys.Date(),"%Y%m%d"),".csv"))
