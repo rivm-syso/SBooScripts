@@ -1,7 +1,7 @@
 Getting started
 ================
 Anne Hids
-2024-12-09
+2024-12-10
 
 ## Initialize
 
@@ -89,115 +89,19 @@ if(substance == "microplastic"){
 
 Now that the World is initialized, its variables and calculated flows
 can be accessed. To access these variables and k’s, first the names of
-the variables are needed:
+the variables are needed. They can be accessed by using the code below.
+The first 10 variable names are printed, but there are 201 variables in
+total.
 
 ``` r
 varnames <- World$fetchData()
 
-print(varnames)
+print(varnames[1:10])
 ```
 
-    ##   [1] "a"                         "a"                        
-    ##   [3] "AbbrC"                     "AbbrP"                    
-    ##   [5] "AEROresist"                "AEROSOLdeprate"           
-    ##   [7] "AirFlow"                   "alpha.surf"               
-    ##   [9] "Area"                      "AreaLand"                 
-    ##  [11] "AreaSea"                   "b"                        
-    ##  [13] "b"                         "BACTcomp"                 
-    ##  [15] "BACTtest"                  "beta.a"                   
-    ##  [17] "Biodeg"                    "C.OHrad"                  
-    ##  [19] "C.OHrad.n"                 "ChemClass"                
-    ##  [21] "COL"                       "COLLECTeff"               
-    ##  [23] "ColRad"                    "Compartment"              
-    ##  [25] "ContinentalInModerate"     "Corg"                     
-    ##  [27] "CORG.susp"                 "CorgStandard"             
-    ##  [29] "D"                         "DefaultNETsedrate"        
-    ##  [31] "Description"               "Df"                       
-    ##  [33] "Dimension"                 "dischargeFRAC"            
-    ##  [35] "DragMethod"                "DynViscAirStandard"       
-    ##  [37] "DynViscWaterStandard"      "Ea.OHrad"                 
-    ##  [39] "epsilon"                   "Erosion"                  
-    ##  [41] "EROSIONsoil"               "FlowName"                 
-    ##  [43] "forWhich"                  "FRACa"                    
-    ##  [45] "FRACcldw"                  "FRACinf"                  
-    ##  [47] "FracROWatComp"             "FRACrun"                  
-    ##  [49] "FRACs"                     "FRACsea"                  
-    ##  [51] "FRACtwet"                  "FRACw"                    
-    ##  [53] "FricVel"                   "FRinaers"                 
-    ##  [55] "FRinaerw"                  "FRingas"                  
-    ##  [57] "FRinw"                     "fromScale"                
-    ##  [59] "fromSubCompart"            "FRorig"                   
-    ##  [61] "FRorig_spw"                "gamma.surf"               
-    ##  [63] "H0sol"                     "hamakerSP.w"              
-    ##  [65] "Intermediate_side"         "k_Adsorption"             
-    ##  [67] "k_CWscavenging"            "k_Deposition"             
-    ##  [69] "k_DryDeposition"           "k_HeteroAgglomeration.a"  
-    ##  [71] "k_HeteroAgglomeration.wsd" "k_Leaching"               
-    ##  [73] "k_Removal"                 "k_Runoff"                 
-    ##  [75] "k_Volatilisation"          "k_WetDeposition"          
-    ##  [77] "k0.OHrad"                  "Kacompw"                  
-    ##  [79] "Kaers"                     "Kaerw"                    
-    ##  [81] "Kaw25"                     "kdeg"                     
-    ##  [83] "KdegDorC"                  "kdis"                     
-    ##  [85] "Kow"                       "Kp"                       
-    ##  [87] "Kp.col"                    "Kp.sed"                   
-    ##  [89] "Kp.soil"                   "Kp.susp"                  
-    ##  [91] "KpCOL"                     "Kscompw"                  
-    ##  [93] "Ksdcompw"                  "Ksw"                      
-    ##  [95] "Ksw.alt"                   "KswDorC"                  
-    ##  [97] "kwsd"                      "kwsd.sed"                 
-    ##  [99] "kwsd.water"                "LakeFracRiver"            
-    ## [101] "landFRAC"                  "Longest_side"             
-    ## [103] "Mackay1"                   "Mackay2"                  
-    ## [105] "Matrix"                    "MaxPvap"                  
-    ## [107] "MTC_2a"                    "MTC_2s"                   
-    ## [109] "MTC_2sd"                   "MTC_2w"                   
-    ## [111] "MW"                        "NaturalPart"              
-    ## [113] "NETsedrate"                "NotInGlobal"              
-    ## [115] "NumConcAcc"                "NumConcCP"                
-    ## [117] "NumConcNuc"                "OceanCurrent"             
-    ## [119] "OtherkAir"                 "penetration_depth_s"      
-    ## [121] "pH"                        "pKa"                      
-    ## [123] "Porosity"                  "Pvap25"                   
-    ## [125] "Q.10"                      "QSAR.ChemClass"           
-    ## [127] "QSAR.ChemClass"            "rad_species"              
-    ## [129] "RadCOL"                    "RadCP"                    
-    ## [131] "RadNuc"                    "RadS"                     
-    ## [133] "RainOnFreshwater"          "RAINrate"                 
-    ## [135] "relevant_depth_s"          "rho_species"              
-    ## [137] "RhoCOL"                    "RhoCP"                    
-    ## [139] "rhoMatrix"                 "RhoNuc"                   
-    ## [141] "RhoS"                      "Runoff"                   
-    ## [143] "ScaleIsGlobal"             "ScaleName"                
-    ## [145] "ScaleOrder"                "SettlingVelocity"         
-    ## [147] "SettlVelocitywater"        "Shape"                    
-    ## [149] "Shear"                     "Shortest_side"            
-    ## [151] "Sol25"                     "SpeciesName"              
-    ## [153] "SpeciesOrder"              "SubCompartName"           
-    ## [155] "SubCompartOrder"           "subFRACa"                 
-    ## [157] "subFRACs"                  "subFRACw"                 
-    ## [159] "Substance"                 "SUSP"                     
-    ## [161] "t_half_Escape"             "T25"                      
-    ## [163] "table"                     "TAUsea"                   
-    ## [165] "tdry"                      "Temp"                     
-    ## [167] "Tempfactor"                "Test"                     
-    ## [169] "Tm"                        "Tm_default"               
-    ## [171] "toScale"                   "ToSI"                     
-    ## [173] "toSubCompart"              "TotalArea"                
-    ## [175] "twet"                      "Udarcy"                   
-    ## [177] "Unit"                      "VarName"                  
-    ## [179] "VarName"                   "VertDistance"             
-    ## [181] "Volume"                    "Waarde"                   
-    ## [183] "WINDspeed"                 "X"                        
-    ## [185] "X"                         "X"                        
-    ## [187] "X"                         "x_Advection_Air"          
-    ## [189] "x_ContRiver2Reg"           "x_ContSea2Reg"            
-    ## [191] "x_FromModerate2ArctWater"  "x_FromModerate2ContWater" 
-    ## [193] "x_FromModerate2TropWater"  "x_LakeOutflow"            
-    ## [195] "x_OceanMixing2Deep"        "x_OceanMixing2Sea"        
-    ## [197] "x_RegSea2Cont"             "x_RiverDischarge"         
-    ## [199] "x_ToModerateWater"         "X.1"                      
-    ## [201] "X.1"
+    ##  [1] "a"              "a"              "AbbrC"          "AbbrP"         
+    ##  [5] "AEROresist"     "AEROSOLdeprate" "AirFlow"        "alpha.surf"    
+    ##  [9] "Area"           "AreaLand"
 
 ### Access variables
 
@@ -288,14 +192,8 @@ When using World\$fetchData(), sometimes a value is returned instead of
 a dataframe. In that case we can still use the mutateVars() function,
 but give the function a named value instead of a dataframe.
 
-``` r
-# See the original value
-kable(World$fetchData("MW"))
-```
-
-|     x |
-|------:|
-| 0.147 |
+The default molecular weight for this substance is 0.147. After the
+chuck below, the value should be 0.15.
 
 ``` r
 # Make a dataframe where varName = MW and Waarde is 150 
@@ -305,18 +203,11 @@ MW_df <- data.frame(varName = "MW",
 # Use mutateVars() to update the variable
 World$mutateVars(MW_df)
 
-# See if the value is updated
-kable(World$fetchData("MW"))
-```
-
-|    x |
-|-----:|
-| 0.15 |
-
-``` r
 # Recalculate all variables dependent on MW
 World$UpdateDirty("MW")
 ```
+
+After changing the molecular weight, the value is 0.15.
 
 ## Calculate steady state output
 
