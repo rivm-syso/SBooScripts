@@ -39,9 +39,11 @@ The methods will be explained in the order of the list above.
 
 #### Create tibble with samples for uncertain variables
 
-The first step is to determine the number of uncertain variables and the number of runs.
+The first step is to determine the number of uncertain variables and the number of runs. We also need the SB-variable to convert mass (result of the solvers) to concentration in units associated by the compartments
 
 ```{r Create samples, warning=FALSE, message=FALSE}
+ConcDividerVar <- World$NewCalcVariable("Mass2ConcDivider")
+ConcDiverFactor <- ConcDividerVar$execute()
 # Define the number of samples and the number of variables
 n_samples <- 100
 n_vars <- 3
