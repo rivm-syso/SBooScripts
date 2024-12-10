@@ -13,7 +13,7 @@ editor_options:
 knitr::knit_meta()
 knitr::opts_chunk$set(echo = TRUE)
 projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+# knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
 ## Initialize
