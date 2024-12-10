@@ -15,7 +15,7 @@ source("baseScripts/initWorld_onlyMolec.R")
 
 # Choose the substance to model. Of the 5 substances used in Bakker (2003) only Tetrachloroethylene
 # is currently present in data/Substances.csv by default. The others need to be added manually.
-Substance <- "tetrachloroethylene"
+Substance <- "lindane"
 
 World$substance <- Substance
 
@@ -28,8 +28,8 @@ Substance_extra <- data.frame(Substance = c("tetrachloroethylene", "lindane", "f
                               kdegsoil = c(4.10e-8, 2.23e-8, 2.23e-8, 2.23e-8, 2.23e-8))
 
 # Set the emission values [ton/year]
-emissions <- data.frame(Abbr = c("aRU", "w1RU", "aCU", "w1CU"), Emis = c(2380, 15.1, 64200, 223.4))     # Tetrachloroethylene
-#emissions <- data.frame(Abbr = c("aRU", "s2RU", "aCU", "s2CU"), Emis = c(2.1, 18.9, 104.4, 939.6))      # Lindane
+#emissions <- data.frame(Abbr = c("aRU", "w1RU", "aCU", "w1CU"), Emis = c(2380, 15.1, 64200, 223.4))     # Tetrachloroethylene
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "aCU", "s2CU"), Emis = c(2.1, 18.9, 104.4, 939.6))      # Lindane
 #emissions <- data.frame(Abbr = c("aRU", "w1RU", "s2RU", "s3RU"), Emis = c(196.8, 19.2, 7.2, 16.8))      # Fluoranthene
 #emissions <- data.frame(Abbr = c("aRU", "w1RU", "s2RU", "s3RU"), Emis = c(75.2, 3.2, 0.8, 0.8))         # Chrysene
 #emissions <- data.frame(Abbr = c("aRU", "w1RU", "s2RU", "s3RU"), Emis = c(26.88, 4.16, 0.32, 0.64))     # Benzo[a]pyrene
@@ -42,8 +42,6 @@ emissions <- emissions |> mutate(Emis = Emis*1000/(MW*365*24*60*60))
 SystemArea <- World$fetchData("TotalArea")
 index <- which(SystemArea$Scale == "Regional")
 SystemArea$TotalArea[index] <- 8.4e+10
-# index <- which(SystemArea$Scale == "Continental")
-# SystemArea$TotalArea[index] <- 3.714e+12 
 World$SetConst("TotalArea" = SystemArea)
 
 # Setting sea fraction of total area [-]
@@ -191,8 +189,8 @@ sedrate$NETsedrate[index] <- 2.74288e-11
 index <- which(sedrate$Scale == "Continental" & sedrate$SubCompart == "sea")
 sedrate$NETsedrate[index] <- 0 
 
-# Setting the degradation rates for the subcompartments [/s]
-# kdeg <- World$fetchData("kdeg")                                   # Attempting to set these parameters for anything other than Tetrachloroethylene will result in an error. 
+# Setting the degradation rates for the subcompartments [/s]    # kdeg seems to have been replaced by KdegDorC
+# kdeg <- World$fetchData("kdeg")                                   
 # index <- which(kdeg$SubCompart == "air")
 # kdeg$kdeg[index] <- Substance_extra$kdegair[indexS]
 # index <- which(kdeg$SubCompart == "river" | kdeg$SubCompart == "sea")
@@ -236,21 +234,6 @@ for (x in SBvars) {
 World$UpdateKaas()
 
 
-# The scenario from Bakker (2003) does not have a lake component. In order to disable that compartment in SB 5.0,
-# I forcibly set all transfer rates going to and from the lake compartments to 0.
-# lakeindex <- which(World$kaas$fromSubCompart == "lake" | World$kaas$fromSubCompart == "lakesediment" | World$kaas$toSubCompart == "lake" | World$kaas$toSubCompart == "lakesediment")
-# for (i in lakeindex) {
-#   World$kaas$k[i] <- 0
-# }
-# 
-# # Bakker (2003) specifically lists a rate for Continental Rivers to Regional Rivers, so I'm manually setting
-# # it here in SimpleBox 5.0
-# Volumew1C <- filter(World$fetchData("Volume"), Scale =="Continental", SubCompart == "river")[3]
-# Ratew1Ctow1R <- 2247/Volumew1C
-# index <- which(World$kaas$process == "k_Advection" & World$kaas$fromScale == "Continental" & World$kaas$fromSubCompart == "river" & World$kaas$toSubCompart == "river")
-# World$kaas$k[index] <- as.numeric(Ratew1Ctow1R)
-
-
 # Set a solver and solve the matrix
 World$NewSolver("SB1Solve")
 
@@ -266,68 +249,69 @@ print(masses)
 Concentrations <- filter(World$GetConcentration(), Scale == "Regional")    # SAME HERE. THIS IS MOL, NOT KG!
 Concentrations <- Concentrations[,-c(1,2)]
 
-# Convert concentrations to g/
-Concentrations <- Concentrations |> mutate(Concentration = Concentration*MW)
-index <- which(Concentrations$SubCompart == "river" | Concentrations$SubCompart == "sea")
-for (i in index) {
-  Concentrations$Concentration[i] <- Concentrations$Concentration[i] / 1000
-}
 
-
-# Calculate concentrations for the sub-phases in the relevant compartments
-Cair <- filter(Concentrations, SubCompart == "air")[,2]
-Criver <- filter(Concentrations, SubCompart == "river")[,2]
-Csediment <- filter(Concentrations, SubCompart == "freshwatersediment")[,2]
-Cnatsoil <- filter(Concentrations, SubCompart == "naturalsoil")[,2]
-Cagrisoil <- filter(Concentrations, SubCompart == "agriculturalsoil")[,2]
-Cothersoil <- filter(Concentrations, SubCompart == "othersoil")[,2]
+# Convert and calculate concentrations for the sub-phases in the relevant compartments
 
 # Gas and Aerosol/Clouds in Air
-FRgas <- filter(World$fetchData("FRingas"), Scale == "Regional")[,3]
-Concentrations <- rbind.data.frame(Concentrations, c("air - gas", Cair[[1]]*FRgas, "g/m^3"))
-Concentrations <- rbind.data.frame(Concentrations, c("air - aerosol", Cair[[1]]*(1-FRgas), "g/m^3"))
+Cair <- Concentrations$Concentration[which(Concentrations$SubCompart == "air")]
+FRgas <- World$fetchData("FRingas")$FRingas[which(World$fetchData("FRingas")$Scale == "Regional")]
+
+Concentrations$Concentration[which(Concentrations$SubCompart == "air")] <- Cair * MW
+Concentrations <- rbind.data.frame(Concentrations, c("air - gas", Cair * MW * FRgas, "g/m^3"))
+Concentrations <- rbind.data.frame(Concentrations, c("air - aerosol", Cair * MW *(1-FRgas), "g/m^3"))
 
 # Dissolved and Suspended in Freshwater
-FRw1 <- filter(World$fetchData("FRinw"), Scale == "Regional" & SubCompart == "river")[,3]
-KPsuspw1 <- filter(World$fetchData("Kp"), SubCompart == "river")[,2]
-Concentrations <- rbind(Concentrations, c("river - dissolved", Criver[[1]]*FRw1, "g/L"))
-Concentrations <- rbind(Concentrations, c("river - suspended", Criver[[1]]*FRw1*KPsuspw1, "g/kg d"))
+Criver <- as.numeric(Concentrations$Concentration[which(Concentrations$SubCompart == "river")])
+FRw1 <- World$fetchData("FRinw")$FRinw[which(World$fetchData("FRinw")$Scale == "Regional" & World$fetchData("FRinw")$SubCompart == "river")]
+KPsuspw1 <- World$fetchData("Kp")$Kp[which(World$fetchData("Kp")$SubCompart == "river")]
+
+Concentrations$Concentration[which(Concentrations$SubCompart == "river")] <- Criver * MW / 1000
+Concentrations <- rbind(Concentrations, c("river - dissolved", Criver * MW / 1000 * FRw1, "g/L"))
+Concentrations <- rbind(Concentrations, c("river - suspended", Criver * MW / 1000 * FRw1 * KPsuspw1, "g/kg d"))
 
 # Water and Solid in Freshwater Sediment
-FRwinsd <- filter(World$fetchData("FRACw"), Scale == "Regional" & SubCompart == "freshwatersediment")[,3]
-KPsuspsd1 <- filter(World$fetchData("Kp"), SubCompart == "freshwatersediment")[,2]
-FRsinsd <- filter(World$fetchData("FRACs"), Scale == "Regional" & SubCompart == "freshwatersediment")[,3]
-RhoS <- filter(World$fetchData("RhoCP"), SubCompart == "freshwatersediment")[,2]
-Csedsolid <- Csediment*FRsinsd/(FRwinsd/(KPsuspsd1*RhoS/1000)/FRsinsd)
-Concentrations <- rbind(Concentrations, c("freshwatersediment - water", Csedsolid[[1]]/KPsuspsd1, "g/L"))
-Concentrations <- rbind(Concentrations, c("freshwatersediment - solid", Csedsolid[[1]], "g/kg d"))
+Csediment <- as.numeric(Concentrations$Concentration[which(Concentrations$SubCompart == "freshwatersediment")])
+FRwinsd <- World$fetchData("FRACw")$FRACw[which(World$fetchData("FRACw")$Scale == "Regional" & World$fetchData("FRACw")$SubCompart == "freshwatersediment")]
+KPsuspsd1 <- World$fetchData("Kp")$Kp[which(World$fetchData("Kp")$SubCompart == "freshwatersediment")]
+FRsinsd <- World$fetchData("FRACs")$FRACs[which(World$fetchData("FRACs")$Scale == "Regional" & World$fetchData("FRACs")$SubCompart == "freshwatersediment")]
+RhoS <- World$fetchData("RhoCP")$RhoCP[which(World$fetchData("RhoCP")$SubCompart == "freshwatersediment")]
+
+Concentrations$Concentration[which(Concentrations$SubCompart == "freshwatersediment")] <- Csediment * (MW * 1000)/(FRwinsd*1000+FRsinsd*RhoS)
+Concentrations <- rbind(Concentrations, c("freshwatersediment - water", (Csediment*FRsinsd/(FRwinsd/(KPsuspsd1*RhoS/1000)+FRsinsd)*(MW*1000)/(FRsinsd*RhoS))/KPsuspsd1, "g/L"))
+Concentrations <- rbind(Concentrations, c("freshwatersediment - solid", Csediment*FRsinsd/(FRwinsd/(KPsuspsd1*RhoS/1000)+FRsinsd)*(MW*1000)/(FRsinsd*RhoS), "g/kg d"))
 
 # Water and Solid in Natural Soil
-FRwins1 <- filter(World$fetchData("FRACw"), Scale == "Regional" & SubCompart == "naturalsoil")[,3]
-KPsusps1 <- filter(World$fetchData("Kp"), SubCompart == "naturalsoil")[,2]
-FRains1 <- filter(World$fetchData("FRACa"), Scale == "Regional" & SubCompart == "naturalsoil")[,3]
-FRsins1 <- filter(World$fetchData("FRACs"), Scale == "Regional" & SubCompart == "naturalsoil")[,3]
-Csoilsolid <- Cnatsoil*(FRwins1*1000+(1- FRwins1- FRains1)*RhoS)*0.99/(FRsins1*RhoS)
-Concentrations <- rbind(Concentrations, c("naturalsoil - water", Csoilsolid[[1]]/KPsusps1, "g/L"))
-Concentrations <- rbind(Concentrations, c("naturalsoil - solid", Csoilsolid[[1]], "g/kg d"))
+Cnatsoil <- as.numeric(Concentrations$Concentration[which(Concentrations$SubCompart == "naturalsoil")])
+FRwins1 <- World$fetchData("FRACw")$FRACw[which(World$fetchData("FRACw")$Scale == "Regional" & World$fetchData("FRACw")$SubCompart == "naturalsoil")]
+KPsusps1 <- World$fetchData("Kp")$Kp[which(World$fetchData("Kp")$SubCompart == "naturalsoil")]
+FRains1 <- World$fetchData("FRACa")$FRACa[which(World$fetchData("FRACa")$Scale == "Regional" & World$fetchData("FRACa")$SubCompart == "naturalsoil")]
+FRsins1 <- World$fetchData("FRACs")$FRACs[which(World$fetchData("FRACs")$Scale == "Regional" & World$fetchData("FRACs")$SubCompart == "naturalsoil")]
+
+Concentrations$Concentration[which(Concentrations$SubCompart == "naturalsoil")] <- Cnatsoil*(MW*1000)/(FRwins1*1000+(1-FRains1-FRwins1)*RhoS)
+Concentrations <- rbind(Concentrations, c("naturalsoil - water", (Cnatsoil*0.999*(MW*1000)/(FRsins1*RhoS))/KPsusps1, "g/L"))
+Concentrations <- rbind(Concentrations, c("naturalsoil - solid", Cnatsoil*0.999*(MW*1000)/(FRsins1*RhoS), "g/kg d"))
 
 # Water and Solid in Agricultural Soil
-FRwins2 <- filter(World$fetchData("FRACw"), Scale == "Regional" & SubCompart == "agriculturalsoil")[,3]
-KPsusps2 <- filter(World$fetchData("Kp"), SubCompart == "agriculturalsoil")[,2]
-FRains2 <- filter(World$fetchData("FRACa"), Scale == "Regional" & SubCompart == "agriculturalsoil")[,3]
-FRsins2 <- filter(World$fetchData("FRACs"), Scale == "Regional" & SubCompart == "agriculturalsoil")[,3]
-Csoilsolid <- Cagrisoil*(FRwins2*1000+(1- FRwins2- FRains2)*RhoS)*0.99/(FRsins2*RhoS)
-Concentrations <- rbind(Concentrations, c("agriculturalsoil - water", Csoilsolid[[1]]/KPsusps2, "g/L"))
-Concentrations <- rbind(Concentrations, c("agriculturalsoil - solid", Csoilsolid[[1]], "g/kg d"))
+Cagrisoil <- as.numeric(Concentrations$Concentration[which(Concentrations$SubCompart == "agriculturalsoil")])
+FRwins2 <- World$fetchData("FRACw")$FRACw[which(World$fetchData("FRACw")$Scale == "Regional" & World$fetchData("FRACw")$SubCompart == "agriculturalsoil")]
+KPsusps2 <- World$fetchData("Kp")$Kp[which(World$fetchData("Kp")$SubCompart == "agriculturalsoil")]
+FRains2 <- World$fetchData("FRACa")$FRACa[which(World$fetchData("FRACa")$Scale == "Regional" & World$fetchData("FRACa")$SubCompart == "agriculturalsoil")]
+FRsins2 <- World$fetchData("FRACs")$FRACs[which(World$fetchData("FRACs")$Scale == "Regional" & World$fetchData("FRACs")$SubCompart == "agriculturalsoil")]
+
+Concentrations$Concentration[which(Concentrations$SubCompart == "agriculturalsoil")] <- Cagrisoil*(MW*1000)/(FRwins2*1000+(1-FRains2-FRwins2)*RhoS)
+Concentrations <- rbind(Concentrations, c("agriculturalsoil - water", (Cagrisoil*0.999*(MW*1000)/(FRsins2*RhoS))/KPsusps2, "g/L"))
+Concentrations <- rbind(Concentrations, c("agriculturalsoil - solid", Cagrisoil*0.999*(MW*1000)/(FRsins2*RhoS), "g/kg d"))
 
 # Water and Solid in Other Soil
-FRwins3 <- filter(World$fetchData("FRACw"), Scale == "Regional" & SubCompart == "othersoil")[,3]
-KPsusps3 <- filter(World$fetchData("Kp"), SubCompart == "othersoil")[,2]
-FRains3 <- filter(World$fetchData("FRACa"), Scale == "Regional" & SubCompart == "othersoil")[,3]
-FRsins3 <- filter(World$fetchData("FRACs"), Scale == "Regional" & SubCompart == "othersoil")[,3]
-Csoilsolid <- Cothersoil*(FRwins3*1000+(1- FRwins3- FRains3)*RhoS)*0.99/(FRsins3*RhoS)
-Concentrations <- rbind(Concentrations, c("othersoil - water", Csoilsolid[[1]]/KPsusps3, "g/L"))
-Concentrations <- rbind(Concentrations, c("othersoil - solid", Csoilsolid[[1]], "g/kg d"))
+Cothersoil <- as.numeric(Concentrations$Concentration[which(Concentrations$SubCompart == "othersoil")])
+FRwins3 <- World$fetchData("FRACw")$FRACw[which(World$fetchData("FRACw")$Scale == "Regional" & World$fetchData("FRACw")$SubCompart == "othersoil")]
+KPsusps3 <- World$fetchData("Kp")$Kp[which(World$fetchData("Kp")$SubCompart == "agriculturalsoil")]
+FRains3 <- World$fetchData("FRACa")$FRACa[which(World$fetchData("FRACa")$Scale == "Regional" & World$fetchData("FRACa")$SubCompart == "othersoil")]
+FRsins3 <- World$fetchData("FRACs")$FRACs[which(World$fetchData("FRACs")$Scale == "Regional" & World$fetchData("FRACs")$SubCompart == "othersoil")]
+
+Concentrations$Concentration[which(Concentrations$SubCompart == "othersoil")] <- Cothersoil*(MW*1000)/(FRwins3*1000+(1-FRains3-FRwins3)*RhoS)
+Concentrations <- rbind(Concentrations, c("othersoil - water", (Cothersoil*0.999*(MW*1000)/(FRsins3*RhoS))/KPsusps3, "g/L"))
+Concentrations <- rbind(Concentrations, c("othersoil - solid", Cothersoil*0.999*(MW*1000)/(FRsins3*RhoS), "g/kg d"))
 
 
 # Print final results
