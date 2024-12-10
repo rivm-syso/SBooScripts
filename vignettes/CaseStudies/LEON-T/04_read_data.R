@@ -21,7 +21,7 @@ if(env == "OOD"){
 if(env == "OOD"){
   source("vignettes/CaseStudies/f_Read_SB_data_v2.R")
 } else if(env == "HPC"){
-  source("/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/f_Read_SB_data.R")
+  source("/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/LEON-T/f_Read_SB_data.R")
 }
 
 # Load the data for each file path and transform the data to the correct

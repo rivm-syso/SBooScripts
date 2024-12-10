@@ -16,7 +16,7 @@ pars <- expand.grid(
   mutate(MinRun = MaxRun - (batch_n - 1))
 
 # Define the folder path
-folder_path <- "vignettes/CaseStudies/BatchFiles"
+folder_path <- "vignettes/CaseStudies/LEON-T/BatchFiles"
 filepaths <- c()
 
 # Check if the folder exists
@@ -32,7 +32,7 @@ if (dir.exists(folder_path)) {
 }
 
 for(i in 1:nrow(pars)){
-  file <- readLines("vignettes/CaseStudies/03_get_Solution_SB.R")
+  file <- readLines("vignettes/CaseStudies/LEON-T/03_get_Solution_SB.R")
   
   target_string_runs <- "RUNSamples = c"
   replacement_string_runs <- paste0("RUNSamples = c(", pars$MinRun[i], ":", pars$MaxRun[i], ")")
@@ -62,7 +62,7 @@ for(i in 1:nrow(pars)){
     source <- "TWP"
   }
   
-  pathname <- "vignettes/CaseStudies/BatchFiles/"
+  pathname <- "vignettes/CaseStudies/LEON-T/BatchFiles/"
   filename <- paste0("get_Solution_", as.character(source), "_RUN_", as.character(pars$MinRun[i]), "_", as.character(pars$MaxRun[i]), ".R")
   
   filepath <- paste0(pathname, filename)
@@ -90,4 +90,4 @@ LSF_string <- paste0("bsub -n 1 -W ", time, " -M ", kb, "KB Rscript")
 LSF_vector <- paste(LSF_string, filepaths)
 
 # Write to txt file to make copying easy
-writeLines(LSF_vector, "vignettes/CaseStudies/HPC_commands.txt")
+writeLines(LSF_vector, "vignettes/CaseStudies/LEON-T/HPC_commands.txt")

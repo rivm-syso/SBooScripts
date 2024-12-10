@@ -2,7 +2,7 @@
 ### Created for LEON-T Case study
 
 # Initialize
-source("vignettes/CaseStudies/f_Emission4SB.R")
+source("vignettes/CaseStudies/LEON-T/f_Emission4SB.R")
 
 ### initialize ###
 
@@ -23,7 +23,7 @@ source_of_interest = "Tyre wear"
 DPMFA_SBoutput <- Load_DPMFA4SB(abspath_EU = abspath_EU, 
                                 abspath_NL = abspath_NL,
                                 source_of_interest = source_of_interest,
-                                path_parameters_file = "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx",
+                                path_parameters_file = "vignettes/CaseStudies/LEON-T/Microplastic_variables_v1.1c.xlsx",
                                 TESTING = FALSE)
 
 # DPMFA_sink_micro <- DPMFA_SBoutput$DPMFA_sink_micro
@@ -44,7 +44,7 @@ source_of_interest = NA
 DPMFA_SBoutput <- Load_DPMFA4SB(abspath_EU = abspath_EU, 
                                 abspath_NL = abspath_NL,
                                 source_of_interest = source_of_interest,
-                                path_parameters_file = "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx",
+                                path_parameters_file = "vignettes/CaseStudies/LEON-T/Microplastic_variables_v1.1c.xlsx",
                                 TESTING = FALSE)
 
 # DPMFA_sink_micro <- DPMFA_SBoutput$DPMFA_sink_micro

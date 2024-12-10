@@ -33,7 +33,7 @@ load(paste0(data_path, Mat_file_name))
 #load(paste0(data_path, plot_data_file_name))
 
 # Load functions
-source("vignettes/CaseStudies/f_plot_functions.R")
+source("vignettes/CaseStudies/LEON-T/f_plot_functions.R")
 
 ####################### Calculate number of complete runs ######################
 

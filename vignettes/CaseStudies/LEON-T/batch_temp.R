@@ -20,7 +20,7 @@ for(i in 1:nrow(pars)) {
   RUNSamples <- pars$RUN2[i]:pars$RUN1[i]
   
   # Call rbatch with specific parameters
-  seed <- rbatch("vignettes/CaseStudies/03_get_Solution_SB_batch.r", 
+  seed <- rbatch("vignettes/CaseStudies/LEON-T/03_get_Solution_SB_batch.r", 
                  seed = seed, 
                  RUNSamples = RUNSamples
   )

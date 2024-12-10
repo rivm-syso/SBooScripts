@@ -1,7 +1,7 @@
 ########################################################
 # Parameter preparation for probabilistic SB analysis
 
-read_Prob4SB <- function(path_parameters_file = "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx",
+read_Prob4SB <- function(path_parameters_file = "vignettes/CaseStudies/LEON-T/Microplastic_variables_v1.1c.xlsx",
                          source_of_interest=source_of_interest,
                          n_samples = nrow(DPMFA_sink_micro$Emis[[1]]), # Number of emission runs 
                          # materials <- unique(Material_Parameters$Polymer)
@@ -11,7 +11,7 @@ read_Prob4SB <- function(path_parameters_file = "vignettes/CaseStudies/CaseData/
                          species = union((World$FromDataAndTo()$fromSpecies),(World$FromDataAndTo()$toSpecies))
 ){
   
-  source("vignettes/CaseStudies/ProbDistributionFun.R")
+  source("vignettes/CaseStudies/LEON-T/ProbDistributionFun.R")
   
   Material_Parameters <- readxl::read_excel(path_parameters_file, sheet = "Polymer_data") |> 
     # change um to nm unit conversion

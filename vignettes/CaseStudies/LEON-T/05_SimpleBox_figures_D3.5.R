@@ -18,7 +18,7 @@ figurefolder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figu
 abs_path_Measurements <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/LEONT_TNO_measurements_clean.xlsx" # Define path to LEON-T measurement data
 
 ## Load functions
-source("vignettes/CaseStudies/f_plot_functions.R")
+source("vignettes/CaseStudies/LEON-T/f_plot_functions.R")
 
 ## Load data
 load(paste0(data_path, "SB_Masses.RData"))
