@@ -26,8 +26,6 @@ if(env == "OOD"){
   filepaths <- paste0(folderpath, filepaths)
 }
 
-#filepaths <- filepaths[grep("TWP", filepaths)]
-
 if(env == "OOD"){
   source("/rivm/n/hidsa/Documents/GitHub/SimpleBox/SBooScripts/vignettes/CaseStudies/f_Read_SB_data.R")
 } else if(env == "HPC"){

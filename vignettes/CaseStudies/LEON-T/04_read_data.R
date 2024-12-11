@@ -5,7 +5,6 @@ library(tidyverse)
 
 # Specify the environment
 env <- "OOD"
-#env <- "HPC"
 
 # Find file paths 
 if(env == "OOD"){

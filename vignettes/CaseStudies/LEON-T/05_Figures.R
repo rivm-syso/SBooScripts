@@ -19,8 +19,6 @@ mass_file_name <- "SB_Masses.RData"
 TW_file_name <- "SB_Tyre_wear_data.RData"
 Mat_file_name <- "SB_Material_parameters.RData"
 
-#plot_data_file_name <- "SB_plot_data.RData"
-
 # Load in the data
 if(env == "local"){
   data_path <- "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/" # Define path to plot data
@@ -36,8 +34,6 @@ if(env == "local"){
 load(paste0(data_path, mass_file_name))
 load(paste0(data_path, TW_file_name))
 load(paste0(data_path, Mat_file_name))
-
-#load(paste0(data_path, plot_data_file_name))
 
 # Load functions
 source("vignettes/CaseStudies/LEON-T/f_plot_functions.R")

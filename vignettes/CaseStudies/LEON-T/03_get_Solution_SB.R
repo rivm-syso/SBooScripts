@@ -11,25 +11,14 @@ library(tidyverse)
 
 # Specify the environment
 env <- "OOD"
-#env <- "local"
-#env <- "HPC"
 
 # Specify the source
 source_of_interest <- NA
 
-if(env == "local"){
-  setwd("N:/Documents/GitHub/SimpleBox/SBooScripts")
-} else if(env == "OOD"){
-  # setwd("/rivm/n/hidsa/Documents/GitHub/SimpleBox/SBooScripts") # please work in R studion projects with git! This resolves the need for these type of setwd.
+if(env == "OOD" | env == "local"){
+  path_parameters_file = "vignettes/CaseStudies/LEON-T/Microplastic_variables_v1.1c.xlsx"
 } else if(env == "HPC"){
   mainfolder <- "/data/BioGrid/hidsa/SimpleBox/SBooScripts/"
-}
-
-if(env == "local"){
-  path_parameters_file = "R:/Projecten/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.1.xlsx"
-} else if(env == "OOD"){
-  path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.1.xlsx"
-} else if(env == "HPC"){
   path_parameters_file = paste0(mainfolder, "vignettes/CaseStudies/LEON-T/Microplastic_variables_v1.1c.xlsx")
 }
 
