@@ -43,7 +43,6 @@ kdeg,air,"1-Octanamine, N-methyl-N-octyl-",7.9e-5,NA
 kdeg,air,"1-Octanamine, N,N-dimethyl-",6.57e-5,NA
 kdeg,air,1-pentanol,8.33e-6,NA
 kdeg,air,"1-PIPERIDINYLOXY, 2,2,6,6-TETRAMETHYL-4-OXO-",5.13e-5,NA
-kdeg,air,"1,1'-oxydipropan-2-ol",1.9e-5,NA
 kdeg,air,"1,1-DICHLORO-2,2-BIS(ETHYLPHENYL)ETHANE",1.12e-5,NA
 kdeg,air,"1,1-dichloroethylene",1.6e-6,NA
 kdeg,air,"1,1-Dichloropropane",6.36e-7,NA
@@ -51,6 +50,7 @@ kdeg,air,"1,1-Dimethyl hydrazine",1.9e-6,NA
 kdeg,air,"1,1,1-trichloroethane",2.2e-8,NA
 kdeg,air,"1,1,1-TRIFLUORO-2-CHLOROETHANE",1.22e-8,NA
 kdeg,air,"1,1,1,3,3,3-HEXAFLUOROPROPAN-2-OL",1.94e-8,NA
+kdeg,air,"1,1'-oxydipropan-2-ol",1.9e-5,NA
 kdeg,air,"1,2-Benzenedicarboxylic acid, di-C9-11-branched alkyl esters, C10-rich",1.42e-5,NA
 kdeg,air,"1,2-Benzenedicarboxylic acid, heptyl nonyl ester, branched and linear",1.66e-5,NA
 kdeg,air,"1,2-BENZENEDIOL, 4-METHYL-",1.17e-4,NA
@@ -154,13 +154,13 @@ kdeg,air,"2-Propenoic acid, 2-(dimethylamino)ethyl ester",6.77e-5,NA
 kdeg,air,"2-PROPENOIC ACID, 3-(3,4-DIHYDROXYPHENYL)-, (E)-",3.16e-5,NA
 kdeg,air,2-Propynoic acid,2.23e-6,NA
 kdeg,air,2-THIOURACIL,1.72e-5,NA
+kdeg,air,"2,2-BIS(4-HYDROXY-3,5-DIBROMOPHENYL)PROPANE",2.22e-6,NA
+kdeg,air,"2,2-DIMETHYL BUTYRIC ACID",1.63e-6,NA
+kdeg,air,"2,2-DIMETHYL-1-PROPYLAMIN",2.41e-5,NA
+kdeg,air,"2,2-dimethylpropane-1,3-diol",6.1e-6,NA
 kdeg,air,"2,2'-(ethylenedioxy)diethanol",2.9e-5,NA
 kdeg,air,"2,2'-oxydiethanol",1.9e-5,NA
 kdeg,air,"2,2',6,6'-tetrabromo-4,4'-isopropylidenediphenol",2.2e-6,NA
-kdeg,air,"2,2-BIS(4-HYDROXY-3,5-DIBROMOPHENYL)PROPANE",2.22e-6,NA
-kdeg,air,"2,2-DIMETHYL-1-PROPYLAMIN",2.41e-5,NA
-kdeg,air,"2,2-DIMETHYL BUTYRIC ACID",1.63e-6,NA
-kdeg,air,"2,2-dimethylpropane-1,3-diol",6.1e-6,NA
 kdeg,air,"2,3-DICHLOROPHENOL",1.25e-6,NA
 kdeg,air,"2,3-DIMETHYLANILINE",1.50204e-4,NA
 kdeg,air,"2,3-DIMETHYLPHENOL",6.02e-5,NA
@@ -173,7 +173,6 @@ kdeg,air,"2,3,5,6-TETRACHLORO-4-NITROANILINE",7.07e-7,NA
 kdeg,air,"2,3,5,6-tetrachlorophenol",1.16e-6,NA
 kdeg,air,"2,3,6-TRICHLOROPHENOL",1.6e-6,NA
 kdeg,air,"2,3,7,8-TetraCDF",6.02e-7,NA
-kdeg,air,"2,4'-DICHLOROBIPHENYL",1.3e-6,NA
 kdeg,air,"2,4-DICHLORO-6-NITROPHENOL",1.49e-7,NA
 kdeg,air,"2,4-Dichlorodiphenyl ether",2.84e-6,NA
 kdeg,air,"2,4-dichlorophenol",7.95e-7,NA
@@ -194,6 +193,7 @@ kdeg,air,"2,4,6-TRICHLORO-3-METHYLPHENOL",6.37e-7,NA
 kdeg,air,"2,4,6-trichlorophenol",4.55e-7,NA
 kdeg,air,"2,4,6-TRIIODOPHENOL",3.94e-7,NA
 kdeg,air,"2,4,6-TRIMETHYLPHENOL",1.83e-5,NA
+kdeg,air,"2,4'-DICHLOROBIPHENYL",1.3e-6,NA
 kdeg,air,"2,5-DIMETHYLPHENOL",6e-5,NA
 kdeg,air,"2,5-DINITROPHENOL",3.78e-7,NA
 kdeg,air,"2,6-di-tert-butyl-p-cresol",1.4e-5,NA
@@ -239,7 +239,6 @@ kdeg,air,"3,4,5-TRICL-2,6-MEO PHENOL",8.69e-6,NA
 kdeg,air,"3,5-DIMETHYLPHENOL",8.48e-5,NA
 kdeg,air,"3,5,5-trimethylcyclohex-2-enone",1.4e-4,NA
 kdeg,air,"3a,4,7,7a-tetrahydro-4,7-methanoindene",3.7e-4,NA
-kdeg,air,4'-FLUORO-4-AMINODIPHENYL,5.21e-5,NA
 kdeg,air,"4-(1,1,3,3-tetramethylbutyl)phenol",2.5e-5,NA
 kdeg,air,4-(4-N-METHYL-N-NITROSAMINOSTYRYL)QUINOLINE,6.02e-5,NA
 kdeg,air,4-Aminobiphenyl,6.02e-5,NA
@@ -280,6 +279,7 @@ kdeg,air,"4,5-dihydroxy-1,3-bis(hydroxymethyl)imidazolidin-2-one",5.5e-5,NA
 kdeg,air,"4,5,6-TRICHLOROGUAIACOL",2.33e-6,NA
 kdeg,air,"4,6-DICHLORO-O-CRESOL",1.51e-6,NA
 kdeg,air,"4,6-Dinitro-o-cresol",2.27e-7,NA
+kdeg,air,4'-FLUORO-4-AMINODIPHENYL,5.21e-5,NA
 kdeg,air,5-AMINOQUINOLINE,1.5e-4,NA
 kdeg,air,"5-CHLORO-2-(2,4-DICHLOROPHENOXY)PHENOL",1.21e-5,NA
 kdeg,air,5-CHLORO-2-HYDROXYDIPHENYLMETHANE,1.33e-5,NA
@@ -456,8 +456,8 @@ kdeg,air,Closantel,1.16e-5,NA
 kdeg,air,Co(II),1e-20,NA
 kdeg,air,Cr(III),1e-20,NA
 kdeg,air,Cr(VI),1e-20,NA
-kdeg,air,Cresol(s),3.15e-5,NA
 kdeg,air,"cresol, pure",3.1e-5,NA
+kdeg,air,Cresol(s),3.15e-5,NA
 kdeg,air,CROTONALDEHYDE,2.71e-5,NA
 kdeg,air,Cs(I),1e-20,NA
 kdeg,air,Cu(II),1e-20,NA
@@ -721,11 +721,11 @@ kdeg,air,N-OCTYLAMINE,3e-5,NA
 kdeg,air,N-PENTYLAMINE,2.69e-5,NA
 kdeg,air,n-PENTYLHYDRAZINE.HCl,5.84e-5,NA
 kdeg,air,N-PROPYL-N'-NITRO-N-NITROSOGUANIDINE,9e-6,NA
-kdeg,air,"N,N'-DIMETHYLACETAMIDE",1.02e-5,NA
-kdeg,air,"N,N'-DIPHENYLGUANIDINE",6.4e-5,NA
 kdeg,air,"N,N-Dimethylaniline",1.11e-4,NA
 kdeg,air,"N,N-DIMETHYLTRIAZENOBENZENE",2.48e-6,NA
 kdeg,air,"N,N,4-TRIMETHYLANILINE",1.51999e-4,NA
+kdeg,air,"N,N'-DIMETHYLACETAMIDE",1.02e-5,NA
+kdeg,air,"N,N'-DIPHENYLGUANIDINE",6.4e-5,NA
 kdeg,air,nAg_10nm,1e-20,NA
 kdeg,air,nAg_NanoFase,1e-20,NA
 kdeg,air,NALED,4.76e-6,NA
@@ -854,8 +854,8 @@ kdeg,air,PROCLONOL,2.78e-6,NA
 kdeg,air,PROFENOFOS,3.36e-5,NA
 kdeg,air,PRONETHALOL,1.13848e-4,NA
 kdeg,air,propan-1-ol,2.7e-6,NA
-kdeg,air,"propane-1,2-diol",6.8e-6,NA
 kdeg,air,Propane sultone,1.62e-6,NA
+kdeg,air,"propane-1,2-diol",6.8e-6,NA
 kdeg,air,"Propane, 2,2'-thiobis 2-methyl-",2.03e-6,NA
 kdeg,air,"Propanedioic acid, chloro-, diethyl ester",1.71e-6,NA
 kdeg,air,propanil,2.8e-6,NA
@@ -1067,8 +1067,8 @@ kdeg,sediment,"2-PROPENOIC ACID, 3-(3,4-DIHYDROXYPHENYL)-, (E)-",1.03e-7,NA
 kdeg,sediment,2-Propynoic acid,1.03e-7,NA
 kdeg,sediment,2-THIOURACIL,5.94e-8,NA
 kdeg,sediment,"2,2-BIS(4-HYDROXY-3,5-DIBROMOPHENYL)PROPANE",4.95e-9,NA
-kdeg,sediment,"2,2-DIMETHYL-1-PROPYLAMIN",5.94e-8,NA
 kdeg,sediment,"2,2-DIMETHYL BUTYRIC ACID",5.94e-8,NA
+kdeg,sediment,"2,2-DIMETHYL-1-PROPYLAMIN",5.94e-8,NA
 kdeg,sediment,"2,3-DICHLOROPHENOL",2.38e-8,NA
 kdeg,sediment,"2,3-DIMETHYLANILINE",2.38e-8,NA
 kdeg,sediment,"2,3-DIMETHYLPHENOL",5.94e-8,NA
@@ -1081,7 +1081,6 @@ kdeg,sediment,"2,3,5,6-TETRACHLORO-4-NITROANILINE",4.95e-9,NA
 kdeg,sediment,"2,3,5,6-tetrachlorophenol",1.49e-8,NA
 kdeg,sediment,"2,3,6-TRICHLOROPHENOL",1.49e-8,NA
 kdeg,sediment,"2,3,7,8-TetraCDF",3.5e-10,NA
-kdeg,sediment,"2,4'-DICHLOROBIPHENYL",2.38e-8,NA
 kdeg,sediment,"2,4-DICHLORO-6-NITROPHENOL",1.49e-8,NA
 kdeg,sediment,"2,4-Dichlorodiphenyl ether",1.49e-8,NA
 kdeg,sediment,"2,4-dichlorophenol",2.38e-8,NA
@@ -1099,6 +1098,7 @@ kdeg,sediment,"2,4,6-TRICHLORO-3-METHYLPHENOL",1.49e-8,NA
 kdeg,sediment,"2,4,6-trichlorophenol",1.49e-8,NA
 kdeg,sediment,"2,4,6-TRIIODOPHENOL",1.49e-8,NA
 kdeg,sediment,"2,4,6-TRIMETHYLPHENOL",2.38e-8,NA
+kdeg,sediment,"2,4'-DICHLOROBIPHENYL",2.38e-8,NA
 kdeg,sediment,"2,5-DIMETHYLPHENOL",5.94e-8,NA
 kdeg,sediment,"2,5-DINITROPHENOL",2.38e-8,NA
 kdeg,sediment,"2,6-DICHLOROBENZAMIDE",2.38e-8,NA
@@ -1140,7 +1140,6 @@ kdeg,sediment,"3,4,5-TRICHLOROCATECHOL",1.49e-8,NA
 kdeg,sediment,"3,4,5-TRICHLOROPHENOL",1.49e-8,NA
 kdeg,sediment,"3,4,5-TRICL-2,6-MEO PHENOL",1.49e-8,NA
 kdeg,sediment,"3,5-DIMETHYLPHENOL",5.94e-8,NA
-kdeg,sediment,4'-FLUORO-4-AMINODIPHENYL,1.49e-8,NA
 kdeg,sediment,4-(4-N-METHYL-N-NITROSAMINOSTYRYL)QUINOLINE,1.49e-8,NA
 kdeg,sediment,4-Aminobiphenyl,2.38e-8,NA
 kdeg,sediment,4-AMINOPYRIDINE,2.38e-8,NA
@@ -1176,6 +1175,7 @@ kdeg,sediment,"4,4'-Methylene di-o-toluidine",1.49e-8,NA
 kdeg,sediment,"4,5,6-TRICHLOROGUAIACOL",1.49e-8,NA
 kdeg,sediment,"4,6-DICHLORO-O-CRESOL",2.38e-8,NA
 kdeg,sediment,"4,6-Dinitro-o-cresol",2.38e-8,NA
+kdeg,sediment,4'-FLUORO-4-AMINODIPHENYL,1.49e-8,NA
 kdeg,sediment,5-AMINOQUINOLINE,2.38e-8,NA
 kdeg,sediment,"5-CHLORO-2-(2,4-DICHLOROPHENOXY)PHENOL",1.49e-8,NA
 kdeg,sediment,5-CHLORO-2-HYDROXYDIPHENYLMETHANE,2.38e-8,NA
@@ -1542,11 +1542,11 @@ kdeg,sediment,N-OCTYLAMINE,5.94e-8,NA
 kdeg,sediment,N-PENTYLAMINE,1.03e-7,NA
 kdeg,sediment,n-PENTYLHYDRAZINE.HCl,1.03e-7,NA
 kdeg,sediment,N-PROPYL-N'-NITRO-N-NITROSOGUANIDINE,2.38e-8,NA
-kdeg,sediment,"N,N'-DIMETHYLACETAMIDE",5.94e-8,NA
-kdeg,sediment,"N,N'-DIPHENYLGUANIDINE",2.38e-8,NA
 kdeg,sediment,"N,N-Dimethylaniline",2.38e-8,NA
 kdeg,sediment,"N,N-DIMETHYLTRIAZENOBENZENE",5.94e-8,NA
 kdeg,sediment,"N,N,4-TRIMETHYLANILINE",2.38e-8,NA
+kdeg,sediment,"N,N'-DIMETHYLACETAMIDE",5.94e-8,NA
+kdeg,sediment,"N,N'-DIPHENYLGUANIDINE",2.38e-8,NA
 kdeg,sediment,nAg_10nm,1e-20,NA
 kdeg,sediment,nAg_NanoFase,1e-20,NA
 kdeg,sediment,NALED,1.49e-8,NA
@@ -1784,7 +1784,6 @@ kdeg,soil,"1-Octanamine, N-methyl-N-octyl-",2.67e-7,NA
 kdeg,soil,"1-Octanamine, N,N-dimethyl-",2.67e-7,NA
 kdeg,soil,1-pentanol,4.63e-7,NA
 kdeg,soil,"1-PIPERIDINYLOXY, 2,2,6,6-TETRAMETHYL-4-OXO-",1.07e-7,NA
-kdeg,soil,"1,1'-oxydipropan-2-ol",6e-7,NA
 kdeg,soil,"1,1-DICHLORO-2,2-BIS(ETHYLPHENYL)ETHANE",6.69e-8,NA
 kdeg,soil,"1,1-dichloroethylene",2.5e-7,NA
 kdeg,soil,"1,1-Dichloropropane",1.07e-7,NA
@@ -1792,6 +1791,7 @@ kdeg,soil,"1,1-Dimethyl hydrazine",2.67e-7,NA
 kdeg,soil,"1,1,1-trichloroethane",1.1e-6,NA
 kdeg,soil,"1,1,1-TRIFLUORO-2-CHLOROETHANE",1.07e-7,NA
 kdeg,soil,"1,1,1,3,3,3-HEXAFLUOROPROPAN-2-OL",6.69e-8,NA
+kdeg,soil,"1,1'-oxydipropan-2-ol",6e-7,NA
 kdeg,soil,"1,2-Benzenedicarboxylic acid, di-C9-11-branched alkyl esters, C10-rich",6.69e-8,NA
 kdeg,soil,"1,2-Benzenedicarboxylic acid, heptyl nonyl ester, branched and linear",1.07e-7,NA
 kdeg,soil,"1,2-BENZENEDIOL, 4-METHYL-",2.67e-7,NA
@@ -1895,13 +1895,13 @@ kdeg,soil,"2-Propenoic acid, 2-(dimethylamino)ethyl ester",2.67e-7,NA
 kdeg,soil,"2-PROPENOIC ACID, 3-(3,4-DIHYDROXYPHENYL)-, (E)-",4.63e-7,NA
 kdeg,soil,2-Propynoic acid,4.63e-7,NA
 kdeg,soil,2-THIOURACIL,2.67e-7,NA
+kdeg,soil,"2,2-BIS(4-HYDROXY-3,5-DIBROMOPHENYL)PROPANE",2.23e-8,NA
+kdeg,soil,"2,2-DIMETHYL BUTYRIC ACID",2.67e-7,NA
+kdeg,soil,"2,2-DIMETHYL-1-PROPYLAMIN",2.67e-7,NA
+kdeg,soil,"2,2-dimethylpropane-1,3-diol",4.6e-7,NA
 kdeg,soil,"2,2'-(ethylenedioxy)diethanol",4e-8,NA
 kdeg,soil,"2,2'-oxydiethanol",4e-8,NA
 kdeg,soil,"2,2',6,6'-tetrabromo-4,4'-isopropylidenediphenol",7.1e-8,NA
-kdeg,soil,"2,2-BIS(4-HYDROXY-3,5-DIBROMOPHENYL)PROPANE",2.23e-8,NA
-kdeg,soil,"2,2-DIMETHYL-1-PROPYLAMIN",2.67e-7,NA
-kdeg,soil,"2,2-DIMETHYL BUTYRIC ACID",2.67e-7,NA
-kdeg,soil,"2,2-dimethylpropane-1,3-diol",4.6e-7,NA
 kdeg,soil,"2,3-DICHLOROPHENOL",1.07e-7,NA
 kdeg,soil,"2,3-DIMETHYLANILINE",1.07e-7,NA
 kdeg,soil,"2,3-DIMETHYLPHENOL",2.67e-7,NA
@@ -1914,7 +1914,6 @@ kdeg,soil,"2,3,5,6-TETRACHLORO-4-NITROANILINE",2.23e-8,NA
 kdeg,soil,"2,3,5,6-tetrachlorophenol",6.69e-8,NA
 kdeg,soil,"2,3,6-TRICHLOROPHENOL",6.69e-8,NA
 kdeg,soil,"2,3,7,8-TetraCDF",3.5e-10,NA
-kdeg,soil,"2,4'-DICHLOROBIPHENYL",1.07e-7,NA
 kdeg,soil,"2,4-D",8e-7,NA
 kdeg,soil,"2,4-DICHLORO-6-NITROPHENOL",6.69e-8,NA
 kdeg,soil,"2,4-Dichlorodiphenyl ether",6.69e-8,NA
@@ -1936,6 +1935,7 @@ kdeg,soil,"2,4,6-TRICHLORO-3-METHYLPHENOL",6.69e-8,NA
 kdeg,soil,"2,4,6-trichlorophenol",6.69e-8,NA
 kdeg,soil,"2,4,6-TRIIODOPHENOL",6.69e-8,NA
 kdeg,soil,"2,4,6-TRIMETHYLPHENOL",1.07e-7,NA
+kdeg,soil,"2,4'-DICHLOROBIPHENYL",1.07e-7,NA
 kdeg,soil,"2,5-DIMETHYLPHENOL",2.67e-7,NA
 kdeg,soil,"2,5-DINITROPHENOL",1.07e-7,NA
 kdeg,soil,"2,6-di-tert-butyl-p-cresol",4.1e-8,NA
@@ -1981,7 +1981,6 @@ kdeg,soil,"3,4,5-TRICL-2,6-MEO PHENOL",6.69e-8,NA
 kdeg,soil,"3,5-DIMETHYLPHENOL",2.67e-7,NA
 kdeg,soil,"3,5,5-trimethylcyclohex-2-enone",2.4e-7,NA
 kdeg,soil,"3a,4,7,7a-tetrahydro-4,7-methanoindene",4.1e-7,NA
-kdeg,soil,4'-FLUORO-4-AMINODIPHENYL,6.69e-8,NA
 kdeg,soil,"4-(1,1,3,3-tetramethylbutyl)phenol",6.6e-8,NA
 kdeg,soil,4-(4-N-METHYL-N-NITROSAMINOSTYRYL)QUINOLINE,6.69e-8,NA
 kdeg,soil,4-Aminobiphenyl,1.07e-7,NA
@@ -2022,6 +2021,7 @@ kdeg,soil,"4,5-dihydroxy-1,3-bis(hydroxymethyl)imidazolidin-2-one",6.8e-7,NA
 kdeg,soil,"4,5,6-TRICHLOROGUAIACOL",6.69e-8,NA
 kdeg,soil,"4,6-DICHLORO-O-CRESOL",1.07e-7,NA
 kdeg,soil,"4,6-Dinitro-o-cresol",9.44e-7,NA
+kdeg,soil,4'-FLUORO-4-AMINODIPHENYL,6.69e-8,NA
 kdeg,soil,5-AMINOQUINOLINE,1.07e-7,NA
 kdeg,soil,"5-CHLORO-2-(2,4-DICHLOROPHENOXY)PHENOL",6.69e-8,NA
 kdeg,soil,5-CHLORO-2-HYDROXYDIPHENYLMETHANE,1.07e-7,NA
@@ -2200,8 +2200,8 @@ kdeg,soil,Closantel,2.23e-8,NA
 kdeg,soil,Co(II),1e-20,NA
 kdeg,soil,Cr(III),1e-20,NA
 kdeg,soil,Cr(VI),1e-20,NA
-kdeg,soil,Cresol(s),2.67e-7,NA
 kdeg,soil,"cresol, pure",8.9e-6,NA
+kdeg,soil,Cresol(s),2.67e-7,NA
 kdeg,soil,CROTONALDEHYDE,2.67e-7,NA
 kdeg,soil,Cs(I),1e-20,NA
 kdeg,soil,Cu(II),1e-20,NA
@@ -2465,11 +2465,11 @@ kdeg,soil,N-OCTYLAMINE,2.67e-7,NA
 kdeg,soil,N-PENTYLAMINE,4.63e-7,NA
 kdeg,soil,n-PENTYLHYDRAZINE.HCl,4.63e-7,NA
 kdeg,soil,N-PROPYL-N'-NITRO-N-NITROSOGUANIDINE,1.07e-7,NA
-kdeg,soil,"N,N'-DIMETHYLACETAMIDE",2.67e-7,NA
-kdeg,soil,"N,N'-DIPHENYLGUANIDINE",1.07e-7,NA
 kdeg,soil,"N,N-Dimethylaniline",1.07e-7,NA
 kdeg,soil,"N,N-DIMETHYLTRIAZENOBENZENE",2.67e-7,NA
 kdeg,soil,"N,N,4-TRIMETHYLANILINE",1.07e-7,NA
+kdeg,soil,"N,N'-DIMETHYLACETAMIDE",2.67e-7,NA
+kdeg,soil,"N,N'-DIPHENYLGUANIDINE",1.07e-7,NA
 kdeg,soil,nAg_10nm,1e-20,NA
 kdeg,soil,nAg_NanoFase,1e-20,NA
 kdeg,soil,NALED,8.02e-6,NA
@@ -2598,8 +2598,8 @@ kdeg,soil,PROCLONOL,6.69e-8,NA
 kdeg,soil,PROFENOFOS,1.15e-6,NA
 kdeg,soil,PRONETHALOL,2.67e-7,NA
 kdeg,soil,propan-1-ol,4.1e-8,NA
-kdeg,soil,"propane-1,2-diol",3.1e-5,NA
 kdeg,soil,Propane sultone,2.67e-7,NA
+kdeg,soil,"propane-1,2-diol",3.1e-5,NA
 kdeg,soil,"Propane, 2,2'-thiobis 2-methyl-",1.07e-7,NA
 kdeg,soil,"Propanedioic acid, chloro-, diethyl ester",2.67e-7,NA
 kdeg,soil,propanil,4.1e-6,NA
@@ -2736,8 +2736,6 @@ kdeg,water,"1-Octanamine, N,N-dimethyl-",5.35e-7,NA
 kdeg,water,1-pentanol,9.25e-7,NA
 kdeg,water,"1-PIPERIDINYLOXY, 2,2,6,6-TETRAMETHYL-4-OXO-",2.14e-7,NA
 kdeg,water,1-vinyl-2-pyrrolidone,5.3e-10,NA
-kdeg,water,"1,1'-iminodipropan-2-ol",5.3e-10,NA
-kdeg,water,"1,1'-oxydipropan-2-ol",5.3e-10,NA
 kdeg,water,"1,1-DICHLORO-2,2-BIS(ETHYLPHENYL)ETHANE",1.34e-7,NA
 kdeg,water,"1,1-dichloroethylene",5.3e-10,NA
 kdeg,water,"1,1-Dichloropropane",2.14e-7,NA
@@ -2745,6 +2743,8 @@ kdeg,water,"1,1-Dimethyl hydrazine",5.35e-7,NA
 kdeg,water,"1,1,1-trichloroethane",5.3e-10,NA
 kdeg,water,"1,1,1-TRIFLUORO-2-CHLOROETHANE",2.14e-7,NA
 kdeg,water,"1,1,1,3,3,3-HEXAFLUOROPROPAN-2-OL",1.34e-7,NA
+kdeg,water,"1,1'-iminodipropan-2-ol",5.3e-10,NA
+kdeg,water,"1,1'-oxydipropan-2-ol",5.3e-10,NA
 kdeg,water,"1,2-Benzenedicarboxylic acid, di-C9-11-branched alkyl esters, C10-rich",1.34e-7,NA
 kdeg,water,"1,2-Benzenedicarboxylic acid, heptyl nonyl ester, branched and linear",2.14e-7,NA
 kdeg,water,"1,2-BENZENEDIOL, 4-METHYL-",5.35e-7,NA
@@ -2795,7 +2795,6 @@ kdeg,water,"1H-IMIDAZOLE, 1-(PHENYLMETHYL)-",5.35e-7,NA
 kdeg,water,"1H-IMIDAZOLE, 2-METHYL-",5.35e-7,NA
 kdeg,water,"1H-IMIDAZOLE, 4-METHYL-",5.35e-7,NA
 kdeg,water,"1H,3H,5H-Oxazolo 3,4-c oxazole, 7a-ethyldihydro-",2.14e-7,NA
-kdeg,water,"2',4'-dimethylacetoacetanilide",5.3e-10,NA
 kdeg,water,"2-(1-Methylethyl)-4,6-dinitrophenol",2.14e-7,NA
 kdeg,water,2-(2-(2-butoxyethoxy)ethoxy)ethanol,5.3e-10,NA
 kdeg,water,2-(2-(2-methoxyethoxy)ethoxy)ethanol,5.3e-10,NA
@@ -2877,6 +2876,10 @@ kdeg,water,"2-Propenoic acid, 2-(dimethylamino)ethyl ester",5.35e-7,NA
 kdeg,water,"2-PROPENOIC ACID, 3-(3,4-DIHYDROXYPHENYL)-, (E)-",9.25e-7,NA
 kdeg,water,2-Propynoic acid,9.25e-7,NA
 kdeg,water,2-THIOURACIL,5.35e-7,NA
+kdeg,water,"2,2-BIS(4-HYDROXY-3,5-DIBROMOPHENYL)PROPANE",4.46e-8,NA
+kdeg,water,"2,2-DIMETHYL BUTYRIC ACID",5.35e-7,NA
+kdeg,water,"2,2-DIMETHYL-1-PROPYLAMIN",5.35e-7,NA
+kdeg,water,"2,2-dimethylpropane-1,3-diol",5.3e-10,NA
 kdeg,water,"2,2'-(ethylenedioxy)diethanol",5.3e-10,NA
 kdeg,water,"2,2'-[(3,3'-dichloro[1,1'-biphenyl]-4,4'-diyl)bis(azo)]bis[3-oxo-N-phenylbutyramide]",5.3e-10,NA
 kdeg,water,"2,2'-iminodi(ethylamine)",5.3e-10,NA
@@ -2884,10 +2887,6 @@ kdeg,water,"2,2'-iminodiethanol",5.3e-8,NA
 kdeg,water,"2,2'-oxydiethanol",5.3e-8,NA
 kdeg,water,"2,2',2''-nitrilotriethanol",5.3e-8,NA
 kdeg,water,"2,2',6,6'-tetrabromo-4,4'-isopropylidenediphenol",5.3e-10,NA
-kdeg,water,"2,2-BIS(4-HYDROXY-3,5-DIBROMOPHENYL)PROPANE",4.46e-8,NA
-kdeg,water,"2,2-DIMETHYL-1-PROPYLAMIN",5.35e-7,NA
-kdeg,water,"2,2-DIMETHYL BUTYRIC ACID",5.35e-7,NA
-kdeg,water,"2,2-dimethylpropane-1,3-diol",5.3e-10,NA
 kdeg,water,"2,3-DICHLOROPHENOL",2.14e-7,NA
 kdeg,water,"2,3-DIMETHYLANILINE",2.14e-7,NA
 kdeg,water,"2,3-DIMETHYLPHENOL",5.35e-7,NA
@@ -2900,7 +2899,6 @@ kdeg,water,"2,3,5,6-TETRACHLORO-4-NITROANILINE",4.46e-8,NA
 kdeg,water,"2,3,5,6-tetrachlorophenol",1.34e-7,NA
 kdeg,water,"2,3,6-TRICHLOROPHENOL",1.34e-7,NA
 kdeg,water,"2,3,7,8-TetraCDF",3.01e-8,NA
-kdeg,water,"2,4'-DICHLOROBIPHENYL",2.14e-7,NA
 kdeg,water,"2,4-D",5.3e-7,NA
 kdeg,water,"2,4-DICHLORO-6-NITROPHENOL",1.34e-7,NA
 kdeg,water,"2,4-Dichlorodiphenyl ether",1.34e-7,NA
@@ -2922,6 +2920,7 @@ kdeg,water,"2,4,6-TRICHLORO-3-METHYLPHENOL",1.34e-7,NA
 kdeg,water,"2,4,6-trichlorophenol",1.34e-7,NA
 kdeg,water,"2,4,6-TRIIODOPHENOL",1.34e-7,NA
 kdeg,water,"2,4,6-TRIMETHYLPHENOL",2.14e-7,NA
+kdeg,water,"2,4'-DICHLOROBIPHENYL",2.14e-7,NA
 kdeg,water,"2,5-DIMETHYLPHENOL",5.35e-7,NA
 kdeg,water,"2,5-DINITROPHENOL",2.14e-7,NA
 kdeg,water,"2,6-di-tert-butyl-p-cresol",5.3e-10,NA
@@ -2933,6 +2932,7 @@ kdeg,water,"2,6-DIMETHYLQUINOLINE",2.14e-7,NA
 kdeg,water,"2,6-DINITROPHENOL",2.14e-7,NA
 kdeg,water,"2,6-xylidine",2.14e-7,NA
 kdeg,water,"2,7-Naphthalenediol",5.35e-7,NA
+kdeg,water,"2',4'-dimethylacetoacetanilide",5.3e-10,NA
 kdeg,water,"2H-3,1-Benzoxazine-2,4(1H)-dione",5.35e-7,NA
 kdeg,water,3-(Chloromethyl)pyridine hydrochloride,2.14e-7,NA
 kdeg,water,"3-Amino-1-methyl-5H-pyrido(4,3-b)indole acetate",2.14e-7,NA
@@ -2972,7 +2972,6 @@ kdeg,water,"3,5,5-trimethylcyclohex-2-enone",5.3e-8,NA
 kdeg,water,"3,6,9-triazaundecamethylenediamine",5.3e-10,NA
 kdeg,water,"3,6,9,12-tetraoxotridecanol",5.3e-10,NA
 kdeg,water,"3a,4,7,7a-tetrahydro-4,7-methanoindene",5.3e-10,NA
-kdeg,water,4'-FLUORO-4-AMINODIPHENYL,1.34e-7,NA
 kdeg,water,"4-(1,1,3,3-tetramethylbutyl)phenol",5.3e-10,NA
 kdeg,water,4-(4-N-METHYL-N-NITROSAMINOSTYRYL)QUINOLINE,1.34e-7,NA
 kdeg,water,4-Aminobiphenyl,2.14e-7,NA
@@ -3020,6 +3019,7 @@ kdeg,water,"4,5-dihydroxy-1,3-bis(hydroxymethyl)imidazolidin-2-one",5.3e-10,NA
 kdeg,water,"4,5,6-TRICHLOROGUAIACOL",1.34e-7,NA
 kdeg,water,"4,6-DICHLORO-O-CRESOL",2.14e-7,NA
 kdeg,water,"4,6-Dinitro-o-cresol",2.14e-7,NA
+kdeg,water,4'-FLUORO-4-AMINODIPHENYL,1.34e-7,NA
 kdeg,water,5-AMINOQUINOLINE,2.14e-7,NA
 kdeg,water,"5-CHLORO-2-(2,4-DICHLOROPHENOXY)PHENOL",1.34e-7,NA
 kdeg,water,5-CHLORO-2-HYDROXYDIPHENYLMETHANE,2.14e-7,NA
@@ -3212,8 +3212,8 @@ kdeg,water,Closantel,4.46e-8,NA
 kdeg,water,Co(II),1e-20,NA
 kdeg,water,Cr(III),1e-20,NA
 kdeg,water,Cr(VI),1e-20,NA
-kdeg,water,Cresol(s),5.35e-7,NA
 kdeg,water,"cresol, pure",5.3e-10,NA
+kdeg,water,Cresol(s),5.35e-7,NA
 kdeg,water,CROTONALDEHYDE,5.35e-7,NA
 kdeg,water,Cs(I),1e-20,NA
 kdeg,water,Cu(II),1e-20,NA
@@ -3496,12 +3496,12 @@ kdeg,water,N-OCTYLAMINE,5.35e-7,NA
 kdeg,water,N-PENTYLAMINE,9.25e-7,NA
 kdeg,water,n-PENTYLHYDRAZINE.HCl,9.25e-7,NA
 kdeg,water,N-PROPYL-N'-NITRO-N-NITROSOGUANIDINE,2.14e-7,NA
-kdeg,water,"N,N'-DIMETHYLACETAMIDE",5.35e-7,NA
-kdeg,water,"N,N'-DIPHENYLGUANIDINE",2.14e-7,NA
 kdeg,water,"N,N-diethylaniline",5.3e-10,NA
 kdeg,water,"N,N-Dimethylaniline",2.14e-7,NA
 kdeg,water,"N,N-DIMETHYLTRIAZENOBENZENE",5.35e-7,NA
 kdeg,water,"N,N,4-TRIMETHYLANILINE",2.14e-7,NA
+kdeg,water,"N,N'-DIMETHYLACETAMIDE",5.35e-7,NA
+kdeg,water,"N,N'-DIPHENYLGUANIDINE",2.14e-7,NA
 kdeg,water,nAg_10nm,1e-20,NA
 kdeg,water,nAg_NanoFase,1e-20,NA
 kdeg,water,NALED,1.34e-7,NA
@@ -3632,8 +3632,8 @@ kdeg,water,PROCLONOL,1.34e-7,NA
 kdeg,water,PROFENOFOS,1.34e-7,NA
 kdeg,water,PRONETHALOL,5.35e-7,NA
 kdeg,water,propan-1-ol,5.3e-8,NA
-kdeg,water,"propane-1,2-diol",5.3e-7,NA
 kdeg,water,Propane sultone,5.35e-7,NA
+kdeg,water,"propane-1,2-diol",5.3e-7,NA
 kdeg,water,"Propane, 2,2'-thiobis 2-methyl-",2.14e-7,NA
 kdeg,water,"Propanedioic acid, chloro-, diethyl ester",5.35e-7,NA
 kdeg,water,propanil,5.3e-10,NA
