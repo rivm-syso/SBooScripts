@@ -1,3 +1,11 @@
+################################################################################
+# Script for saving the DPMFA data used for the emission plots                 #
+# Created for LEON-T Deliverable 3.5                                           #
+# Authors: Anne Hids and Joris Quik                                            #
+# RIVM                                                                         #
+# 4-12-2024                                                                    #
+################################################################################
+
 library(tidyverse)
 data_folder <-  "/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/CaseData/"
 

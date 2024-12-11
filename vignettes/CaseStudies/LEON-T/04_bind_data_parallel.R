@@ -1,4 +1,10 @@
-# Script to load the output in parallel
+################################################################################
+# Script for binding the output data of SimpleBox runs together in parallel    #
+# Created for LEON-T Deliverable 3.5                                           #
+# Authors: Anne Hids and Joris Quik                                            #
+# RIVM                                                                         #
+# 4-12-2024                                                                    #
+################################################################################
 
 ### initialize ###
 library(stringr)

@@ -1,3 +1,11 @@
+################################################################################
+# Script for making parameter plots                                            #
+# Created for LEON-T Deliverable 3.5                                           #
+# Authors: Anne Hids and Joris Quik                                            #
+# RIVM                                                                         #
+# 4-12-2024                                                                    #
+################################################################################
+
 # Load long solution data and material parameters
 load("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Material_parameters.RData")
 load("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Long_solution_v1.RData")

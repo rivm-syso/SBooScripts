@@ -1,5 +1,11 @@
-### Script for combining DPMFA output from two scales for Tyre Wear and other Microplastic sources
-### Created for LEON-T Case study
+################################################################################
+# Script for combining DPMFA output from two scales for Tyre Wear and other    #
+# microplastic sources                                                         #
+# Created for LEON-T Deliverable 3.5                                           #
+# Authors: Anne Hids and Joris Quik                                            #
+# RIVM                                                                         #
+# 4-12-2024                                                                    #
+################################################################################
 
 # Initialize
 source("vignettes/CaseStudies/LEON-T/f_Emission4SB.R")

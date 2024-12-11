@@ -2,7 +2,7 @@
 # SimpleBox preparation
 #
 ###########
-path_parameters_file = "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx"
+path_parameters_file = "vignettes/CaseStudies/LEON-T/Microplastic_variables_v1.1c.xlsx"
 
 ###############################
 # # Code to be able to use batch computation             

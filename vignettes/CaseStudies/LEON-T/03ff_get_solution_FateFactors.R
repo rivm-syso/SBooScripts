@@ -1,4 +1,10 @@
-#### Fate Factor calculations
+################################################################################
+# Script for calculating fate factors for tyre wear and other sources          #
+# Created for LEON-T Deliverable 3.5                                           #
+# Authors: Anne Hids and Joris Quik                                            #
+# RIVM                                                                         #
+# 4-12-2024                                                                    #
+################################################################################
 
 library(tidyverse)
 # based on Material_Parameters_n distributions

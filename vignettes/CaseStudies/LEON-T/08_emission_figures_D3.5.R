@@ -1,5 +1,6 @@
 ################################################################################
-# DPMFA plots for LEON-T Deliverable 3.5                                       #
+# Script for making the DPMFA plots used in Deliverable 3.5                    #
+# Created for LEON-T Deliverable 3.5                                           #
 # Authors: Anne Hids and Joris Quik                                            #
 # RIVM                                                                         #
 # 4-12-2024                                                                    #

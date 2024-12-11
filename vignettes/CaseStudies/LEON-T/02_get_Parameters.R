@@ -1,5 +1,10 @@
-# creating distributions for SB parameters
-
+################################################################################
+# Script for creating distributions for SimpleBox parameters                   #
+# Created for LEON-T Deliverable 3.5                                           #
+# Authors: Anne Hids and Joris Quik                                            #
+# RIVM                                                                         #
+# 4-12-2024                                                                    #
+################################################################################
 env <- "OOD"
 
 source_of_interest =  NA

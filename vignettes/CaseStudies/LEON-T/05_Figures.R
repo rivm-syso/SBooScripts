@@ -1,4 +1,11 @@
-#### Make figures
+################################################################################
+# Script for making figures for the SimpleBox output                           #
+# Created for LEON-T Deliverable 3.5                                           #
+# Authors: Anne Hids and Joris Quik                                            #
+# RIVM                                                                         #
+# 4-12-2024                                                                    #
+################################################################################
+
 library(tidyverse)
 library(readxl)
 library(viridis)
