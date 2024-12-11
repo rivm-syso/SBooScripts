@@ -1,7 +1,7 @@
-"Matrix","rhoMatrix","kwsd","Corg"
-"aerosol",2000,NA,NA
-"air",1.225,NA,0.1
-"porewater",NA,NA,NA
-"sediment",2500,2.78e-08,0.05
-"soil",2500,NA,0.02
-"water",998,2.78e-06,0.1
+﻿Matrix,rhoMatrix,kwsd,Corg
+aerosol,2000,NA,NA
+air,1.225,NA,0.1
+porewater,NA,NA,NA
+sediment,2500,2.78e-8,0.05
+soil,2500,NA,0.02
+water,998,2.78e-6,0.1
