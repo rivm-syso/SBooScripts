@@ -2,9 +2,9 @@
 
 env <- "OOD"
 
-source_of_interest =  NA
+source_of_interest =  "Tyre wear"
 
-path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.xlsx"
+path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.1c.xlsx"
 
 if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
   load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241126.RData"))
@@ -28,7 +28,6 @@ source("vignettes/CaseStudies/f_Parameters4SB.R")
 Parameters <- read_Prob4SB(path_parameters_file = path_parameters_file,
                            source_of_interest=source_of_interest,
                            n_samples = nrow(DPMFA_sink_micro$Emis[[1]]), # Number of emission runs 
-                           # materials <- unique(Material_Parameters$Polymer)
                            materials = unique(DPMFA_sink_micro$Polymer), # materials in selected sources
                            scales = union((World$FromDataAndTo()$fromScale),(World$FromDataAndTo()$toScale)),
                            subCompartments =  union((World$FromDataAndTo()$fromSubCompart),(World$FromDataAndTo()$toSubCompart)),
@@ -57,3 +56,4 @@ if(env == "local"){
                        format(Sys.Date(),"%Y%m%d"),".RData"))
   }
 }
+
