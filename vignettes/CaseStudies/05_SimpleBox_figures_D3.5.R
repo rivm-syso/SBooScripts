@@ -15,7 +15,7 @@ library(scales)
 ## Define paths 
 data_path <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/" # Define path to plot data
 figurefolder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figures/D3.5_final_plots/" # Define figure folder path
-abs_path_Measurements <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/LEONT_TNO_measurements_clean.xlsx" # Define path to LEON-T measurement data
+abs_path_Measurements <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/LEONT_TNO_measurements_clean2.xlsx" # Define path to LEON-T measurement data
 
 ## Load functions
 source("vignettes/CaseStudies/f_plot_functions.R")
