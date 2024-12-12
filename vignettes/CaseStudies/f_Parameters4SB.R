@@ -11,6 +11,15 @@ read_Prob4SB <- function(path_parameters_file = "vignettes/CaseStudies/CaseData/
                          species = union((World$FromDataAndTo()$fromSpecies),(World$FromDataAndTo()$toSpecies))
 ){
   
+  # path_parameters_file = path_parameters_file
+  # source_of_interest=source_of_interest
+  # n_samples = nrow(DPMFA_sink_micro$Emis[[1]]) # Number of emission runs
+  # # materials <- unique(Material_Parameters$Polymer)
+  # materials = unique(DPMFA_sink_micro$Polymer) # materials in selected sources
+  # scales = union((World$FromDataAndTo()$fromScale),(World$FromDataAndTo()$toScale))
+  # subCompartments =  union((World$FromDataAndTo()$fromSubCompart),(World$FromDataAndTo()$toSubCompart))
+  # species = union((World$FromDataAndTo()$fromSpecies),(World$FromDataAndTo()$toSpecies))
+
   source("vignettes/CaseStudies/ProbDistributionFun.R")
   
   Material_Parameters <- readxl::read_excel(path_parameters_file, sheet = "Polymer_data") |> 
@@ -52,18 +61,31 @@ read_Prob4SB <- function(path_parameters_file = "vignettes/CaseStudies/CaseData/
   })
   
   Material_Parameters_n <- data.frame()
-  
+
   for(pol in materials){
     
     input_vars <- 
       Material_Parameters |>
       filter(!is.na(Distribution)) |>
-      filter(Polymer == pol) #|> 
+      filter(Polymer == pol) 
     
-    n_vars <- nrow(input_vars)
+    input_vars <- input_vars[order(input_vars$VarName), ]
+    
+    n_unique_vars <- length(unique(input_vars$VarName))
     
     # Generate LHS
-    lhs_samples <- lhs::randomLHS(n_samples, n_vars)
+    lhs_samples <- lhs::randomLHS(n_samples, n_unique_vars)
+    
+    # Count the number of sample columns needed per unique VarName
+    var_counts <- table(input_vars$VarName)
+    
+    # Repeat the lhs sample columns based on var_counts
+    repeated_lhs <- do.call(cbind, lapply(seq_len(ncol(lhs_samples)), function(i) {
+      var_name <- names(var_counts)[i]
+      replicate(var_counts[var_name], lhs_samples[, i])
+    }))
+    
+    n_vars <- ncol(repeated_lhs)
     
     # Scale the lhs samples to the correct distributions
     sample_df_var <-  
@@ -72,16 +94,35 @@ read_Prob4SB <- function(path_parameters_file = "vignettes/CaseStudies/CaseData/
       rowwise() |> 
       mutate(
         data = 
-          case_match(Distribution,
-                     "Triangular" ~ list(tibble(value=triangular(lhs_samples[, nvar], a, b, c))),
-                     "Uniform" ~  list(tibble(value=uniform(lhs_samples[, nvar], a, b))),
-                     "Powerlaw" ~  list(tibble(value=power_law(lhs_samples[, nvar], a, b, c))),
-                     "Trapezoidal" ~  list(tibble(value=trapezoidal(lhs_samples[, nvar], a, b, c, d))),
-                     "TRWP_size" ~ list(tibble(value=TRWP_size_dist(lhs_samples[, nvar], path_parameters_file))),
-                     "Log uniform" ~ list(tibble(value=log_uniform(lhs_samples[, nvar], a, b))),
-                     .default = NA
+          case_match(
+            Distribution,
+            "Triangular" ~ list(tibble(
+              RUN = seq_len(nrow(repeated_lhs)), 
+              value = triangular(repeated_lhs[, nvar], a, b, c)
+            )),
+            "Uniform" ~ list(tibble(
+              RUN = seq_len(nrow(repeated_lhs)), 
+              value = uniform(repeated_lhs[, nvar], a, b)
+            )),
+            "Powerlaw" ~ list(tibble(
+              RUN = seq_len(nrow(repeated_lhs)), 
+              value = power_law(repeated_lhs[, nvar], a, b, c)
+            )),
+            "Trapezoidal" ~ list(tibble(
+              RUN = seq_len(nrow(repeated_lhs)), 
+              value = trapezoidal(repeated_lhs[, nvar], a, b, c, d)
+            )),
+            "TRWP_size" ~ list(tibble(
+              RUN = seq_len(nrow(repeated_lhs)), 
+              value = TRWP_size_dist(repeated_lhs[, nvar], path_parameters_file)
+            )),
+            "Log uniform" ~ list(tibble(
+              RUN = seq_len(nrow(repeated_lhs)), 
+              value = log_uniform(repeated_lhs[, nvar], a, b)
+            )),
+            .default = NA
           )
-      ) 
+      )
     
     Material_Parameters_n <- rbind(Material_Parameters_n, sample_df_var)
   }
@@ -93,12 +134,12 @@ read_Prob4SB <- function(path_parameters_file = "vignettes/CaseStudies/CaseData/
     ungroup() |> 
     group_by(VarName, Scale, SubCompart, Species, Distribution, Polymer, Unit, `Data Source`) |>
     summarise(min = min(value),
-           p5 = quantile(value, 0.05),
-           p25 = quantile(value, 0.25),
-           p50 = quantile(value, 0.50),
-           mean = mean(value),
-           p75 = quantile(value, 0.75),
-           p95 = quantile(value, 0.95))
+              p5 = quantile(value, 0.05),
+              p25 = quantile(value, 0.25),
+              p50 = quantile(value, 0.50),
+              mean = mean(value),
+              p75 = quantile(value, 0.75),
+              p95 = quantile(value, 0.95))
   
   Material_Parameters_n <- 
     Material_Parameters_n %>% 
