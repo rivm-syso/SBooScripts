@@ -1,0 +1,86 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+source("baseScripts/initWorld_onlyMolec.R")
+World$fetchData("TotalArea")
+World$fetchData("FRACsea")
+```
+
+SHowing the workflow and debugging for adding a local scale
+
+added a scale nest grouping
+
+1.  Added Local scale row in ScaleSheet.csv
+
+    -   `TotalArea` set to 25 by default
+
+    -   Addded ScaleNestGroup <!--#  not clear why yet -->
+
+    -   `FRACsea = 0` by default, but sea can be part of Local Scale
+
+2.  Make `v_Area` more generic to accommodate Local scale area calculation
+
+    -   Basic assumptions on air, cloudwater, sea, marinesediment and deepocean remain.
+
+    -   Other compartments are all calculated based on specification of `landFRAC` (`landFRAC * AreaLand`).
+
+3.  Added Local to FlowIO.csv
+
+    -   Local to Regional
+
+        -   For air, river and sea
+
+    -   Regional to local
+
+        -   For air, river and sea
+
+4.  Add Local data to
+
+    -   ScaleSubCompartData.csv
+
+        -   VertDistance data needed for air, cloudwater, river, marine sediment, natural soil and sea.
+
+        -   landFRAC
+
+    -   
+
+5.  Local air flow
+
+    -   Adjust x_Advection_Air.R
+
+```{r}
+
+CalCSea <-  World$NewCalcVariable("AreaSea")
+CalCSea$execute(debugAt = list(ScaleName = "Regional"))
+
+oCalCSea <- CalCSea$execute()
+
+World$fetchData("AreaSea")
+World$fetchData("AreaLand")
+
+# fist debug v_Area
+Calc_Area <- World$NewCalcVariable("Area")
+area_1 <- Calc_Area$execute()
+length(area_1$Area)
+# seems fine now
+# Calc_Area$execute(debugAt = list(ScaleName = "Local"))
+
+World$fetchData("Area")
+
+FRACcldw
+VertDistance
+
+World$fetchData("Volume")
+World$fetchData("AirFlow")
+
+World$fetchData("WINDspeed")
+World$NewCalcVariable("AirFlow")
+World$CalcVar("AirFlow")
+
+x_Advection_Air
+
+```
