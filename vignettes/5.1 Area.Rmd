@@ -63,6 +63,9 @@ Regional and Arctic currently have no nested scale, and are
 straightforward calculation of AreaSea and AreaLand as respectively.
 TotalArea\*FRACsea and TotalArea\*(1-FRACsea)
 
+#### 2025.x.x: update:
+Instead of hardcoding the nesting and structure, a ScaleNestGroup and the exising ScaleOrder are applied to calculate the 
+
 ```{r}
 v_AreaSea <- World$NewCalcVariable("AreaSea")
 tAreaSea <- World$CalcVar("AreaSea")
