@@ -9,7 +9,6 @@ editor_options:
     wrap: 72
 ---
 
-
 ```{r setup, include=FALSE}
 knitr::knit_meta()
 knitr::opts_chunk$set(echo = TRUE)
@@ -64,7 +63,15 @@ straightforward calculation of AreaSea and AreaLand as respectively.
 TotalArea\*FRACsea and TotalArea\*(1-FRACsea)
 
 #### 2025.x.x: update:
-Instead of hardcoding the nesting and structure, a ScaleNestGroup and the exising ScaleOrder are applied to calculate the 
+
+Instead of hardcoding the nesting and structure, a ScaleNestGroup and
+the exising ScaleOrder are applied to calculate the AreaSea and
+AreaLand.
+
+For this the variable `ScaleNestGroup` is introduced. It should be the
+same number for each scale that can is nested within each other, the
+nesting group. In the default scenario this is (Local), Regional,
+Continetnal and Moderate scales being nested.
 
 ```{r}
 v_AreaSea <- World$NewCalcVariable("AreaSea")
@@ -85,7 +92,7 @@ variable. When a variable is applied in a “defining function” the SBoo
 system looks for the proper dimension, e.g. when it finds Arealand and
 it is calculating for Arctic it will use the AreaLand of Arctic. But
 when calculating for instance AreaSea for Continental we need TotalArea
-for both Continental AND Regional! 
+for both Continental AND Regional!
 
 In such a case we can use the “all.” preposition. The function will
 receive the whole table for the variable at hand. As an example look at
@@ -103,7 +110,8 @@ subcompartment. We therefore include SubCompartName as parameter in the
 defining function and use it to distinguish which formula applies (see
 the Area function below).
 
-landFRAC is the fraction that belongs to a specificic subcompartment (e.g. agricultural soil) of the total AREALand.
+landFRAC is the fraction that belongs to a specificic subcompartment
+(e.g. agricultural soil) of the total AREALand.
 
 All Scale/SubCompart combinations (present in states) have an area,
 including the subcompart “cloudwater”! It receives the same area as air,
@@ -114,7 +122,6 @@ straightforward (landFRAC \* AreaLand).
 
 Below we show the Area function.
 
-
 ```{r}
 World$fetchData("landFRAC")
 Area
@@ -123,6 +130,7 @@ tArea <- World$CalcVar("Area")
 ```
 
 #### Verification of size compartments
+
 Just taking the sum of areas grouped by scale would include double
 counting the subcompartments which are on top of each other, or mixed:
 air / cloudwater / sea / deepocean! But we can test if the TotalArea of

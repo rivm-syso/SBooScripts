@@ -44,20 +44,28 @@ added a scale nest grouping
 
         -   VertDistance data needed for air, cloudwater, river, marine sediment, natural soil and sea.
 
-        -   landFRAC
+        -   landFRAC added for natural soil and river.
 
-    -   
+        -   landFrac is 1 for natural soil at Global scales for new implementation area calculation.
 
-5.  Local air flow
+    -   NOTE: when saving csv's in excel the default behavior is to save numbers with only 2 decimals.
+        Under options-data change the automatic conversion and intepretation, e.g. of E.
+        E.g. check NetSedRate in ScaleSubCompartData.csv.
+
+5.  Local air flow: [TODO!]
 
     -   Adjust x_Advection_Air.R
 
 ```{r}
 
 CalCSea <-  World$NewCalcVariable("AreaSea")
-CalCSea$execute(debugAt = list(ScaleName = "Regional"))
-
 oCalCSea <- CalCSea$execute()
+CalCSea$execute(debugAt = list())
+
+CalCLand <-  World$NewCalcVariable("AreaLand")
+CalCLand$execute(debugAt = list())
+
+
 
 World$fetchData("AreaSea")
 World$fetchData("AreaLand")
@@ -82,5 +90,5 @@ World$NewCalcVariable("AirFlow")
 World$CalcVar("AirFlow")
 
 x_Advection_Air
-
+options(digits=4)
 ```
