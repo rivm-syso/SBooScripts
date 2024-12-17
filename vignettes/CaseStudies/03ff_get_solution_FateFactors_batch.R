@@ -7,7 +7,7 @@ env <- "OOD"
 if(env == "OOD"){
   path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.1.xlsx"
 } else if(env == "HPC"){
-  mainfolder <- "/data/BioGrid/hidsa/SimpleBox/SBooScripts/"
+  mainfolder <- "/data/BioGrid/hidsa/GitHub/SBooScripts/"
   path_parameters_file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.1.xlsx")
 }
 
