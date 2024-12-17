@@ -28,7 +28,12 @@ if(env == "OOD"){
 unique_polymers <- unique(Parameters$Material_Parameters_n$Polymer)
 
 # Define the folder path
-folder_path <- "vignettes/CaseStudies/BatchFilesRecipe"
+if(env == "OOD"){
+  folder_path <- "vignettes/CaseStudies/BatchFilesRecipe"
+} else if(env == "HPC"){
+  folder_path <- paste0(mainfolder,"vignettes/CaseStudies/BatchFilesRecipe")
+}
+
 filepaths <- c()
 
 # Check if the folder exists
@@ -96,10 +101,10 @@ for(pol in unique_polymers){
 
 # Now write HPC commands into a txt file
 kb <- 30000
-time <- 300
+time <- 400
 
 # Make a string with the needed information for the cluster
-LSF_string <- paste0("bsub -n 1 -W ", time, " -M ", kb, "KB Rscript")
+LSF_string <- paste0("bsub -n 1 -W ", time, " -M ", kb, " Rscript")
 
 # Paste the information toe very string
 LSF_vector <- paste(LSF_string, filepaths)
