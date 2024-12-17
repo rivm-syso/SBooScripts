@@ -44,7 +44,7 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
 
 #### Select subset of RUNs from emission and parameters ####
 #  Set the runs that need to be run, should be consecutive from x to y.
-RUNSamples = c(1:10)
+RUNSamples = c(1:1000)
 print(paste("LOG: run started for", min(RUNSamples), "to", max(RUNSamples)))
 ##
 
