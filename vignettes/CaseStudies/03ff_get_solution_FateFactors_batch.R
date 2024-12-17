@@ -1,8 +1,8 @@
 #### Fate Factor calculations
 library(tidyverse)
 
-#env <- "OOD"
-env <- "HPC"
+env <- "OOD"
+#env <- "HPC"
 
 if(env == "OOD"){
   path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.1.xlsx"
@@ -44,7 +44,7 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
 
 #### Select subset of RUNs from emission and parameters ####
 #  Set the runs that need to be run, should be consecutive from x to y.
-RUNSamples = c(1:1000)
+RUNSamples = c(1:10)
 print(paste("LOG: run started for", min(RUNSamples), "to", max(RUNSamples)))
 ##
 
@@ -201,10 +201,10 @@ print(paste0("Elapsed time is ", elapsed_time))
 elapsed_time 
 
 if(env == "OOD"){
-  save(Output, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FateFactors_LEON-T_D3.5_", source, "_", 
+  save(Output, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FateFactors_LEON-T_D3.5_", source, "_", Polymer_of_interest, 
                              format(Sys.Date(),"%Y%m%d"),".RData"))
 } else if(env == "HPC"){
-  save(Output, file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/FateFactors_LEON-T_D3.5_", source, "_", 
+  save(Output, file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/FateFactors_LEON-T_D3.5_", source, "_", Polymer_of_interest, 
                              format(Sys.Date(),"%Y%m%d"),".RData"))
 }
 
