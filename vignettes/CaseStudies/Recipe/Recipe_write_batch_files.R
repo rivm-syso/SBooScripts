@@ -29,9 +29,9 @@ unique_polymers <- unique(Parameters$Material_Parameters_n$Polymer)
 
 # Define the folder path
 if(env == "OOD"){
-  folder_path <- "vignettes/CaseStudies/BatchFilesRecipe"
+  folder_path <- "vignettes/CaseStudies/Recipe/BatchFilesRecipe"
 } else if(env == "HPC"){
-  folder_path <- paste0(mainfolder,"vignettes/CaseStudies/BatchFilesRecipe")
+  folder_path <- paste0(mainfolder,"vignettes/CaseStudies/Recipe/BatchFilesRecipe")
 }
 
 filepaths <- c()
@@ -49,7 +49,7 @@ if (dir.exists(folder_path)) {
 }
 
 for(pol in unique_polymers){
-  file <- readLines("vignettes/CaseStudies/03ff_get_solution_FateFactors_batch.R")
+  file <- readLines("vignettes/CaseStudies/Recipe/03ff_get_solution_FateFactors_batch.R")
   
   target_string_pol <- "Polymer_of_interest <- "
   replacement_string_pol <- paste0("Polymer_of_interest <- '", pol, "'")
@@ -90,7 +90,7 @@ for(pol in unique_polymers){
     source <- "TWP"
   }
   
-  pathname <- "vignettes/CaseStudies/BatchFilesRecipe/"
+  pathname <- "vignettes/CaseStudies/Recipe/BatchFilesRecipe/"
   filename <- paste0("get_Solution_", as.character(source), "_", pol, ".R")
   
   filepath <- paste0(pathname, filename)
@@ -110,4 +110,4 @@ LSF_string <- paste0("bsub -n 1 -W ", time, " -M ", kb, " -e err.txt -o out.txt 
 LSF_vector <- paste(LSF_string, filepaths)
 
 # Write to txt file to make copying easy
-writeLines(LSF_vector, "vignettes/CaseStudies/HPC_commands_recipe.txt")
+writeLines(LSF_vector, "vignettes/CaseStudies/Recipe/HPC_commands_recipe.txt")

@@ -12,8 +12,8 @@ library(scales)
 ```
 
 ## Load output data
-```{r Load output data}
-folderpath <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_other_test"
+```{r Load output data, warning=FALSE, message=FALSE}
+folderpath <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/FF_other"
 
 filepaths <- list.files(folderpath)
 
@@ -42,9 +42,8 @@ for(file in RData_files){
   summarise(EqMass_SAP = sum(EqMass_SAP)) |>  # sum nested regional mass and rest of EU mass
   mutate(
     CompartmentFF = case_when(
-      SubCompart == "agriculturalsoil" ~ "otherSoil",
-      SubCompart == "naturalsoil" ~ "otherSoil",
-      #SubCompart == "othersoil" ~ "RoadSoil",
+      SubCompart == "agriculturalsoil" ~ "agriculturalSoil",
+      SubCompart == "naturalsoil" ~ "naturalSoil",
       SubCompart == "othersoil" ~ "otherSoil",
       SubCompart == "cloudwater" ~ "air",
       SubCompart == "lake" ~ "freshwater",
@@ -54,37 +53,54 @@ for(file in RData_files){
     ungroup() |>
     group_by(Polymer, EmisComp, EmisScale, RUN, CompartmentFF, Unit) |>
     summarise(EqMass_SAP = sum(EqMass_SAP)) |>
-    ungroup()
+    ungroup() |>
+  mutate(Unit = "kg[ss]/kg[e] seconds")
   
   SS_masses_continental <- bind_rows(SS_masses_continental, SS_masses_continental_pol)
-
-  emissions <- Output |> 
-    unnest(SBoutput) |> 
-    mutate(OutputType = names(SBoutput)) |> 
-    rename(EmisScale = Scale) |> 
-    filter(OutputType == "Input_Emission") |>
-    unnest(SBoutput)
 }
 
 ```
 
-```{r Make table}
-
-#   group_by(Polymer,CompartmentFF,EmisComp) |> 
-#   summarise(FF_SteadyState_avg = mean(EqMass_SAP),
-#             FF_SteadyState_std = sd(EqMass_SAP)) |> 
-#   mutate(Unit = "kg[ss]/kg[e] seconds")
+```{r Clean up output, warning=FALSE, message=FALSE}
+SS_masses_clean <- SS_masses_continental |>
+  filter(EqMass_SAP > 0)
 ```
 
-```{r Make figures}
-for(pol in unique(SS_masses_continental$Polymer)){
-  plot_data <- SS_masses_continental |>
+```{r Make table, warning=FALSE, message=FALSE}
+output_table <- SS_masses_clean |>
+  group_by(Polymer,CompartmentFF,EmisComp) |> 
+  summarise(FF_SteadyState_avg = mean(EqMass_SAP),
+            FF_SteadyState_std = sd(EqMass_SAP),
+            FF_SteadyState_p95 = quantile(EqMass_SAP, 0.95),
+            FF_SteadyState_p75 = quantile(EqMass_SAP, 0.75),            
+            FF_SteadyState_p25 = quantile(EqMass_SAP, 0.25),
+            FF_SteadyState_p05 = quantile(EqMass_SAP, 0.05))
+
+knitr::kable(output_table)
+
+write.xlsx(output_table, "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/FF_output_table.xlsx")
+```
+
+```{r Make figures, warning=FALSE, message=FALSE}
+plot_theme <-  theme(
+  axis.title.x = element_text(size = 30),    
+  axis.title.y = element_text(size = 30),    
+  axis.text.x = element_text(size = 28, angle = 45, hjust = 1),     
+  axis.text.y = element_text(size = 28),
+  legend.text = element_text(size = 28),
+  title = element_text(size=30),
+  strip.text = element_text(size = 20))
+
+figurefolder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/Figures/"
+
+for(pol in unique(SS_masses_clean$Polymer)){
+  plot_data <- SS_masses_clean |>
     filter(Polymer == pol) |>
     filter(EqMass_SAP > 10e-25) |>
     filter(!is.na(EqMass_SAP)) |>
     filter(EqMass_SAP != 0)
   
-  plot <- ggplot(plot_data, aes(y=EqMass_SAP, x=CompartmentFF))+
+  facetplot <- ggplot(plot_data, aes(y=EqMass_SAP, x=CompartmentFF, fill=CompartmentFF))+
     geom_violin()+
       scale_y_log10(
     breaks = scales::trans_breaks("log10", function(x) 10^x, n = 10),
@@ -93,14 +109,14 @@ for(pol in unique(SS_masses_continental$Polymer)){
     facet_wrap(~EmisComp) +
   theme_bw() +
   labs(title = pol,
-       x = "Compartment",
-       y = "Steady state mass (kg)")
+       y = paste0("Fate factor ", unique(plot_data$Unit))) +
+  scale_fill_discrete() +
+  plot_theme +
+  theme(legend.position = "none")
   
-  print(plot)
-  
-   for(emiscomp in unique(plot_data$EmisComp)){
-    plot_data_emiscomp <- plot_data |>
-      filter(EmisComp == emiscomp)
-  }
+  print(facetplot)
+
+  ggsave(paste0(figurefolder, "FF_facetplot_", pol, ".png"), plot=facetplot, width = 25, height = 15, dpi = 1000)
+    
 }
 ```
