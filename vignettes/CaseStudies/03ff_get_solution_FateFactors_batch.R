@@ -32,7 +32,7 @@ if(env == "OOD"){
   }
 }
 
-Polymers_of_interest <- unique(Parameters$Material_Parameters_n$Polymer)
+Polymer_of_interest <- unique(Parameters$Material_Parameters_n$Polymer)
 
 if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_interest == "Tyre wear") {
   source <- "TWP"
@@ -152,7 +152,7 @@ EmisSourceFF$EmisUnified[(EmisSourceFF[["Scale"]] == "Continental")] <-
   )
 # empty tibble for storing output for all runs:
 
-Output <- expand_grid(Polymer = Polymers_of_interest,
+Output <- expand_grid(Polymer = Polymer_of_interest,
                       EmisComp = names(EmisSourceFF$EmisUnified[(EmisSourceFF[["Scale"]] ==  "Regional")][[1]]),
                       Scale = c("Regional","Continental"),
                       SBoutput = NA)
@@ -202,7 +202,7 @@ elapsed_time
 
 if(env == "OOD"){
   save(Output, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FateFactors_LEON-T_D3.5_", source, "_", 
-                           format(Sys.Date(),"%Y%m%d"),".RData"))
+                             format(Sys.Date(),"%Y%m%d"),".RData"))
 } else if(env == "HPC"){
   save(Output, file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/FateFactors_LEON-T_D3.5_", source, "_", 
                              format(Sys.Date(),"%Y%m%d"),".RData"))
@@ -254,14 +254,13 @@ FF_EU <- FF_allScale |>
   mutate(Unit = "kg[ss]/kg[e] seconds")
 
 if(env == "OOD"){
-  write_csv(FF_NL, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_NL_LEON-T_D3.5_", source, "_", 
+  write_csv(FF_NL, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_NL_LEON-T_D3.5_", source, "_", Polymer_of_interest, 
                                  format(Sys.Date(),"%Y%m%d"),".csv"))
-  write_csv(FF_EU, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_EU_LEON-T_D3.5_", source, "_", 
+  write_csv(FF_EU, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_EU_LEON-T_D3.5_", source, "_", Polymer_of_interest, 
                                  format(Sys.Date(),"%Y%m%d"),".csv"))
 } else if(env == "HPC"){
-  write_csv(FF_NL, file = paste0(mainfolder,"vignettes/CaseStudies/CaseData/FF_NL_LEON-T_D3.5_", source, "_", 
+  write_csv(FF_NL, file = paste0(mainfolder,"vignettes/CaseStudies/CaseData/FF_NL_LEON-T_D3.5_", source, "_", Polymer_of_interest,
                                  format(Sys.Date(),"%Y%m%d"),".csv"))
-  write_csv(FF_EU, file = paste0(mainfolder,"vignettes/CaseStudies/CaseData/FF_EU_LEON-T_D3.5_", source, "_", 
+  write_csv(FF_EU, file = paste0(mainfolder,"vignettes/CaseStudies/CaseData/FF_EU_LEON-T_D3.5_", source, "_", Polymer_of_interest,
                                  format(Sys.Date(),"%Y%m%d"),".csv"))
 }
-  

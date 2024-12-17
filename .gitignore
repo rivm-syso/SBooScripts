@@ -105,6 +105,8 @@ CaseData/
 BatchFiles/
 vignettes/CaseStudies/HPC_commands.txt
 warnings.log
+BatchFilesRecipe/
+HPC_commands_recipe.txt
 
 SBooScripts.Rproj
 
