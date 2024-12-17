@@ -32,7 +32,7 @@ if(env == "OOD"){
   }
 }
 
-Polymer_of_interest <- unique(Parameters$Material_Parameters_n$Polymer)
+Polymer_of_interest <- "RUBBER"
 
 if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_interest == "Tyre wear") {
   source <- "TWP"
@@ -154,7 +154,7 @@ EmisSourceFF$EmisUnified[(EmisSourceFF[["Scale"]] == "Continental")] <-
 
 Output <- expand_grid(Polymer = Polymer_of_interest,
                       EmisComp = names(EmisSourceFF$EmisUnified[(EmisSourceFF[["Scale"]] ==  "Regional")][[1]]),
-                      Scale = c("Regional","Continental"),
+                      Scale = "Continental",
                       SBoutput = NA)
 
 start_time <- Sys.time() # to see how long it all takes...
