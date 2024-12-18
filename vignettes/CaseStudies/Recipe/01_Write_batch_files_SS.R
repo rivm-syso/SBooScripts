@@ -74,7 +74,12 @@ for(pol in unique_polymers){
   }
   
   target_string_source <- "source_of_interest <- "
-  replacement_string_source <- paste0("source_of_interest = ", Source)
+  
+  if(!is.na(Source) && Source == "Tyre wear"){
+    replacement_string_source <- paste0("source_of_interest = '", Source, "'")
+  } else if(is.na(Source)){
+    replacement_string_source <- paste0("source_of_interest = ", Source)
+  }
   
   line_index <- grep(paste0("^", target_string_source), file)
   
