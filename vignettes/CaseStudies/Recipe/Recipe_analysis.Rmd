@@ -9,8 +9,6 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(scales)
-
-source("basescripts/initWorld_onlyParticulate.R")
 ```
 
 # Steadystate fate factors
@@ -77,6 +75,7 @@ for(file in RData_files){
   SS_masses_continental <- bind_rows(SS_masses_continental, SS_masses_continental_pol)
 }
 
+rm(SS_masses_allScale, SS_masses_continental_pol)
 ```
 
 ### Clean up data
@@ -98,10 +97,12 @@ SS_masses_clean <- SS_masses_continental |>
   filter(EqMass_SAP >= p05 & EqMass_SAP <= p95) |>
   select(-p05, -p95) |> 
   ungroup()
+
+rm(SS_masses_continental)
 ```
 
 ```{r Make table, warning=FALSE, message=FALSE}
-output_table <- SS_masses_clean |>
+output_table_percentiles <- SS_masses_clean |>
   group_by(Polymer,CompartmentFF,EmisComp) |> 
   summarise(FF_SteadyState_avg = mean(EqMass_SAP),
             FF_SteadyState_std = sd(EqMass_SAP),
@@ -110,9 +111,17 @@ output_table <- SS_masses_clean |>
             FF_SteadyState_p25 = quantile(EqMass_SAP, 0.25),
             FF_SteadyState_p05 = quantile(EqMass_SAP, 0.05))
 
-knitr::kable(output_table)
+output_table_average <- output_table_percentiles |>
+  pivot_wider(
+    id_cols = c(Polymer,  EmisComp),
+    names_from = CompartmentFF,
+    values_from = FF_Dynamic_avg
+  )
 
-write.xlsx(output_table, "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/FF_output_table_SS.xlsx")
+knitr::kable(output_table_average)
+
+write.xlsx(output_table_average, "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/FF_output_table_average_SS.xlsx")
+write.xlsx(output_table_percentiles, "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/FF_output_table_percentiles_SS.xlsx")
 ```
 
 ```{r Make figures, warning=FALSE, message=FALSE}
@@ -152,6 +161,18 @@ for(pol in unique(SS_masses_clean$Polymer)){
 
   ggsave(paste0(figurefolder, "FF_facetplot_SS_", pol, ".png"), plot=facetplot, width = 25, height = 15, dpi = 1000)
 }
+```
+
+### Clear the environment and initialize a new environment for dynamic fate factor calculations
+
+```{r Clear environment}
+rm(list=ls())
+```
+
+```{r Initialize new environment}
+library(tidyverse)
+library(scales)
+source("basescripts/initWorld_onlyParticulate.R")
 ```
 
 # Dynamic fate factors
@@ -223,6 +244,7 @@ for(file in RData_files){
   Dyn_masses_continental <- bind_rows(Dyn_masses_continental, Dyn_masses_continental_pol)
 }
 
+rm(Dyn_masses_allScale, Dyn_masses_continental_pol)
 ```
 
 ### Clean up data
@@ -239,12 +261,14 @@ Dyn_masses_clean <- Dyn_masses_continental |>
     p95 = quantile(EqMass_SAP, 0.95, na.rm = TRUE)
   ) |>
   filter(EqMass_SAP >= p05 & EqMass_SAP <= p95) |>
-  select(-p05, -p95) |> # Remove the percentile columns after filtering
+  select(-p05, -p95) |> 
   ungroup()
+
+rm(Dyn_masses_continental)
 ```
 
 ```{r Make table, warning=FALSE, message=FALSE}
-output_table <- Dyn_masses_clean |>
+output_table_percentiles <- Dyn_masses_clean |>
   group_by(Polymer,CompartmentFF,EmisComp, Year) |> 
   summarise(FF_Dynamic_avg = mean(EqMass_SAP),
             FF_Dynamic_std = sd(EqMass_SAP),
@@ -253,9 +277,17 @@ output_table <- Dyn_masses_clean |>
             FF_Dynamic_p25 = quantile(EqMass_SAP, 0.25),
             FF_Dynamic_p05 = quantile(EqMass_SAP, 0.05))
 
-knitr::kable(output_table)
+output_table_average <- output_table_percentiles |>
+  pivot_wider(
+    id_cols = c(Polymer,  EmisComp, Year),
+    names_from = CompartmentFF,
+    values_from = FF_Dynamic_avg
+  )
 
-write.xlsx(output_table, "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/FF_output_table_Dyn.xlsx")
+knitr::kable(output_table_average)
+
+write.xlsx(output_table_average, "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/FF_output_table_average_Dyn.xlsx")
+write.xlsx(output_table_percentiles, "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/FF_output_table_percentiles_Dyn.xlsx")
 ```
 
 ```{r Make figures, warning=FALSE, message=FALSE}
@@ -278,7 +310,8 @@ for(pol in unique(Dyn_masses_clean$Polymer)){
       filter(Year == year)
     
     facetplot <- ggplot(plot_data, aes(y=EqMass_SAP, x=CompartmentFF, fill=CompartmentFF))+
-      geom_violin()+
+      geom_boxplot(outlier.colour="black", outlier.shape=16,
+         outlier.size=1, notch=FALSE)+
         scale_y_log10(
       breaks = scales::trans_breaks("log10", function(x) 10^x, n = 10),
       labels = scales::trans_format("log10", scales::math_format(10^.x))
