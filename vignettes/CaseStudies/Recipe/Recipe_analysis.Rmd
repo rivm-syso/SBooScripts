@@ -31,8 +31,7 @@ fate factors after 20 and 100 years of emissions. The script below is used to
 create batch files for dynamic fate factors. 
 
 ```{r Dynamic batch files}
-
-
+source("vignettes/CaseStudies/Recipe/03_Write_batch_files_Dyn.R")
 ```
 
 ## Load output data

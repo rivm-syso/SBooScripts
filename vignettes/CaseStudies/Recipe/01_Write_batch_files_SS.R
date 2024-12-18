@@ -17,7 +17,7 @@ if(env == "OOD"){
     load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241130.RData"))
   }
 } else if(env == "HPC"){
-  mainfolder <- "/data/BioGrid/hidsa/SimpleBox/SBooScripts/"
+  mainfolder <- "/data/BioGrid/hidsa/GitHub/SBooScripts/"
   if(!is.na(Source) && Source == "Tyre wear"){
     load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_TWP_20241130.RData"))
   } else if(is.na(Source)){
@@ -106,7 +106,7 @@ time <- 400
 # Make a string with the needed information for the cluster
 LSF_string <- paste0("bsub -n 1 -W ", time, " -M ", kb, " -e err.txt -o out.txt Rscript")
 
-# Paste the information toe very string
+# Paste the information to every string
 LSF_vector <- paste(LSF_string, filepaths)
 
 # Write to txt file to make copying easy

@@ -20,15 +20,15 @@ source_of_interest <- NA
 
 if(env == "OOD"){
   if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
-    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_RecipeTWP_20241130.RData"))
+    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241130.RData"))
   } else if(is.na(source_of_interest)){
-    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_RecipeOther_20241130.RData"))
+    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241130.RData"))
   }
 } else if(env == "HPC"){
   if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
-    load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_RecipeTWP_20241130.RData"))
+    load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_TWP_20241130.RData"))
   } else if(is.na(source_of_interest)){
-    load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_RecipeOther_20241130.RData"))
+    load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_Other_20241130.RData"))
   }
 }
 
@@ -47,6 +47,9 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
 RUNSamples = c(1:1000)
 print(paste("LOG: run started for", min(RUNSamples), "to", max(RUNSamples)))
 ##
+
+## Specify the number of years
+nYears <- 101
 
 subsetRuns2 <- function(dfRUNs,nummers){ #Function to select RUNsamples from parameter data
   dfRUNs[nummers,]
@@ -85,71 +88,52 @@ FracArea_sRC = Area_soilR/(Area_soilR+Area_soilC)
 
 EmisSourceFF <- expand_grid(Scale = c("Regional","Continental"),
                             EmisUnified = NA)
-EmisSourceFF$EmisUnified[(EmisSourceFF[["Scale"]] == "Regional")] <- 
-  list(  list(
-    Air = tibble(Abbr = c("aRP",
-                          "s3RP",
-                          "w1RP",
-                          "w0RP"),
-                 Emis = c(1,0,0,0)),
-    Soil = tibble(Abbr = c("aRP",
-                           "s3RP",
-                           "w1RP",
-                           "w0RP"),
-                  Emis = c(0,1,0,0)),
-    Water = tibble(Abbr = c("aRP",
-                            "s3RP",
-                            "w1RP",
-                            "w0RP"),
-                   Emis = c(0,0,
-                            1*FracArea_w1R,
-                            1*FracArea_w0R))
-  )
-  
-  )
 
-EmisSourceFF$EmisUnified[(EmisSourceFF[["Scale"]] == "Continental")] <- 
-  list(  list(
-    Air = tibble(Abbr = c("aRP",
-                          "s3RP",
-                          "w1RP",
-                          "w0RP",
-                          "aCP",
-                          "s3CP",
-                          "w1CP",
-                          "w0CP"),
-                 Emis = c(1*FracArea_aRC,
-                          0,0,0,
-                          1*(1-FracArea_aRC),
-                          0,0,0)),
-    Soil = tibble(Abbr = c("aRP",
-                           "s3RP",
-                           "w1RP",
-                           "w0RP",
-                           "aCP",
-                           "s3CP",
-                           "w1CP",
-                           "w0CP"),
-                  Emis = c(0,1*FracArea_sRC,
-                           0,0,
-                           0,1*(1-FracArea_sRC),
-                           0,0)),
-    Water = tibble(Abbr = c("aRP",
-                            "s3RP",
-                            "w1RP",
-                            "w0RP",
-                            "aCP",
-                            "s3CP",
-                            "w1CP",
-                            "w0CP"),
-                   Emis = c(0,0,
-                            1*FracArea_w1R*FracArea_wRC,
-                            1*FracArea_w0R*FracArea_wRC,
-                            0,0,
-                            1*FracArea_w1C*(1-FracArea_wRC),
-                            1*FracArea_w0C*(1-FracArea_wRC)))
+# Make function to repeat the emission tibbles nYears and add Timed column
+repeat_tibble <- function(tib, n) {
+  tib |>
+    slice(rep(1:n(), each = n)) |>
+    mutate(Timed = rep(1:n, times = nrow(tib))) |>
+    mutate(Timed = Timed-1)
+}
+
+#### Regional emissions
+Air <- tibble(Abbr = c("aRP", "s3RP", "w1RP", "w0RP"),
+             Emis = c(1,0,0,0))
+
+Soil = tibble(Abbr = c("aRP", "s3RP", "w1RP", "w0RP"),
+              Emis = c(0,1,0,0))
+
+Water = tibble(Abbr = c("aRP", "s3RP", "w1RP", "w0RP"),
+               Emis = c(0, 0, 1*FracArea_w1R, 1*FracArea_w0R))
+
+EmisSourceFF$EmisUnified[EmisSourceFF[["Scale"]] == "Regional"] <- list(
+  list(
+    Air = repeat_tibble(Air, nYears),
+    Soil = repeat_tibble(Soil, nYears),
+    Water = repeat_tibble(Water, nYears)
   )
+)
+
+#### Continental emissions
+Air <- tibble(Abbr = c("aRP", "s3RP", "w1RP", "w0RP", "aCP", "s3CP", "w1CP", "w0CP"),
+              Emis = c(1*FracArea_aRC, 0, 0, 0, 1*(1-FracArea_aRC), 0, 0, 0))
+
+Soil <- tibble(Abbr = c("aRP", "s3RP", "w1RP", "w0RP", "aCP", "s3CP", "w1CP", "w0CP"),
+               Emis = c(0, 1*FracArea_sRC, 0, 0, 0, 1*(1-FracArea_sRC), 0, 0))
+
+Water <- tibble(Abbr = c("aRP", "s3RP", "w1RP", "w0RP", "aCP", "s3CP", "w1CP", "w0CP"),
+                Emis = c(0, 0, 1*FracArea_w1R*FracArea_wRC, 1*FracArea_w0R*FracArea_wRC,
+                         0, 0, 1*FracArea_w1C*(1-FracArea_wRC), 1*FracArea_w0C*(1-FracArea_wRC)))
+
+EmisSourceFF$EmisUnified[EmisSourceFF[["Scale"]] == "Continental"] <- list(
+  list(
+    Air = repeat_tibble(Air, nYears),
+    Soil = repeat_tibble(Soil, nYears),
+    Water = repeat_tibble(Water, nYears)
   )
+)
+
 # empty tibble for storing output for all runs:
 
 Output <- expand_grid(Polymer = Polymer_of_interest,
@@ -159,7 +143,7 @@ Output <- expand_grid(Polymer = Polymer_of_interest,
 
 start_time <- Sys.time() # to see how long it all takes...
 
-World$NewSolver("UncertainSolver")
+World$NewSolver("UncertainDynamicSolver")
 i <- 1
 
 for(ecomp in unique(Output$EmisComp)){
@@ -182,7 +166,8 @@ for(ecomp in unique(Output$EmisComp)){
           rename(varName = VarName) # SBoo uses varName TODO: make Capital...
       }
       
-      solved <- World$Solve(emis_source, needdebug = F, sample_source)
+      solved <- World$Solve((emis_source), sample_source, needdebug = F,
+                            rtol_ode=1e-30, atol_ode = 0.5e-2)
       
       # Output$EmisComp[i] = names(EmisSourceFF) [i]
       
@@ -195,72 +180,14 @@ for(ecomp in unique(Output$EmisComp)){
   }
 }
 
-
 elapsed_time <- Sys.time() - start_time
 print(paste0("Elapsed time is ", elapsed_time))
 elapsed_time 
 
 if(env == "OOD"){
-  save(Output, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FateFactors_Recipe", source, "_", Polymer_of_interest, 
+  save(Output, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FateFactors_Recipe_Dyn_", source, "_", Polymer_of_interest, 
                              format(Sys.Date(),"%Y%m%d"),".RData"))
 } else if(env == "HPC"){
-  save(Output, file = paste0(mainfolder, "vignettes/CaseStudies/Recipe/Output/FateFactors_Recipe", source, "_", Polymer_of_interest, 
+  save(Output, file = paste0(mainfolder, "vignettes/CaseStudies/Recipe/Output/FateFactors_Recipe_Dyn_", source, "_", Polymer_of_interest, 
                              format(Sys.Date(),"%Y%m%d"),".RData"))
-}
-
-FF_allScale <- Output |> unnest(SBoutput) |> mutate(OutputType = names(SBoutput)) |> 
-  rename(EmisScale = Scale) |> 
-  filter(OutputType == "SteadyStateMass") |> unnest(SBoutput) |> 
-  filter(Species != "Unbound") |> ungroup() |> group_by(Polymer,EmisComp,EmisScale,RUN,Scale,SubCompart,Unit) |> 
-  summarise(EqMass_SAP = sum(EqMass)) 
-
-FF_NL <- FF_allScale |> filter(EmisScale == "Regional" & Scale == "Regional") |>
-  mutate(
-    CompartmentFF = case_when(
-      SubCompart == "agriculturalsoil" ~ "otherSoil",
-      SubCompart == "naturalsoil" ~ "otherSoil",
-      SubCompart == "othersoil" ~ "RoadSoil",
-      SubCompart == "cloudwater" ~ "air",
-      SubCompart == "lake" ~ "freshwater",
-      SubCompart == "river" ~ "freshwater",
-      SubCompart == "lakesediment" ~ "freshwatersediment",
-      TRUE ~ SubCompart)
-  ) |> ungroup() |> 
-  group_by(Polymer,CompartmentFF,EmisComp) |> 
-  summarise(FF_SteadyState_avg = mean(EqMass_SAP),
-            FF_SteadyState_std = sd(EqMass_SAP)) |> 
-  mutate(Unit = "kg[ss]/kg[e] seconds")
-
-
-FF_EU <- FF_allScale |> 
-  filter(EmisScale == "Continental" & (Scale == c("Regional")|Scale == c("Continental"))) |> 
-  ungroup() |> 
-  group_by(Polymer,EmisComp,EmisScale,RUN,SubCompart,Unit) |> 
-  summarise(EqMass_SAP = sum(EqMass_SAP)) |>  # sum nested regional mass and rest of EU mass
-  mutate(
-    CompartmentFF = case_when(
-      SubCompart == "agriculturalsoil" ~ "otherSoil",
-      SubCompart == "naturalsoil" ~ "otherSoil",
-      SubCompart == "othersoil" ~ "RoadSoil",
-      SubCompart == "cloudwater" ~ "air",
-      SubCompart == "lake" ~ "freshwater",
-      SubCompart == "river" ~ "freshwater",
-      SubCompart == "lakesediment" ~ "freshwatersediment",
-      TRUE ~ SubCompart)
-  ) |> ungroup() |> 
-  group_by(Polymer,CompartmentFF,EmisComp) |> 
-  summarise(FF_SteadyState_avg = mean(EqMass_SAP),
-            FF_SteadyState_std = sd(EqMass_SAP)) |> 
-  mutate(Unit = "kg[ss]/kg[e] seconds")
-
-if(env == "OOD"){
-  write_csv(FF_NL, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_NL_Recipe", source, "_", Polymer_of_interest, 
-                                 format(Sys.Date(),"%Y%m%d"),".csv"))
-  write_csv(FF_EU, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_EU_Recipe", source, "_", Polymer_of_interest, 
-                                 format(Sys.Date(),"%Y%m%d"),".csv"))
-} else if(env == "HPC"){
-  write_csv(FF_NL, file = paste0(mainfolder,"vignettes/CaseStudies/Recipe/Output/FF_NL_Recipe", source, "_", Polymer_of_interest,
-                                 format(Sys.Date(),"%Y%m%d"),".csv"))
-  write_csv(FF_EU, file = paste0(mainfolder,"vignettes/CaseStudies/Recipe/Output/FF_EU_Recipe", source, "_", Polymer_of_interest,
-                                 format(Sys.Date(),"%Y%m%d"),".csv"))
 }

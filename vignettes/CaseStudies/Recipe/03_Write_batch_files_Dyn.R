@@ -17,7 +17,7 @@ if(env == "OOD"){
     load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241130.RData"))
   }
 } else if(env == "HPC"){
-  mainfolder <- "/data/BioGrid/hidsa/SimpleBox/SBooScripts/"
+  mainfolder <- "/data/BioGrid/hidsa/GitHub/SBooScripts/"
   if(!is.na(Source) && Source == "Tyre wear"){
     load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_TWP_20241130.RData"))
   } else if(is.na(Source)){
@@ -49,7 +49,7 @@ if (dir.exists(folder_path)) {
 }
 
 for(pol in unique_polymers){
-  file <- readLines("vignettes/CaseStudies/Recipe/03ff_get_solution_FateFactors_batch.R")
+  file <- readLines("vignettes/CaseStudies/Recipe/04_FateFactors_Dynamic.R")
   
   target_string_pol <- "Polymer_of_interest <- "
   replacement_string_pol <- paste0("Polymer_of_interest <- '", pol, "'")

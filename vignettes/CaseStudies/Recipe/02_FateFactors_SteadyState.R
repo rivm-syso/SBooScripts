@@ -20,15 +20,15 @@ source_of_interest <- NA
 
 if(env == "OOD"){
   if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
-    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_RecipeTWP_20241130.RData"))
+    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241130.RData"))
   } else if(is.na(source_of_interest)){
-    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_RecipeOther_20241130.RData"))
+    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241130.RData"))
   }
 } else if(env == "HPC"){
   if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
-    load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_RecipeTWP_20241130.RData"))
+    load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_TWP_20241130.RData"))
   } else if(is.na(source_of_interest)){
-    load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_RecipeOther_20241130.RData"))
+    load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_Other_20241130.RData"))
   }
 }
 
@@ -201,66 +201,9 @@ print(paste0("Elapsed time is ", elapsed_time))
 elapsed_time 
 
 if(env == "OOD"){
-  save(Output, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FateFactors_Recipe", source, "_", Polymer_of_interest, 
+  save(Output, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FateFactors_Recipe_SS_", source, "_", Polymer_of_interest, 
                              format(Sys.Date(),"%Y%m%d"),".RData"))
 } else if(env == "HPC"){
-  save(Output, file = paste0(mainfolder, "vignettes/CaseStudies/Recipe/Output/FateFactors_Recipe", source, "_", Polymer_of_interest, 
+  save(Output, file = paste0(mainfolder, "vignettes/CaseStudies/Recipe/Output/FateFactors_Recipe_SS_", source, "_", Polymer_of_interest, 
                              format(Sys.Date(),"%Y%m%d"),".RData"))
-}
-
-FF_allScale <- Output |> unnest(SBoutput) |> mutate(OutputType = names(SBoutput)) |> 
-  rename(EmisScale = Scale) |> 
-  filter(OutputType == "SteadyStateMass") |> unnest(SBoutput) |> 
-  filter(Species != "Unbound") |> ungroup() |> group_by(Polymer,EmisComp,EmisScale,RUN,Scale,SubCompart,Unit) |> 
-  summarise(EqMass_SAP = sum(EqMass)) 
-
-FF_NL <- FF_allScale |> filter(EmisScale == "Regional" & Scale == "Regional") |>
-  mutate(
-    CompartmentFF = case_when(
-      SubCompart == "agriculturalsoil" ~ "otherSoil",
-      SubCompart == "naturalsoil" ~ "otherSoil",
-      SubCompart == "othersoil" ~ "RoadSoil",
-      SubCompart == "cloudwater" ~ "air",
-      SubCompart == "lake" ~ "freshwater",
-      SubCompart == "river" ~ "freshwater",
-      SubCompart == "lakesediment" ~ "freshwatersediment",
-      TRUE ~ SubCompart)
-  ) |> ungroup() |> 
-  group_by(Polymer,CompartmentFF,EmisComp) |> 
-  summarise(FF_SteadyState_avg = mean(EqMass_SAP),
-            FF_SteadyState_std = sd(EqMass_SAP)) |> 
-  mutate(Unit = "kg[ss]/kg[e] seconds")
-
-
-FF_EU <- FF_allScale |> 
-  filter(EmisScale == "Continental" & (Scale == c("Regional")|Scale == c("Continental"))) |> 
-  ungroup() |> 
-  group_by(Polymer,EmisComp,EmisScale,RUN,SubCompart,Unit) |> 
-  summarise(EqMass_SAP = sum(EqMass_SAP)) |>  # sum nested regional mass and rest of EU mass
-  mutate(
-    CompartmentFF = case_when(
-      SubCompart == "agriculturalsoil" ~ "otherSoil",
-      SubCompart == "naturalsoil" ~ "otherSoil",
-      SubCompart == "othersoil" ~ "RoadSoil",
-      SubCompart == "cloudwater" ~ "air",
-      SubCompart == "lake" ~ "freshwater",
-      SubCompart == "river" ~ "freshwater",
-      SubCompart == "lakesediment" ~ "freshwatersediment",
-      TRUE ~ SubCompart)
-  ) |> ungroup() |> 
-  group_by(Polymer,CompartmentFF,EmisComp) |> 
-  summarise(FF_SteadyState_avg = mean(EqMass_SAP),
-            FF_SteadyState_std = sd(EqMass_SAP)) |> 
-  mutate(Unit = "kg[ss]/kg[e] seconds")
-
-if(env == "OOD"){
-  write_csv(FF_NL, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_NL_Recipe", source, "_", Polymer_of_interest, 
-                                 format(Sys.Date(),"%Y%m%d"),".csv"))
-  write_csv(FF_EU, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_EU_Recipe", source, "_", Polymer_of_interest, 
-                                 format(Sys.Date(),"%Y%m%d"),".csv"))
-} else if(env == "HPC"){
-  write_csv(FF_NL, file = paste0(mainfolder,"vignettes/CaseStudies/Recipe/Output/FF_NL_Recipe", source, "_", Polymer_of_interest,
-                                 format(Sys.Date(),"%Y%m%d"),".csv"))
-  write_csv(FF_EU, file = paste0(mainfolder,"vignettes/CaseStudies/Recipe/Output/FF_EU_Recipe", source, "_", Polymer_of_interest,
-                                 format(Sys.Date(),"%Y%m%d"),".csv"))
 }
