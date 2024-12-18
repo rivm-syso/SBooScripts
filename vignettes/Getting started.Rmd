@@ -59,7 +59,7 @@ below.
 substances <- read.csv("data/Substances.csv")
 
 # Assign a substance name from the Substance column to the variable "substance":
-substance <- "1-aminoanthraquinone"
+chosen_substance <- "1-aminoanthraquinone"
 ```
 
 ### Initialize the World object
@@ -83,12 +83,12 @@ and run based on the chosen substance:
 
 ```{r Initialize World, include=TRUE, warning=FALSE, message=FALSE}
 chemclass <- substances |>
-  filter(Substance == substance) |>
+  filter(Substance == chosen_substance) |>
   select(ChemClass)
 
 chemclass <- chemclass$ChemClass
 
-if(substance == "microplastic"){
+if(chosen_substance == "microplastic"){
   source("baseScripts/initWorld_onlyPlastics.R")
 } else if (chemclass == "particle") {
   source("baseScripts/initWorld_onlyParticulate.R")
@@ -96,6 +96,7 @@ if(substance == "microplastic"){
   source("baseScripts/initWorld_onlyMolec.R")
 }
 
+World$substance <- chosen_substance
 ```
 
 ## Accessing variables and k's
