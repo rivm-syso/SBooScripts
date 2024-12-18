@@ -11,6 +11,30 @@ library(tidyverse)
 library(scales)
 ```
 
+## Make batch files for steadystate fate factors
+Calculating the steadystate masses for 1000 runs per polymer takes a lot of time.
+The script 01_Write_batch_files_SS.R was written to make one batch file per polymer,
+so that the fate factors for the polymers can be calculated in parallel. The chunk
+below shows how to make these batch files. 
+
+```{r Steadystate batch files}
+source("vignettes/CaseStudies/Recipe/01_Write_batch_files_SS.R")
+```
+
+The files are created in the folder "vignettes/CaseStudies/Recipe/BatchFilesRecipe". 
+All files can be run in the background in RStudio, or on a high performance cluster 
+using the commands written to the script HPC_commands.txt.
+
+## Make batch files for dynamic fate factors
+We can also calculate fate factors from dynamic masses. The goal is to calculate
+fate factors after 20 and 100 years of emissions. The script below is used to 
+create batch files for dynamic fate factors. 
+
+```{r Dynamic batch files}
+
+
+```
+
 ## Load output data
 ```{r Load output data, warning=FALSE, message=FALSE}
 folderpath <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/FF_other"
