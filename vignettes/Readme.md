@@ -17,11 +17,11 @@ There are three additional vignettes on:
   all basics for users (not necessarily developers) to use and calculate
   with the R-implementation of SB.
 
-- [10.1 Solver use](/vignettes/10.1-Uncertain-solver-use.Rmd) : explains
-  how to solve for both static and dynamic data.
+- [10.1 Solver use](/vignettes/10.1-Solver-use.md) : explains how to
+  solve for both static and dynamic data.
 
 - [10.2 Probabilistic solver
-  use](/vignettes/10.2-Uncertain-solver-use.Rmd) : explains how to solve
+  use](/vignettes/10.2-Uncertain-solver-use.md) : explains how to solve
   for both static and dynamic data.
 
 - [10.3 Probabilistics Dynamic solver
