@@ -116,60 +116,12 @@ FracRC <- tibble(
   AreaFraction = c(fracReg,fracCont)
 )
 
-
 print(FracRC)
 
 ```
 
-
-##ODE solver
-Below, we prep the ODE solver function. Later, this will be callable from SBOOscripts as a function in SBOO.
-
-
-```{r ODE Solver}
-
-SimpleBoxODE = function(t, m, parms) {
-  
-  with(as.list(c(parms, m)), {
-    e <- c(rep(0, length(SBNames)))
-    
-    for (name in names(funlist)) {
-      e[grep(name, SBNames)] <- funlist[[name]](t)
-    }
-    
-    dm <- K%*% m + e
-    res <- c(dm)
-    list(res, signal = e)
-  })
-}
-
-# print(SBNames)
-
-#Function to Solve
-SBsolve4 <- function( tmax = 1e10, nTIMES = 100, Engine, funlist) {
-  
-  SB.K = Engine
-  SBNames = colnames(Engine)
-  SB.m0 <- rep(0, length(SBNames))
-  SBtime <- seq(0,tmax,length.out = nTIMES)
-  
-  
-  out <- deSolve::ode(
-    y = as.numeric(SB.m0),
-    times = SBtime ,
-    func = SimpleBoxODE,
-    parms = list(K = SB.K, SBNames=SBNames, funlist=funlist),
-    rtol = 1e-6, atol = 1e-1)
-  colnames(out)[1:length(SBNames)+1] <- SBNames
-  colnames(out)[grep("signal",colnames(out))] <- paste("emis",SBNames,sep = "2")
-  as.data.frame(out)
-  
-}
-
-```
-
 ##Emission data
-Now, we prepare our emission data to be used as input. We create approxfuns based on the input data. These will serve as input data for our ODE solver. 
+Now, we prepare our emission data to be used as input. We create approxfuns based on the input data. These will serve as input data the dynamic uncertain solver.
 ```{r emission data}
 file_paths <- 
   list.files("data/emissions",recursive = TRUE)
@@ -181,7 +133,8 @@ Emissions <-
   pivot_longer(
     cols = !c(file_name,RUN),
     names_to = "year",
-    values_to = "emission_t" ) |> mutate_at('year',as.numeric)
+    values_to = "emission_t" ) |> mutate_at('year',as.numeric) |>
+  mutate(RUN = RUN+1)
 
 Emissions <- 
   Emissions |> 
@@ -238,7 +191,6 @@ Emis_GO_chit <- Emissions_run_filtered |>
 Emis_nested_GO_chit <- Emis_GO_chit |>
   group_by(Abbr, Timed) |>
   nest(Emis = c(RUN, Mass_kg_s))
-
 ```
 
 ## Introducing variable uncertainty
@@ -255,8 +207,8 @@ fwa_max<- 0.1
 ma_min <- 1e-3 
 ma_max <- 1
 
-lhs_samples <- optimumLHS(nrow(Emis_nested_GO_chit$Emis[[1]]), 1)
-
+nruns <- nrow(Emis_nested_GO_chit$Emis[[1]])
+lhs_samples <- optimumLHS(nruns, 1)
 set.seed(123)  # For reproducibility
 
 Variables <- c("FreshWater","Marine")
@@ -265,286 +217,153 @@ Variables <- c("FreshWater","Marine")
 fw_alpha_values <-  10^(lhs_samples * (log10(fwa_max) - log10(fwa_min)) + log10(fwa_min))
 ma_alpha_values <- 10^(lhs_samples * (log10(ma_max) - log10(ma_min)) + log10(ma_min))
 
-
-combinations_list <- vector("list", length(Variables))
 subcompartsmarine <- c("sea", "marinesediment", "freshwatersediment", "deepocean")
-
 subcomparts <- c("river", "lake", "water", "agriculturalsoil", "naturalsoil", "othersoil")
-all_subcomparts <- c(subcomparts, subcompartsmarine)
+species <- c("Small", "Large")
 
+scaled_samples_fw <- tibble(varName = "alpha",
+                            Species = "any",
+                            SubCompart = "FreshWater",
+                            value = fw_alpha_values[, 1],
+                            RUN = 1:(nruns))
 
+scaled_samples_ma <- tibble(varName = "alpha",
+                            Species = "any",
+                            SubCompart = "Marine",
+                            value = ma_alpha_values[, 1],
+                            RUN = 0:(nruns-1))
 
+Sample_df <- bind_rows(scaled_samples_fw, scaled_samples_ma)
 
-
-
-
-
-
-
-# Assign alpha values to each compartment for each combination
-for (i in 1:num_combinations) {
-  # Freshwater compartments
-  fw_alpha_df <- data.frame(
-    SubCompart = subcomparts,
-    alpha = rep(fw_alpha_values[i], length(subcomparts))
-  )
-  
-  # Marine compartments
-  ma_alpha_df <- data.frame(
-    SubCompart = subcompartsmarine,
-    alpha = rep(ma_alpha_values[i], length(subcompartsmarine))
-  )
-  
-  # Combine freshwater and marine data frames
-  combination_df <- rbind(fw_alpha_df, ma_alpha_df)
-  
-  # Store the combination in the list
-  combinations_list[[i]] <- combination_df
+explodeF <- function(df, target_col, explode_value, new_values) {
+  df %>%
+    # Use mutate to create a new column if the target column equals explode_value
+    mutate(!!sym(target_col) := ifelse(!!sym(target_col) == explode_value, list(new_values), !!sym(target_col))) %>%
+    # Unnest the target column to duplicate rows
+    unnest(!!sym(target_col))
 }
 
-# Print the list of combinations
-print(combinations_list)
+Sample_df <- explodeF(Sample_df, "SubCompart", "FreshWater", subcomparts)  
+Sample_df <- explodeF(Sample_df, "SubCompart", "Marine", subcompartsmarine)  
+Sample_df <- explodeF(Sample_df, "Species", "any", species) 
+
+Sample_df_nested <- Sample_df |>
+  mutate(Scale = NA) |>
+  group_by(varName, SubCompart, Species, Scale) |>
+  nest(data = c(RUN, value))
 ```
 
-## Computation  of concentration
+## Define concentration function
 We define this function to compute the concentration per compartment. For soil and sediment, we compute the output in mass per wet weight. For now, all units are kg/m3. 
 ```{r function to get concentration}
 
-# Define the function to adjust concentrations
-adjust_concentrations <- function(Result, Volume, FRACw, FRACa, Rho) {
-  # Define acronym maps
-  acronym_map <- c(
-    "marinesediment" = "sd2", "freshwatersediment" = "sd1", "lakesediment" = "sd0",
-    "agriculturalsoil" = "s2", "naturalsoil" = "s1", "othersoil" = "s3",
-    "air" = "a", "deepocean" = "w3", "sea" = "w2", "river" = "w1", "lake" = "w0", "cloudwater" = "cw"
-  )
-  acronym_map2 <- c("Arctic" = "A", "Moderate" = "M", "Tropic" = "T", "Continental" = "C", "Regional" = "R")
-  
-  # Add compartment column to data
-  mutate_compartment <- function(df, acronym_map, acronym_map2) {
-    df |>
-      mutate(compartment = paste0(acronym_map[SubCompart], acronym_map2[Scale]))
-  }
-  
-  Volume <- mutate_compartment(Volume, acronym_map, acronym_map2)
-  FRACw <- mutate_compartment(FRACw, acronym_map, acronym_map2)
-  FRACa <- mutate_compartment(FRACa, acronym_map, acronym_map2)
-  Rho <- mutate(Rho, compartment = acronym_map[SubCompart])
-  
-  # Calculate concentrations by dividing by the corresponding volume
-  columns_to_transform <- setdiff(names(Result), "time")
-  CompartmentsConc <- Result |>
-    mutate(across(all_of(columns_to_transform), ~ .x / Volume$Volume[match(substr(cur_column(), 1, nchar(cur_column()) - 1), Volume$compartment)]))
-  
-  # Separate and combine soil and sediment columns
-  CompartmentsConc_soil <- CompartmentsConc |>
-    select(starts_with("s"))
-  CompartmentsConc_sediment <- CompartmentsConc |>
-    select(starts_with("sd"))
-  
-  CompartmentsConc_combined <- bind_cols(CompartmentsConc_soil, CompartmentsConc_sediment)
-  
-  # Adjust concentrations for combined soil and sediment
-  f_adjust_concentration <- function(CompConc, Fracw, Fraca, RHOsolid, RhoWater_value) {
-    CompConc  / (Fracw * RhoWater_value + (1 - Fracw - Fraca) * RHOsolid)
-  }
-  
-  # Get RhoWater value for river compartment
-  RhoWater_value <- Rho$rhoMatrix[Rho$compartment == "w1"]
-  
-  # Prepare vectors for FRACw, FRACa, and Rho
-  compartment_prefixes_combined <- map2(
-    str_sub(names(CompartmentsConc_combined), 1, 4),
-    str_sub(names(CompartmentsConc_combined), 1, 3),
-    ~ c(.x, .y)
-  )
-  
-  FRACw_values_combined <- FRACw$FRACw[match(compartment_prefixes_combined, FRACw$compartment)]
-  FRACa_values_combined <- FRACa$FRACa[match(compartment_prefixes_combined, FRACa$compartment)]
-  Rho_values_combined <- Rho$rhoMatrix[match(compartment_prefixes_combined, Rho$compartment)]
-  
-  CompartmentsConc_combined_adjusted <- map2_df(
-    CompartmentsConc_combined,
-    FRACw_values_combined,
-    FRACa_values_combined,
-    Rho_values_combined,
-    ~ f_adjust_concentration(.x, .y, .z, RhoWater_value)
-  )
-  
-  # Update CompartmentsConc with corrected values
-  CompartmentsConc_corrected <- CompartmentsConc |>
-    mutate(across(all_of(names(CompartmentsConc_combined_adjusted)), ~ CompartmentsConc_combined_adjusted[[cur_column()]]))
-  
-  return(CompartmentsConc_corrected)
+Concentration_f <- function(dataframe){
+  Concentration_long <- 
+  dataframe |>
+  left_join(World$fetchData("Volume"), 
+            by=c("Scale", "SubCompart")) |>
+  # Change 'cloudwater' to 'air', and then sum the masses and volumes of these compartments together
+  mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
+  ungroup() |> 
+  group_by(Year, Scale, SubCompart, RUN) |>
+  summarise(Mass = sum(Mass),
+            Volume = sum(Volume)) |>
+  ungroup() |>
+  # Calculate the concentrations
+  mutate(conc_kg_m3 = Mass/Volume) |> 
+  left_join(World$fetchData("FRACw"),
+            by=c("Scale", "SubCompart")) |> 
+  left_join(World$fetchData("FRACa"),
+            by=c("Scale", "SubCompart")) |> 
+  left_join(World$fetchData("rhoMatrix"),
+            by=c("SubCompart")) |> 
+  left_join(World$fetchData("Matrix"),
+            by=c("SubCompart"))|> 
+  mutate(Unit = "kg/m³") |> 
+  mutate(Concentration =
+           case_match(Matrix,
+                      "air" ~ conc_kg_m3*1000000,
+                      "water" ~ conc_kg_m3*1000,
+                      "soil" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix)*1000, # RhoWater needed (we need to define subcompartment variables for rhoWater, rhoSolid and rhoAir)
+                      "sediment" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix)*1000,
+                      .default = conc_kg_m3),
+         Unit =
+           case_match(Matrix,
+                      "air" ~ "mg/m³",
+                      "water" ~ "mg/L",
+                      "soil" ~ "g/kg dw",
+                      "sediment" ~ "g/kg dw",
+                      .default = Unit)) |>
+  mutate(SubCompartName = paste0(SubCompart, " (", Unit, ")")) |>
+  select(-c(conc_kg_m3, FRACw, FRACa, rhoMatrix, Matrix, Volume))
 }
 
 ```
 
 ## Computation for GO-Chitosan
 In this chunk we start solving for GO-Chitosan, we compute both the mass and concentration per compartment. 
-```{r compute for GO-Chitosan}
-# Initialize lists to store nested results for mass and concentration
-nested_results_mass <- list()
-nested_results_concentration <- list()
-kaas_list <- list()
 
-# Get the unique runs from your Emission_run_approx data
-unique_runs <- unique(Emission_run_approx$RUN)
+```{r Solve with uncertain dynamic solver}
+World$NewSolver("UncertainDynamicSolver")
 
-# Loop through each combination in combinations_list
-for (i in seq_along(combinations_list)) {
-  alpha <- combinations_list[[i]]
-  alpha_fw <- alpha |> filter(SubCompart == "river") |> pull(alpha)
-  alpha_mw <- alpha |> filter(SubCompart == "sea") |> pull(alpha)
-  
-  # Process the combination to generate the appropriate dataframe
-  dfs <- map_df(list(alpha), function(x) {
-    varName <- names(x)[!names(x) %in% The3D]
-    stopifnot(length(varName) == 1)
-    pivot_longer(x, cols = all_of(varName), names_to = "varName", values_to = "Waarde")
-  })
-  
-  # Update the World object with the new dataframe
-  World$mutateVars(dfs)
-  World$UpdateKaas(mergeExisting = FALSE) #TODO use updateDirty
-  kaas <- World$kaas
-  kaas_list[[paste0(i)]] <- list(
-    alpha_fw = alpha_fw,
-    alpha_mw = alpha_mw,
-    kaas = kaas
-  )
-  
-  # Collect results for the current alpha
-  alpha_results <- map_df(unique_runs, function(run) {
-    # Print progress information
-    print(paste("Processing alpha index", i, "and run", run))
-  
-    approxfuns <- Emission_run_approx |>
-      filter(RUN == run) |>
-      pull(EmisFun)
-    
-    # Define the funlist based on the approxfuns
-    funlist <- approxfuns
-    names(funlist) <- Emission_run_approx |>
-      filter(RUN == run) |>
-      pull(Abbr)
-    
-    
-    
-    # Solve using SBsolve4
-    result <- SBsolve4(
-      tmax = 24 * (365.25 * 24 * 3600),
-      nTIMES = 100,
-      Engine = World$exportEngineR(),
-      funlist = funlist
-    )
-     Volume <- World$fetchData("Volume")
-    
-    # Compute concentrations
-    concentrations <- adjust_concentrations(
-      Result = result,  # Assuming 'result' is the CompartmentsConc
-      Volume = World$fetchData("Volume"),
-      FRACw = World$fetchData("FRACw"),
-      FRACa = World$fetchData("FRACa"),
-      Rho = World$fetchData("rhoMatrix")
-    )
-    
-    # Return a tibble with the run, mass, and concentrations result
-    tibble(
-      run = run,
-      mass = list(result),
-      concentrations = list(concentrations)
-    )
-  }, .id = "index")  # Include the index to identify each result
-  
-  # Nest the results for the current alpha, separating mass and concentrations
-  nested_results_mass[[i]] <- tibble(
-    alpha_fw = alpha_fw,
-    alpha_mw = alpha_mw,
-    data = list(alpha_results |> select(run, mass))
-  )
-  
-  nested_results_concentration[[i]] <- tibble(
-    alpha_fw = alpha_fw,
-    alpha_mw = alpha_mw,
-    data = list(alpha_results |> select(run, concentrations))
-  )
-}
+Solution_GO_chit <- World$Solve(Emis_nested_GO_chit, Sample_df_nested, needdebug = F,
+                        rtol_ode=1e-30, atol_ode = 0.5e-2)
 
-# Combine all alpha results into single nested tibbles
-nested_results_df_GoChit <- bind_rows(nested_results_mass)
-nested_results_df_GoChit_concentration <- bind_rows(nested_results_concentration)
+Solution_long_GO_chit <- Solution$DynamicMass |>
+  select(!starts_with("emis")) |>
+  pivot_longer(!c(time, RUN), names_to = "Abbr", values_to = "Mass") |>
+  left_join(World$states$asDataFrame, by = "Abbr") |>
+  mutate(Year = time/(365.25*24*60*60))
 
-
-
+Concentration_long_GO_chit <- Concentration_f(Solution_long_GO_chit)
 
 ```
+
 ## Plot of GO-Chitosan
 We plot the results for GO-Chitosan below. We create uncertaincy bands around our mean prediction based on 95% Confidence Intervals. 
 ```{r plotting of solver}
 
-# Define the compartment of interest
-interest <- "w1RA"
+scale <- "Continental"
 
-# Initialize an empty dataframe to hold all extracted data
-all_variable_data <- data.frame()
-
-# Loop through each row of the nested results
-for (i in seq_len(nrow(nested_results_df_GoChit))) {
-  # Extract alpha_fw and alpha_mw for labeling
-  alpha_fw <- nested_results_df_GoChit$alpha_fw[i]
-  alpha_mw <- nested_results_df_GoChit$alpha_mw[i]
+for(subcomp in unique(Concentration_long_GO_chit$SubCompart)){
   
-  # Extract the nested data
-  nested_data <- nested_results_df_GoChit$data[[i]]
+  # Calculate the summary statistics
+    summary_stats_comp <- Concentration_long_GO_chit |>
+    filter(SubCompart == subcomp) |>
+    filter(Scale == scale) |>
+    group_by(Year, Scale, SubCompartName, Unit) |>
+    summarise(
+      Mean_Concentration = mean(Concentration, na.rm = TRUE),
+      SD_Concentration = sd(Concentration, na.rm = TRUE),
+      Lower_CI = Mean_Concentration - 1.96 * SD_Concentration / sqrt(n()),
+      Upper_CI = Mean_Concentration + 1.96 * SD_Concentration / sqrt(n())
+    ) |>
+    ungroup()
   
-  # Loop through each run in the nested data
-  for (j in seq_len(nrow(nested_data))) {
-    run <- nested_data$run[j]
-    result <- nested_data$mass[[j]]
-    
-    # Extract the variable of interest and time values
-    variable_values <- result[[interest]]
-    time_values <- result$time
-    
-    # Combine into a data frame
-    run_data <- data.frame(
-      Time = time_values,
-      Value = variable_values,
-      Run = run,
-      Alpha_FW = alpha_fw,
-      Alpha_MW = alpha_mw
-    )
-    
-    # Append to the overall data frame
-    all_variable_data <- rbind(all_variable_data, run_data)
-  }
+  # Make plot with mean concentration over time and confidence interval band
+  concentration_plot <- ggplot(summary_stats_comp, aes(x = Year, y = Mean_Concentration)) +
+    geom_line(color = "blue", linewidth = 1) +
+    geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2, fill = "blue") +
+    labs(title = paste("Mean concentration in", subcomp, "with confidence interval over time"),
+         x = "Time [year]",
+         y = paste0("Concentration [", unique(summary_stats_comp$Unit), "]")) +
+    theme_bw()
+  
+  print(concentration_plot)
 }
-
-# Step 2: Calculate mean and confidence intervals at each time point across all alphas
-summary_stats <- all_variable_data |>
-  group_by(Time) |>
-  summarise(
-    Mean_Value = mean(Value, na.rm = TRUE),
-    SD_Value = sd(Value, na.rm = TRUE),
-    Lower_CI = Mean_Value - 1.96 * SD_Value / sqrt(n()),
-    Upper_CI = Mean_Value + 1.96 * SD_Value / sqrt(n())
-  ) |>
-  ungroup()
-
-# Step 3: Plot
-ggplot(summary_stats, aes(x = Time, y = Mean_Value)) +
-  geom_line(color = "blue", size = 1) +
-  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2, fill = "blue") +
-  labs(title = paste("Mean mass in", interest, "with Uncertainty Bands Over Time"),
-       x = "Time [s]",
-       y = paste("Mass of compound in compartment", interest, "[kg]")) +
-  theme_minimal()
-
 ```
 
 ## Propagation of uncertainty
 Now, we want to use the degradation data of GO-Chitosan and use it as 'input' for our two daughter substances, GO and Chitosan. We do this below, by multiplying the flows (k) with the predicted mass in each compartment to create a flux (kg/s).
+
+```{r Degradation data}
+for(run in unique(Sample_df$RUN)){
+  sample_df_run <- Sample_df |>
+    filter(RUN == run)
+  
+  
+}
+```
 
 ```{r degradation data}
 accronym_map <- c("marinesediment" = "sd2",
