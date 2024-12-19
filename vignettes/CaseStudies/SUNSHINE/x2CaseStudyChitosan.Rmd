@@ -8,12 +8,12 @@ editor_options:
 ---
 
 
-```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(warning = FALSE)
-projectRoot <- paste(getwd(), "..", "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) 
+```{r setup, include=TRUE}
+# knitr::knit_meta()
+# knitr::opts_chunk$set(echo = TRUE)
+# knitr::opts_chunk$set(warning = FALSE)
+# projectRoot <- paste(getwd(), "..", "..", sep = "/")
+# knitr::opts_knit$set(root.dir = projectRoot) 
 ```
 
 ## Initiation
@@ -22,8 +22,9 @@ We assume you have the input data for a substance or material of interest and al
 
 ```{r message=FALSE, warning=FALSE, paged.print=TRUE}
 #library(dplyr)
-substance <-  "GO-Chitosan"
+
 source("baseScripts/initWorld_onlyParticulate.R")
+substance <-  "GO-Chitosan"
 World$substance <- substance
 ```
 
@@ -146,10 +147,7 @@ Currently there are two ways to solve the matrix in steady state, so with consta
 Another option would be to set a time horizon using the ode solver from the DeSolve package. This can be done using `SBsolve`.
 
 ```{r SBsteady}
-# World$NewSolver("SBsteady")
-# SB1Solve provides the best results, this uses the solve function in R.
-World$NewSolver("SB1Solve") 
-
+World$NewSolver("SBsteady")
 ```
 
 What solving means is that using matrix algebra a set of differential equations is solved:
@@ -312,7 +310,7 @@ In this case study we are considering emission data only for Europe. By default 
 
 The code is commented out, but this is an example of adjusting the regional scale to represent Switzerland. You can only adjust parameters that are initial input data, not variables that are calculated later in SBOO. The adjusted dataframes are printed below. Note, at this point the input is already converted to SI units, so new data also needs to be put in this format.
 
-```{r Scaling, include=FALSE}
+```{r Scaling, include=TRUE}
 # 
 # LandFRAC <- data.frame(
 #   Scale = "Regional",
@@ -361,12 +359,11 @@ print(FracRC)
 
 We can also solve the differential equations dynamically in time, but the optimal implementation is still work in progress, see [issue](https://github.com/rivm-syso/SBoo/issues/111).
 
-```{r emission data, include=FALSE}
+```{r emission data, include=TRUE}
 file_paths <- 
   list.files("data/emissions",recursive = TRUE)
 Emissions <-
   read_csv(paste0("data/emissions/",file_paths), id="file_name", col_names = c("RUN",0:24),skip = 1) # unit: Metric tonnes
-
 
 ```
 
@@ -378,7 +375,7 @@ We define the compartments of the emission based on the DMPFA model.
 
 *NOTE* all concentrations need to be in mass unit/s in order for the solver to work. This is due to the fact that the matrix operates in seconds
 
-```{r Emissions, include=FALSE}
+```{r Emissions, include=TRUE}
 # TODO: solve for every RUN
 Emissions <- 
   Emissions |>
@@ -389,7 +386,7 @@ Emissions <-
   ungroup() |> 
   group_by(file_name,year) |> 
   summarise(Emission_p50_kg = quantile(emission_t,probs = 0.5)*1000/(365.25*24*3600),
-            Emission_mean_kg = mean(emission_t)*1000/(365.25*24*3600)) |> ungroup()
+            Emission_mean_kg_s = mean(emission_t)*1000/(365.25*24*3600)) |> ungroup()
 
 Emissions <- 
   Emissions |> 
@@ -413,7 +410,7 @@ Emissions <-
 
 When running for only GO or only Chitosan, you want to correct for the fact that it's partly Chitosan and partly GO through using the densities.
 
-```{r DensityScaling, include=FALSE}
+```{r DensityScaling, include=TRUE}
 
 Weightfactor <- switch(substance,
                        "GO-Chitosan" = 1,
@@ -421,7 +418,7 @@ Weightfactor <- switch(substance,
                        "GO" = 1/8)
 
 Emissions <-
-  Emissions |> mutate(Emission_mean_kg = Emission_mean_kg* Weightfactor,
+  Emissions |> mutate(Emission_mean_kg_s = Emission_mean_kg_s* Weightfactor,
                       Emission_p50_kg = Emission_p50_kg*Weightfactor)
 
 head(Emissions)
@@ -432,7 +429,7 @@ head(Emissions)
 
 In this chunk, we adjust for the fact that the input data for the DMPFA model is all Europe based. Hence we scale by the factor fracReg and fracCont to still include the current regional scale (could alse be done differently). The regional data is thus a portion of the EU emission, scaled based on the land surface area.
 
-```{r ScaleScaling, include=FALSE}
+```{r ScaleScaling, include=TRUE}
 
 SBEmissions2 <- 
   Emissions |> mutate(
@@ -463,7 +460,7 @@ SBEmissions2 <-
   ) |> full_join(FracRC) |> 
   
   mutate(Abr = paste0(Abr_comp,Abr_scale,Abr_species)) |> 
-  mutate(Emission_mean_kg = Emission_mean_kg*AreaFraction,
+  mutate(Emission_mean_kg_s = Emission_mean_kg_s*AreaFraction,
          Emission_p50_kg = Emission_p50_kg*AreaFraction)
 
 head(SBEmissions2)
@@ -472,7 +469,7 @@ head(SBEmissions2)
 
 ### make time dependent emission functions
 
-```{r approxfuns, include=FALSE}
+```{r approxfuns, include=TRUE}
 SBEmissions3 <- 
   SBEmissions2 |> 
   mutate(time_s = year*(365.25*24*60*60)+(365.25*24*60*60)) |> ungroup() |> 
@@ -481,7 +478,7 @@ SBEmissions3 <-
             EmisFun = list(
               approxfun(
                 data.frame(time_s = c(0,time_s), 
-                           emis_kg=c(0,Emission_mean_kg)),
+                           emis_kg=c(0,Emission_mean_kg_s)),
                 rule = 1:1)
             )
   )
@@ -494,7 +491,7 @@ times <- seq(0, 25*365.25*24*3600, by = 10000)
 CompartInterest <- "s2CS"
 
 time_s = c(0,(SBEmissions2 |> filter(Abr == CompartInterest) |> pull(year))*(365.25*24*60*60)+(365.25*24*60*60))
-emis_kg = c(0,(SBEmissions2 |> filter(Abr == CompartInterest) |> pull(Emission_mean_kg)))
+emis_kg = c(0,(SBEmissions2 |> filter(Abr == CompartInterest) |> pull(Emission_mean_kg_s)))
 
 PlotEmisFun = funlist[[CompartInterest]]
 
@@ -511,7 +508,7 @@ curve(PlotEmisFun,
 
 The chunk below gives the opportunity to Solve for constant input data. The chunk after that gives the opportunity to also vary SB Input data
 
-```{r DynamicSolve, include=FALSE}
+```{r DynamicSolve, include=TRUE}
 
 ##ODE
 
@@ -588,7 +585,7 @@ plot(Solution$time,Solution$aCS)
 
 To move from the solution of the ODE solver to usable output data we need to split the output into corresponding mass data per compartment over time and emission signals over time. The first chunk is for one output, the latter chunk for varying input or emission data.
 
-```{r Output Processing one solution, include=FALSE}
+```{r Output Processing one solution, include=TRUE}
 library(dplyr)
 #for one Solution
 Solution <- as.data.frame(Solution)
@@ -676,7 +673,7 @@ A$time <- compartments$time
 
 Below you can create a plot for one output for mass, the chunk after that represents uncertainty based on multiple outputs.
 
-```{r plotting, include=FALSE}
+```{r plotting, include=TRUE}
 # Define the plot_dataframe function
 plot_dataframe <- function(df, title) {
   data_to_plot <- tidyr::gather(df, key = "variable", value = "value", -time)
@@ -735,7 +732,7 @@ ggplot(s2C, aes(x = time)) +
 
 In this chunk we will convert the mass output into concentration output by calculating the respective volumes and calculating by this value.
 
-```{r mass to concentration, include=FALSE}
+```{r mass to concentration, include=TRUE}
 # Fetch necessary data
 Volume <- World$fetchData("Volume")
 Area <- World$fetchData("Area")
@@ -907,7 +904,7 @@ kable(DiffSteadyDynamic)
 
 Here we append all concentrations per compartment for species A, S and P. Subsequently, we plot these results
 
-```{r Concentrations Plotting, include=FALSE}
+```{r Concentrations Plotting, include=TRUE}
 summed_columns <- list()
 
 # Loop through each column and sum values of columns with the same prefix (removing the last letter)
@@ -1010,6 +1007,4 @@ ggplot(df_plot, aes(x = time, y = Value)) +
   theme(
     strip.text = element_text(size = 10)
   )
-
-
 ```

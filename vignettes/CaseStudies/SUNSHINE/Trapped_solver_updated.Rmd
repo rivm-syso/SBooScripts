@@ -1,20 +1,18 @@
 ---
-title: "Trapped solver"
-author: "Valerie de Rijk"
-date: "`r Sys.Date()`"
-output: github_document
+title: "Trapped_solver_updated"
+author: "Valerie de Rijk, Anne Hids"
+date: "2024-12-19"
+output: html_document
 editor_options: 
   chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
-knitr::knit_meta()
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(warning = FALSE)
-projectRoot <- paste(getwd(), "..", "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) 
+library(tidyverse)
+library(knitr)
+library(lhs)
 ```
-
 
 This vignette demonstrates how to use the SimpleBox model in a trapped manner, allowing for the fate prediction of multi-faceted particles. In this vignette, we'll take a closer look at GO-Chitosan, a combination of the sheet-like graphene oxide and the biological compound Chitosan. 
 
@@ -23,7 +21,6 @@ This vignette demonstrates how to use the SimpleBox model in a trapped manner, a
 We assume you have the input data for a substance or material of interest and all the data describing the SimpleBox world to be created ready and thus can run the initWorld script.
 
 ```{r message=FALSE, warning=FALSE, paged.print=TRUE}
-library(dplyr)
 source("baseScripts/initWorld_onlyParticulate.R")
 World$SetConst(kdis = 0)
 World$UpdateKaas()
@@ -39,8 +36,6 @@ To compute dynamically, we need to have access to the matrix (flows between comp
 World$NewSolver("SBsteady") 
 
 ```
-
-
 
 ```{r constant emission}
 emissions <- data.frame(Abbr = c("aCS", "s2CS", "w1CS"), 
@@ -96,7 +91,6 @@ print(rad_eq)
 
 World$SetConst(RadS = rad_eq)
 
-
 World$fetchData("RhoS")
 World$UpdateKaas(mergeExisting = F)
 ```
@@ -118,7 +112,7 @@ fracCont <- 1-fracReg
 
 FracRC <- tibble(
   Scale_SBname = c("Regional","Continental"),
-  Abr_scale = c("R","C"),
+  Abbr_scale = c("R","C"),
   AreaFraction = c(fracReg,fracCont)
 )
 
@@ -207,17 +201,17 @@ Emissions <-
 
 Emissions_run <- 
   Emissions |> mutate(
-    Abr_comp =  case_match(compartment,
+    Abbr_comp =  case_match(compartment,
                            "Air" ~ "a",
                            "SludgeTreatedSoil" ~ "s2",
                            "SurfaceWater" ~ "w1",
                            .default = NA
     ),
-    Abr_scale =  case_match(scale,
+    Abbr_scale =  case_match(scale,
                             "EU_average" ~ "C",
                             .default = NA
     ),
-    Abr_species = "S"
+    Abbr_species = "S"
     
   ) |> drop_na() 
 
@@ -225,30 +219,25 @@ Emissions_run_filtered <-
   Emissions_run |> rbind(
     Emissions_run |> 
       mutate(
-        Abr_scale =  case_match(Abr_scale,
+        Abbr_scale =  case_match(Abbr_scale,
                                 "C" ~ "R",
                                 .default = NA
         ),
         scale = "EU_average"
       )
   ) |> full_join(FracRC) |> 
-  
-  mutate(Abr = paste0(Abr_comp,Abr_scale,Abr_species)) |>
-  filter(RUN >= 0 & RUN <= 10)
+  mutate(Abbr = paste0(Abbr_comp,Abbr_scale,Abbr_species)) |>
+  filter(RUN >= 0 & RUN <= 10) 
 
-Emission_run_approx <- 
-  Emissions_run_filtered |> 
-  mutate(time_s = year*(365.25*24*60*60)+(365.25*24*60*60)) |> ungroup() |> 
-  group_by(Abr,RUN ) |> 
-  summarise(n=n(),
-            EmisFun = list(
-              approxfun(
-                data.frame(time_s = c(0,time_s), 
-                           emis_kg=c(0,emission_t*1000/(365.25*24*3600))),
-                rule = 1:1)
-            )
-  )
+Emis_GO_chit <- Emissions_run_filtered |>
+  select(RUN, year, Abbr, emission_t) |>
+  mutate(Timed = year*(365.25*24*60*60)+(365.25*24*60*60),
+         Mass_kg_s = emission_t*1000/(365.25*24*3600)) |>
+  select(-c(emission_t, year))
 
+Emis_nested_GO_chit <- Emis_GO_chit |>
+  group_by(Abbr, Timed) |>
+  nest(Emis = c(RUN, Mass_kg_s))
 
 ```
 
@@ -256,40 +245,41 @@ Emission_run_approx <-
 We also want to include uncertainty within our parameters. In this case, we examine the influence of different attachment efficiencies (alpha's) We create combinations with Latin Hypercube Sampling and base this on a log-normal distribution to apply a more truthful representation of the attachment efficiency between natural and the nanomaterial particles.
 
 ```{r introducing uncertainty with LHS}
-library(lhs)
-num_combinations <- 2
+# Create one set of samples to scale to 2 distributions
+
 #freshwater
 fwa_min <- 1e-4
 fwa_max<- 0.1
+
 #marine 
 ma_min <- 1e-3 
 ma_max <- 1
 
-randomLHS(num_combinations, 1)
+lhs_samples <- optimumLHS(nrow(Emis_nested_GO_chit$Emis[[1]]), 1)
 
-
-# Generate 10 LHS samples for each distribution
 set.seed(123)  # For reproducibility
-fw_lhs_samples <- randomLHS(num_combinations, 1)
-ma_lhs_samples <- randomLHS(num_combinations, 1)
 
 Variables <- c("FreshWater","Marine")
 
-alphaSamples <-  randomLHS(num_combinations, length(Variables))
-
-# qunif()
-
 # Scale LHS samples to the log-uniform distribution range
-fw_alpha_values <-  10^(fw_lhs_samples * (log10(fwa_max) - log10(fwa_min)) + log10(fwa_min))
-ma_alpha_values <- 10^(ma_lhs_samples * (log10(ma_max) - log10(ma_min)) + log10(ma_min))
+fw_alpha_values <-  10^(lhs_samples * (log10(fwa_max) - log10(fwa_min)) + log10(fwa_min))
+ma_alpha_values <- 10^(lhs_samples * (log10(ma_max) - log10(ma_min)) + log10(ma_min))
 
 
-combinations_list <- vector("list", num_combinations)
+combinations_list <- vector("list", length(Variables))
 subcompartsmarine <- c("sea", "marinesediment", "freshwatersediment", "deepocean")
-
 
 subcomparts <- c("river", "lake", "water", "agriculturalsoil", "naturalsoil", "othersoil")
 all_subcomparts <- c(subcomparts, subcompartsmarine)
+
+
+
+
+
+
+
+
+
 
 # Assign alpha values to each compartment for each combination
 for (i in 1:num_combinations) {
@@ -315,6 +305,7 @@ for (i in 1:num_combinations) {
 # Print the list of combinations
 print(combinations_list)
 ```
+
 ## Computation  of concentration
 We define this function to compute the concentration per compartment. For soil and sediment, we compute the output in mass per wet weight. For now, all units are kg/m3. 
 ```{r function to get concentration}
@@ -436,7 +427,7 @@ for (i in seq_along(combinations_list)) {
     funlist <- approxfuns
     names(funlist) <- Emission_run_approx |>
       filter(RUN == run) |>
-      pull(Abr)
+      pull(Abbr)
     
     
     
