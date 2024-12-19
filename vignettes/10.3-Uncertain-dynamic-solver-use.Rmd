@@ -1,5 +1,5 @@
 ---
-title: "Uncertain dynamic solver use"
+title: "Probabilistics Dynamic solver use"
 author: "Anne Hids, Valerie de Rijk, Joris Quik, Jaap Slootweg"
 date: "`r Sys.Date()`"
 output: github_document

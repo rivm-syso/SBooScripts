@@ -25,7 +25,7 @@ There are three additional vignettes on:
   for both static and dynamic data.
 
 - [10.3 Probabilistics Dynamic solver
-  use](/vignettes/10.3-Uncertrain-dynamic-solver-use.Rmd) : explains how
+  use](/vignettes/10.3-Uncertain-dynamic-solver-use.Rmd) : explains how
   to solve for both static and dynamic data.
 
 - [Vignette_progress](/vignettes/Vignette-progress.md) : tracks all

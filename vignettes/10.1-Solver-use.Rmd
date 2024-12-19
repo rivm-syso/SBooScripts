@@ -12,8 +12,9 @@ We assume you already understand the basics of using SimpleBox and have an idea 
 There are basically three types of solvers to use here:
 
 1.  SteadyState solver for running the model for a substances with one set of emissions and variables.
-2.  [UncertainSolver](vignettes/10.2-Uncertain-solver-use.md) for running the model probabilistically (n times) calculating steady state output (mass/concentration) based on a distribution of emissions and or input variables.
-3.  [UncertainDynamicSolver](vignettes/10.3-Uncertain-dynamic-solver-use.md) for running the model probabilistically (n times) calculating dynamic output based on temporal emissions.
+2.  Deterministic dynamic solver for running the model for a substance with one set of emissions in time and one set of variables.
+3.  [UncertainSolver](vignettes/10.2-Uncertain-solver-use.md) for running the model probabilistically (n times) calculating steady state output (mass/concentration) based on a distribution of emissions and or input variables.
+4.  [UncertainDynamicSolver](vignettes/10.3-Uncertain-dynamic-solver-use.md) for running the model probabilistically (n times) calculating dynamic output based on temporal emissions.
 
 Below is an example of using the SteadyState solver.
 The others can be found in their respective vignettes.
