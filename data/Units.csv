@@ -1,107 +1,107 @@
-"VarName","Unit","ToSI","table","Description"
-"AEROresist","s.m-1","","CONSTANTS","Aerodynamic resistance"
-"AEROSOLdeprate","m.s-1","","ScaleSheet","deposition aerosol particles"
-"alpha","-","","SubstanceSubCompartSpeciesData","Attachment efficiency of ENPs"
-"alpha.surf","-","","SubcompartSheet","surface attachment efficiencies"
-"BACTcomp","CFU.mL-1","","SpeciesCompartments","concentration of bacteria in compartment"
-"BACTtest","CFU.mL-1","","CONSTANTS","Concentration of bacteria in test water"
-"beta.a",NA,"","CONSTANTS","Constant from LOTUS EUROS ref guide"
-"Biodeg",NA,"","CONSTANTS","Biodegradability test result [r/r-/i/p]"
-"C.OHrad","cm-3","","ScaleSheet","OH-radical concentration"
-"C.OHrad.n","cm-3","","CONSTANTS","OH-radical concentration nucleoids"
-"ChemClass","-","","Substances",""
-"COL","mg.L-1","COL/1000","SubcompartSheet","mass CONCENTRATION Natural Colloids in water"
-"COLLECTeff","-","","ScaleSheet","Aerosol COLLECTION EFFICIENCY"
-"ColRad","m","","SubcompartSheet","Land surface particle collector radius [m] appendix A of LOTEUR."
-"ContinentalInModerate","boolean","","CONSTANTS","Nesting of scales"
-"Corg","-","","MatrixSheet","Mass fraction organic carbon in subcompartment"
-"CORG.susp",NA,"","CONSTANTS","mass fraction organic carbon suspended in water"
-"CorgStandard","-","","CONSTANTS","Standard mass FRACTION organic carbon in soil/sediment"
-"DefaultNETsedrate","m.s-1","","SubCompartSheet","Default net sedimentation rate"
-"Df","-","","CONSTANTS","Fractal dimension of combined heteroagglomerate"
-"dischargeFRAC","-","","ScaleSheet","Fraction of the continental riverflow that flows into the regional river"
-"DynViscAirStandard","kg.m-1.s-1","","CONSTANTS","Dynamic viscosity of air standard"
-"DynViscWaterStandard","kg.m-1.s-1","","CONSTANTS","Dynamic viscosity of water standard"
-"Ea.OHrad","J.mol-1","","CONSTANTS","ACTIVATION ENERGY OH radical reaction"
-"EF","-","","SubstanceCompartments","particulate constant"
-"epsilon","-","","CONSTANTS","Empirical constant"
-"Erosion","mm yr-1","","CONSTANTS","Soil erosion"
-"EROSIONsoil","m.s-1","","SubCompartSheet",""
-"FRACa","-","","ScaleSheet","VOLUME FRACTION gas phase in subcompartment (only air in soil)"
-"FRACcldw","-","","ScaleSheet","VOLUME FRACTION cloud water in air"
-"FRACinf","-","","ScaleSheet","Fraction infiltration"
-"FRACrun","-","","CONSTANTS","Fraction of water entering compartment resulting in runoff"
-"FRACs","-","","ScaleSheet","VOLUME FRACTION solid phase in subcompartment (only data on solid aersols for air, rest is calculated from w and a)"
-"FRACsea","-","","ScaleSheet","fraction of TotalArea that is sea (and also deepocean for global scales)"
-"FRACtwet","-","","ScaleSheet","Time fraction of wet periodes"
-"FRACw","-","","ScaleSheet","VOLUME FRACTION aqueous phase in subcompartment (aqueous phasa in aerosols for air)"
-"FricVel","m s-1","","CONSTANTS","Friction velocity [m s-1] (19 according to Van Jaarsveld, table 2.2)"
-"gamma.surf","-","","SubcompartSheet","resistance parameter depending on average surface type as taken from the LOTOS-EUROS reference guide table A.1"
-"H0sol","-","","CONSTANTS","Enthalpy of dissolution"
-"hamakerSP.w","J","","Substances","constant for heteroagglomerates"
-"Intermediate_side","m","Intermediate_side/1000000000","Substances","Particle sizes"
-"k0.OHrad","cm3.s-1","","CONSTANTS","Frequency factor OH radical reaction "
-"Kaw25","-","","Substances","Dimensionless gas/water partitioning coefficient of the original species at 25C [-]"
-"kdeg","s-1","","SubstanceCompartments","Degradation rate constant"
-"kdeg.air","s-1","","Substances","Degradation rate constant air"
-"kdeg.sed","s-1","","Substances","Degradation rate constant sediment"
-"kdeg.soil","s-1","","Substances","Degradation rate constant soil"
-"kdeg.water","s-1","","Substances","Degradation rate constant water"
-"kdis","s-1","","SubstanceSubCompartSpeciesData","Dissolution rate constant"
-"kfrag","s-1","","SubstanceSubCompartSpeciesData","Fragmentation rate of heteroagglomerates"
-"Kow","-","","Substances","Octanol water partitioning coefficient "
-"Ksw","-","","Substances","Soil water partitioning coefficient"
-"kwsd","m.s-1","","MatrixSheet","PARTIAL MASS TRANSFER COEFFICIENT subcompartment side of water/sed interface"
-"LakeFracRiver","-","","CONSTANTS","The fraction of freshwater belonging to the lake water"
-"landFRAC","-","","ScaleSubCompartData","Fraction of land area that is of this subcompartment (lake, river, etc)"
-"Longest_side","m","Longest_side/1000000000","Substances","Particle sizes"
-"Mackay1","m.d-1","Mackay1/3600/24","CONSTANTS","constant described by Mackay (2001)"
-"Mackay2","-","","CONSTANTS","Mackay constant"
-"MaxPvap","Pa","","CONSTANTS","Maximum vapor pressure"
-"MW","g.mol-1","MW/1000","Substances","Molar weight of substance"
-"NaturalRad","m","","SpeciesCompartments","Natural particle radius"
-"NaturalRho","kg.m-3","","SpeciesCompartments","Natural particle density"
-"NETsedrate","m.s-1","","ScaleSubCompartData","Net SEDIMENT ACCUMULATION rate"
-"NumConcAcc","#.m-3","","ScaleSheet","Accumulation mode aerosol particle number concentration"
-"NumConcCP","#.m-3","","ScaleSheet","Coarse mode aerosol particle number concentration"
-"NumConcNuc","#.m-3","","ScaleSheet","Nucleation mode aerosol particle number concentration"
-"OceanCurrent","m3 s-1","","CONSTANTS","irculation current ocean"
-"penetration_depth_s","m","","CONSTANTS","penetration soil depth to consider"
-"pH","-","","SubcompartSheet",""
-"pKa","-","","Substances","Dissociation constant of (conjugated) acid "
-"Porosity","-","","SubcompartSheet",""
-"Pvap25","-","","Substances","Vapor pressure at 25C"
-"Q.10","m.s-1","","CONSTANTS","rate increase factor per 10 oC"
-"RadCOL","nm","RadCOL/1000000000","SubcompartSheet","Radius of Natural Colloids"
-"RadCP","µm","RadCP/1000000","SubcompartSheet","Radius of coarse Suspended Material and Filtration Particles"
-"RadNuc","m","","CONSTANTS","Radius of nucleation mode particles"
-"RadS","nm","RadS/1000000000","Substances","Radius of species"
-"RAINrate","mm y-1","RAINrate/1000/(3600*24*365)","ScaleSheet","annual precipitation (rain and snow)"
-"relevant_depth_s","m","","CONSTANTS","relevant soil depth for fate proces"
-"RhoAcc","kg. m-3","","CONSTANTS","Density of accumulation mode aerosol"
-"RhoCOL","kg.m-3","","SubcompartSheet","Density of Natural Colloids"
-"RhoCP","kg. m-3","","SubcompartSheet","Density of Coarse Particulates (e.g. SPM)"
-"rhoMatrix","kg.L-1","","MatrixSheet","density of the medium"
-"RhoNuc","kg. m-3","","CONSTANTS","Density of nucleation mode particles"
-"RhoS","kg. m-3","","Substances","Density of species"
-"SettlVelocitywater","m.s-1","","ScaleSheet","SETTLING VELOCITY suspended particles as formerly used in the molecular version"
-"Shape","-","","Substances","Shape of particle"
-"Shear","s-1","","ScaleSubCompartData","Shear rate"
-"Shortest_side","m","Shortest_side/1000000000","Substances","Particle sizes"
-"Sol25","mg.L-1","Sol25/(1000)","Substances","solubility of substance at 25C"
-"subFRACa","-","","ScaleSubCompartData","Fraction of air in a non-air subcompartment"
-"subFRACs","-","","ScaleSubCompartData","Fraction solid in a non-soil, non sediment subcompartment"
-"subFRACw","-","","ScaleSubCompartData","Fraction water in a non-water subcompartment"
-"SUSP","mg.L-1","SUSP/1000","SubcompartSheet","mass CONCENTRATION suspended matter in water"
-"t_half_Escape","yr-1","t_half_Escape*365*24*3600","CONSTANTS","Half life time in air for escape to stratosphere"
-"T25","K","","CONSTANTS","25C in Kelvin"
-"TAUsea","d","","ScaleSheet","RESIDENCE TIME of water"
-"tdry","day","tdry*3600*24","ScaleSheet","Duration dry episode (Joilliet and Hauschild, 2005)"
-"Temp","K ","","ScaleSheet","Temperature in Kelvin"
-"Tm","Celsius","Tm+273","Substances","melting temperature of the substance"
-"Tm_default","K","","CONSTANTS","Default melting point"
-"TotalArea","m2","","ScaleSheet","Area of the scale, including possibly nested scales"
-"twet","day","twet*3600*24","ScaleSheet","Duration wet episode (6% of time in NL > 0.3mm rain)"
-"Udarcy","","","SubcompartSheet","Darcy velocity of particle"
-"VertDistance","m","","ScaleSubCompartData","depth or height of the subcompartment"
-"WINDspeed","m.s-1","","ScalesSheet","Average windspeed per scale"
+﻿VarName,Unit,ToSI,table,Description
+AEROresist,s.m-1,,CONSTANTS,Aerodynamic resistance
+AEROSOLdeprate,m.s-1,,ScaleSheet,deposition aerosol particles
+alpha,-,,SubstanceSubCompartSpeciesData,Attachment efficiency of ENPs
+alpha.surf,-,,SubcompartSheet,surface attachment efficiencies
+BACTcomp,CFU.mL-1,,SpeciesCompartments,concentration of bacteria in compartment
+BACTtest,CFU.mL-1,,CONSTANTS,Concentration of bacteria in test water
+beta.a,-,,CONSTANTS,Constant from LOTUS EUROS ref guide
+Biodeg,-,,CONSTANTS,Biodegradability test result [r/r-/i/p]
+C.OHrad,cm-3,,ScaleSheet,OH-radical concentration
+C.OHrad.n,cm-3,,CONSTANTS,OH-radical concentration nucleoids
+ChemClass,-,,Substances,Chemical class of the substance
+COL,mg.L-1,COL/1000,SubcompartSheet,mass CONCENTRATION Natural Colloids in water
+COLLECTeff,-,,ScaleSheet,Aerosol COLLECTION EFFICIENCY
+ColRad,m,,SubcompartSheet,Land surface particle collector radius [m] appendix A of LOTEUR.
+ContinentalInModerate,boolean,,CONSTANTS,Nesting of scales
+Corg,-,,MatrixSheet,Mass fraction organic carbon in subcompartment
+CORG.susp,-,,CONSTANTS,mass fraction organic carbon suspended in water
+CorgStandard,-,,CONSTANTS,Standard mass FRACTION organic carbon in soil/sediment
+DefaultNETsedrate,m.s-1,,SubCompartSheet,Default net sedimentation rate
+Df,-,,CONSTANTS,Fractal dimension of combined heteroagglomerate
+dischargeFRAC,-,,ScaleSheet,Fraction of the continental riverflow that flows into the regional river
+DynViscAirStandard,kg.m-1.s-1,,CONSTANTS,Dynamic viscosity of air standard
+DynViscWaterStandard,kg.m-1.s-1,,CONSTANTS,Dynamic viscosity of water standard
+Ea.OHrad,J.mol-1,,CONSTANTS,ACTIVATION ENERGY OH radical reaction
+EF,-,,SubstanceCompartments,particulate constant
+epsilon,-,,CONSTANTS,Empirical constant
+Erosion,mm yr-1,,CONSTANTS,Soil erosion
+EROSIONsoil,m.s-1,,SubCompartSheet,Soil erosion rate
+FRACa,-,,ScaleSheet,VOLUME FRACTION gas phase in subcompartment (only air in soil)
+FRACcldw,-,,ScaleSheet,VOLUME FRACTION cloud water in air
+FRACinf,-,,ScaleSheet,Fraction infiltration
+FRACrun,-,,CONSTANTS,Fraction of water entering compartment resulting in runoff
+FRACs,-,,ScaleSheet,"VOLUME FRACTION solid phase in subcompartment (only data on solid aersols for air, rest is calculated from w and a)"
+FRACsea,-,,ScaleSheet,fraction of TotalArea that is sea (and also deepocean for global scales)
+FRACtwet,-,,ScaleSheet,Time fraction of wet periodes
+FRACw,-,,ScaleSheet,VOLUME FRACTION aqueous phase in subcompartment (aqueous phasa in aerosols for air)
+FricVel,m s-1,,CONSTANTS,"Friction velocity [m s-1] (19 according to Van Jaarsveld, table 2.2)"
+gamma.surf,-,,SubcompartSheet,resistance parameter depending on average surface type as taken from the LOTOS-EUROS reference guide table A.1
+H0sol,-,,CONSTANTS,Enthalpy of dissolution
+hamakerSP.w,J,,Substances,constant for heteroagglomerates
+Intermediate_side,um,Intermediate_side/1000000,Substances,Particle sizes
+k0.OHrad,cm3.s-1,,CONSTANTS,Frequency factor OH radical reaction 
+Kaw25,-,,Substances,Dimensionless gas/water partitioning coefficient of the original species at 25C [-]
+kdeg,s-1,,SubstanceCompartments,Degradation rate constant
+kdeg.air,s-1,,Substances,Degradation rate constant air
+kdeg.sed,s-1,,Substances,Degradation rate constant sediment
+kdeg.soil,s-1,,Substances,Degradation rate constant soil
+kdeg.water,s-1,,Substances,Degradation rate constant water
+kdis,s-1,,SubstanceSubCompartSpeciesData,Dissolution rate constant
+kfrag,s-1,,SubstanceSubCompartSpeciesData,Fragmentation rate of heteroagglomerates
+Kow,-,,Substances,Octanol water partitioning coefficient 
+Ksw,-,,Substances,Soil water partitioning coefficient
+kwsd,m.s-1,,MatrixSheet,PARTIAL MASS TRANSFER COEFFICIENT subcompartment side of water/sed interface
+LakeFracRiver,-,,CONSTANTS,The fraction of freshwater belonging to the lake water
+landFRAC,-,,ScaleSubCompartData,"Fraction of land area that is of this subcompartment (lake, river, etc)"
+Longest_side,um,Longest_side/1000000,Substances,Particle sizes
+Mackay1,m.d-1,Mackay1/3600/24,CONSTANTS,constant described by Mackay (2001)
+Mackay2,-,,CONSTANTS,Mackay constant
+MaxPvap,Pa,,CONSTANTS,Maximum vapor pressure
+MW,g.mol-1,MW/1000,Substances,Molar weight of substance
+NaturalRad,m,,SpeciesCompartments,Natural particle radius
+NaturalRho,kg.m-3,,SpeciesCompartments,Natural particle density
+NETsedrate,m.s-1,,ScaleSubCompartData,Net SEDIMENT ACCUMULATION rate
+NumConcAcc,#.m-3,,ScaleSheet,Accumulation mode aerosol particle number concentration
+NumConcCP,#.m-3,,ScaleSheet,Coarse mode aerosol particle number concentration
+NumConcNuc,#.m-3,,ScaleSheet,Nucleation mode aerosol particle number concentration
+OceanCurrent,m3 s-1,,CONSTANTS,irculation current ocean
+penetration_depth_s,m,,CONSTANTS,penetration soil depth to consider
+pH,-,,SubcompartSheet,pH
+pKa,-,,Substances,Dissociation constant of (conjugated) acid 
+Porosity,-,,SubcompartSheet,Porosity
+Pvap25,-,,Substances,Vapor pressure at 25C
+Q.10,m.s-1,,CONSTANTS,rate increase factor per 10 oC
+RadCOL,nm,RadCOL/1000000000,SubcompartSheet,Radius of Natural Colloids
+RadCP,um,RadCP/1000000,SubcompartSheet,Radius of coarse Suspended Material and Filtration Particles
+RadNuc,um,,CONSTANTS,Radius of nucleation mode particles
+RadS,nm,RadS/1000000000,Substances,Radius of species
+RAINrate,mm y-1,RAINrate/1000/(3600*24*365),ScaleSheet,annual precipitation (rain and snow)
+relevant_depth_s,m,,CONSTANTS,relevant soil depth for fate proces
+RhoAcc,kg. m-3,,CONSTANTS,Density of accumulation mode aerosol
+RhoCOL,kg.m-3,,SubcompartSheet,Density of Natural Colloids
+RhoCP,kg. m-3,,SubcompartSheet,Density of Coarse Particulates (e.g. SPM)
+rhoMatrix,kg.L-1,,MatrixSheet,density of the medium
+RhoNuc,kg. m-3,,CONSTANTS,Density of nucleation mode particles
+RhoS,kg. m-3,,Substances,Density of species
+SettlVelocitywater,m.s-1,,ScaleSheet,SETTLING VELOCITY suspended particles as formerly used in the molecular version
+Shape,-,,Substances,Shape of particle
+Shear,s-1,,ScaleSubCompartData,Shear rate
+Shortest_side,um,Shortest_side/1000000,Substances,Particle sizes
+Sol25,mg.L-1,Sol25/(1000),Substances,solubility of substance at 25C
+subFRACa,-,,ScaleSubCompartData,Fraction of air in a non-air subcompartment
+subFRACs,-,,ScaleSubCompartData,"Fraction solid in a non-soil, non sediment subcompartment"
+subFRACw,-,,ScaleSubCompartData,Fraction water in a non-water subcompartment
+SUSP,mg.L-1,SUSP/1000,SubcompartSheet,mass CONCENTRATION suspended matter in water
+t_half_Escape,yr-1,t_half_Escape*365*24*3600,CONSTANTS,Half life time in air for escape to stratosphere
+T25,K,,CONSTANTS,25C in Kelvin
+TAUsea,d,,ScaleSheet,RESIDENCE TIME of water
+tdry,day,tdry*3600*24,ScaleSheet,"Duration dry episode (Joilliet and Hauschild, 2005)"
+Temp,K ,,ScaleSheet,Temperature in Kelvin
+Tm,Celsius,Tm+273,Substances,melting temperature of the substance
+Tm_default,K,,CONSTANTS,Default melting point
+TotalArea,m2,,ScaleSheet,"Area of the scale, including possibly nested scales"
+twet,day,twet*3600*24,ScaleSheet,Duration wet episode (6% of time in NL > 0.3mm rain)
+Udarcy,m.s-1,,SubcompartSheet,Darcy velocity of particle
+VertDistance,m,,ScaleSubCompartData,depth or height of the subcompartment
+WINDspeed,m.s-1,,ScalesSheet,Average windspeed per scale
