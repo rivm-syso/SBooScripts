@@ -103,7 +103,7 @@ CaseData/
 
 # ignore BatchFiles folder
 BatchFiles/
-vignettes/CaseStudies/HPC_commands.txt
+vignettes/CaseStudies/LEON-T/HPC_commands.txt
 warnings.log
 
 SBooScripts.Rproj
