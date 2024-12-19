@@ -1,5 +1,5 @@
 ---
-title: "DPMFA LEON-T"
+title: "Description of work on TRWP case study"
 author: "Anne Hids, Joris Quik"
 date: "`r Sys.Date()`"
 output: github_document
