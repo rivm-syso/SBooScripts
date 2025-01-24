@@ -15,7 +15,7 @@ source("baseScripts/initWorld_onlyMolec.R")
 
 # Choose the substance to model. Of the 5 substances used in Bakker (2003) only Tetrachloroethylene
 # is currently present in data/Substances.csv by default. The others need to be added manually.
-Substance <- "lindane"
+Substance <- "fluoranthene"
 
 World$substance <- Substance
 
@@ -29,8 +29,8 @@ Substance_extra <- data.frame(Substance = c("tetrachloroethylene", "lindane", "f
 
 # Set the emission values [ton/year]
 #emissions <- data.frame(Abbr = c("aRU", "w1RU", "aCU", "w1CU"), Emis = c(2380, 15.1, 64200, 223.4))     # Tetrachloroethylene
-emissions <- data.frame(Abbr = c("aRU", "s2RU", "aCU", "s2CU"), Emis = c(2.1, 18.9, 104.4, 939.6))      # Lindane
-#emissions <- data.frame(Abbr = c("aRU", "w1RU", "s2RU", "s3RU"), Emis = c(196.8, 19.2, 7.2, 16.8))      # Fluoranthene
+#emissions <- data.frame(Abbr = c("aRU", "s2RU", "aCU", "s2CU"), Emis = c(2.1, 18.9, 104.4, 939.6))      # Lindane
+emissions <- data.frame(Abbr = c("aRU", "w1RU", "s2RU", "s3RU"), Emis = c(196.8, 19.2, 7.2, 16.8))      # Fluoranthene
 #emissions <- data.frame(Abbr = c("aRU", "w1RU", "s2RU", "s3RU"), Emis = c(75.2, 3.2, 0.8, 0.8))         # Chrysene
 #emissions <- data.frame(Abbr = c("aRU", "w1RU", "s2RU", "s3RU"), Emis = c(26.88, 4.16, 0.32, 0.64))     # Benzo[a]pyrene
 

@@ -18,7 +18,7 @@ library(lhs)
 library(openxlsx)
 
 # Set the number of runs for calculating uncertainty.
-Run_count <- 5
+Run_count <- 100
 
 # Set the path to the input file, as well as the path to the model's data files.
 inoutname <- paste0("/rivm/n/defaresj/Documents/SimpleBox_OO_variables_v1.0.xlsx")
@@ -126,53 +126,53 @@ for (i in seq(nrow(LandscapeIn))) {
   # Edit the appropriate dataframe entry. Some parameter dataframes will have both 
   # SubCompart and Scale columns, one of them, or neither. The if-else branches will process
   # any possible combination.
-  if("Scale" %in% colnames(Parameter) & "SubCompart" %in% colnames(Parameter)) {
-    index <- which(Parameter$Scale == LandscapeIn$Scale[i] & Parameter$SubCompart == LandscapeIn$SubCompart[i])
-    Parameter[index, 3] <- LandscapeIn$c[i]
-  }
-  
-  else if ("Scale" %in% colnames(Parameter)) {
-    
-    # If the input file did not specify a Scale, apply the new input to all Scales.
-    if (is.na(LandscapeIn$Scale[i])) {
-      index <- seq(1,nrow(Parameter))
-    }
-    else {
-      index <- which(Parameter$Scale == LandscapeIn$Scale[i])
-    }
-    Parameter[index, 2] <- LandscapeIn$c[i]
-  }
-  
-  else if ("SubCompart" %in% colnames(Parameter)) {
-    
-    # If the input file did not specify a Subcompartment, apply the new input to all Subcompartments.
-    if (is.na(LandscapeIn$SubCompart[i])) {
-      index <- seq(1,nrow(Parameter))
-    }
-    else {
-      index <- which(Parameter$SubCompart == LandscapeIn$SubCompart[i])
-    }
-    Parameter[index, 2] <- LandscapeIn$c[i]
-  }
-  
-  else{
-    Parameter <- LandscapeIn$c[i]
-  }
-  
-  # Write the changed dataframe back to the World object.
-  variablename <- LandscapeIn$VarName[i]
-  World$SetConst(variablename = Parameter)
+  # if("Scale" %in% colnames(Parameter) & "SubCompart" %in% colnames(Parameter)) {
+  #   index <- which(Parameter$Scale == LandscapeIn$Scale[i] & Parameter$SubCompart == LandscapeIn$SubCompart[i])
+  #   Parameter[index, 3] <- LandscapeIn$c[i]
+  # }
+  # 
+  # else if ("Scale" %in% colnames(Parameter)) {
+  #   
+  #   # If the input file did not specify a Scale, apply the new input to all Scales.
+  #   if (is.na(LandscapeIn$Scale[i])) {
+  #     index <- seq(1,nrow(Parameter))
+  #   }
+  #   else {
+  #     index <- which(Parameter$Scale == LandscapeIn$Scale[i])
+  #   }
+  #   Parameter[index, 2] <- LandscapeIn$c[i]
+  # }
+  # 
+  # else if ("SubCompart" %in% colnames(Parameter)) {
+  #   
+  #   # If the input file did not specify a Subcompartment, apply the new input to all Subcompartments.
+  #   if (is.na(LandscapeIn$SubCompart[i])) {
+  #     index <- seq(1,nrow(Parameter))
+  #   }
+  #   else {
+  #     index <- which(Parameter$SubCompart == LandscapeIn$SubCompart[i])
+  #   }
+  #   Parameter[index, 2] <- LandscapeIn$c[i]
+  # }
+  # 
+  # else{
+  #   Parameter <- LandscapeIn$c[i]
+  # }
+  # 
+  # # Write the changed dataframe back to the World object.
+  # variablename <- LandscapeIn$VarName[i]
+  # World$SetConst(variablename = Parameter)
   
   # For each Landscape parameter that has a non-fixed value, store the mean, min, and max values of the Landscape parameter.
-  if (LandscapeIn$Distribution[i] != "Fixed") {
-    UncertParams <- add_row(UncertParams, tibble_row(varName = LandscapeIn$VarName[i],
+  
+  UncertParams <- add_row(UncertParams, tibble_row(varName = LandscapeIn$VarName[i],
                                                    Scale = LandscapeIn$Scale[i],
                                                    SubCompart = LandscapeIn$SubCompart[i],
                                                    Distribution = LandscapeIn$Distribution[i],
                                                    a = LandscapeIn$a[i],
                                                    b = LandscapeIn$b[i],
                                                    c = LandscapeIn$c[i]))
-  }
+  
   
 }
 
@@ -182,14 +182,14 @@ for (i in seq(nrow(LandscapeIn))) {
 for (i in seq(nrow(SubstanceIn))) {
   
   # For each Substance parameter that has a non-fixed value, store the mean, min, and max values of the Substance parameter.
-  if (SubstanceIn$Distribution[i] != "Fixed") {
-    UncertParams <- add_row(UncertParams, tibble_row(varName = SubstanceIn$VarName[i],
-                                                     Distribution = SubstanceIn$Distribution[i],
-                                                     Substance = SubstanceIn$Substance[i],
-                                                     a = SubstanceIn$a[i],
-                                                     b = SubstanceIn$b[i],
-                                                     c = SubstanceIn$c[i]))
-  }
+  
+  UncertParams <- add_row(UncertParams, tibble_row(varName = SubstanceIn$VarName[i],
+                                                   Distribution = SubstanceIn$Distribution[i],
+                                                   Substance = SubstanceIn$Substance[i],
+                                                   a = SubstanceIn$a[i],
+                                                   b = SubstanceIn$b[i],
+                                                   c = SubstanceIn$c[i]))
+  
   
 }
 
@@ -200,9 +200,18 @@ triangular_cdf_inv <- function(u, # LH scaling factor
                                a, # Minimum
                                b, # Maximum
                                c) { # Peak value
+  
   ifelse(u < (c-a)/(b-a),
          a + sqrt(u * (b-a) * (c-a)),
          b - sqrt((1-u) * (b-a) * (b-c)))
+}
+
+fixed_dist <- function(u, c) {
+  min <- 1e-10
+  c <- rep(c, Run_count)
+  ifelse(c < min,
+         min,
+         c)
 }
 
 # The function of the normal distribution.
@@ -243,7 +252,7 @@ n_lhs <- n_vars + n_emisscomps
 n_samples <- Run_count
 
 # Generate numbers between 0 and 1 using lhs
-lhs_samples <- optimumLHS(n_samples, n_lhs) 
+lhs_samples <- optimumLHS(n_samples, n_lhs, verbose = TRUE) 
 
 lhs_samples_vars <- lhs_samples[, 1:n_vars] 
 lhs_samples_emis <- lhs_samples[, (n_vars + 1):ncol(lhs_samples)]
@@ -264,6 +273,9 @@ for (i in 1:n_vars) {
   }
   if (UncertParams$Distribution[i] == "Log normal") {
     samples <- LogNormal_pdf(lhs_samples_vars[, i], c, b)
+  }
+  if (UncertParams$Distribution[i] == "Fixed"){
+    samples <- fixed_dist(lhs_samples_vars[,i], c)
   }
   
   # Store the generated list of new input parameters.
@@ -288,6 +300,9 @@ for (i in 1:n_emisscomps) {
   if (Emiss$Distribution[i] == "Log normal") {
     samples <- LogNormal_pdf(lhs_samples_emis[, i], c, b)
   }
+  if (Emiss$Distribution[i] == "Fixed"){
+    samples <- fixed_dist(lhs_samples_emis[,i], c)
+  }
   
   # Store the generated list of new input Emissions.
   new_data <- tibble(value = samples)
@@ -295,6 +310,7 @@ for (i in 1:n_emisscomps) {
 }
 
 SubstanceCount <- length(Substances)
+
 
 # For every Substance, complete the rest of the setup and run the model.
 for (Substance in Substances) {
@@ -305,15 +321,15 @@ for (Substance in Substances) {
   
   # Write the substance input parameters to the World object. Because Substance parameters don't
   # have Scale or SubCompart aspects, they can always be directly written to the World object.
-  for (SubstParam in SubstParams) {
-    
-    Parameter <- SubstanceIn$c[which(SubstanceIn$Substance == Substance &
-                                       SubstanceIn$VarName == SubstParam)]
-    print(Parameter)
-    print(SubstParam)
-    World$SetConst(SubstParam = Parameter)
-    print(World$fetchData(SubstParam))
-  }
+  # for (SubstParam in SubstParams) {
+  #   
+  #   Parameter <- SubstanceIn$c[which(SubstanceIn$Substance == Substance &
+  #                                      SubstanceIn$VarName == SubstParam)]
+  #   print(Parameter)
+  #   print(SubstParam)
+  #   World$SetConst(SubstParam = Parameter)
+  #   print(World$fetchData(SubstParam))
+  # }
   
   
   
@@ -393,6 +409,7 @@ for (Substance in Substances) {
   end.time <- Sys.time()
   time.taken <- end.time - start.time
   
+  #print(World$fetchData("RAINrate"))
   
   SubstanceCount <- SubstanceCount - 1
   if (SubstanceCount > 0) {
