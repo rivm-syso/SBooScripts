@@ -5,6 +5,8 @@
 # the input uncertainty only supports Triangular distribution.
 # For now, the script only works with Molecular substances.
 
+# NOTE: the ODE will throw a fatal error if very small input values are used (observed so far with 1e-20)
+
 
 # Load in the required packages.
 library(readr)
@@ -18,7 +20,7 @@ library(lhs)
 library(openxlsx)
 
 # Set the number of runs for calculating uncertainty.
-Run_count <- 100
+Run_count <- 50
 
 # Set the path to the input file, as well as the path to the model's data files.
 inoutname <- paste0("/rivm/n/defaresj/Documents/SimpleBox_OO_variables_v1.0.xlsx")
@@ -55,6 +57,12 @@ source("baseScripts/initWorld_onlyMolec.R")
 
 
 # Prepare tibble dataframes for later use.
+FixedParams <- tibble(Substance = character(),
+                      varName = character(),
+                      Scale = character(),
+                      SubCompart = character(),
+                      Waarde = numeric())
+
 UncertParams <- tibble(varName = character(),
                        Scale = character(),
                        SubCompart = character(),
@@ -85,10 +93,11 @@ Concentrations <- tibble(Substance = character(),
 
 # Store the substances and parameters in the input file.
 Substances <- unique(EmissionIn$Substance)
-SubstParams <- unique(SubstanceIn$VarName)
 
 if (length(Substances) == 0) {
   Substances <- c("Unnamed Substance")
+  SubstanceIn$Substance <- "Unnamed Substance"
+  EmissionIn$Substance <- "Unnamed Substance"
 }
 
 
@@ -105,14 +114,25 @@ for (i in seq(nrow(EmissionIn))) {
                  ScaleSheet$AbbrS[which(ScaleSheet$ScaleName == Scale)],
                  SpeciesSheet$AbbrP[which(SpeciesSheet$Species == Species)])
   
-  # For each emission that has a non-fixed value, store the mean, min, and max values of the emission.
-  Emiss <- add_row(Emiss, tibble_row(Substance = EmissionIn$Substance[i],
-                                     Abbr = Abbr,
-                                     Distribution = EmissionIn$Distribution[i],
-                                     a = EmissionIn$a[i]*1000/(365*24*60*60),
-                                     b = EmissionIn$b[i]*1000/(365*24*60*60),
-                                     c = EmissionIn$c[i]*1000/(365*24*60*60)))
   
+  if (EmissionIn$Distribution[i] == "Fixed") {
+    Emiss <- add_row(Emiss, tibble_row(Substance = EmissionIn$Substance[i],
+                                       Abbr = Abbr,
+                                       Distribution = EmissionIn$Distribution[i],
+                                       a = EmissionIn$c[i]*1000/(365*24*60*60),
+                                       b = EmissionIn$c[i]*1000/(365*24*60*60),
+                                       c = EmissionIn$c[i]*1000/(365*24*60*60)))
+  }
+  
+  # For each emission that has a non-fixed value, store the mean, min, and max values of the emission.
+  else {
+    Emiss <- add_row(Emiss, tibble_row(Substance = EmissionIn$Substance[i],
+                                       Abbr = Abbr,
+                                       Distribution = EmissionIn$Distribution[i],
+                                       a = EmissionIn$a[i]*1000/(365*24*60*60),
+                                       b = EmissionIn$b[i]*1000/(365*24*60*60),
+                                       c = EmissionIn$c[i]*1000/(365*24*60*60)))
+  }
   
 }
 
@@ -120,59 +140,24 @@ for (i in seq(nrow(EmissionIn))) {
 # Read and process Landscape Inputs.
 for (i in seq(nrow(LandscapeIn))) {
   
-  # Extract the parameter data from the World object into a dataframe.
-  Parameter <- World$fetchData(LandscapeIn$VarName[i])
   
-  # Edit the appropriate dataframe entry. Some parameter dataframes will have both 
-  # SubCompart and Scale columns, one of them, or neither. The if-else branches will process
-  # any possible combination.
-  # if("Scale" %in% colnames(Parameter) & "SubCompart" %in% colnames(Parameter)) {
-  #   index <- which(Parameter$Scale == LandscapeIn$Scale[i] & Parameter$SubCompart == LandscapeIn$SubCompart[i])
-  #   Parameter[index, 3] <- LandscapeIn$c[i]
-  # }
-  # 
-  # else if ("Scale" %in% colnames(Parameter)) {
-  #   
-  #   # If the input file did not specify a Scale, apply the new input to all Scales.
-  #   if (is.na(LandscapeIn$Scale[i])) {
-  #     index <- seq(1,nrow(Parameter))
-  #   }
-  #   else {
-  #     index <- which(Parameter$Scale == LandscapeIn$Scale[i])
-  #   }
-  #   Parameter[index, 2] <- LandscapeIn$c[i]
-  # }
-  # 
-  # else if ("SubCompart" %in% colnames(Parameter)) {
-  #   
-  #   # If the input file did not specify a Subcompartment, apply the new input to all Subcompartments.
-  #   if (is.na(LandscapeIn$SubCompart[i])) {
-  #     index <- seq(1,nrow(Parameter))
-  #   }
-  #   else {
-  #     index <- which(Parameter$SubCompart == LandscapeIn$SubCompart[i])
-  #   }
-  #   Parameter[index, 2] <- LandscapeIn$c[i]
-  # }
-  # 
-  # else{
-  #   Parameter <- LandscapeIn$c[i]
-  # }
-  # 
-  # # Write the changed dataframe back to the World object.
-  # variablename <- LandscapeIn$VarName[i]
-  # World$SetConst(variablename = Parameter)
-  
-  # For each Landscape parameter that has a non-fixed value, store the mean, min, and max values of the Landscape parameter.
-  
-  UncertParams <- add_row(UncertParams, tibble_row(varName = LandscapeIn$VarName[i],
+  if (LandscapeIn$Distribution[i] == "Fixed") {
+    FixedParams <- add_row(FixedParams, tibble_row(varName = LandscapeIn$VarName[i],
                                                    Scale = LandscapeIn$Scale[i],
                                                    SubCompart = LandscapeIn$SubCompart[i],
-                                                   Distribution = LandscapeIn$Distribution[i],
-                                                   a = LandscapeIn$a[i],
-                                                   b = LandscapeIn$b[i],
-                                                   c = LandscapeIn$c[i]))
+                                                   Waarde = LandscapeIn$c[i]))
+  }
   
+  # For each Landscape parameter that has a non-fixed value, store the mean, min, and max values of the Landscape parameter.
+  else {
+    UncertParams <- add_row(UncertParams, tibble_row(varName = LandscapeIn$VarName[i],
+                                                     Scale = LandscapeIn$Scale[i],
+                                                     SubCompart = LandscapeIn$SubCompart[i],
+                                                     Distribution = LandscapeIn$Distribution[i],
+                                                     a = LandscapeIn$a[i],
+                                                     b = LandscapeIn$b[i],
+                                                     c = LandscapeIn$c[i]))
+  }
   
 }
 
@@ -181,15 +166,21 @@ for (i in seq(nrow(LandscapeIn))) {
 # Read and process Substance Inputs. Do not set them yet.
 for (i in seq(nrow(SubstanceIn))) {
   
-  # For each Substance parameter that has a non-fixed value, store the mean, min, and max values of the Substance parameter.
-  
-  UncertParams <- add_row(UncertParams, tibble_row(varName = SubstanceIn$VarName[i],
-                                                   Distribution = SubstanceIn$Distribution[i],
+  if (SubstanceIn$Distribution[i] == "Fixed") {
+    FixedParams <- add_row(FixedParams, tibble_row(varName = SubstanceIn$VarName[i],
                                                    Substance = SubstanceIn$Substance[i],
-                                                   a = SubstanceIn$a[i],
-                                                   b = SubstanceIn$b[i],
-                                                   c = SubstanceIn$c[i]))
+                                                   Waarde = SubstanceIn$c[i]))
+  }
   
+  # For each Substance parameter that has a non-fixed value, store the mean, min, and max values of the Substance parameter.
+  else {
+    UncertParams <- add_row(UncertParams, tibble_row(varName = SubstanceIn$VarName[i],
+                                                     Distribution = SubstanceIn$Distribution[i],
+                                                     Substance = SubstanceIn$Substance[i],
+                                                     a = SubstanceIn$a[i],
+                                                     b = SubstanceIn$b[i],
+                                                     c = SubstanceIn$c[i]))
+  }
   
 }
 
@@ -206,42 +197,43 @@ triangular_cdf_inv <- function(u, # LH scaling factor
          b - sqrt((1-u) * (b-a) * (b-c)))
 }
 
-fixed_dist <- function(u, c) {
-  min <- 1e-10
-  c <- rep(c, Run_count)
-  ifelse(c < min,
-         min,
-         c)
-}
 
 # The function of the normal distribution.
-# TODO: Currently this is a triangular distribution. a proper function for the normal distribution
-# needs to be implemented later.
-normal_pdf <- function(u, c, b){
+# NOTE: Distribution is not allowed to return values equal to or lower than 0
+normal_pdf <- function(u, a, b, c){
   
-  min <- max(c - b^2, 1e-10)
-  max <- c + b^2
+  ifelse(is.na(a),
+         min_a <- 1e-10,
+         min_a <- a)
+  min_a <- rep(min_a,Run_count)
+  b <- rep(b, Run_count)
+  c <- rep(c, Run_count)
   
-  ifelse(u < (c-min)/(max-min),
-         min + sqrt(u * (max-min) * (c-min)),
-         max - sqrt((1-u) * (max-min) * (max-c)))
-  
+  max(qnorm(u, c, b), min_a)
   
 }
 
 # The function of the log normal distribution.
-# TODO: Currently this is a triangular distribution. a proper function for the log normal distribution
-# needs to be implemented later.
-LogNormal_pdf <- function(u, a, b){
+# NOTE: Distribution is not allowed to return values equal to or lower than 0
+LogNormal_pdf <- function(u, a, b, c){
   
-  min <- max(c-b, 1e-10)
-  max <- c + b^2
+  ifelse(is.na(a),
+         min_a <- 1e-10,
+         min_a <- a)
+  min_a <- rep(min_a,Run_count)
+  b <- rep(b, Run_count)
+  c <- rep(c, Run_count)
   
-  ifelse(u < (c-min)/(max-min),
-         min + sqrt(u * (max-min) * (c-min)),
-         max - sqrt((1-u) * (max-min) * (max-c)))
+  max(log(qlnorm(u, c, b)), min_a)
   
 }
+
+# The function of the Weibull distribution.
+Weibull_pdf <- function(u, a, b, c){
+  
+  a + qweibull(u, b, c)
+}
+
 
 # Set the number of parameters and emissions to create a distribution for.
 n_vars <- nrow(UncertParams)
@@ -252,7 +244,7 @@ n_lhs <- n_vars + n_emisscomps
 n_samples <- Run_count
 
 # Generate numbers between 0 and 1 using lhs
-lhs_samples <- optimumLHS(n_samples, n_lhs, verbose = TRUE) 
+lhs_samples <- optimumLHS(n_samples, n_lhs) 
 
 lhs_samples_vars <- lhs_samples[, 1:n_vars] 
 lhs_samples_emis <- lhs_samples[, (n_vars + 1):ncol(lhs_samples)]
@@ -269,13 +261,13 @@ for (i in 1:n_vars) {
     samples <- triangular_cdf_inv(lhs_samples_vars[, i], a, b, c)
   }
   if (UncertParams$Distribution[i] == "Normal") {
-    samples <- normal_pdf(lhs_samples_vars[,i], c, b)
+    samples <- normal_pdf(lhs_samples_vars[,i], a, b, c)
   }
   if (UncertParams$Distribution[i] == "Log normal") {
-    samples <- LogNormal_pdf(lhs_samples_vars[, i], c, b)
+    samples <- LogNormal_pdf(lhs_samples_vars[, i], a, b, c)
   }
-  if (UncertParams$Distribution[i] == "Fixed"){
-    samples <- fixed_dist(lhs_samples_vars[,i], c)
+  if (UncertParams$Distribution[i] == "Weibull") {
+    samples <- Weibull_pdf(lhs_samples_vars[, i], a, b, c)
   }
   
   # Store the generated list of new input parameters.
@@ -300,8 +292,11 @@ for (i in 1:n_emisscomps) {
   if (Emiss$Distribution[i] == "Log normal") {
     samples <- LogNormal_pdf(lhs_samples_emis[, i], c, b)
   }
+  if (Emiss$Distribution[i] == "Weibull") {
+    samples <- Weibull_pdf(lhs_samples_emis[, i], a, b, c)
+  }
   if (Emiss$Distribution[i] == "Fixed"){
-    samples <- fixed_dist(lhs_samples_emis[,i], c)
+    samples <- rep(c, Run_count)
   }
   
   # Store the generated list of new input Emissions.
@@ -316,22 +311,11 @@ SubstanceCount <- length(Substances)
 for (Substance in Substances) {
   
   start.time <- Sys.time()
-  #X <- Substance
+
   
+  FixedParamsM <- FixedParams[FixedParams$Substance == Substance | is.na(FixedParams$Substance),]
   
-  # Write the substance input parameters to the World object. Because Substance parameters don't
-  # have Scale or SubCompart aspects, they can always be directly written to the World object.
-  # for (SubstParam in SubstParams) {
-  #   
-  #   Parameter <- SubstanceIn$c[which(SubstanceIn$Substance == Substance &
-  #                                      SubstanceIn$VarName == SubstParam)]
-  #   print(Parameter)
-  #   print(SubstParam)
-  #   World$SetConst(SubstParam = Parameter)
-  #   print(World$fetchData(SubstParam))
-  # }
-  
-  
+  World$mutateVars(FixedParamsM)
   
   # Calculating the parameters that are dependent on input parameters
   SBvars <- c("FRACs",
