@@ -2,7 +2,7 @@
 # It will correctly read and apply all relevant parameter inputs, and writes the results to an output file.
 # The input file (and thus this script) is not limited to one substance at a time. It also supports
 # calculations of uncertainty ranges based on the uncertainty of the input parameters. Currently,
-# the input uncertainty only supports Triangular distribution.
+# the input uncertainty supports Triangular, Normal, Lognormal and Weibull distribution.
 # For now, the script only works with Molecular substances.
 
 # NOTE: the ODE will throw a fatal error if very small input values are used (observed so far with 1e-20)
@@ -19,11 +19,13 @@ library(tidyverse)
 library(lhs)
 library(openxlsx)
 
+
 # Set the number of runs for calculating uncertainty.
-Run_count <- 50
+Run_count <- 10
 
 # Set the path to the input file, as well as the path to the model's data files.
-inoutname <- paste0("/rivm/n/defaresj/Documents/SimpleBox_OO_variables_v1.0.xlsx")
+inoutname <- paste0("/rivm/n/defaresj/Documents/SimpleBox_OO_input_promisces.xlsx")
+f_name <- str_split_i(inoutname, "/", -1)
 datadir <- paste0("data")
 
 # Read in the inputs for Landscape, Substance, and Emission parameters.
@@ -47,13 +49,6 @@ SpeciesSheet <- read.csv(paste0(datadir, "/SpeciesSheet.csv"))
 
 # Initialize the World script. 
 source("baseScripts/initWorld_onlyMolec.R")
-
-
-# 1. check if entry exists for Param
-# 2. if so, use fetchData() to pull dataframe from World
-# 3. for each Scale+Subcompart combination in input file, adjust Param dataframe
-# 4. store adjusted parameters in World with setConst()
-# 5. store required data in params dataframe for uncertainty calcs
 
 
 # Prepare tibble dataframes for later use.
@@ -137,7 +132,7 @@ for (i in seq(nrow(EmissionIn))) {
 }
 
 
-# Read and process Landscape Inputs.
+# Read Landscape Inputs and separate fixed from uncertain inputs.
 for (i in seq(nrow(LandscapeIn))) {
   
   
@@ -163,7 +158,7 @@ for (i in seq(nrow(LandscapeIn))) {
 
 
 
-# Read and process Substance Inputs. Do not set them yet.
+# Read Substance Inputs and separate fixed from uncertain inputs.
 for (i in seq(nrow(SubstanceIn))) {
   
   if (SubstanceIn$Distribution[i] == "Fixed") {
@@ -199,32 +194,16 @@ triangular_cdf_inv <- function(u, # LH scaling factor
 
 
 # The function of the normal distribution.
-# NOTE: Distribution is not allowed to return values equal to or lower than 0
-normal_pdf <- function(u, a, b, c){
-  
-  ifelse(is.na(a),
-         min_a <- 1e-10,
-         min_a <- a)
-  min_a <- rep(min_a,Run_count)
-  b <- rep(b, Run_count)
-  c <- rep(c, Run_count)
-  
-  max(qnorm(u, c, b), min_a)
+normal_pdf <- function(u, b, c){
+
+  qnorm(u, c, b)
   
 }
 
 # The function of the log normal distribution.
-# NOTE: Distribution is not allowed to return values equal to or lower than 0
-LogNormal_pdf <- function(u, a, b, c){
-  
-  ifelse(is.na(a),
-         min_a <- 1e-10,
-         min_a <- a)
-  min_a <- rep(min_a,Run_count)
-  b <- rep(b, Run_count)
-  c <- rep(c, Run_count)
-  
-  max(log(qlnorm(u, c, b)), min_a)
+LogNormal_pdf <- function(u, b, c){
+
+  log(qlnorm(u, c, b))
   
 }
 
@@ -250,31 +229,53 @@ lhs_samples_vars <- lhs_samples[, 1:n_vars]
 lhs_samples_emis <- lhs_samples[, (n_vars + 1):ncol(lhs_samples)]
 
 
-# Calculate the values used in the uncertainty solver for Parameters
-for (i in 1:n_vars) {
-  a <- UncertParams$a[i]
-  b <- UncertParams$b[i]
-  c <- UncertParams$c[i]
-  
-  # Select the Distribution to use to generate the parameter values.
-  if (UncertParams$Distribution[i] == "Triangular") {
-    samples <- triangular_cdf_inv(lhs_samples_vars[, i], a, b, c)
-  }
-  if (UncertParams$Distribution[i] == "Normal") {
-    samples <- normal_pdf(lhs_samples_vars[,i], a, b, c)
-  }
-  if (UncertParams$Distribution[i] == "Log normal") {
-    samples <- LogNormal_pdf(lhs_samples_vars[, i], a, b, c)
-  }
-  if (UncertParams$Distribution[i] == "Weibull") {
-    samples <- Weibull_pdf(lhs_samples_vars[, i], a, b, c)
-  }
-  
-  # Store the generated list of new input parameters.
-  new_data <- tibble(value = samples)
-  UncertParams$data[[i]] <- new_data
-}
 
+# Calculate the values used in the uncertainty solver for Parameters
+if (n_vars > 0) {
+  for (i in 1:n_vars) {
+    a <- UncertParams$a[i]
+    b <- UncertParams$b[i]
+    c <- UncertParams$c[i]
+    
+    # Select the Distribution to use to generate the parameter values.
+    # If applicable, make sure all samples are equal to or greater than zero.
+    if (UncertParams$Distribution[i] == "Triangular") {
+      samples <- triangular_cdf_inv(lhs_samples_vars[, i], a, b, c)
+    }
+    if (UncertParams$Distribution[i] == "Normal") {
+      samples <- normal_pdf(lhs_samples_vars[,i], b, c)
+      samples[samples <= 0] <- a
+    }
+    if (UncertParams$Distribution[i] == "Log normal") {
+      samples <- LogNormal_pdf(lhs_samples_vars[, i], b, c)
+      samples[samples <= 0] <- a
+    }
+    if (UncertParams$Distribution[i] == "Weibull") {
+      samples <- Weibull_pdf(lhs_samples_vars[, i], a, b, c)
+    }
+    
+    # Store the generated list of new input parameters.
+    new_data <- tibble(value = samples)
+    UncertParams$data[[i]] <- new_data
+  }
+} 
+
+# Failsafe in case all parameters are using a fixed distribution
+for (i in Substances[!(Substances %in% UncertParams$Substance)]) {
+  index <- match(i, FixedParams$Substance)
+  if (is.na(index)) {
+    match(NA, FixedParams$Substance)
+  }
+  samples <- rep(FixedParams$Waarde[index], Run_count)
+  new_data <- tibble(value = samples)
+  UncertParams <- add_row(UncertParams, tibble_row(varName = FixedParams$varName[index] ,
+                                                   Substance = FixedParams$Substance[index],
+                                                   Scale = FixedParams$Scale[index],
+                                                   SubCompart = FixedParams$SubCompart[index],
+                                                   data = list(new_data)
+                                                   ))
+  UncertParams <- UncertParams %>% distinct(.keep_all = TRUE)
+}
 
 # Calculate the values used in the uncertainty solver for Emissions
 for (i in 1:n_emisscomps) {
@@ -288,9 +289,11 @@ for (i in 1:n_emisscomps) {
   }
   if (Emiss$Distribution[i] == "Normal") {
     samples <- normal_pdf(lhs_samples_emis[,i], c, b)
+    samples[samples <= 0] <- a
   }
   if (Emiss$Distribution[i] == "Log normal") {
     samples <- LogNormal_pdf(lhs_samples_emis[, i], c, b)
+    samples[samples <= 0] <- a
   }
   if (Emiss$Distribution[i] == "Weibull") {
     samples <- Weibull_pdf(lhs_samples_emis[, i], a, b, c)
@@ -312,7 +315,7 @@ for (Substance in Substances) {
   
   start.time <- Sys.time()
 
-  
+  # TODO: Build in failsave in case users incorrectly input Scale/Subcompart info
   FixedParamsM <- FixedParams[FixedParams$Substance == Substance | is.na(FixedParams$Substance),]
   
   World$mutateVars(FixedParamsM)
@@ -393,11 +396,8 @@ for (Substance in Substances) {
   end.time <- Sys.time()
   time.taken <- end.time - start.time
   
-  #print(World$fetchData("RAINrate"))
-  
   SubstanceCount <- SubstanceCount - 1
   if (SubstanceCount > 0) {
-    
     cat(SubstanceCount, "more substances left to go. Estimated time left:", time.taken*SubstanceCount, "\n")
   }
   else {
@@ -408,11 +408,7 @@ for (Substance in Substances) {
 
 # Export the output. This contains the min, median, max and quantiles of the concentrations for all
 # substances and subcompartments.
-write.xlsx(Concentrations, "/rivm/n/defaresj/Documents/SB_OO_Output.xlsx")
-
-
-
-
-
+outname <- str_replace(inoutname, f_name, "SB_OO_Output.xlsx")
+write.xlsx(Concentrations, outname)
 
 
