@@ -204,6 +204,15 @@ barplot_data <- data_micro_summed_over_polymers |>
   summarise(Mass_Polymer_t = sum(Mass_Polymer_t),
             n= n())
 
+barplot_totals <- barplot_data |>
+  group_by(TW_class) |>
+  summarise(sum_t = sum(Mass_Polymer_t))
+
+barplot_percentages <- barplot_data |>
+  left_join(barplot_totals, by = "TW_class") |>
+  mutate(percent_mass = (Mass_Polymer_t/sum_t)) |>
+  mutate(percent_mass = percent_mass*100)
+  
 # Make a stacked barplot for what percentage goes to air, soil and water
 Figure_13 <- ggplot(barplot_data, aes(fill = Environmental_compartment, x = TW_class, y = Mass_Polymer_t)) +
   geom_bar(position = "fill", stat="identity", color = "transparent") +

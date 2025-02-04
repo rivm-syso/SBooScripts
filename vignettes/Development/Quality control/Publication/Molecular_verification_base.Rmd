@@ -323,7 +323,7 @@ comparison to the R output. There is an
 [issue](https://github.com/rivm-syso/SBoo/issues/158) to fix this in a
 future SBooScript update.
 
-#### Air to soil
+#### Adsorption
 
 The difference in diagonal k's for air is caused by a different use of variables to 
 calculate k_Adsorption. This process uses the fraction of original species in the (pore)water

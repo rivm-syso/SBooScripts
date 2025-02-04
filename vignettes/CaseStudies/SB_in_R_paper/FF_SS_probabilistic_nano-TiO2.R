@@ -1,15 +1,16 @@
 ################################################################################
-# Script for calculating fate factors at Regional and Continental Scales       #
+# Script for calculating fate factors dynamically and probabilistically for    #
+# nano-TiO2                                                                    #
 # Created for SimpleBox in R paper                                             #
 # Authors: Anne Hids and Joris Quik                                            #
 # RIVM                                                                         #
-# 4-12-2024                                                                    #
+# 7-1-2024                                                                    #
 ################################################################################
 
 library(tidyverse)
 
 source("baseScripts/initWorld_onlyParticulate.R")
-World$substance <- "nAg_10nm"
+World$substance <- "nTiO2_10nm"
 
 ## Get the areas for compartments at Regional Scale
 Area_w0R <- World$fetchData("Area") |> filter(Scale == "Regional" & SubCompart == "lake") |>  pull(Area)
@@ -26,6 +27,9 @@ Area_soilC <- World$fetchData("Area") |> filter(Scale == "Continental" & grepl("
 ## Calculate the river and lake fractions of freshwater at Regional Scale
 FracArea_w0R = Area_w0R/(Area_w0R+Area_w1R)
 FracArea_w1R = Area_w1R/(Area_w0R+Area_w1R)
+
+## Calculate the natural, agricultural an other soil fractions at Regional Scale
+#FracArea_s1R = Area_s1R/(Area+)
 
 ## Calculate the river and lake fractions of freshwater at Continental Scale
 FracArea_w0C = Area_w0C/(Area_w0C+Area_w1C)
@@ -101,23 +105,47 @@ EmisSourceFF$EmisUnified[(EmisSourceFF[["EmisScale"]] == "Continental")] <-
                             1*FracArea_w1C*(1-FracArea_wRC),
                             1*FracArea_w0C*(1-FracArea_wRC)))))
 
+## Make a sample tibble containing a particle size for each run
+set.seed(123)
+
+# Set min and max particle size, based on Clément et al. (2016)
+min_size_nm <- 1 
+max_size_nm <- 100
+
+# Set number of samples
+n_samples <- 100
+
+# Generate samples
+samples <- runif(n=n_samples, min=min_size_nm, max=max_size_nm)
+samples <- tibble(samples) |>
+  rename(value = samples) |>
+  mutate(RUN = row_number())
+
+# Create an empty tibble
+sample_df <- tibble(
+  varName = "RadS",
+  Scale = NA,
+  SubCompart = NA, 
+  Species = NA,
+  data=list(samples))
+
 # Make an empty dataframe to store the output
 Output_deterministic <- expand_grid(EmisComp = names(EmisSourceFF$EmisUnified[(EmisSourceFF[["EmisScale"]] ==  "Regional")][[1]]),
-                          EmisScale = c("Regional","Continental"),
-                          SBoutput = NA)
+                                    EmisScale = c("Regional","Continental"),
+                                    SBoutput = NA)
 
 # Initialize the deterministic steady state solver
-World$NewSolver("SBsteady")
+World$NewSolver("UncertainSolver")
 
 for(ecomp in unique(Output_deterministic$EmisComp)){
-    for(scl in unique(Output_deterministic$EmisScale)){
-      
+  for(scl in unique(Output_deterministic$EmisScale)){
+    
     emis_source <- as.data.frame(EmisSourceFF$EmisUnified[(EmisSourceFF[["EmisScale"]] == scl)][[1]][[ecomp]])
-      
-    solved <- World$Solve(emis_source)
-
+    
+    solved <- World$Solve((emis_source), needdebug = F, sample_df)
+    
     Output_deterministic$SBoutput[(Output_deterministic[["EmisComp"]] == ecomp &
-                       Output_deterministic[["EmisScale"]] == scl)] <- list(solved)
+                                     Output_deterministic[["EmisScale"]] == scl)] <- list(solved$SteadyStateMass)
   }
 }
 
@@ -125,8 +153,41 @@ for(ecomp in unique(Output_deterministic$EmisComp)){
 FF_allScale <- Output_deterministic |> 
   unnest(SBoutput) |> 
   filter(Species != "Unbound") |> 
-  group_by(EmisComp,EmisScale, Scale, SubCompart) |> 
-  summarise(EqMass_SAP = sum(EqMass)) 
+  group_by(EmisComp,EmisScale, Scale, SubCompart, RUN) |> 
+  summarise(EqMass_SAP = sum(EqMass)) |>
+  mutate(Unit = "kg[ss]/kg[e] seconds")
+
+# Plot outcome
+library(ggplot2)
+library(scales)
+
+# Define a function for plotting uncertain FF
+violin_plot_FF <- function(FF_df, SelectedEmisScale, SelectedEmisComp){
+  filtered_FF <- FF_df |>
+    filter(EmisScale == SelectedEmisScale) |>
+    filter(EmisComp == SelectedEmisComp) |>
+    filter(Scale == SelectedEmisScale) |>
+    filter(EqMass_SAP != 0)
+  
+  plot <- ggplot(data=filtered_FF, aes(x=SubCompart, y=EqMass_SAP)) + 
+    geom_violin() +
+    labs(title = "Fate factors calculated with uncertain particle size for nano-TiO2",
+         subtitle = paste0("Calculated for emissions to ", SelectedEmisScale, " ", SelectedEmisComp),
+         y = paste0("FF value ", unique(filtered_FF$Unit))) +
+    scale_y_log10()
+  
+  return(plot)
+}
+
+# Plot FF in a violin plot for regional emissions to freshwater
+plot_regional_freshwater <- violin_plot_FF(FF_allScale, "Regional", "Water")
+print(plot_regional_freshwater)
+
+filtered_FF <- FF_allScale |>
+  filter(EmisScale == "Regional") |>
+  filter(EmisComp == "Water") |>
+  filter(Scale == "Regional")
+
 
 # Calculate the FF at Regional Scale
 FF_Regional <- FF_allScale |> filter(EmisScale == "Regional" & Scale == "Regional") |>
@@ -138,7 +199,7 @@ FF_Regional <- FF_allScale |> filter(EmisScale == "Regional" & Scale == "Regiona
       SubCompart == "lakesediment" ~ "freshwatersediment",
       TRUE ~ SubCompart)
   ) |> ungroup() |> 
-  group_by(CompartmentFF, EmisComp) |>
+  group_by(CompartmentFF, EmisComp, RUN) |>
   summarise(EqMass_SAP = sum(EqMass_SAP)) |>
   mutate(Unit = "kg[ss]/kg[e] seconds")
 
@@ -169,8 +230,6 @@ dev.off()
 pdf("vignettes/CaseStudies/SB_in_R_paper/Output/Continental_FF_table_deterministic_SS.pdf", height=11, width=8.5)
 grid.table(FF_Continental)
 dev.off()
-
-
 
 
 

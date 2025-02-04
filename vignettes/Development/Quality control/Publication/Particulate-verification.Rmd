@@ -353,7 +353,7 @@ for the temperature of the current scale.
 ### Steadystate mass
 ```{r PlotSteadyState_1, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 3: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=FALSE)"}
 library(stringi)
-World$NewSolver("SB1Solve")
+World$NewSolver("SBsteady")
 emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), Emis = c(10000, 10000, 10000) ) # convert 1 t/y to si units: kg/s
 emissions <- emissions |>
   mutate(Emis = Emis*1000/(365*24*60*60))
