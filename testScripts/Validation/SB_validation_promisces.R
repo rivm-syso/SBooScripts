@@ -298,3 +298,4 @@ theme_light()+
         panel.grid.minor = element_blank(),
         panel.border = element_blank())
 
+plot(probX_Y)
