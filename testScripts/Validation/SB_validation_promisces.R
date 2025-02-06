@@ -229,3 +229,72 @@ for (Substance in Substances) {
 
 
 
+GSA_data <- readxl::read_excel(path = "data/hidden/GSA_table.xlsx")
+
+library(sensitivity)
+# library(readxl)
+library(ggplot2)
+library(ks) ### ks needed for sensiFdiv function
+library(tidyverse)
+
+id_identical_columns <- function(df) {
+  # Get all column combinations
+  column_pairs <- combn(names(df), 2, simplify = FALSE)
+  
+  # Find identical columns
+  identical_columns <- sapply(column_pairs, function(pair) {
+    all(df[[pair[1]]] == df[[pair[2]]])
+  })
+  if(any(identical_columns)){
+  warning("Columns:",unique(unlist(column_pairs[identical_columns])),
+          "are not unique. Only use distinct distributions.")}else print("All fine")
+  # Get unique columns to keep
+}
+
+probX_Y <-
+  GSA_data |> ungroup() |> 
+  drop_na() |> 
+  mutate(RUN = NULL) |> # remove collumns that are not numeric data for probX
+  mutate_all(~if_else(. == 0, 1e-20, .)) |> # make 0's very small numbers 1e-20
+  mutate_all(log) |> # log transform
+  drop_na() |> # drop any rows with NA's
+  select(-where(~ var(.) == 0))# remove columns with 0 variance (are constant)
+
+id_identical_columns(probX_Y)
+probX_Y <- 
+  probX_Y |> mutate(
+    Corg_NA_agriculturalsoil= NULL,
+    Corg_NA_othersoil = NULL
+  )
+
+id_identical_columns(probX_Y)
+
+probX <- probX_Y |> 
+  mutate(Concentration_ADONA = NULL) |> 
+  data.matrix()
+probY <- probX_Y |> 
+  pull(Concentration_ADONA )
+
+#run global sensitivity analysis
+m <- sensiFdiv(model = NULL, X=probX, fdiv = "TV", nboot = 0, conf = 0.95,   scale = TRUE)
+tell(m, y=probY,S)
+
+# ggplot(m, ylim = c(0, 1))
+#prepare output for ggplot
+borg_d_temp <- tibble(TC = colnames(probX),
+                      delta= m$S$original)
+
+
+# mydf <- transform(borg_d_temp, TC = reorder(TC, delta))
+
+reorder(borg_d_temp$TC, borg_d_temp$delta)
+
+Sensplot <- ggplot(borg_d_temp, aes(x = delta,reorder(TC,delta))) + geom_bar(stat="identity")+
+theme_light()+
+  theme(axis.text.y = element_text(size = 10),
+        axis.title.y = element_blank(),
+        # plot.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank())
+
