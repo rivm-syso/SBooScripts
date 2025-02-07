@@ -44,7 +44,7 @@ The first step is to determine the number of uncertain variables and the number 
 ```{r Create samples, warning=FALSE, message=FALSE}
 ConcDividerVar <- World$NewCalcVariable("Mass2ConcDivider")
 # We keep the solver object, but for normal use, apply the "World" methods / properties; the new solver is part of it!
-SB1solver <- World$NewSolver("SB1Solve")
+World$NewSolver("ApproxODE")
 ```
 
 The lhs samples are pulled from a uniform distribution between 0 and 1. So these numbers have to be scaled to the real values you want to use, and it is possible to transform this uniform distribution to a different distribution. In this example, a triangular distribution will be used. 
@@ -78,20 +78,34 @@ Boxvars <- data.frame( # TODO? "waarde"
   SubCompart = c("river", "air", "agriculturalsoil")
 ) |> World$fetch_current()
 
-
 Boxvars <- Boxvars |>
   mutate(
     a = waarde*0.5,
-    b = waarde*1.5) 
+    b = waarde*1.5,
+    c = waarde) |>
+  mutate(Distribution = "triangular") |>
+  select(-waarde)
 
-#Define funs
-varFuns <- apply(Boxvars, 1, function(aRow){ 
-  prepArgs <- as.list(as.numeric(aRow[c("a", "b", "waarde")]))
-  names(prepArgs) <- c("a", "b", "c") 
-  #now, with all arguments properly prepared, we can
-  World$Make_inv_unif01(fun_type = "triangular", pars = prepArgs)
+# Define functions for each row based on the distribution type
+varFuns <- apply(Boxvars, 1, function(aRow) {
+  dist_type <- aRow["Distribution"]
+  
+  if (dist_type == "triangular") {
+    prepArgs <- as.list(as.numeric(aRow[c("a", "b", "c")]))
+    names(prepArgs) <- c("a", "b", "c")
+  } else if (dist_type == "normal") {
+    prepArgs <- as.list(as.numeric(aRow[c("mean", "sigma")]))
+    names(prepArgs) <- c("mean", "sigma")
+  } else if (dist_type == "uniform") {
+    prepArgs <- as.list(as.numeric(aRow[c("min", "max")]))
+    names(prepArgs) <- c("min", "max")
+  } else {
+    stop("Unsupported distribution type")
+  }
+  
+  # Create the inverse CDF function using the prepared arguments
+  World$Make_inv_unif01(fun_type = dist_type, pars = prepArgs)
 })
-
 ```
 
 ##### Prepare emission data
@@ -127,12 +141,64 @@ emisFuns <- apply(rowwise(emissions) |> select(a, b, Emis), 1, function(therow){
 names(emisFuns) <- emissions$Abbr
 ```
 
-```{r Create samples, warning=FALSE, message=FALSE}
+```{r Test steady state, warning=FALSE, message=FALSE}
 
 n_samples <- 2 # The number of samples you want to pull from the distributions for each variable
+World$NewSolver("SteadyODE")
 
-World$Solve(emissions = emisFuns, var_box_df = Boxvars, var_invFun = varFuns, nRUNs = n_samples)
-conc <- World$GetConcentration()
+World$Solve(emissions = emisFuns, var_box_df = Boxvars, var_invFun = varFuns)
+
+sol <- World$Solution()
+conc <- World$Concentration()
+
+```
+
+```{R Test Dynamic, warning=FALSE, message=FALSE}
+# Create example functions
+fun1 <- function(x) x + 1
+fun2 <- function(x) x * 2
+fun3 <- function(x) x^2
+
+# Create a tibble with an 'Abbr' column and a 'Funlist' column containing lists of functions
+final_fun_tibble <- tibble(
+  Abbr = c("A", "B", "A"),
+  EmisFun = list(fun1, fun2, fun3)
+)
+
+# Group by 'Abbr' and summarize to create a list of functions for each group
+final_fun_tibble <- final_fun_tibble |> 
+  group_by(Abbr) |> 
+  summarize(Funlist = list(EmisFun))
+
+print(length(final_fun_tibble$Funlist[[1]]))
+
+# Print the tibble
+print(final_fun_tibble)
+
+
+fun1 <- function(x) x + 1
+fun2 <- function(x) x * 2
+fun3 <- function(x) x^2
+
+# Create a nested list
+nested_list <- list(
+  A = list(fun1, fun3),  # Group A with two functions
+  B = list(fun2)         # Group B with one function
+)
+
+length(nested_list[[2]])
+
+#World$NewSolver("ApproxODE")
+
+tmax <- 20*365*24*3600
+nTIMES <- 20
+
+World$Solve(emissions = emisFuns, tmax = tmax, nTIMES = nTIMES, uncertain_emis = F, var_box_df = Boxvars, var_invFun = varFuns, nRUNs = n_samples)
+
+sol <- World$Solution()
+conc <- World$Concentration()
+emis <- World$Emissions()
+
 # behind the scenes:
 # library(lhs)
 
@@ -206,11 +272,11 @@ names(funlist) <- SBEmissions3$Abbr
 ```
 
 #### Solve
-```{r Solve, warning=FALSE, message=FALSE}
-World$NewSolver("UncertainDynamicSolver")
-solved2 <- World$Solve(funlist, sample_df, tmax = tmax, needdebug = F)
-
-```
+# ```{r Solve, warning=FALSE, message=FALSE}
+# World$NewSolver("UncertainDynamicSolver")
+# solved2 <- World$Solve(funlist, sample_df, tmax = tmax, needdebug = F)
+# 
+# ```
 
 #### Prepare plot data
 ```{r example output plots}
@@ -478,11 +544,11 @@ emis_df <- emis_df |>
 
 #### Solve
 ```{r Solve, warning=FALSE, message=FALSE}
-World$NewSolver("UncertainDynamicSolver")
-solved3 <- World$Solve(emis_df, sample_df, tmax = tmax, needdebug = F)
-
-# first get the abbreviations of the compartments that have emissions
-emiscomps <- unique(solved3$Input_Emission$Abbr)
+# World$NewSolver("UncertainDynamicSolver")
+# solved3 <- World$Solve(emis_df, sample_df, tmax = tmax, needdebug = F)
+# 
+# # first get the abbreviations of the compartments that have emissions
+# emiscomps <- unique(solved3$Input_Emission$Abbr)
 
 ```
 

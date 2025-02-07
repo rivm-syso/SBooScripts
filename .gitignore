@@ -100,3 +100,4 @@ Backup of *.doc*
 
 # ignore case study data files
 CaseData/
+vignettes/Development/Quality control/Publication/Combined_table_large_diffs.xlsx
