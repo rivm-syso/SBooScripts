@@ -191,4 +191,5 @@ print(masses)
 
 ```
 
-## Calculate dynamic output
+For more information on the different types of solver and how to use
+them, please see SBooScripts/vignettes/x. Solver use.md.

@@ -15,7 +15,8 @@ knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct s
 ```
 
 ## Initialize World
-First, we will load the necessary packages and initialize the world for molecules
+
+First, we will load the necessary packages and initialize the world for molecules.
 
 ```{r Initialize World, warning=FALSE, message=FALSE}
 library(lhs)
@@ -24,35 +25,70 @@ library(tidyverse)
 source("baseScripts/initWorld_onlyMolec.R")
 ```
 
+If you would like to instead initialize the World for particulates or microplastics, use: - source("baseScripts/initWorld_onlyParticulate.R") - source("baseScripts/initWorld_onlyMicroplastics.R")
+
 ## Steady state solver
 
-### Use the solver with uncertain variables and uncertain emissions as a set of functions
+A steady state solver calculates the masses in each environmental compartment (i.e. air, riverwater, naturalsoil) at each scale (i.e. Regional, Continental) when the system has reached an equilibrium.
 
-#### Create tibble with samples for uncertain variables
+There are two ways to use the steady state solver: deterministically (solve once with one set of emissions and one set of substance variables), or probabilistically (solve multiple times, once for each run with uncertain substance variables and optionally uncertain emissions).
 
-The first step is to define the solver to use. For all steady state calculations, this solver is named SteadyODE. 
+### Use the steady state solver deterministically
 
-```{r Define solver, warning=FALSE, message=FALSE}
-#ConcDividerVar <- World$NewCalcVariable("Mass2ConcDivider")
-World$NewSolver("SteadyODE")
+We already initialized the simplest version of the World in the previous chunk. This means the World was initialized for 'default substance', which behaves as a molecule.
+
+As we will not vary any substance variables when using the deterministic steady state solver, we only need to make a dataframe containing the emissions for 1 or more compartments. This dataframe should contain two columns: - 'Abbr', which contains the abbreviations for the compartments - 'Emis', which contains the emissions to the compartments, in kg/s.
+
+To see the abbreviations and their meaning, you can run \`World\$states\$asDataFrame\`.
+
+```{r Make emission dataframe for steady state deterministic solver, warning=FALSE, message=FALSE}
+# Create the steady state emission dataframe
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000)) 
+
+# convert 1 t/y to si units: kg/s
+emissions <- emissions |>
+  mutate(Emis = Emis*1000/(365*24*60*60)) 
 ```
 
-The lhs samples are pulled from a uniform distribution between 0 and 1. So these numbers have to be scaled to the real values you want to use, and it is possible to transform this uniform distribution to a different distribution. In this example, a triangular distribution will be used. 
+Now we will initialize the solver, with is "SteadyODE" for all steady state calculations. Consequently, we will use the `World$Solve()` function to calculate the masses in each compartment.
 
-<!-- Define triangular distribution function: -->
-<!-- ```{r Define triangular distribution function, warning=FALSE, message=FALSE} -->
-<!-- triangular_cdf_inv <- World$Make_inv_unif01(fun_type = "triangular", pars = list (a=0.5, b=1.5, c=1)) -->
-<!-- par(mfrow = c(1, 2)) -->
-<!-- curve(triangular_cdf_inv, from = 0, to = 1) -->
-<!-- #check sampling  -->
-<!-- hist(triangular_cdf_inv(runif(5000)), breaks = 40) -->
-<!-- par(mfrow = c(1, 2)) -->
-<!-- ``` -->
+```{r Solve steady state deterministically, warning=FALSE, message=FALSE}
+# Define the solver function to use. For steady state calculations, this is always "SteadyODE"
+World$NewSolver("SteadyODE")
 
-##### Prepare variable samples
-For each variable that is uncertain you can define the distribution type (triangular, uniform or normal) and the corresponding parameters. For this example, an example excel file will be read in containing the necessary parameters for the variables we want to vary. 
+# Solve with the emissions we defined in the previous chunk
+World$Solve(emissions = emissions)
+```
 
-```{r Get min, max and peak value of variable values, warning=FALSE, message=FALSE}
+Finally we can retrieve the masses, emissions and concentrations from the World object by using the functions in the chunk below.
+
+```{r Get solution emissions and concentration, warning=FALSE, message=FALSE}
+# Get the solution(=mass per compartment), emissions and concentrations from 'World'
+solution <- World$Solution()
+emission <- World$Emissions()
+concentration <- World$Concentration()
+```
+
+### Use the steady state solver probabilistically
+
+```{r Prepare uncertain steady emissions}
+source('baseScripts/initWorld_onlyPlastics.R')
+World$NewSolver("SteadyODE")
+load("vignettes/example_uncertain_data.RData")
+
+example_data <- example_data |>
+  select(To_Compartment, `2023`, RUN) |>
+  rename("Emis" = `2023`) |>
+  mutate(Abbr = case_when(
+    To_Compartment == "Agricultural soil (micro)" ~ "s2RS",
+    To_Compartment == "Residential soil (micro)" ~ "s3RS",
+    To_Compartment == "Surface water (micro)" ~ "w1RS"
+  )) |>
+  mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> # Convert kt/year to kg/s
+  select(-To_Compartment) 
+```
+
+```{r Prepare variable df and functions}
 # Load the Excel file containing example distributions for variablese
 Example_vars <- readxl::read_xlsx("vignettes/Example_uncertain_variables.xlsx", sheet = "Variable_data")
 
@@ -64,11 +100,11 @@ varFuns <- apply(Example_vars, 1, function(aRow) {
     prepArgs <- as.list(as.numeric(aRow[c("a", "b", "c")]))
     names(prepArgs) <- c("a", "b", "c")
   } else if (dist_type == "normal") {
-    prepArgs <- as.list(as.numeric(aRow[c("mean", "sigma")]))
-    names(prepArgs) <- c("mean", "sigma")
+    prepArgs <- as.list(as.numeric(aRow[c("a", "b")]))
+    names(prepArgs) <- c("a", "b")
   } else if (dist_type == "uniform") {
-    prepArgs <- as.list(as.numeric(aRow[c("min", "max")]))
-    names(prepArgs) <- c("min", "max")
+    prepArgs <- as.list(as.numeric(aRow[c("a", "b")]))
+    names(prepArgs) <- c("a", "b")
   } else {
     stop("Unsupported distribution type")
   }
@@ -78,109 +114,202 @@ varFuns <- apply(Example_vars, 1, function(aRow) {
 })
 ```
 
-##### Prepare emission data
-
-In this example, we will take a steady state emission data frame as the starting point for creating the triangular distributions. You could also directly enter the min, max and peak values if you have them.
-
-```{r Create steady state emission dataframe, warning=FALSE, message=FALSE}
-# Create the steady state emission dataframe
-emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000)) 
-
-# convert 1 t/y to si units: kg/s
-emissions <- emissions |>
-  mutate(Emis = Emis*1000/(365*24*60*60)) 
+```{r Use the solver}
+World$NewSolver("SteadyODE")
+World$Solve(emissions = example_data, var_box_df = Example_vars, var_invFun = varFuns, nRUNs = length(unique(example_data$RUN)))
+solution = World$Solution()
+varvals = World$VariableValues()
+concentration = World$Concentration()
+emis = World$Emissions()
 ```
 
-Now that the emission data frame is made, we can scale the samples we took earlier to the triangular distribution just like we did for the variables.
+## Dynamic solver
+To demonstrate the use of the dynamic solvers we will initialize the World for microplastics first:
 
-```{r Scale the emissions to the distributions, warning=FALSE, message=FALSE}
-emissions$a <- emissions$Emis * 0.7
-emissions$b <- emissions$Emis * 1.3
+```{r Init world microplastics, warning=FALSE, message=FALSE}
+source('baseScripts/initWorld_onlyPlastics.R')
+```
 
-emisFuns <- apply(rowwise(emissions) |> select(a, b, Emis), 1, function(therow){
-  abcArgs <- as.list(as.numeric(therow))
-  names(abcArgs) <- c("a", "b", "c")
-  World$Make_inv_unif01("triangular", abcArgs)
+### Use the dynamic solver deterministically
+
+When the World is initialized for particulates or plastics, the emissions go to the "S", "A" and/or "P" species (this is unlike emissions for molecules, where the emissions go to the "U" species).
+
+| Abbreviation | Full species name |
+|--------------|-------------------|
+| U            | Unbound           |
+| S            | Solid             |
+| A            | Aggregated        |
+| P            | Attached          |
+
+: Species abbreviations and the corresponding species names.
+
+```{r Test dynamic deterministic solver with emission df, warning = FALSE, message="FALSE"}
+emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS","aRS", "s2RS", "w1RS"), Emis = c(10, 10, 10, 20, 20, 20), Timed = c(1, 2, 3, 4, 5, 6)) # convert 1 t/y to si units: kg/s
+
+emissions <- emissions |>
+  mutate(Timed = Timed*(365.25*24*60*60)) |> ungroup()
+
+tmax <- 365.25*24*60*60*10
+nTIMES <- length(seq(0, tmax, length.out = 10))
+
+World$NewSolver("ApproxODE")
+World$Solve(emissions = emissions, tmax = tmax, nTIMES = nTIMES)
+solution <- World$Solution()
+emission <- World$Emissions()
+
+PlotMass <- function(abbr){
+  sol <- World$Solution() |>
+    filter(Abbr == abbr) |>
+    mutate(time = as.numeric(time))|>
+    mutate(Year = time/(365.25*24*3600))
+  
+  plot <- ggplot(sol, aes(x = Year, y = Mass_kg)) + 
+    theme_bw() + 
+    geom_line() 
+}
+
+print(PlotMass("s1CS"))
+```
+
+## Use the dynamic solver probabilistically 
+
+```{r Prepare uncertain steady emissions}
+source('baseScripts/initWorld_onlyPlastics.R')
+World$NewSolver("SteadyODE")
+load("vignettes/example_uncertain_data.RData")
+
+example_data <- example_data |>
+  select(To_Compartment, `2020`, `2021`,`2022`, `2023`, RUN) |>
+  pivot_longer(!c(To_Compartment, RUN), names_to = "year", values_to = "Emis") |>
+  mutate(Abbr = case_when(
+    To_Compartment == "Agricultural soil (micro)" ~ "s2RS",
+    To_Compartment == "Residential soil (micro)" ~ "s3RS",
+    To_Compartment == "Surface water (micro)" ~ "w1RS"
+  )) |>
+  select(-To_Compartment) |>
+  mutate(Timed = ((as.numeric(year)-2019)*365.25*24*3600)) |>
+  mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> # Convert kt/year to kg/s
+  select(-year)
+```
+
+```{r Prepare variable df and functions}
+# Load the Excel file containing example distributions for variablese
+Example_vars <- readxl::read_xlsx("vignettes/Example_uncertain_variables.xlsx", sheet = "Variable_data")
+
+# Define functions for each row based on the distribution type
+varFuns <- apply(Example_vars, 1, function(aRow) {
+  dist_type <- aRow["Distribution"]
+  
+  if (dist_type == "triangular") {
+    prepArgs <- as.list(as.numeric(aRow[c("a", "b", "c")]))
+    names(prepArgs) <- c("a", "b", "c")
+  } else if (dist_type == "normal") {
+    prepArgs <- as.list(as.numeric(aRow[c("a", "b")]))
+    names(prepArgs) <- c("a", "b")
+  } else if (dist_type == "uniform") {
+    prepArgs <- as.list(as.numeric(aRow[c("a", "b")]))
+    names(prepArgs) <- c("a", "b")
+  } else {
+    stop("Unsupported distribution type")
+  }
+  
+  # Create the inverse CDF function using the prepared arguments
+  World$Make_inv_unif01(fun_type = dist_type, pars = prepArgs)
 })
 
-# to identify the box by Abbr
-names(emisFuns) <- emissions$Abbr
 ```
 
-```{r Test steady state uncertain solver, warning=FALSE, message=FALSE}
-# The number of samples you want to pull from the distributions for each variable
-n_samples <- 2 
-World$NewSolver("SteadyODE")
+```{r Use the solver}
+World$NewSolver("ApproxODE")
 
-World$Solve(emissions = emisFuns, var_box_df = Example_vars, var_invFun = varFuns, uncertain_emis = T)
+tmax <- 365.25*24*60*60*length(unique(example_data$Timed))
+nTIMES <- length(seq(0, tmax, length.out = 10))
 
-sol <- World$Solution()
-conc <- World$Concentration()
-
+World$Solve(emissions = example_data, var_box_df = Example_vars, var_invFun = varFuns, nRUNs = length(unique(example_data$RUN)), tmax = tmax, nTIMES = nTIMES)
+solution = World$Solution()
 ```
 
-```{r Test steadt state deterministic solver, warning=FALSE, message=FALSE}
-World$NewSolver("SteadyODE")
+<!-- ### Use the solver with uncertain variables and uncertain emissions as a set of functions -->
 
+<!-- #### Create tibble with samples for uncertain variables -->
 
+<!-- The first step is to define the solver to use. For all steady state calculations, this solver is named SteadyODE. -->
 
-```
+<!-- ```{r Define solver, warning=FALSE, message=FALSE} -->
+<!-- World$NewSolver("SteadyODE") -->
+<!-- ``` -->
 
+<!-- The lhs samples are pulled from a uniform distribution between 0 and 1. So these numbers have to be scaled to the real values you want to use, and it is possible to transform this uniform distribution to a different distribution. In this example, a triangular distribution will be used. -->
 
-```{R Test Dynamic, warning=FALSE, message=FALSE}
-# Create example functions
-fun1 <- function(x) x + 1
-fun2 <- function(x) x * 2
-fun3 <- function(x) x^2
+<!-- ##### Prepare variable samples -->
 
-# Create a tibble with an 'Abbr' column and a 'Funlist' column containing lists of functions
-final_fun_tibble <- tibble(
-  Abbr = c("A", "B", "A"),
-  EmisFun = list(fun1, fun2, fun3)
-)
+<!-- For each variable that is uncertain you can define the distribution type (triangular, uniform or normal) and the corresponding parameters. For this example, an example excel file will be read in containing the necessary parameters for the variables we want to vary. -->
 
-# Group by 'Abbr' and summarize to create a list of functions for each group
-final_fun_tibble <- final_fun_tibble |> 
-  group_by(Abbr) |> 
-  summarize(Funlist = list(EmisFun))
+<!-- ```{r Get min, max and peak value of variable values, warning=FALSE, message=FALSE} -->
+<!-- source("baseScripts/initWorld_onlyMolec.R") -->
+<!-- World$NewSolver("SteadyODE") -->
+<!-- # Load the Excel file containing example distributions for variables -->
 
-print(length(final_fun_tibble$Funlist[[1]]))
+<!-- Example_vars <- readxl::read_xlsx("vignettes/Example_uncertain_variables.xlsx", sheet = "Variable_data") -->
 
-# Print the tibble
-print(final_fun_tibble)
+<!-- # Define functions for each row based on the distribution type -->
+<!-- varFuns <- apply(Example_vars, 1, function(aRow) { -->
+<!--   dist_type <- aRow["Distribution"] -->
 
+<!--   if (dist_type == "triangular") { -->
+<!--     prepArgs <- as.list(as.numeric(aRow[c("a", "b", "c")])) -->
+<!--     names(prepArgs) <- c("a", "b", "c") -->
+<!--   } else if (dist_type == "normal") { -->
+<!--     prepArgs <- as.list(as.numeric(aRow[c("a", "b")])) -->
+<!--     names(prepArgs) <- c("a", "b") -->
+<!--   } else if (dist_type == "uniform") { -->
+<!--     prepArgs <- as.list(as.numeric(aRow[c("a", "b")])) -->
+<!--     names(prepArgs) <- c("a", "b") -->
+<!--   } else { -->
+<!--     stop("Unsupported distribution type") -->
+<!--   } -->
 
-fun1 <- function(x) x + 1
-fun2 <- function(x) x * 2
-fun3 <- function(x) x^2
+<!--   # Create the inverse CDF function using the prepared arguments -->
+<!--   World$Make_inv_unif01(fun_type = dist_type, pars = prepArgs) -->
+<!-- }) -->
+<!-- ``` -->
 
-# Create a nested list
-nested_list <- list(
-  A = list(fun1, fun3),  # Group A with two functions
-  B = list(fun2)         # Group B with one function
-)
+<!-- ##### Prepare emission data -->
 
-length(nested_list[[2]])
+<!-- In this example, we will take a steady state emission data frame as the starting point for creating the triangular distributions. You could also directly enter the min, max and peak values if you have them. -->
 
-#World$NewSolver("ApproxODE")
+<!-- ```{r Create steady state emission dataframe, warning=FALSE, message=FALSE} -->
+<!-- # Create the steady state emission dataframe -->
+<!-- emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000)) -->
 
-tmax <- 20*365*24*3600
-nTIMES <- 20
+<!-- # convert 1 t/y to si units: kg/s -->
+<!-- emissions <- emissions |> -->
+<!--   mutate(Emis = Emis*1000/(365*24*60*60)) -->
+<!-- ``` -->
 
-World$Solve(emissions = emisFuns, tmax = tmax, nTIMES = nTIMES, uncertain_emis = F, var_box_df = Example_vars, var_invFun = varFuns, nRUNs = n_samples)
+<!-- Now that the emission data frame is made, we can scale the samples we took earlier to the triangular distribution just like we did for the variables. -->
 
-sol <- World$Solution()
-conc <- World$Concentration()
-emis <- World$Emissions()
+<!-- ```{r Scale the emissions to the distributions, warning=FALSE, message=FALSE} -->
+<!-- emissions$a <- emissions$Emis * 0.7 -->
+<!-- emissions$b <- emissions$Emis * 1.3 -->
 
-# behind the scenes:
-# library(lhs)
+<!-- emisFuns <- apply(rowwise(emissions) |> select(a, b, Emis), 1, function(therow){ -->
+<!--   abcArgs <- as.list(as.numeric(therow)) -->
+<!--   names(abcArgs) <- c("a", "b", "c") -->
+<!--   World$Make_inv_unif01("triangular", abcArgs) -->
+<!-- }) -->
 
-# n_lhs <- n_vars + n_emiscomps # Total number of vectors to create with latin hypercube sampling (lhs)
+<!-- # to identify the box by Abbr -->
+<!-- names(emisFuns) <- emissions$Abbr -->
+<!-- ``` -->
 
-# lhs_samples <- optimumLHS(n_samples, n_lhs) # Generate numbers between 0 and 1 using lhs
+<!-- ```{r Test steady state uncertain solver, warning=FALSE, message=FALSE} -->
+<!-- # The number of samples you want to pull from the distributions for each variable -->
+<!-- n_samples <- 2 -->
+<!-- World$NewSolver("SteadyODE") -->
 
-# # Separate the samples for the variable and emission distributions from each other:
-# lhs_samples_vars <- lhs_samples[, 1:n_vars] 
-# lhs_samples_emis <- lhs_samples[, (n_vars + 1):ncol(lhs_samples)]
-```
+<!-- World$Solve(emissions = emisFuns, var_box_df = Example_vars, var_invFun = varFuns, nRUNs = n_samples) -->
+
+<!-- sol <- World$Solution() -->
+<!-- conc <- World$Concentration() -->
+<!-- ``` -->
