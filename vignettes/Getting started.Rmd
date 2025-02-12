@@ -4,21 +4,21 @@ author: "Anne Hids"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
-  chunk_output_type: inline
+  chunk_output_type: console
   markdown: 
     wrap: 72
 ---
 
-```{r setup, include=FALSE, warning=FALSE}
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
 knitr::knit_meta()
 knitr::opts_chunk$set(echo = TRUE)
 projectRoot <- paste(getwd(), "..", sep = "/")
 knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
-## Initialize
-
 This vignette demonstrates how to use SimpleBox Object-Oriented (SBOO).
+
+## Initialize
 
 ### Choose a substance
 
@@ -28,9 +28,9 @@ used. To select another substance than "default substance", a substance
 can be chosen from the "Substance" column of the data frame created
 below.
 
-```{r Substance list, include=TRUE, warning=FALSE}
-#substances <- read.csv("data/Substances.csv")
-substances <- read.csv("~/GitHub/SimpleBox/SBooScripts/data/Substances.csv")
+```{r Substance list, include=TRUE, warning=FALSE, message=FALSE}
+substances <- read.csv("data/Substances.csv")
+#substances <- read.csv("~/GitHub/SimpleBox/SBooScripts/data/Substances.csv")
 
 # Assign a substance name from the Substance column to the variable "substance":
 substance <- "1-aminoanthraquinone"
@@ -48,14 +48,14 @@ To initialize the World object, one of three script is called:
 -   initWorld_onlyParticulate.R (used for particulates)
 -   initWorld_onlyPlastics.R (used for microplastics)
 
-Choosing which script to use is dependent on the ChemClass of the chosen
+Choosing which script to use is dependent on the substance class of the chosen
 substance (see "ChemClass" column in the "substances" data frame). Each
 of these three classes require different initWorld scripts because
 different processes and variables are used to calculate the k's. With
 the chunk below, the correct initWorld script is automatically chosen
 and run based on the chosen substance:
 
-```{r Initialize World, include=TRUE, warning=FALSE}
+```{r Initialize World, include=TRUE, warning=FALSE, message=FALSE}
 library(tidyverse)
 
 chemclass <- substances |>
@@ -71,38 +71,35 @@ if(substance == "microplastic"){
 } else {
   source("baseScripts/initWorld_onlyMolec.R")
 }
-
 ```
 
-## Accessing variables and k's
+## Access variables
 
 Now that the World is initialized, its variables and calculated flows
 can be accessed. To access these variables and k's, first the names of
 the variables are needed:
 
-```{r Get variable names, include=TRUE, warning=FALSE}
+```{r Get variable names, include=TRUE, warning=FALSE, message=FALSE}
 varnames <- World$fetchData()
 
 print(varnames)
 ```
 
-### Access variables
-
 A specific variable (in this case AreaSea) can be accessed as follows:
 
-```{r Access variables, include=TRUE, warning=FALSE}
-World$fetchData("AreaSea")
+```{r Access variables, include=TRUE, warning=FALSE, message=FALSE}
+knitr::kable(World$fetchData("AreaSea"))
 ```
 
-### Access k's
+## Access k's
 
 The "kaas" variable contains a data frame with the k's, proccess name,
 to-subcompartment name from-subcompartment name, to-scale name,
 from-scale name, to-species name and from-species name. It can be
 accessed in the same way other variables are accessed:
 
-```{r Access kaas, include=TRUE, warning=FALSE}
-df_ks <- World$fetchData("kaas")
+```{r Access kaas, include=TRUE, warning=FALSE, message=FALSE}
+df_ks <- World$kaas
 ```
 
 ## Calculate steady state output
@@ -119,8 +116,7 @@ another column containing the emission to that compartment.
 
 The abbreviations are as follows:
 
-```{r Abbreviations, include=TRUE, warning=FALSE}
-library(knitr)
+```{r Abbreviations, include=TRUE, warning=FALSE, message=FALSE}
 scales <- data.frame(Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"), Abbreviation = c("A", "C", "M", "R", "T"))
 
 subcompartments <- read.csv("data/SubCompartSheet.csv") |>
@@ -132,10 +128,15 @@ species <- read.csv("data/SpeciesSheet.csv") |>
   select(Species, AbbrP) |>
   rename(Abbreviation = AbbrP)
 
-print(scales)
-print(subcompartments)
-print(species)
+knitr::kable(scales)
+knitr::kable(subcompartments)
+knitr::kable(species)
+```
 
+You can access all abbreviations and their meanings like this:
+
+```{r Access all abbrs and meanings, warnings=FALSE,  message=FALSE}
+All_abbrs <- World$states$asDataFrame
 ```
 
 *Notes:*
@@ -162,7 +163,7 @@ emissions in tonnes per year are then converted to mol/s.
 abbreviation "U" for "Unbound" is used here to specify emissions. If the
 substance is a particle, use "S" for "Solid"!**
 
-```{r Create emissions data frame, include=TRUE, warning=FALSE}
+```{r Create emissions data frame, include=TRUE, warning=FALSE, message=FALSE}
 emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000) ) 
 
 MW <- World$fetchData("MW")
@@ -170,8 +171,7 @@ MW <- World$fetchData("MW")
 emissions <- emissions |>
   mutate(Emis = Emis*1000/(MW*365*24*60*60)) # convert 1 t/y to mol/s
 
-print(emissions)
-
+knitr::kable(emissions)
 ```
 
 ### Solve the matrix
@@ -180,16 +180,18 @@ To solve the matrix, a solver first needs to be specified. To solve for
 a steady state we can use "SB1Solve". In this case the resulting steady
 state masses are reported in the data frame "masses".
 
-```{r Solve the matrix, include=TRUE, warning=FALSE}
-# Specify which solver to use to the World object
-World$NewSolver("SB1Solve")
+```{r Solve the matrix, include=TRUE, warning=FALSE, message=FALSE}
+# Define the solver function to use. For steady state calculations, this is always "SteadyODE"
+World$NewSolver("SteadyODE")
 
-# Use the emissions data frame and solve the matrix
-masses <- World$Solve(emissions)
+# Solve with the emissions we defined in the previous chunk
+World$Solve(emissions = emissions)
 
-print(masses)
+# Access the masses in each compartment
+masses <- World$Solution()
 
+knitr::kable(masses)
 ```
 
-For more information on the different types of solver and how to use
-them, please see SBooScripts/vignettes/x. Solver use.md.
+**For more information on the different types of solvers and how to use
+them, please see SBooScripts/vignettes/x. Solver use.md.**
