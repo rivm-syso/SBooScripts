@@ -16,56 +16,7 @@ World$NewSolver("ApproxODE")
 World$Solve(emissions = emissions, tmax = tmax, nTIMES = nTIMES)
 solution <- World$Solution()
 
-DetDynPlot <- function(scale = "Regional", subcompart = NULL){
-  
-  # Get the solution
-  solution <- merge(World$Solution(), World$states$asDataFrame, by = "Abbr")
-  solution <- solution[c('SubCompart', 'Scale', 'Species', 'time', 'Mass_kg')]
-    
-  # Make sure 1 scale is selected
-  if(length(scale) != 1){
-    stop("Please select 1 scale")
-  }
-  
-  # Make sure the selected scale and subcompartments exist
-  if(!scale %in% unique(solution$Scale)){
-    stop("Selected scale does not exist")
-  }
-  
-  # Make sure the selected subcompartments exist
-  if (!is.null(subcompart) && !all(subcompart %in% unique(solution$SubCompart))) {
-    stop("One or more selected subcomparts do not exist")
-  }
-  
-  # Aggregate over species
-  cnames <- names(solution)
-  cnames <- cnames[!cnames %in% c("Species", "Mass_kg")]
-  formula <- as.formula(paste("Mass_kg ~", paste(cnames, collapse = " + ")))
-  solution <- aggregate(formula, data = solution, sum)
-  
-  if (!is.null(scale)) {
-    solution <- solution[solution$Scale %in% scale, ]
-  } else {
-    solution <- solution
-  }
-  
-  if (!is.null(subcompart)) {
-    solution <- solution[solution$SubCompart %in% subcompart, ]
-  } else {
-    solution <- solution
-  }
-  
-  # Convert time from seconds to years
-  solution$time <- as.numeric(solution$time)
-  solution$Year <- solution$time / (365.25 * 24 * 3600)
-  
-  plot <- ggplot(solution, aes(x = Year, y = Mass_kg, group = SubCompart, color = SubCompart)) + 
-    theme_bw() + 
-    geom_line() +
-    ggtitle(paste0("Masses in compartments at ", scale, " scale"))
-}
-
-print(DetDynPlot(scale = "Regional"))
+print(DetDynSolPlot(scale = "Regional"))
 
 ####################### Test probabilistic dynamic plot ########################
 
@@ -117,76 +68,7 @@ World$NewSolver("ApproxODE")
 World$Solve(emissions = example_data, var_box_df = Example_vars, var_invFun = varFuns, nRUNs = length(unique(example_data$RUN)), tmax = tmax, nTIMES = nTIMES)
 solution <- World$Solution()
 
-scale = "Regional"
-subcompart = "river"
-
-ProbDynPlot <- function(scale = "Regional", subcompart = "agriculturalsoil"){
-  
-  # Get the solution
-  solution <- merge(World$Solution(), World$states$asDataFrame, by = "Abbr")
-  solution <- solution[c('SubCompart', 'Scale', 'Species', 'time', 'RUNs', 'Mass_kg')]
-  
-  # Make sure 1 scale is selected
-  if(length(scale) != 1){
-    stop("Please select 1 scale")
-  }
-  
-  if(length(subcompart) != 1){
-    stop("Please select 1 subcompartment")
-  }
-  
-  # Make sure the selected scale and subcompartments exist
-  if(!scale %in% unique(solution$Scale)){
-    stop("Selected scale does not exist")
-  }
-  
-  # Make sure the selected subcompartments exist
-  if (!is.null(subcompart) && !all(subcompart %in% unique(solution$SubCompart))) {
-    stop("One or more selected subcomparts do not exist")
-  }
-  
-  # Aggregate over species
-  cnames <- names(solution)
-  cnames <- cnames[!cnames %in% c("Species", "Mass_kg")]
-  formula <- as.formula(paste("Mass_kg ~", paste(cnames, collapse = " + ")))
-  solution <- aggregate(formula, data = solution, sum)
-  
-  if (!is.null(scale)) {
-    solution <- solution[solution$Scale %in% scale, ]
-  } else {
-    solution <- solution
-  }
-  
-  if (!is.null(subcompart)) {
-    solution <- solution[solution$SubCompart %in% subcompart, ]
-  } else {
-    solution <- solution
-  }
-  
-  # Convert time from seconds to years
-  solution$time <- as.numeric(solution$time)
-  solution$Year <- solution$time / (365.25 * 24 * 3600)
-  
-  summary_stats <- solution |>
-    group_by(Year) |>
-    summarise(
-      Mean_Value = mean(Mass_kg, na.rm = TRUE),
-      SD_Value = sd(Mass_kg, na.rm = TRUE),
-      Lower_CI = Mean_Value - 1.96 * SD_Value / sqrt(n()),
-      Upper_CI = Mean_Value + 1.96 * SD_Value / sqrt(n())
-    ) |>
-    ungroup()
-  
-  ggplot(summary_stats, aes(x = Year, y = Mean_Value)) +
-    geom_line(color = "blue", size = 1) +
-    geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2, fill = "blue") +
-    labs(title = paste("Mean mass in", subcompart, " at ", scale, " scale with uncertainty bands over time"),
-         x = "Year",
-         y = paste("Mass of substance in ", subcompart, "[kg]")) +
-    theme_minimal()
-}
-
-print(ProbDynPlot(scale = "Regional", subcompart = "agriculturalsoil"))
+print(ProbDynSolPlot(scale = "Regional", subcompart = "agriculturalsoil"))
 
 ####################### Test probabilistic steady plot #########################
 
@@ -208,44 +90,6 @@ World$NewSolver("SteadyODE")
 
 # Solve 
 World$Solve(emissions = example_data, var_box_df = Example_vars, var_invFun = varFuns, nRUNs = length(unique(example_data$RUN)))
+sol <- World$Solution()
 
-scale = "Regional"
-
-ProbSSPlot <- function(scale = "Regional"){
-  
-  # Get the solution
-  solution <- merge(World$Solution(), World$states$asDataFrame, by = "Abbr")
-  solution <- solution[c('SubCompart', 'Scale', 'Species', 'RUNs', 'Mass_kg')]
-  
-  # Make sure 1 scale is selected
-  if(length(scale) != 1){
-    stop("Please select 1 scale")
-  }
-  
-  # Make sure the selected scale and subcompartments exist
-  if(!scale %in% unique(solution$Scale)){
-    stop("Selected scale does not exist")
-  }
-  
-  # Aggregate over species
-  cnames <- names(solution)
-  cnames <- cnames[!cnames %in% c("Species", "Mass_kg")]
-  formula <- as.formula(paste("Mass_kg ~", paste(cnames, collapse = " + ")))
-  solution <- aggregate(formula, data = solution, sum)
-  
-  if (!is.null(scale)) {
-    solution <- solution[solution$Scale %in% scale, ]
-  } else {
-    solution <- solution
-  }
-
-  ggplot(solution, aes(x = SubCompart, y = Mass_kg)) +
-    geom_violin()+
-    theme_bw() +
-    labs(title = paste("Mass at ", scale, "scale"),
-         x = "",
-         y = paste("Mass of substance [kg]")) +
-    theme_minimal()
-}
-
-print(ProbSSPlot(scale = "Regional"))
+print(ProbSSSolPlot(scale = "Regional"))
