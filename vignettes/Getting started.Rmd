@@ -30,7 +30,6 @@ below.
 
 ```{r Substance list, include=TRUE, warning=FALSE, message=FALSE}
 substances <- read.csv("data/Substances.csv")
-#substances <- read.csv("~/GitHub/SimpleBox/SBooScripts/data/Substances.csv")
 
 # Assign a substance name from the Substance column to the variable "substance":
 substance <- "1-aminoanthraquinone"
