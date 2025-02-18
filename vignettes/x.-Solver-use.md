@@ -1,7 +1,7 @@
 Solver use
 ================
 Anne Hids, Jaap Slootweg, Joris Quik
-2025-02-12
+2025-02-18
 
 ## Initialize World
 
@@ -78,11 +78,51 @@ the World object by using the functions in the chunk below.
 solution <- World$Solution()
 emission <- World$Emissions()
 concentration <- World$Concentration()
+
+knitr::kable(concentration)
 ```
+
+| Abbr  | time | RUNs | Concentration | Unit    |
+|:------|:-----|:-----|--------------:|:--------|
+| aAU   | 0    | 1    |     0.0000000 | g/m3    |
+| aCU   | 0    | 1    |     0.0000001 | g/m3    |
+| aMU   | 0    | 1    |     0.0000000 | g/m3    |
+| aRU   | 0    | 1    |     0.0000004 | g/m3    |
+| aTU   | 0    | 1    |     0.0000000 | g/m3    |
+| s1AU  | 0    | 1    |     0.0000102 | g/kg dw |
+| s1CU  | 0    | 1    |     0.0000220 | g/kg dw |
+| s1MU  | 0    | 1    |     0.0000038 | g/kg dw |
+| s1RU  | 0    | 1    |     0.0001227 | g/kg dw |
+| s1TU  | 0    | 1    |     0.0000012 | g/kg dw |
+| s2CU  | 0    | 1    |     0.0000091 | g/kg dw |
+| s2RU  | 0    | 1    |     0.1998416 | g/kg dw |
+| s3CU  | 0    | 1    |     0.0000220 | g/kg dw |
+| s3RU  | 0    | 1    |     0.0001227 | g/kg dw |
+| sd0CU | 0    | 1    |     0.0000322 | g/kg dw |
+| sd0RU | 0    | 1    |     0.0096379 | g/kg dw |
+| sd1CU | 0    | 1    |     0.0001072 | g/kg dw |
+| sd1RU | 0    | 1    |     1.2311868 | g/kg dw |
+| sd2AU | 0    | 1    |     0.0000030 | g/kg dw |
+| sd2CU | 0    | 1    |     0.0000277 | g/kg dw |
+| sd2MU | 0    | 1    |     0.0000003 | g/kg dw |
+| sd2RU | 0    | 1    |     0.0744787 | g/kg dw |
+| sd2TU | 0    | 1    |     0.0000000 | g/kg dw |
+| w0CU  | 0    | 1    |     0.0003204 | g/L     |
+| w0RU  | 0    | 1    |     0.0960875 | g/L     |
+| w1CU  | 0    | 1    |     0.0008048 | g/L     |
+| w1RU  | 0    | 1    |     9.2400989 | g/L     |
+| w2AU  | 0    | 1    |     0.0000757 | g/L     |
+| w2CU  | 0    | 1    |     0.0002400 | g/L     |
+| w2MU  | 0    | 1    |     0.0000229 | g/L     |
+| w2RU  | 0    | 1    |     0.6440134 | g/L     |
+| w2TU  | 0    | 1    |     0.0000050 | g/L     |
+| w3AU  | 0    | 1    |     0.0000228 | g/L     |
+| w3MU  | 0    | 1    |     0.0000023 | g/L     |
+| w3TU  | 0    | 1    |     0.0000002 | g/L     |
 
 ### Use the steady state solver probabilistically
 
-To demonstrate the use of the steady state probabilistc solver we will
+To demonstrate the use of the steady state probabilistic solver we will
 initialize the World for microplastics first.
 
 When the World is initialized for particulates or plastics, the
@@ -191,6 +231,22 @@ concentration = World$Concentration()
 emission = World$Emissions()
 ```
 
+Finally, we can plot the outcome using the predefined plot functions
+
+``` r
+# Plot concentrations at regional scale
+World$PlotConcentration(scale = "Regional")
+```
+
+![](x.-Solver-use_files/figure-gfm/Plot%20the%20SS%20probabilistic%20outcome-1.png)<!-- -->
+
+``` r
+# Plot solution at continental scale 
+World$PlotSolution(scale = "Regional")
+```
+
+![](x.-Solver-use_files/figure-gfm/Plot%20the%20SS%20probabilistic%20outcome-2.png)<!-- -->
+
 ## Dynamic solver
 
 To demonstrate the use of the dynamic solvers we will initialize the
@@ -235,26 +291,28 @@ solution <- World$Solution()
 emission <- World$Emissions()
 ```
 
-An example of a plot to make with the outcome:
+Plot the outcome using the predefined plot functions:
 
 ``` r
-PlotMass <- function(abbr){
-  sol <- World$Solution() |>
-    filter(Abbr == abbr) |>
-    mutate(time = as.numeric(time))|>
-    mutate(Year = time/(365.25*24*3600))
-  
-  plot <- ggplot(sol, aes(x = Year, y = Mass_kg)) + 
-    theme_bw() + 
-    geom_line() +
-    ggtitle(abbr)
-}
-
-# As an example, plot the mass in natural soil at continental scale over time
-print(PlotMass("s1CS"))
+# You can specify a scale and a subcompartment
+World$PlotSolution(scale = "Regional", subcompart = "agriculturalsoil")
 ```
 
-![](x.-Solver-use_files/figure-gfm/Plot%20the%20outcome%20of%20the%20dynamic%20solver-1.png)<!-- -->
+![](x.-Solver-use_files/figure-gfm/Plot%20the%20outcome%20of%20the%20dynamic%20deterministic%20solver-1.png)<!-- -->
+
+``` r
+# Or just a scale and all subcompartments are plotted:
+World$PlotSolution(scale = "Regional")
+```
+
+![](x.-Solver-use_files/figure-gfm/Plot%20the%20outcome%20of%20the%20dynamic%20deterministic%20solver-2.png)<!-- -->
+
+``` r
+# Plot all concentrations at regional scale
+World$PlotConcentration(scale = "Regional")
+```
+
+![](x.-Solver-use_files/figure-gfm/Plot%20the%20outcome%20of%20the%20dynamic%20deterministic%20solver-3.png)<!-- -->
 
 ## Use the dynamic solver probabilistically
 
@@ -342,33 +400,16 @@ concentrations = World$Concentration()
 An example of a plot to make with the output data:
 
 ``` r
-abbr = "sd1RA"
-
-plot_data <- solution |>
-  filter(Abbr == abbr) |>
-  mutate(year = ((as.numeric(time))/(365.25*24*3600)) + 2019) # Convert seconds to years used in emissions
-
-summary_stats <- plot_data |>
-  group_by(year) |>
-  summarise(
-    Mean_Value = mean(Mass_kg, na.rm = TRUE),
-    SD_Value = sd(Mass_kg, na.rm = TRUE),
-    Lower_CI = Mean_Value - 1.96 * SD_Value / sqrt(n()),
-    Upper_CI = Mean_Value + 1.96 * SD_Value / sqrt(n())
-  ) |>
-  ungroup()
-
-# Step 3: Plot
-ggplot(summary_stats, aes(x = year, y = Mean_Value)) +
-  geom_line(color = "blue", size = 1) +
-  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2, fill = "blue") +
-  labs(title = paste("Mean mass in", abbr, "with Uncertainty Bands Over Time"),
-       x = "Year",
-       y = paste("Mass of substance in compartment", abbr, "[kg]")) +
-  theme_minimal()
+World$PlotConcentration(scale = "Regional", subcompart = "agriculturalsoil")
 ```
 
 ![](x.-Solver-use_files/figure-gfm/Plot%20outcome%20with%20uncertainty-1.png)<!-- -->
+
+``` r
+World$PlotSolution(scale = "Regional", subcompart = "agriculturalsoil")
+```
+
+![](x.-Solver-use_files/figure-gfm/Plot%20outcome%20with%20uncertainty-2.png)<!-- -->
 
 <!-- ### Use the solver with uncertain variables and uncertain emissions as a set of functions -->
 <!-- #### Create tibble with samples for uncertain variables -->

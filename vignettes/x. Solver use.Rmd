@@ -71,11 +71,13 @@ Finally we can retrieve the masses, emissions and concentrations from the World 
 solution <- World$Solution()
 emission <- World$Emissions()
 concentration <- World$Concentration()
+
+knitr::kable(concentration)
 ```
 
 ### Use the steady state solver probabilistically
 
-To demonstrate the use of the steady state probabilistc solver we will initialize the World for microplastics first.
+To demonstrate the use of the steady state probabilistic solver we will initialize the World for microplastics first.
 
 When the World is initialized for particulates or plastics, the emissions go to the "S", "A" and/or "P" species (this is unlike emissions for molecules, where the emissions go to the "U" species).
 
@@ -168,6 +170,15 @@ concentration = World$Concentration()
 emission = World$Emissions()
 ```
 
+Finally, we can plot the outcome using the predefined plot functions
+```{r Plot the SS probabilistic outcome, warning=FALSE, message=FALSE}
+# Plot concentrations at regional scale
+World$PlotConcentration(scale = "Regional")
+
+# Plot solution at continental scale 
+World$PlotSolution(scale = "Regional")
+```
+
 ## Dynamic solver
 
 To demonstrate the use of the dynamic solvers we will initialize the World for microplastics first:
@@ -210,23 +221,17 @@ solution <- World$Solution()
 emission <- World$Emissions()
 ```
 
-An example of a plot to make with the outcome:
+Plot the outcome using the predefined plot functions:
 
-```{r Plot the outcome of the dynamic solver, warning=FALSE, message=FALSE}
-PlotMass <- function(abbr){
-  sol <- World$Solution() |>
-    filter(Abbr == abbr) |>
-    mutate(time = as.numeric(time))|>
-    mutate(Year = time/(365.25*24*3600))
-  
-  plot <- ggplot(sol, aes(x = Year, y = Mass_kg)) + 
-    theme_bw() + 
-    geom_line() +
-    ggtitle(abbr)
-}
+```{r Plot the outcome of the dynamic deterministic solver, warning=FALSE, message=FALSE}
+# You can specify a scale and a subcompartment
+World$PlotSolution(scale = "Regional", subcompart = "agriculturalsoil")
 
-# As an example, plot the mass in natural soil at continental scale over time
-print(PlotMass("s1CS"))
+# Or just a scale and all subcompartments are plotted:
+World$PlotSolution(scale = "Regional")
+
+# Plot all concentrations at regional scale
+World$PlotConcentration(scale = "Regional")
 ```
 
 ## Use the dynamic solver probabilistically 
@@ -313,29 +318,9 @@ concentrations = World$Concentration()
 An example of a plot to make with the output data: 
 
 ```{r Plot outcome with uncertainty, warning=FALSE, message=FALSE}
-abbr = "sd1RA"
+World$PlotConcentration(scale = "Regional", subcompart = "agriculturalsoil")
 
-plot_data <- solution |>
-  filter(Abbr == abbr) |>
-  mutate(year = ((as.numeric(time))/(365.25*24*3600)) + 2019) # Convert seconds to years used in emissions
-
-summary_stats <- plot_data |>
-  group_by(year) |>
-  summarise(
-    Mean_Value = mean(Mass_kg, na.rm = TRUE),
-    SD_Value = sd(Mass_kg, na.rm = TRUE),
-    Lower_CI = Mean_Value - 1.96 * SD_Value / sqrt(n()),
-    Upper_CI = Mean_Value + 1.96 * SD_Value / sqrt(n())
-  ) |>
-  ungroup()
-
-ggplot(summary_stats, aes(x = year, y = Mean_Value)) +
-  geom_line(color = "blue", size = 1) +
-  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2, fill = "blue") +
-  labs(title = paste("Mean mass in", abbr, "with Uncertainty Bands Over Time"),
-       x = "Year",
-       y = paste("Mass of substance in compartment", abbr, "[kg]")) +
-  theme_minimal()
+World$PlotSolution(scale = "Regional", subcompart = "agriculturalsoil")
 ```
 
 <!-- ### Use the solver with uncertain variables and uncertain emissions as a set of functions -->
