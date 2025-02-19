@@ -188,8 +188,10 @@ World$Solve(emissions = emissions)
 
 # Access the masses in each compartment
 masses <- World$Solution()
+concentrations <- World$Concentration()
 
 knitr::kable(masses)
+knitr::kable(concentrations)
 ```
 
 **For more information on the different types of solvers and how to use

@@ -1,7 +1,7 @@
 Getting started
 ================
 Anne Hids
-2025-02-12
+2025-02-19
 
 This vignette demonstrates how to use SimpleBox Object-Oriented (SBOO).
 
@@ -17,7 +17,6 @@ below.
 
 ``` r
 substances <- read.csv("data/Substances.csv")
-#substances <- read.csv("~/GitHub/SimpleBox/SBooScripts/data/Substances.csv")
 
 # Assign a substance name from the Substance column to the variable "substance":
 substance <- "1-aminoanthraquinone"
@@ -330,6 +329,7 @@ World$Solve(emissions = emissions)
 
 # Access the masses in each compartment
 masses <- World$Solution()
+concentrations <- World$Concentration()
 
 knitr::kable(masses)
 ```
@@ -371,6 +371,48 @@ knitr::kable(masses)
 | 0    | w3TU  | 1    | 3.204656e+05 |
 | 0    | sd2TU | 1    | 6.092532e+01 |
 | 0    | s1TU  | 1    | 9.298216e+03 |
+
+``` r
+knitr::kable(concentrations)
+```
+
+| Abbr  | time | RUNs | Concentration | Unit    |
+|:------|:-----|:-----|--------------:|:--------|
+| aAU   | 0    | 1    |     0.0000001 | g/m3    |
+| aCU   | 0    | 1    |     0.0000005 | g/m3    |
+| aMU   | 0    | 1    |     0.0000001 | g/m3    |
+| aRU   | 0    | 1    |     0.0000029 | g/m3    |
+| aTU   | 0    | 1    |     0.0000001 | g/m3    |
+| s1AU  | 0    | 1    |     0.0000691 | g/kg dw |
+| s1CU  | 0    | 1    |     0.0001494 | g/kg dw |
+| s1MU  | 0    | 1    |     0.0000261 | g/kg dw |
+| s1RU  | 0    | 1    |     0.0008350 | g/kg dw |
+| s1TU  | 0    | 1    |     0.0000081 | g/kg dw |
+| s2CU  | 0    | 1    |     0.0000619 | g/kg dw |
+| s2RU  | 0    | 1    |     1.3594667 | g/kg dw |
+| s3CU  | 0    | 1    |     0.0001494 | g/kg dw |
+| s3RU  | 0    | 1    |     0.0008350 | g/kg dw |
+| sd0CU | 0    | 1    |     0.0002187 | g/kg dw |
+| sd0RU | 0    | 1    |     0.0655642 | g/kg dw |
+| sd1CU | 0    | 1    |     0.0007295 | g/kg dw |
+| sd1RU | 0    | 1    |     8.3754203 | g/kg dw |
+| sd2AU | 0    | 1    |     0.0000203 | g/kg dw |
+| sd2CU | 0    | 1    |     0.0001888 | g/kg dw |
+| sd2MU | 0    | 1    |     0.0000018 | g/kg dw |
+| sd2RU | 0    | 1    |     0.5066576 | g/kg dw |
+| sd2TU | 0    | 1    |     0.0000001 | g/kg dw |
+| w0CU  | 0    | 1    |     0.0021798 | g/L     |
+| w0RU  | 0    | 1    |     0.6536562 | g/L     |
+| w1CU  | 0    | 1    |     0.0054751 | g/L     |
+| w1RU  | 0    | 1    |    62.8578158 | g/L     |
+| w2AU  | 0    | 1    |     0.0005150 | g/L     |
+| w2CU  | 0    | 1    |     0.0016323 | g/L     |
+| w2MU  | 0    | 1    |     0.0001559 | g/L     |
+| w2RU  | 0    | 1    |     4.3810435 | g/L     |
+| w2TU  | 0    | 1    |     0.0000338 | g/L     |
+| w3AU  | 0    | 1    |     0.0001549 | g/L     |
+| w3MU  | 0    | 1    |     0.0000155 | g/L     |
+| w3TU  | 0    | 1    |     0.0000012 | g/L     |
 
 **For more information on the different types of solvers and how to use
 them, please see SBooScripts/vignettes/x. Solver use.md.**
