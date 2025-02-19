@@ -1,11 +1,42 @@
 Getting started
 ================
 Anne Hids
+
 2025-02-19
 
 This vignette demonstrates how to use SimpleBox Object-Oriented (SBOO).
 
 ## Initialize
+
+This vignette demonstrates how to use SimpleBox Object-Oriented (SBOO).
+
+Before starting, make sure your working directory is set to the
+SBooScripts folder.
+
+### See if required packages are installed
+
+``` r
+check_and_install <- function(package) {
+  tryCatch({
+    # Load the package
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "is already installed and loaded."))
+  }, error = function(e) {
+    # If an error occurs, install the package
+    message(paste("Package", package, "is not installed. Installing now..."))
+    install.packages(package, dependencies = TRUE)
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "has been successfully installed and loaded."))
+  })
+}
+
+# Install the required packages
+check_and_install("ggplot2")
+check_and_install("tidyverse")
+check_and_install("constants")
+check_and_install("deSolve")
+check_and_install("knitr")
+```
 
 ### Choose a substance
 
@@ -42,8 +73,6 @@ With the chunk below, the correct initWorld script is automatically
 chosen and run based on the chosen substance:
 
 ``` r
-library(tidyverse)
-
 chemclass <- substances |>
   filter(Substance == substance) |>
   select(ChemClass)
@@ -63,12 +92,14 @@ if(substance == "microplastic"){
 
 Now that the World is initialized, its variables and calculated flows
 can be accessed. To access these variables and k’s, first the names of
-the variables are needed:
+the variables are needed. They can be accessed by using the code below.
+The first 10 variable names are printed, but there are 201 variables in
+total.
 
 ``` r
 varnames <- World$fetchData()
 
-print(varnames)
+print(varnames[1:10])
 ```
 
     ##   [1] "a"                         "a"                        
@@ -189,14 +220,93 @@ knitr::kable(World$fetchData("AreaSea"))
 
 ## Access k’s
 
-The “kaas” variable contains a data frame with the k’s, proccess name,
-to-subcompartment name from-subcompartment name, to-scale name,
-from-scale name, to-species name and from-species name. It can be
-accessed in the same way other variables are accessed:
+The “kaas” variable contains a data frame with the first order rate
+constants (k’s), proccess name, to-subcompartment name
+from-subcompartment name, to-scale name, from-scale name, to-species
+name and from-species name. It can be accessed in the same way other
+variables are accessed:
 
 ``` r
 df_ks <- World$kaas
 ```
+
+## Change a landscape variable
+
+To change a landscape variables value(s), first get the current variable
+with World\$fetchData. This is to see the dimensions of the variables
+dataframe.
+
+Variable values are changed using World\$MutateVars(). This function
+expects the new variable values in a specific format:
+
+- values should be in a column named ‘Waarde’
+- the name of the variable should be in a column named ‘varName’
+- the other columns can be ‘Scale’, ‘SubCompart’, ‘Species’ etc. You can
+  see which columns need to be included by using fetchData() on the
+  variable before using mutateVars()
+
+``` r
+# Get the current dataframe of the variable
+kable(World$fetchData("TotalArea"))
+```
+
+| Scale       |   TotalArea |
+|:------------|------------:|
+| Arctic      | 4.25000e+13 |
+| Continental | 7.42882e+12 |
+| Moderate    | 8.50000e+13 |
+| Regional    | 2.29570e+11 |
+| Tropic      | 1.27500e+14 |
+
+``` r
+# Make a dataframe in the same format (also same column names)
+TotalArea <- data.frame(
+  Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"),
+  Waarde = c(4.25E+13, 7.43E+12, 8.50E+13, 4.13e+11, 1.27e+14)) |>
+  mutate(varName = "TotalArea")
+
+# Replace TotalArea variable with new values
+World$mutateVars(TotalArea)
+
+# Check if it worked 
+kable(World$fetchData("TotalArea"))
+```
+
+| Scale       | TotalArea |
+|:------------|----------:|
+| Arctic      |  4.25e+13 |
+| Continental |  7.43e+12 |
+| Moderate    |  8.50e+13 |
+| Regional    |  4.13e+11 |
+| Tropic      |  1.27e+14 |
+
+``` r
+# Recalulate all variables dependent on TotalArea
+World$UpdateDirty("TotalArea")
+```
+
+## Change a substance variable
+
+When using World\$fetchData(), sometimes a value is returned instead of
+a dataframe. In that case we can still use the mutateVars() function,
+but give the function a named value instead of a dataframe.
+
+The default molecular weight for this substance is 0.147. After the
+chuck below, the value should be 0.15.
+
+``` r
+# Make a dataframe where varName = MW and Waarde is 150 
+MW_df <- data.frame(varName = "MW",
+                        Waarde = 150) # In g/mol, will be converted to SI unit (kg/mol) in the core. 
+
+# Use mutateVars() to update the variable
+World$mutateVars(MW_df)
+
+# Recalculate all variables dependent on MW
+World$UpdateDirty("MW")
+```
+
+After changing the molecular weight, the value is 0.15.
 
 ## Calculate steady state output
 
@@ -416,3 +526,4 @@ knitr::kable(concentrations)
 
 **For more information on the different types of solvers and how to use
 them, please see SBooScripts/vignettes/x. Solver use.md.**
+

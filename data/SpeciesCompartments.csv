@@ -1,2 +1,2 @@
-"VarName","Compartment","Species","Waarde","SB4N_name","Unit"
-"BACTcomp","water","Unbound",40000,"BACT.w","CFU.mL-1"
+﻿VarName,Compartment,Species,Waarde,SB4N_name,Unit
+BACTcomp,water,Unbound,40000,BACT.w,CFU.mL-1

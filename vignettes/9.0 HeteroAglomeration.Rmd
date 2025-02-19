@@ -1,5 +1,5 @@
 ---
-title: "9 Heteroagglomeration"
+title: "9 Heteroagglomerationd and Fragmentation"
 author: "Jaap Slootweg, Joris Quik, Anne Hids"
 date: "`r Sys.Date()`"
 output: github_document
@@ -15,7 +15,7 @@ knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct s
 ```
 
 ```{r message=FALSE, warning=FALSE}
-substance <- "nAg_10nm"
+substance <- "Microplastic"
 source("baseScripts/initWorld_onlyParticulate.R")
 
 ```
@@ -127,6 +127,29 @@ World$FromDataAndTo("k_HeteroAgglomeration.a")
 testProc <- World$NewProcess("k_HeteroAgglomeration.a")
 testProc$execute()
 ```
+
+
+## Fragmentation
+
+This is the start of the fragmentation proces being included. This is now done for the fragmentation of heteroagglomerates to the originial species, S. This also allows for emission to be as a agglomerate, e.g. with TRWP, when this could fall appart in TWP.
+
+The fragmentation process is only implemented for the existing species in SimpleBox. When Solid species would fall appart then this results in degradation. This could be implemented differently in the future, e.g. with classes of Solid species, but otherwise flows should be captured from Solid Fragmentation and used as emission in a new run of SimpleBox  seperately.
+
+```{r}
+
+World$fetchData("kdeg") 
+World$fetchData("kfrag") 
+
+World$FromDataAndTo("k_Fragmentation")
+testProc <- World$NewProcess("k_Fragmentation")
+testProc$execute()
+
+
+
+
+```
+
+
 
 ```{r To Do, include=FALSE}
 # [TO DO\* rework input of Aerosol concentrations into mass concentrations instead of number concentrations as they are now for COL and SUSP, and consider Nucc concentrations in CONSTANTS just like their Rad and Rho properties]

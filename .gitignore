@@ -100,5 +100,13 @@ Backup of *.doc*
 
 # ignore case study data files
 CaseData/
+
 vignettes/Development/Quality control/Publication/Combined_table_large_diffs.xlsx
 vignettes/Development/Quality control/Publication/Combined_table_all.xlsx
+
+# ignore BatchFiles folder
+BatchFiles/
+vignettes/CaseStudies/LEON-T/HPC_commands.txt
+warnings.log
+
+SBooScripts.Rproj

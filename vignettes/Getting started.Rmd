@@ -13,12 +13,43 @@ editor_options:
 knitr::knit_meta()
 knitr::opts_chunk$set(echo = TRUE)
 projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+# knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
 This vignette demonstrates how to use SimpleBox Object-Oriented (SBOO).
 
+
 ## Initialize
+
+Before starting, make sure your working directory is set to the
+SBooScripts folder.
+
+### See if required packages are installed
+
+```{r install packages, message = FALSE}
+
+check_and_install <- function(package) {
+  tryCatch({
+    # Load the package
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "is already installed and loaded."))
+  }, error = function(e) {
+    # If an error occurs, install the package
+    message(paste("Package", package, "is not installed. Installing now..."))
+    install.packages(package, dependencies = TRUE)
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "has been successfully installed and loaded."))
+  })
+}
+
+# Install the required packages
+check_and_install("ggplot2")
+check_and_install("tidyverse")
+check_and_install("constants")
+check_and_install("deSolve")
+check_and_install("knitr")
+```
+
 
 ### Choose a substance
 
@@ -29,6 +60,7 @@ can be chosen from the "Substance" column of the data frame created
 below.
 
 ```{r Substance list, include=TRUE, warning=FALSE, message=FALSE}
+
 substances <- read.csv("data/Substances.csv")
 
 # Assign a substance name from the Substance column to the variable "substance":
@@ -55,7 +87,6 @@ the chunk below, the correct initWorld script is automatically chosen
 and run based on the chosen substance:
 
 ```{r Initialize World, include=TRUE, warning=FALSE, message=FALSE}
-library(tidyverse)
 
 chemclass <- substances |>
   filter(Substance == substance) |>
@@ -76,15 +107,18 @@ if(substance == "microplastic"){
 
 Now that the World is initialized, its variables and calculated flows
 can be accessed. To access these variables and k's, first the names of
-the variables are needed:
+the variables are needed. They can be accessed by using the code below. 
+The first 10 variable names are printed, but there are `r length(World$fetchData())` 
+variables in total.
 
 ```{r Get variable names, include=TRUE, warning=FALSE, message=FALSE}
 varnames <- World$fetchData()
 
-print(varnames)
+print(varnames[1:10])
 ```
 
 A specific variable (in this case AreaSea) can be accessed as follows:
+
 
 ```{r Access variables, include=TRUE, warning=FALSE, message=FALSE}
 knitr::kable(World$fetchData("AreaSea"))
@@ -92,19 +126,74 @@ knitr::kable(World$fetchData("AreaSea"))
 
 ## Access k's
 
-The "kaas" variable contains a data frame with the k's, proccess name,
-to-subcompartment name from-subcompartment name, to-scale name,
-from-scale name, to-species name and from-species name. It can be
-accessed in the same way other variables are accessed:
+The "kaas" variable contains a data frame with the first order rate
+constants (k's), proccess name, to-subcompartment name
+from-subcompartment name, to-scale name, from-scale name, to-species
+name and from-species name. It can be accessed in the same way other
+variables are accessed:
 
 ```{r Access kaas, include=TRUE, warning=FALSE, message=FALSE}
 df_ks <- World$kaas
 ```
 
+## Change a landscape variable 
+
+To change a landscape variables value(s), first get the current variable with World$fetchData. 
+This is to see the dimensions of the variables dataframe. 
+
+Variable values are changed using World$MutateVars(). This function expects the 
+new variable values in a specific format: 
+
+- values should be in a column named 'Waarde'
+- the name of the variable should be in a column named 'varName'
+- the other columns can be 'Scale', 'SubCompart', 'Species' etc. You can see which columns need to be included by using fetchData() on the variable before using mutateVars()
+
+```{r Change landscape variable, include=TRUE, warning=FALSE}
+# Get the current dataframe of the variable
+kable(World$fetchData("TotalArea"))
+
+# Make a dataframe in the same format (also same column names)
+TotalArea <- data.frame(
+  Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"),
+  Waarde = c(4.25E+13, 7.43E+12, 8.50E+13, 4.13e+11, 1.27e+14),
+  varName = "TotalArea")
+
+# Replace TotalArea variable with new values
+World$mutateVars(TotalArea)
+
+# Check if it worked 
+kable(World$fetchData("TotalArea"))
+
+# Recalulate all variables dependent on TotalArea
+World$UpdateDirty("TotalArea")
+```
+
+## Change a substance variable 
+
+When using World$fetchData(), sometimes a value is returned instead of a dataframe. 
+In that case we can still use the mutateVars() function, but give the function a named value instead of a dataframe.
+
+The default molecular weight for this substance is `r World$fetchData("MW")`.
+After the chuck below, the value should be 0.15.
+```{r Change substance variable, include=TRUE, warning=FALSE}
+# Make a dataframe where varName = MW and Waarde is 150 
+MW_df <- data.frame(varName = "MW",
+                        Waarde = 150) # In g/mol, will be converted to SI unit (kg/mol) in the core. 
+
+# Use mutateVars() to update the variable
+World$mutateVars(MW_df)
+
+# Recalculate all variables dependent on MW
+World$UpdateDirty("MW")
+```
+
+After changing the molecular weight, the value is `r World$fetchData("MW")`.
+
 ## Calculate steady state output
 
 To calculate steady state masses, emissions and a solver are needed. The
-have to be given to the solver in a particular format.
+have to be given to the solver in a particular format. More details on
+solvers can be found [here](vignettes/10.1-Solver-use.md).
 
 ### Create emissions data frame
 
@@ -115,7 +204,9 @@ another column containing the emission to that compartment.
 
 The abbreviations are as follows:
 
+
 ```{r Abbreviations, include=TRUE, warning=FALSE, message=FALSE}
+
 scales <- data.frame(Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"), Abbreviation = c("A", "C", "M", "R", "T"))
 
 subcompartments <- read.csv("data/SubCompartSheet.csv") |>
@@ -171,13 +262,14 @@ emissions <- emissions |>
   mutate(Emis = Emis*1000/(MW*365*24*60*60)) # convert 1 t/y to mol/s
 
 knitr::kable(emissions)
+
 ```
 
 ### Solve the matrix
 
 To solve the matrix, a solver first needs to be specified. To solve for
-a steady state we can use "SB1Solve". In this case the resulting steady
-state masses are reported in the data frame "masses".
+a steady state we can use "SteadyODE". In this case the resulting steady
+state masses are output but the `World$Solve()` function.
 
 ```{r Solve the matrix, include=TRUE, warning=FALSE, message=FALSE}
 # Define the solver function to use. For steady state calculations, this is always "SteadyODE"
