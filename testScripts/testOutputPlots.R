@@ -1,6 +1,4 @@
-
 ######################## Test deterministic dynamic plot #######################
-
 source('baseScripts/initWorld_onlyPlastics.R')
 emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS","aRS", "s2RS", "w1RS"), Emis = c(10, 10, 10, 20, 20, 20), Timed = c(1, 2, 3, 4, 5, 6)) 
 
@@ -14,12 +12,11 @@ nTIMES <- 10 # Solve 10 times
 # Initialize the dynamic solver
 World$NewSolver("ApproxODE")
 World$Solve(emissions = emissions, tmax = tmax, nTIMES = nTIMES)
-solution <- World$Solution()
 
-print(DetDynSolPlot(scale = "Regional"))
+World$PlotSolution()
+World$PlotConcentration()
 
 ####################### Test probabilistic dynamic plot ########################
-
 source('baseScripts/initWorld_onlyPlastics.R')
 
 load("vignettes/example_uncertain_data.RData")
@@ -66,12 +63,11 @@ nTIMES <- 10 # Solve 10 times
 # Initialize the dynamic solver
 World$NewSolver("ApproxODE")
 World$Solve(emissions = example_data, var_box_df = Example_vars, var_invFun = varFuns, nRUNs = length(unique(example_data$RUN)), tmax = tmax, nTIMES = nTIMES)
-solution <- World$Solution()
 
-print(ProbDynSolPlot(scale = "Regional", subcompart = "agriculturalsoil"))
+World$PlotSolution()
+World$PlotConcentration()
 
 ####################### Test probabilistic steady plot #########################
-
 load("vignettes/example_uncertain_data.RData")
 
 example_data <- example_data |>
@@ -90,6 +86,6 @@ World$NewSolver("SteadyODE")
 
 # Solve 
 World$Solve(emissions = example_data, var_box_df = Example_vars, var_invFun = varFuns, nRUNs = length(unique(example_data$RUN)))
-sol <- World$Solution()
 
-print(ProbSSSolPlot(scale = "Regional"))
+World$PlotSolution()
+World$PlotConcentration()
