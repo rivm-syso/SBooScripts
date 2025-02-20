@@ -100,6 +100,9 @@ Backup of *.doc*
 
 # ignore case study data files
 CaseData/
+vignettes/CaseStudies/PFAS Tjebbe/data/
+vignettes/CaseStudies/PFAS Tjebbe/Emissions/
+vignettes/CaseStudies/PFAS Tjebbe/GIS/
 
 # ignore BatchFiles folder
 BatchFiles/
