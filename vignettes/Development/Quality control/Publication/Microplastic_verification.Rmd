@@ -11,7 +11,12 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+	eval = FALSE,
+	fig.height = 8,
+	fig.width = 14,
+	include = FALSE
+)
 projectRoot <- paste(getwd(), "..", "..", "..", "..", sep = "/")
 knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 options(dplyr.summarise.inform=FALSE)
