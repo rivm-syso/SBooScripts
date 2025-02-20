@@ -1,0 +1,320 @@
+---
+title: "Setup Simplebox PFAS Tjebbe"
+output: html_document
+date: "2025-01-06"
+author: "Tjebbe Janson"
+editor_options: 
+  chunk_output_type: console
+---
+
+## Setup libraries and working directory
+```{r setup, include=FALSE, warning=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+
+#conflict_prefer("select", "dplyr")
+#conflict_prefer("filter", "ggdag")
+```
+
+```{R Packages laden}
+print(getwd())
+check_and_install <- function(package) {
+  tryCatch({
+    # Load the package
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "is already installed and loaded."))
+  }, error = function(e) {
+    # If an error occurs, install the package
+    message(paste("Package", package, "is not installed. Installing now..."))
+    install.packages(package, dependencies = TRUE)
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "has been successfully installed and loaded."))
+  })
+}
+
+# Install the required packages
+check_and_install("ggplot2")
+check_and_install("tidyverse")
+check_and_install("constants")
+check_and_install("deSolve")
+check_and_install("knitr")
+check_and_install("dplyr")
+check_and_install("zyp")
+check_and_install("slider")
+check_and_install("readxl")
+check_and_install("Kendall")
+check_and_install("ggpubr")
+check_and_install("ncdf4")
+check_and_install("raster")
+check_and_install("sf")
+check_and_install("exactextractr")
+check_and_install("here")
+check_and_install("reshape2")
+check_and_install("scales")
+library(dplyr)
+```
+
+##Wereld aanpassen, emissies dataframe maken en tijd instellen
+```{r Substance list, warning=FALSE, include=TRUE}
+#Stof instellingen
+substances <- read.csv(here("data", "Substances.csv"))
+substance <- "BENSULFURON-METHYL (PH7)"
+chemclass <- substances |>
+  filter(Substance == substance) |>
+  dplyr::select(ChemClass)
+chemclass <- chemclass$ChemClass
+
+#World Module
+if(substance == "microplastic"){
+  source("baseScripts/initWorld_onlyPlastics.R")
+} else if (chemclass == "particle") {
+  source("baseScripts/initWorld_onlyParticulate.R")
+} else {
+  source("baseScripts/initWorld_onlyMolec.R")
+}
+
+#Model aanpassen met AdjustModelCatchment.R 
+catchment <- 'Rhine'
+if(catchment == "Rhine"){
+  source("vignettes/CaseStudies/PFAS Tjebbe/Script/AdjustModelRhine.R")
+} else if (catchment == "Meuse") {
+  source("vignettes/CaseStudies/PFAS Tjebbe/Script/AdjustModelMeuse.R")
+}
+
+#Tijds instelling
+runtime <- 140 #years
+tmax <- runtime*365.25*24*60*60 #in seconds
+times <- seq(0, tmax, length.out = 100) #array of timesteps
+
+#Emissie Dataframe
+#maakt df met POPE emissies voor 70 jaar, script vult nu nog aan met 70 lege jaren
+#dit werkt niet wachten op nieuwe solver
+source("~/R files/SBooScripts/testScripts/EmissionModel.R")
+```
+
+#Solven
+``` {r Solve}
+World$NewSolver("DynApproxSolve")
+solved <- World$Solve(tmax = tmax, emissions, needdebug = F)
+```
+
+#Plotten
+``` {r Plotten Resultaat:}
+solved_long <- solved |> as_tibble() |> 
+  dplyr::select(!starts_with("emis")) |>
+  pivot_longer(!time, names_to = "Abbr", values_to = "Mass") |>
+  mutate(Year = time/(365.25*24*60*60)) |>
+  left_join(World$states$asDataFrame, by="Abbr") # Join the abbreviations to more understandable Scale, SubCompart and Species
+
+"Functie voor plot"
+plot_scale <- function(mass_dataframe, scale, SubCompartments){
+  # Filter masses for the specific scale
+  mass_data_scale <- mass_dataframe |>
+    filter(Scale == scale) %>%
+    filter(SubCompart %in% SubCompartments)  
+  
+  # Plot masses on the specific scale
+  mass_plot <- ggplot(mass_data_scale, aes(x=Year, y=Mass, col=SubCompart)) + 
+    geom_line() +
+    ylab("Mass (kg)") +
+    theme_bw() +
+    ggtitle(paste0("Mass of ", substance, " in the ", catchment, " catchment")) +
+    scale_y_continuous() +
+    scale_x_continuous()
+  
+  return(mass_plot)
+}
+
+# Plot data for regional scale
+regional_plot <- plot_scale(solved_long, "Regional", list("river", "naturalsoil", "agriculturalsoil", "othersoil", "air"))
+print(regional_plot)
+```
+
+
+##Wat plots 
+```{r debiet Rijn/Maas plotten en correleren met neerslag}
+#Dataframe met beide rivieren maken
+debiet <- left_join(maas, rijn, by="WAARNEMINGDATUM") %>%
+  rename("Maas" = AVERAGE_VALUE.x)%>%
+  rename("Rijn" = AVERAGE_VALUE.y)
+
+#Functie om te plotten
+plot_debiet <- function(data) {
+  # Ensure WAARNEMINGDATUM is in Date format (though it seems to already be)
+  data$WAARNEMINGDATUM <- as.Date(data$WAARNEMINGDATUM)
+
+  plot <- ggplot(data) +
+    # Plotting Maas and Rijn as separate lines
+    geom_line(aes(x = WAARNEMINGDATUM, y = Maas, color = "Maas")) + 
+    geom_line(aes(x = WAARNEMINGDATUM, y = Rijn, color = "Rijn")) +
+    ylab("Q [m3/s]") +
+    ggtitle("Debiet over tijd") +
+    scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "2 year") +  # Date formatting on x-axis
+    scale_y_continuous() +
+    theme_bw() +
+    scale_color_manual(values = c("Maas" = "blue", "Rijn" = "red"))  # Customize colors
+  return(plot)
+}
+
+#Functie aanroepen om te plotten
+debiet_plot <- plot_debiet(debiet)
+print(debiet_plot)
+```
+
+```{r Neerslag}
+'''
+#Verschillende plots 
+ggplot(data = yearly_summary[-c(1:60), ], aes(x = year_number, y = TotalPrecipitationMean)) +
+  geom_bar(stat = "identity", fill = "skyblue", color = "black") +
+  theme_minimal() +
+  labs(
+    title = "Yearly Average Precipitation",
+    x = "Year",
+    y = "Average Precipitation (mm)"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#histogram of cell values
+raster_values <- values(mask)  # mask_raster is your masked raster object
+raster_values <- raster_values[!is.na(raster_values)]  # Remove NA values
+mean_value <- mean(raster_values * 1000 * 30.43, na.rm = TRUE)
+median_value <- median(raster_values * 1000 * 30.43, na.rm = TRUE)
+
+# Create histogram
+hist(
+  raster_values * 1000 * 30.43,
+  breaks = 30,
+  main = "Distribution of Precipitation Values",
+  xlab = "Precipitation (mm)",
+  ylab = "Frequency",
+  col = "skyblue",
+  border = "white"
+)
+
+# Add mean and median lines
+abline(v = mean_value, col = "red", lwd = 2, lty = 2)  # Red dashed line for mean
+abline(v = median_value, col = "blue", lwd = 2, lty = 2)  # Blue dashed line for median
+
+# Add legend
+legend(
+  "topright",
+  legend = c("Mean", "Median"),
+  col = c("red", "blue"),
+  lty = 2,
+  lwd = 2,
+  bty = "n"  # No border around the legend
+)
+#mask on raster
+precipitation.slide <- precipitation.array[, , 500]
+r <- raster(t(precipitation.slide), xmn=min(lon), xmx=max(lon), ymn=min(lat), ymx=max(lat), crs=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs+ towgs84=0,0,0"))
+plot(r * 1000 *30, main = "Raster with Shapefile Overlay", col = terrain.colors(100))
+transparent_red <- rgb(1, 0, 0, alpha = 1)  # 50% transparent red
+plot(shape, add = TRUE, border = transparent_red, col= NA, lwd = 2)
+'''
+
+```
+
+```{r correlatie}
+#Correleren van data na 1989, op jaarlijkse basis
+cor_data <- data.frame(x = precipitation_1989$TotalPrecipitation, y = debiet_1989$Rijn)
+result <- cor(cor_data$x, cor_data$y, method = "spearman")
+
+ggscatter(cor_data, x = "x", y= "y",
+          add = "reg.line", conf.int = TRUE,
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Precipitation (mm/yr)", ylab = "Flow (m3/yr)") +
+  ggtitle(paste("Annual Precipitation vs Flow (n =", nrow(cor_data), ")"))
+          
+
+```
+
+```{r Partitioning}
+# Solid-Water K - f_Ksw
+#Ocatnol-water coefficient
+World$SetConst(Kow = 1995262)
+Kow <- World$fetchData("Kow")
+World$UpdateDirty("Kow")
+
+#Corg organic constant
+Corg <- World$fetchData("Corg")
+print(Corg)
+CorgStandard <- World$fetchData("CorgStandard")
+print(CorgStandard)
+
+#PKA 
+pKa <- World$fetchData("pKa")
+if(is.na(pKa)) {
+  World$SetConst(pKa = 7) 
+  warning("pKa not given in input data. Substance assumed to be neutral (pKa = 7).")
+}
+
+#Calculating Ksw
+Substance_ChemClass <- World$fetchData("ChemClass")
+QSARtable <- World$fetchData("QSARtable")
+print(QSARtable)
+QSARrecord <- QSARtable[QSARtable$QSAR.ChemClass == Substance_ChemClass,]
+RhoTable <- World$fetchData("rhoMatrix")
+RHOsolid <- RhoTable$rhoMatrix[RhoTable$SubCompart == "othersoil"]
+KswModelled <- f_Ksw(Kow=Kow, pKa=pKa, CorgStandard=CorgStandard, 
+                     a = QSARrecord$a, b = QSARrecord$b, 
+                     ChemClass=Substance_ChemClass,
+                     RHOsolid=RHOsolid,
+                     alt_form = F)
+#print(KswModelled)
+
+World$SetConst(Ksw = KswModelled)
+World$fetchData("Ksw")
+
+#Ksw in alternative form
+Ksw.alt
+test <- World$NewCalcVariable("Ksw.alt")
+World$CalcVar("Ksw.alt")
+World$fetchData("Ksw.alt")
+Kswalt = World$fetchData("Ksw.alt")
+
+```
+
+```{r Flows}
+"Berekent afvoer, komt enigzins overeen met werkelijkheid voor Rijn &Maas"
+"Rijn 1714 m3/s <- gemiddeld is dit zo'n 2025 m3/s"
+"Maas 320 m3/s <- gemiddeld is dit zo'n 220 m3/s"
+
+flow2 <- World$NewFlow("x_RiverDischarge")
+
+flow2$FromAndTo
+flow2$execute()
+World$CalcVar("x_RiverDischarge")
+
+x_RiverDischarge_flow <- World$fetchData("x_RiverDischarge")
+x_ContRiver2Reg_flow <- World$fetchData("x_ContRiver2Reg")
+LakeFracRiver_val <- World$fetchData("LakeFracRiver")
+Scalename <- World$fetchData("ScaleName")
+
+flow3 <- World$NewFlow("x_LakeOutflow")
+
+flow3$FromAndTo
+flow3$execute()
+World$CalcVar("x_LakeOutflow")
+
+flows = World$fetchData("Flows") %>%
+  filter(fromScale == "Regional") %>%
+  filter(toScale == "Regional")
+
+
+``
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
