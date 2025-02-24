@@ -22,7 +22,7 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
   World$substance <- "microplastic"
 }
 
-source("vignettes/CaseStudies/f_Parameters4SB.R")
+source("vignettes/CaseStudies/LEON-T/f_Parameters4SB.R")
 
 ## Get the parameters, Parameters object needed for further solving using SB
 Parameters <- read_Prob4SB(path_parameters_file = path_parameters_file,
