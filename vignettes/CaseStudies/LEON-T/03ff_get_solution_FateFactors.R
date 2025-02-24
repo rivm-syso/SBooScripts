@@ -1,3 +1,11 @@
+################################################################################
+# Script for calculating fate factors for tyre wear and other sources          #
+# Created for LEON-T Deliverable 3.5                                           #
+# Authors: Anne Hids and Joris Quik                                            #
+# RIVM                                                                         #
+# 4-12-2024                                                                    #
+################################################################################
+
 #### Fate Factor calculations
 library(tidyverse)
 
@@ -13,10 +21,9 @@ if(env == "OOD"){
 
 source("baseScripts/initWorld_onlyPlastics.R")
 
-# Select polymer's
+# Select polymers
 # source_of_interest <- "Tyre wear"
 source_of_interest <- NA
-
 
 if(env == "OOD"){
   if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
@@ -43,6 +50,7 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
 }
 
 #### Select subset of RUNs from emission and parameters ####
+
 #  Set the runs that need to be run, should be consecutive from x to y.
 RUNSamples = c(1:1000)
 print(paste("LOG: run started for", min(RUNSamples), "to", max(RUNSamples)))
@@ -160,6 +168,7 @@ Output <- expand_grid(Polymer = Polymers_of_interest,
 start_time <- Sys.time() # to see how long it all takes...
 
 World$NewSolver("UncertainSolver")
+
 i <- 1
 
 for(ecomp in unique(Output$EmisComp)){
@@ -189,8 +198,10 @@ for(ecomp in unique(Output$EmisComp)){
       Output$SBoutput[(Output[["EmisComp"]] == ecomp &
                          Output[["Polymer"]] == pol &
                          Output[["Scale"]] == scl)] <- list(solved)
+
       print(i)
       i <- i+1
+
     }
   }
 }
@@ -198,6 +209,7 @@ for(ecomp in unique(Output$EmisComp)){
 
 elapsed_time <- Sys.time() - start_time
 print(paste0("Elapsed time is ", elapsed_time))
+
 elapsed_time 
 
 if(env == "OOD"){
