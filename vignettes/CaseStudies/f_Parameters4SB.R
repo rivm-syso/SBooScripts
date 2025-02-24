@@ -1,7 +1,7 @@
 ########################################################
 # Parameter preparation for probabilistic SB analysis
 
-read_Prob4SB <- function(path_parameters_file = "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.xlsx",
+read_Prob4SB <- function(path_parameters_file = "vignettes/CaseStudies/LEON-T/Microplastic_variables_v1.1c.xlsx",
                          source_of_interest=source_of_interest,
                          n_samples = nrow(DPMFA_sink_micro$Emis[[1]]), # Number of emission runs 
                          # materials <- unique(Material_Parameters$Polymer)
@@ -10,15 +10,6 @@ read_Prob4SB <- function(path_parameters_file = "vignettes/CaseStudies/CaseData/
                          subCompartments =  union((World$FromDataAndTo()$fromSubCompart),(World$FromDataAndTo()$toSubCompart)),
                          species = union((World$FromDataAndTo()$fromSpecies),(World$FromDataAndTo()$toSpecies))
 ){
-  
-  # path_parameters_file = path_parameters_file
-  # source_of_interest=source_of_interest
-  # n_samples = nrow(DPMFA_sink_micro$Emis[[1]]) # Number of emission runs
-  # # materials <- unique(Material_Parameters$Polymer)
-  # materials = unique(DPMFA_sink_micro$Polymer) # materials in selected sources
-  # scales = union((World$FromDataAndTo()$fromScale),(World$FromDataAndTo()$toScale))
-  # subCompartments =  union((World$FromDataAndTo()$fromSubCompart),(World$FromDataAndTo()$toSubCompart))
-  # species = union((World$FromDataAndTo()$fromSpecies),(World$FromDataAndTo()$toSpecies))
 
   source("vignettes/CaseStudies/ProbDistributionFun.R")
   
@@ -170,5 +161,4 @@ read_Prob4SB <- function(path_parameters_file = "vignettes/CaseStudies/CaseData/
   
   return(list(Parameter_summary=report_table,
               Material_Parameters_n = Material_Parameters_n))
-  
 }
