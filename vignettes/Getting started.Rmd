@@ -194,7 +194,7 @@ After changing the molecular weight, the value is `r World$fetchData("MW")`.
 
 ## Calculate steady state output
 
-To calculate steady state masses, emissions and a solver are needed. The
+To calculate steady state masses, emissions and a solver are needed. They
 have to be given to the solver in a particular format. More details on
 solvers can be found [here](vignettes/10.1-Solver-use.md).
 
