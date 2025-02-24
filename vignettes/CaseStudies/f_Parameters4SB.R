@@ -11,7 +11,7 @@ read_Prob4SB <- function(path_parameters_file = "vignettes/CaseStudies/LEON-T/Mi
                          species = union((World$FromDataAndTo()$fromSpecies),(World$FromDataAndTo()$toSpecies))
 ){
 
-  source("vignettes/CaseStudies/ProbDistributionFun.R")
+  source("vignettes/CaseStudies/LEON-T/ProbDistributionFun.R")
   
   Material_Parameters <- readxl::read_excel(path_parameters_file, sheet = "Polymer_data") |> 
     # change um to nm unit conversion
