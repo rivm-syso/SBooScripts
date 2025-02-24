@@ -33,7 +33,6 @@ source("vignettes/CaseStudies/LEON-T/f_Parameters4SB.R")
 Parameters <- read_Prob4SB(path_parameters_file = path_parameters_file,
                            source_of_interest=source_of_interest,
                            n_samples = nrow(DPMFA_sink_micro$Emis[[1]]), # Number of emission runs 
-                           # materials <- unique(Material_Parameters$Polymer)
                            materials = unique(DPMFA_sink_micro$Polymer), # materials in selected sources
                            scales = union((World$FromDataAndTo()$fromScale),(World$FromDataAndTo()$toScale)),
                            subCompartments =  union((World$FromDataAndTo()$fromSubCompart),(World$FromDataAndTo()$toSubCompart)),
