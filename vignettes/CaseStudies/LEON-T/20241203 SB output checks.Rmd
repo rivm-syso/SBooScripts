@@ -1,0 +1,287 @@
+---
+title: "R Notebook"
+output:
+  html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+## testing SB dynamic output
+
+```{r load data, include=FALSE}
+# load("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/241203SB_Masses.RData")
+# contains a dataframe with DeSolve::ode() output.
+load("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/20241202_SB_Masses_v3.RData")
+```
+
+```{r basic info, echo=FALSE}
+Combined_results <- rbind (Combined_results,Combined_results_TW)
+
+sapply(Combined_results,class)
+unique(Combined_results$time)
+unique(Combined_results$Polymer)
+unique(Combined_results$Source)
+```
+
+OK, but clear the the seconds output of time is not exactly the seconds in years "(24x3600x365.25)"
+
+```{r completeness check, echo=FALSE}
+
+Mass_all <-
+  Combined_results |>
+  mutate(time_year = time/(365.25*24*3600))
+
+time_less <-
+  Mass_all |> ungroup() |> 
+  group_by(Source,Polymer,RUN) |> count(Polymer) |> filter(n<101)
+
+time_2050 <-
+  Mass_all |> ungroup() |>
+  group_by(Source,Polymer,RUN) |> count(Polymer) |> filter(n==101)
+
+
+```
+
+There are `r round(100*length(time_less$RUN)/length(time_2050$RUN),2)` % RUN's (n = `r length(time_less$RUN)`) is incomplete meaning the solver output did not reach 2050.
+
+No RUNs are missing for 1950
+
+```{r}
+Mass_all |> ungroup() |> mutate(time_year = as.integer(time_year)) |> 
+  group_by(Source,Polymer,time_year) |> count(Polymer) |> filter(n<1000 & time_year == 1950)
+
+# Mass_all |> ungroup() |> mutate(time_year = as.integer(time_year)) |> 
+#   group_by(Source,Polymer,time_year) |> count(Polymer) |> filter(time_year == 1950)
+# 
+# 
+# as_tibble(Mass_all) |> filter(Polymer=="NR") |> select(time_year,Polymer,Source,w1RS)
+
+```
+
+But for 2019, several polymers have runs that do not have a solution:
+
+```{r}
+
+Mass_all |> ungroup() |> mutate(time_year = as.integer(round(time_year,0))) |> 
+  group_by(Polymer,time_year) |> count(Polymer)  |> filter(time_year == 2050) |> 
+  pivot_wider(names_from = Polymer, values_from = n)
+
+
+
+```
+
+We continue the analysis with the Runs that have data for 2019.
+
+```{r}
+
+Mass_2019 <- Mass_all |> filter(time_year == 2019)
+
+load(filepaths2[1])
+States <- Output$SBoutput[[1]]$States
+Mass_2019 <-
+  Mass_2019 |> 
+  pivot_longer(!c(time,time_year, RUN, Polymer, Source), names_to = "Abbr", values_to = "Mass") |>
+  filter(!str_starts(Abbr, "emis")) |>
+  left_join(States, by="Abbr") |>
+  ungroup()
+
+source("baseScripts/initWorld_onlyPlastics.R")
+
+Conc_SAP_2019 <-
+  Mass_2019 |> 
+  # mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
+  # ungroup() |> 
+  # sum over species
+  group_by(time,time_year,RUN, Polymer, Source, Scale, SubCompart) |>
+  summarise(Mass_SAP = sum(Mass)) |>
+  # ungroup() |>
+  left_join(World$fetchData("Volume"), 
+            by=c("Scale", "SubCompart")) |>
+  
+  mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
+  ungroup() |>
+  group_by(time,time_year,RUN, Polymer, Source, Scale, SubCompart) |>
+  summarise(Mass_SAP = sum(Mass_SAP),
+            Volume = sum(Volume)) |> 
+  
+  left_join(World$fetchData("FRACw"),
+            by=c("Scale", "SubCompart")) |> 
+  left_join(World$fetchData("FRACa"),
+            by=c("Scale", "SubCompart")) |> 
+  left_join(World$fetchData("rhoMatrix"),
+            by=c("SubCompart")) |> 
+  left_join(World$fetchData("Matrix"),
+            by=c("SubCompart"))|> 
+  mutate(conc_kg_m3 = Mass_SAP/Volume) |> 
+  mutate(Unit = "kg/m3") |> 
+  mutate(Concentration =
+           case_match(Matrix,
+                      "air" ~ conc_kg_m3*1000000000,
+                      "water" ~ conc_kg_m3*1000000,
+                      "soil" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix)*1000, # RhoWater needed (we need to define subcompartment variables for rhoWater, rhoSolid and rhoAir)
+                      "sediment" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix)*1000,
+                      .default = conc_kg_m3),
+         Unit =
+           case_match(Matrix,
+                      "air" ~ "ug/m3",
+                      "water" ~ "ug/L",
+                      "soil" ~ "g/kg dw",
+                      "sediment" ~ "g/kg dw",
+                      .default = Unit)) |>
+  mutate(SubCompartName = paste0(SubCompart, " (", Unit, ")")) |>
+  select(-c(conc_kg_m3, FRACw, FRACa, rhoMatrix, Matrix, Volume))
+
+plot_data <-
+  Mass_2019 |> 
+  # mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
+  # ungroup() |> 
+  # sum over species
+  group_by(time,time_year,RUN, Polymer, Source, Scale, SubCompart) |>
+  summarise(Mass_SAP = sum(Mass)) |>
+  # ungroup() |>
+  left_join(World$fetchData("Volume"), 
+            by=c("Scale", "SubCompart")) |>
+  
+  mutate(SubCompart = ifelse(SubCompart == "cloudwater", "air", SubCompart)) |>
+  ungroup() |>
+  group_by(time,time_year,RUN, Polymer, Source, Scale, SubCompart) |>
+  summarise(Mass_SAP = sum(Mass_SAP),
+            Volume = sum(Volume)) |> 
+  filter(Scale == "Regional") |> ungroup() |> 
+  group_by(RUN,Source,Scale,SubCompart,time_year) |> 
+  summarise(Mass_SAP  = sum(Mass_SAP),
+            Volume = sum(Volume)) |> 
+  left_join(World$fetchData("FRACw"),
+            by=c("Scale", "SubCompart")) |> 
+  left_join(World$fetchData("FRACa"),
+            by=c("Scale", "SubCompart")) |> 
+  left_join(World$fetchData("rhoMatrix"),
+            by=c("SubCompart")) |> 
+  left_join(World$fetchData("Matrix"),
+            by=c("SubCompart"))|> 
+  mutate(conc_kg_m3 = Mass_SAP/Volume) |> 
+  mutate(Unit = "kg/m3") |> 
+  mutate(Concentration =
+           case_match(Matrix,
+                      "air" ~ conc_kg_m3*1000000000,
+                      "water" ~ conc_kg_m3*1000000,
+                      "soil" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix)*1000, # RhoWater needed (we need to define subcompartment variables for rhoWater, rhoSolid and rhoAir)
+                      "sediment" ~ conc_kg_m3  / ((1 - FRACw - FRACa) * rhoMatrix)*1000,
+                      .default = conc_kg_m3),
+         Unit =
+           case_match(Matrix,
+                      "air" ~ "ug/m3",
+                      "water" ~ "ug/L",
+                      "soil" ~ "g/kg dw",
+                      "sediment" ~ "g/kg dw",
+                      .default = Unit)) |>
+  mutate(SubCompartName = paste0(SubCompart, " (", Unit, ")")) |>
+  select(-c(conc_kg_m3, FRACw, FRACa, rhoMatrix, Matrix, Volume))
+
+
+
+ggplot(plot_data, mapping = aes(x = SubCompartName, y = Concentration, fill = Source)) +  
+  geom_violin() + 
+  labs(x = "Compartment",
+       y = "Concentration") +
+  plot_theme +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  annotation_logticks(sides="l",  
+                      short = unit(0.07, "cm"),
+                      mid = unit(0.07, "cm"),
+                      long = unit(0.1, "cm"),
+                      size = 0.25) +
+  scale_fill_manual(values = Source_colors) +
+  theme(legend.position = "bottom") +   
+  guides(fill = guide_legend(title = NULL))
+
+
+
+```
+
+```{r}
+
+#Try GSA
+load("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/SB_Material_parameters.RData")
+
+
+Par_Probs <-
+  Material_Parameters_long |> 
+  mutate(par_name = paste0(VarName,Polymer,SubCompart,Species)) |> 
+  distinct(RUN,value,VarName,.keep_all = TRUE) |>
+  # filter(Polymer == "NR") |> 
+  select(-c(VarName,Source,Scale,SubCompart,Species,Distribution,
+            Polymer,Unit)) |> pivot_wider(names_from = par_name,
+                                          values_from = value) |> 
+  drop_na()
+
+EmissionProB <- DPMFA_SBoutput$DPMFA_sink_micro |> unnest(Emis) |> filter(Year %in% c(1989,1999,2009,2019)) |> ungroup() |> 
+  group_by(Abbr,Year,RUN) |> 
+  summarise(Mass_kg_s = sum(Mass_kg_s)) |> 
+  mutate(emis_name = paste0(Year,Abbr)) |> ungroup() |> 
+  select(-c(Year,Abbr)) |> 
+  pivot_wider(names_from = emis_name,
+              values_from = Mass_kg_s) |> left_join(DPMFA_SBoutput$NR_SBR_fractions)
+
+ProbS <- 
+  plot_data |> filter(SubCompart == "river" & Source == "Tyre wear") |> 
+  ungroup() |> 
+  select(RUN,Concentration) |> 
+  left_join(EmissionProB) |> 
+  left_join(Par_Probs) |> 
+  drop_na() |> 
+  # mutate_all(~if_else(. == 0, 1e-20, .)) |> # make 0's very small numbers 1e-20
+  mutate_all(log) |> # log transform
+  drop_na() |> # drop any rows with NA's
+  select(-where(~ var(.) == 0))# remove columns with 0 variance (are constant)
+
+probX <- ProbS |> select(-c(RUN, Concentration))
+probY <- ProbS |> pull(Concentration)
+library(sensitivity)
+# library(readxl)
+library(ggplot2)
+library(ks) ### ks needed for sensiFdiv function
+
+
+m <- sensiFdiv(model = NULL, X=probX, fdiv = "TV", nboot = 0, conf = 0.95,   scale = TRUE)
+tell(m, y=probY,S)
+
+# ggplot(m, ylim = c(0, 1))
+#prepare output for ggplot
+borg_d_temp <- tibble(Variable = colnames(probX),
+                      delta= m$S$original)
+
+# TCdelta_part1 <- borg_d_temp 
+# TCsens_data <-
+#   TCsens_data |> add_row(TCdelta_part1)
+
+
+mydf <-borg_d_temp |> arrange(desc(delta))
+
+# Sensplot <- ggplot(borg_d_temp, aes(x = delta,reorder(TC,delta))) + geom_bar(stat="identity")+
+#   theme_light()+
+#   theme(axis.text.y = element_text(size = 10),
+#         axis.title.y = element_blank(),
+#         # plot.background = element_blank(),
+#         panel.grid.major = element_blank(),
+#         panel.grid.minor = element_blank(),
+#         panel.border = element_blank())
+# 
+# 
+# pdata <-
+#   borg_d_temp |> drop_na()
+#   # filter(Source == iSource)
+# p <- ggplot(pdata, aes(x=Polymer, y=TC, fill= delta)) + 
+#   geom_tile(stat="identity")+
+#   scale_fill_viridis_c(alpha = 0.5, option = "A", direction = -1)+
+#   theme_light()+
+#   theme(axis.text.y = element_text(size = 8),
+#         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+#         # plot.background = element_blank(),
+#         panel.grid.major = element_blank(),
+#         panel.grid.minor = element_blank(),
+#         panel.border = element_blank())
+
+
+```

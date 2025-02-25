@@ -1,5 +1,7 @@
-"process","from","to"
-"k_HeteroAgglomeration.a","Solid","Large"
-"k_HeteroAgglomeration.a","Solid","Small"
-"k_HeteroAgglomeration.wsd","Solid","Large"
-"k_HeteroAgglomeration.wsd","Solid","Small"
+﻿process,from,to
+k_Deagglomeration,Large,Solid
+k_Deagglomeration,Small,Solid
+k_HeteroAgglomeration.a,Solid,Large
+k_HeteroAgglomeration.a,Solid,Small
+k_HeteroAgglomeration.wsd,Solid,Large
+k_HeteroAgglomeration.wsd,Solid,Small

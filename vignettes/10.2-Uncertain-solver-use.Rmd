@@ -1,5 +1,5 @@
 ---
-title: "Probabilistic use of SimpleBox"
+title: "Probabilistic SteadyState Solver use"
 author: "Anne Hids, Valerie de Rijk, Joris Quik, Jaap Slootweg"
 date: "`r Sys.Date()`"
 output: github_document
@@ -7,7 +7,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-SimpleBox (SBoo) has specific solvers available that allow running the model deterministic or probabilistic. We assume you already understand the basics of using SimpleBox and have an idea of what input variables or emissions you want to input with a certain degree of uncertainty or variability. There are basically to types of solvers to use here:
+SimpleBox (SBoo) has specific solvers available that allow running the model deterministic or probabilistic. We assume you already understand the basics of using SimpleBox and have an idea of what input variables or emissions you want to input with a certain degree of uncertainty or variability. There are basically two types of solvers to use here:
 
 1.  UncertainSolver for running the model n times calculating steady state output (mass/concentration)
 2.  UncertainDynamicSolver for running the model n times calculating dynamic output
@@ -352,7 +352,7 @@ lhs_samples <- optimumLHS(n_samples, n_vars) # Generate numbers between 0 and 1 
 
 The rest of the steps to create the dataframe with samples are the same as for method 1.
 
-```{r Get min, max and peak value of variable values, warning=FALSE, message=FALSE}
+```{r Get variable values, warning=FALSE, message=FALSE}
 # Define the names of the uncertain variables
 var1Name <- "kdeg"
 
@@ -392,7 +392,7 @@ var3$c <- var3$kdeg         # peak value (peak)
 
 Now this data needs to be combined into a tibble, and the function for the triangular distribution written earlier is applied to the tibble. The result is a nested tibble, containing the name, scale and subcompartment for each variable, and the sample data is nested. 
 
-```{r Scale the samples to the distributions, warning=FALSE, message=FALSE}
+```{r Scale the samples, warning=FALSE, message=FALSE}
 params <- tibble(
   varName = c(var1Name, var2Name, var3Name),
   Scale = c(var1$Scale, var2$Scale, var3$Scale),
@@ -426,7 +426,7 @@ for (i in 1:n_vars) {
 
 When using this method, all we need is one steady state dataframe with emissions.
 
-```{r Create steady state emission dataframe 2, warning=FALSE, message=FALSE}
+```{r warning=FALSE, message=FALSE}
 # Create the steady state emission dataframe
 emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: kg/s
 
@@ -447,7 +447,7 @@ solved <- World$Solve(emissions, needdebug = F, sample_df)
 
 #### Make plots
 
-```{r Data preparation for plots}
+```{r}
 Input_Variables <- 
   solved$Input_Variables |> unnest(data) 
 Input_Emission <- 
@@ -473,7 +473,7 @@ emiscomps <- unique(solved$Input_Emission$Abbr)
 
 ```
 
-```{r Plots}
+```{r}
 p1 <- ggplot(Plot_data, mapping = aes(x=varnames[1], y = EqMass)) +
   geom_point() + facet_wrap(vars(Abbr)) +
   scale_y_continuous(trans = 'log10')
@@ -517,4 +517,4 @@ print(p2)
 
 ```
 
-## 2. Probabilistic Dynamic Solver 
+

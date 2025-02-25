@@ -26,6 +26,6 @@ for (sheetI in 1 : length(Defs)){ #sheetI = 11
   WithQuotes <- which(!sapply(tabledata.frame[,c(orderNames, UnorderedNames)], is.numeric))
   Outputfile <- paste(OutputFolder, tableName, ".csv", sep = "")
   # n.o. digits governed by the option "scipen"?? (see options), but with the internal equivalent of digits = 15
-  write.table(tabledata.frame[SaveOrder, c(orderNames, UnorderedNames)],
-            file = Outputfile, quote = WithQuotes, row.names = F, dec = ".", sep = ",")
+  readr::write_excel_csv(tabledata.frame[SaveOrder, c(orderNames, UnorderedNames)],
+            file = Outputfile, quote =  c("needed"), )
 }
