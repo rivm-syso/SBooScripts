@@ -105,6 +105,12 @@ CaseData/
 BatchFiles/
 vignettes/CaseStudies/LEON-T/HPC_commands.txt
 warnings.log
+BatchFilesRecipe/
+HPC_commands_recipe.txt
 
 SBooScripts.Rproj
 
+err.txt
+out.txt
+SBooScripts.Rproj
+/vignettes/CaseStudies/Recipe/Output
