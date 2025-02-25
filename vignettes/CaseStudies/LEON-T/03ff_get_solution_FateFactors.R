@@ -10,13 +10,17 @@
 library(tidyverse)
 
 #env <- "OOD"
-env <- "HPC"
+# env <- "HPC"
+env <- "local"
 
 if(env == "OOD"){
   path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.1.xlsx"
 } else if(env == "HPC"){
   mainfolder <- "/data/BioGrid/hidsa/SimpleBox/SBooScripts/"
   path_parameters_file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.1.xlsx")
+  }else if(env == "local"){
+    mainfolder <- ""
+    path_parameters_file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.1.xlsx")
 }
 
 source("baseScripts/initWorld_onlyPlastics.R")
@@ -37,6 +41,12 @@ if(env == "OOD"){
   } else if(is.na(source_of_interest)){
     load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_Other_20241130.RData"))
   }
+}else if(env == "local"){
+  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
+    load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_TWP_20241130.RData"))
+  } else if(is.na(source_of_interest)){
+    load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_Other_20241130.RData"))
+  }
 }
 
 Polymers_of_interest <- unique(Parameters$Material_Parameters_n$Polymer)
@@ -52,7 +62,7 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
 #### Select subset of RUNs from emission and parameters ####
 
 #  Set the runs that need to be run, should be consecutive from x to y.
-RUNSamples = c(1:1000)
+RUNSamples = c(1:2)
 print(paste("LOG: run started for", min(RUNSamples), "to", max(RUNSamples)))
 ##
 
@@ -218,6 +228,9 @@ if(env == "OOD"){
 } else if(env == "HPC"){
   save(Output, file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/FateFactors_LEON-T_D3.5_", source, "_", 
                              format(Sys.Date(),"%Y%m%d"),".RData"))
+}else if(env == "local"){
+  save(Output, file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/FateFactors_LEON-T_D3.5_", source, "_", 
+                             format(Sys.Date(),"%Y%m%d"),".RData"))
 }
 
 FF_allScale <- Output |> unnest(SBoutput) |> mutate(OutputType = names(SBoutput)) |> 
@@ -271,6 +284,11 @@ if(env == "OOD"){
   write_csv(FF_EU, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_EU_LEON-T_D3.5_", source, "_", 
                                  format(Sys.Date(),"%Y%m%d"),".csv"))
 } else if(env == "HPC"){
+  write_csv(FF_NL, file = paste0(mainfolder,"vignettes/CaseStudies/CaseData/FF_NL_LEON-T_D3.5_", source, "_", 
+                                 format(Sys.Date(),"%Y%m%d"),".csv"))
+  write_csv(FF_EU, file = paste0(mainfolder,"vignettes/CaseStudies/CaseData/FF_EU_LEON-T_D3.5_", source, "_", 
+                                 format(Sys.Date(),"%Y%m%d"),".csv"))
+} else if(env == "local"){
   write_csv(FF_NL, file = paste0(mainfolder,"vignettes/CaseStudies/CaseData/FF_NL_LEON-T_D3.5_", source, "_", 
                                  format(Sys.Date(),"%Y%m%d"),".csv"))
   write_csv(FF_EU, file = paste0(mainfolder,"vignettes/CaseStudies/CaseData/FF_EU_LEON-T_D3.5_", source, "_", 
