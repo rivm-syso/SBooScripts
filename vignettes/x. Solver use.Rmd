@@ -74,6 +74,17 @@ concentration <- World$Concentration()
 knitr::kable(concentration)
 ```
 
+Finally, we can plot the outcome using the predefined plot functions. If there is no scale specified, the Regional scale will be selected. Selecting one or more subcomparts is optional. If no subcomparts are given, the outcome is plotted for all subcomparts. 
+
+```{r Plot the SS deterministic outcome, warning=FALSE, message=FALSE}
+# Plot concentrations at regional scale
+World$PlotConcentration(scale = "Regional")
+World$PlotConcentration(scale = "Continental", subcompart = c("agriculturalsoil", "naturalsoil", "othersoil"))
+
+# Plot solution at continental scale 
+World$PlotSolution(scale = "Regional")
+```
+
 ### Use the steady state solver probabilistically
 
 To demonstrate the use of the steady state probabilistic solver we will initialize the World for microplastics first.
@@ -167,7 +178,7 @@ concentration = World$Concentration()
 emission = World$Emissions()
 ```
 
-Finally, we can plot the outcome using the predefined plot functions
+Finally, we can plot the outcome using the predefined plot functions.
 
 ```{r Plot the SS probabilistic outcome, warning=FALSE, message=FALSE}
 # Plot concentrations at regional scale
@@ -213,7 +224,7 @@ solution <- World$Solution()
 emission <- World$Emissions()
 ```
 
-Plot the outcome using the predefined plot functions:
+Finally, we can plot the outcome using the predefined plot functions. If there is no scale specified, the Regional scale will be selected. Selecting one or more subcomparts is optional. If no subcomparts are given, the outcome is plotted for all subcomparts. 
 
 ```{r Plot the outcome of the dynamic deterministic solver, warning=FALSE, message=FALSE}
 # You can specify a scale and a subcompartment
@@ -278,7 +289,7 @@ varFuns <- apply(Example_vars, 1, function(aRow) {
 
 ```
 
-World\$Solve needs the following variables to solve steady state probabilistically: - emissions: the emissions dataframe - var_box_df: a dataframe with the example variables - var_invFun: the functions created from the var_box_df in a list - nRUNs: the number of runs.
+`World$Solve` needs the following variables to solve steady state probabilistically: - emissions: the emissions dataframe - var_box_df: a dataframe with the example variables - var_invFun: the functions created from the var_box_df in a list - nRUNs: the number of runs.
 Should match the number of RUNs in the emissions dataframe provided - tmax: the end time for running the solver, in seconds - nTIMES: the number of calculation time steps.
 
 Now we can solve and get the solution, variable values, concentration and emissions.
@@ -298,7 +309,7 @@ variable_values = World$VariableValues()
 concentrations = World$Concentration()
 ```
 
-An example of a plot to make with the output data:
+Finally, we can plot the outcome using the predefined plot functions. If there is no scale specified, the Regional scale will be selected. If there is no subcompart specified, "ägriculturalsoil" will be selected.
 
 ```{r Plot outcome with uncertainty, warning=FALSE, message=FALSE}
 World$PlotConcentration(scale = "Regional", subcompart = "agriculturalsoil")

@@ -13,11 +13,10 @@ editor_options:
 knitr::knit_meta()
 knitr::opts_chunk$set(echo = TRUE)
 projectRoot <- paste(getwd(), "..", sep = "/")
-# knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
 This vignette demonstrates how to use SimpleBox Object-Oriented (SBOO).
-
 
 ## Initialize
 
@@ -53,17 +52,15 @@ check_and_install("R6")
 check_and_install("rlang")
 ```
 
-
 ### Choose a substance
 
 The first step is to initialize the model. Before initialization a
-substance needs to be selected, otherwise the "default substance" is
-used. To select another substance than "default substance", a substance
-can be chosen from the "Substance" column of the data frame created
-below.
+substance needs to be selected. A substance can be chosen from the
+"Substance" column of the data frame created below. Note the substance
+names are case-sensitive. Please use the exact name of the chemical as
+mentioned in the column "Substance" in Substances.csv.
 
 ```{r Substance list, include=TRUE, warning=FALSE, message=FALSE}
-
 substances <- read.csv("data/Substances.csv")
 
 # Assign a substance name from the Substance column to the variable "substance":
@@ -82,15 +79,14 @@ To initialize the World object, one of three script is called:
 -   initWorld_onlyParticulate.R (used for particulates)
 -   initWorld_onlyPlastics.R (used for microplastics)
 
-Choosing which script to use is dependent on the substance class of the chosen
-substance (see "ChemClass" column in the "substances" data frame). Each
-of these three classes require different initWorld scripts because
-different processes and variables are used to calculate the k's. With
-the chunk below, the correct initWorld script is automatically chosen
-and run based on the chosen substance:
+Choosing which script to use is dependent on the substance class of the
+chosen substance (see "ChemClass" column in the "substances" data
+frame). Each of these three classes require different initWorld scripts
+because different processes and variables are used to calculate the k's.
+With the chunk below, the correct initWorld script is automatically
+chosen and run based on the chosen substance:
 
 ```{r Initialize World, include=TRUE, warning=FALSE, message=FALSE}
-
 chemclass <- substances |>
   filter(Substance == chosen_substance) |>
   select(ChemClass)
@@ -106,16 +102,18 @@ if(chosen_substance == "microplastic"){
 }
 
 World$substance <- chosen_substance
-
 ```
 
 ## Access variables
 
 Now that the World is initialized, its variables and calculated flows
 can be accessed. To access these variables and k's, first the names of
-the variables are needed. They can be accessed by using the code below. 
-The first 10 variable names are printed, but there are `r length(World$fetchData())` 
-variables in total.
+the variables are needed. They can be accessed by using the code below.
+The first 10 variable names are printed, but there are
+`r length(World$fetchData())` variables in total.
+
+If you want to know more about the abbreviations of variables, their
+units and descriptions please see Units.csv in the data folder.
 
 ```{r Get variable names, include=TRUE, warning=FALSE, message=FALSE}
 varnames <- World$fetchData()
@@ -124,7 +122,6 @@ print(varnames[1:10])
 ```
 
 A specific variable (in this case AreaSea) can be accessed as follows:
-
 
 ```{r Access variables, include=TRUE, warning=FALSE, message=FALSE}
 knitr::kable(World$fetchData("AreaSea"))
@@ -142,21 +139,24 @@ variables are accessed:
 df_ks <- World$kaas
 ```
 
-## Change a landscape variable 
+## Change a landscape variable
 
-To change a landscape variables value(s), first get the current variable with World$fetchData. 
-This is to see the dimensions of the variables dataframe. 
+To change a landscape variables value(s), first get the current variable
+with World\$fetchData. This is to see the dimensions of the variables
+dataframe.
 
-Variable values are changed using World$MutateVars(). This function expects the 
-new variable values in a specific format: 
+Variable values are changed using World\$MutateVars(). This function
+expects the new variable values in a specific format:
 
-- values should be in a column named 'Waarde'
-- the name of the variable should be in a column named 'varName'
-- the other columns can be 'Scale', 'SubCompart', 'Species' etc. You can see which columns need to be included by using fetchData() on the variable before using mutateVars()
+-   values should be in a column named 'Waarde'
+-   the name of the variable should be in a column named 'varName'
+-   the other columns can be 'Scale', 'SubCompart', 'Species' etc. You
+    can see which columns need to be included by using fetchData() on
+    the variable before using mutateVars()
 
 ```{r Change landscape variable, include=TRUE, warning=FALSE}
 # Get the current dataframe of the variable
-kable(World$fetchData("TotalArea"))
+knitr::kable(World$fetchData("TotalArea"))
 
 # Make a dataframe in the same format (also same column names)
 TotalArea <- data.frame(
@@ -174,13 +174,16 @@ kable(World$fetchData("TotalArea"))
 World$UpdateDirty("TotalArea")
 ```
 
-## Change a substance variable 
+## Change a substance variable
 
-When using World$fetchData(), sometimes a value is returned instead of a dataframe. 
-In that case we can still use the mutateVars() function, but give the function a named value instead of a dataframe.
+When using World\$fetchData(), sometimes a value is returned instead of
+a dataframe. In that case we can still use the mutateVars() function,
+but give the function a named value instead of a dataframe.
 
-The default molecular weight for this substance is `r World$fetchData("MW")`.
-After the chuck below, the value should be 0.15.
+The default molecular weight for this substance is
+`r World$fetchData("MW")`. After the chuck below, the value should be
+0.15.
+
 ```{r Change substance variable, include=TRUE, warning=FALSE}
 # Make a dataframe where varName = MW and Waarde is 150 
 MW_df <- data.frame(varName = "MW",
@@ -193,13 +196,14 @@ World$mutateVars(MW_df)
 World$UpdateDirty("MW")
 ```
 
-After changing the molecular weight, the value is `r World$fetchData("MW")`.
+After changing the molecular weight, the value is
+`r World$fetchData("MW")`.
 
 ## Calculate steady state output
 
-To calculate steady state masses, emissions and a solver are needed. They
-have to be given to the solver in a particular format. More details on
-solvers can be found [here](vignettes/10.1-Solver-use.md).
+To calculate steady state masses, emissions and a solver are needed.
+They have to be given to the solver in a particular format. More details
+on solvers can be found [here](vignettes/x. Solver use.md).
 
 ### Create emissions data frame
 
@@ -209,7 +213,6 @@ abbreviation of the scale-subcompartment-species combination, and
 another column containing the emission to that compartment.
 
 The abbreviations are as follows:
-
 
 ```{r Abbreviations, include=TRUE, warning=FALSE, message=FALSE}
 
@@ -249,6 +252,11 @@ follows:
 2.  Abbreviation of the scale
 3.  Abbreviation of the species.
 
+For example:
+
+aAU --\> "a" for air (subcompartment) + "A" for Arctic (scale) + U for
+unbound (species).
+
 Now the emissions data frame can be created. The column named "Abbr"
 contains the abbreviations, and the column "Emis" contains the
 emissions. In the example below, emissions of 10000 t/y go into regional
@@ -260,15 +268,14 @@ abbreviation "U" for "Unbound" is used here to specify emissions. If the
 substance is a particle, use "S" for "Solid"!**
 
 ```{r Create emissions data frame, include=TRUE, warning=FALSE, message=FALSE}
-emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000) ) 
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10, 10, 10)) 
 
 MW <- World$fetchData("MW")
 
 emissions <- emissions |>
-  mutate(Emis = Emis*1000/(MW*365*24*60*60)) # convert 1 t/y to mol/s
+  mutate(Emis = Emis*1000/(MW*365*24*60*60)) # convert t/y to mol/s
 
 knitr::kable(emissions)
-
 ```
 
 ### Solve the matrix
@@ -291,6 +298,25 @@ concentrations <- World$Concentration()
 knitr::kable(masses)
 knitr::kable(concentrations)
 ```
+
+We can now plot the masses and concentrations using the built-in plot functions. 
+The functions are called by using `World$PlotSolution` for masses, and `World$PlotConcentration`
+for concentrations. You need to specify which scale you want to plot the outcome for. If no 
+scale is specified, the Regional scale will be chosen for you. Additionally you can define 
+for which SubCompart(s) the outcomes should be plotted. If you don't specify this, the outcomes
+will be plotted for all SubComparts in the Scale. 
+
+```{r Plot the masses and concentrations, warning=FALSE, message=FALSE}
+# Plot the masses and concentrations for all subcompartments at regional scale
+World$PlotSolution(scale = "Regional")
+World$PlotConcentration(scale = "Regional")
+
+# Select multiple subcomparts to plot the masses for
+World$PlotConcentration(scale = "Regional", subcompart = c("river", "lake", "sea"))
+```
+
+Finally, if you are interested in the other functions available in
+World, you can use `ls(World)` to see them all.
 
 **For more information on the different types of solvers and how to use
 them, please see SBooScripts/vignettes/x. Solver use.md.**

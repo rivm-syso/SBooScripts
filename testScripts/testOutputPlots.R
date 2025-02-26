@@ -1,3 +1,15 @@
+######################## Test deterministic steady state plot #######################
+source('baseScripts/initWorld_onlyPlastics.R')
+emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), Emis = c(10, 10, 10)) 
+
+# Initialize the dynamic solver
+World$NewSolver("SteadyODE")
+World$Solve(emissions = emissions)
+
+World$PlotSolution()
+World$PlotSolution(scale = "Regional", subcompart = c("river", "lake", "sea"))
+World$PlotConcentration(scale = "Continental")
+
 ######################## Test deterministic dynamic plot #######################
 source('baseScripts/initWorld_onlyPlastics.R')
 emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS","aRS", "s2RS", "w1RS"), Emis = c(10, 10, 10, 20, 20, 20), Timed = c(1, 2, 3, 4, 5, 6)) 

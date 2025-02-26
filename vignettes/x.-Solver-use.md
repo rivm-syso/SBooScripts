@@ -1,7 +1,7 @@
 Solver use
 ================
 Anne Hids, Jaap Slootweg, Joris Quik
-2025-02-18
+2025-02-26
 
 ## Initialize World
 
@@ -27,22 +27,21 @@ compartment (i.e. air, riverwater, naturalsoil) at each scale
 (i.e. Regional, Continental) and for each species (U, S, A, P) when the
 system has reached an equilibrium.
 
-There are two ways to use the steady state solver: deterministically
-(solve once with one set of emissions and one set of substance
-variables), or probabilistically (solve multiple times, once for each
-run with uncertain substance variables and optionally uncertain
-emissions).
+There are two ways to use the steady state solver: deterministic (solve
+once with one set of emissions and one set of substance variables), or
+probabilistic (solve multiple times, once for each run with uncertain
+substance variables and optionally uncertain emissions).
 
 ### Use the steady state solver deterministically
 
-We already initialized the simplest version of the World in the previous
-chunk. This means the World was initialized for ‘default substance’,
-which behaves as a molecule.
+We already initialized the World in the previous chunk. This is not done
+for a specific substances, the World was initialized for a ‘default
+substance’, which behaves as a molecule.
 
 As we will not vary any substance variables when using the deterministic
 steady state solver, we only need to make a dataframe containing the
-emissions for 1 or more compartments. This dataframe should contain two
-columns: - ‘Abbr’, which contains the abbreviations for the
+emissions for 1 or more emission compartments. This dataframe should
+contain two columns: - ‘Abbr’, which contains the abbreviations for the
 compartments - ‘Emis’, which contains the emissions to the compartments,
 in kg/s.
 
@@ -120,6 +119,31 @@ knitr::kable(concentration)
 | w3MU  | 0    | 1    |     0.0000023 | g/L     |
 | w3TU  | 0    | 1    |     0.0000002 | g/L     |
 
+Finally, we can plot the outcome using the predefined plot functions. If
+there is no scale specified, the Regional scale will be selected.
+Selecting one or more subcomparts is optional. If no subcomparts are
+given, the outcome is plotted for all subcomparts.
+
+``` r
+# Plot concentrations at regional scale
+World$PlotConcentration(scale = "Regional")
+```
+
+![](x.-Solver-use_files/figure-gfm/Plot%20the%20SS%20deterministic%20outcome-1.png)<!-- -->
+
+``` r
+World$PlotConcentration(scale = "Continental", subcompart = c("agriculturalsoil", "naturalsoil", "othersoil"))
+```
+
+![](x.-Solver-use_files/figure-gfm/Plot%20the%20SS%20deterministic%20outcome-2.png)<!-- -->
+
+``` r
+# Plot solution at continental scale 
+World$PlotSolution(scale = "Regional")
+```
+
+![](x.-Solver-use_files/figure-gfm/Plot%20the%20SS%20deterministic%20outcome-3.png)<!-- -->
+
 ### Use the steady state solver probabilistically
 
 To demonstrate the use of the steady state probabilistic solver we will
@@ -175,8 +199,8 @@ example_data <- example_data |>
 Variable values can be varied over runs by specifying the variable name,
 the type of distribution and distribution parameters (optionally also
 the Species, Scale and SubCompart). To see the variable names and which
-other variables are needed for the value, see
-i.e. `World$fetchData("kdeg")`.
+other variables are needed for the value, see i.e.
+`World$fetchData("kdeg")`.
 
 In the chunk below, an Excel file is read in containing the needed
 values for 2 variables. Consequently, a distribution is created for each
@@ -231,7 +255,7 @@ concentration = World$Concentration()
 emission = World$Emissions()
 ```
 
-Finally, we can plot the outcome using the predefined plot functions
+Finally, we can plot the outcome using the predefined plot functions.
 
 ``` r
 # Plot concentrations at regional scale
@@ -291,7 +315,10 @@ solution <- World$Solution()
 emission <- World$Emissions()
 ```
 
-Plot the outcome using the predefined plot functions:
+Finally, we can plot the outcome using the predefined plot functions. If
+there is no scale specified, the Regional scale will be selected.
+Selecting one or more subcomparts is optional. If no subcomparts are
+given, the outcome is plotted for all subcomparts.
 
 ``` r
 # You can specify a scale and a subcompartment
@@ -371,7 +398,7 @@ varFuns <- apply(Example_vars, 1, function(aRow) {
 })
 ```
 
-World\$Solve needs the following variables to solve steady state
+`World$Solve` needs the following variables to solve steady state
 probabilistically: - emissions: the emissions dataframe - var_box_df: a
 dataframe with the example variables - var_invFun: the functions created
 from the var_box_df in a list - nRUNs: the number of runs. Should match
@@ -397,7 +424,9 @@ variable_values = World$VariableValues()
 concentrations = World$Concentration()
 ```
 
-An example of a plot to make with the output data:
+Finally, we can plot the outcome using the predefined plot functions. If
+there is no scale specified, the Regional scale will be selected. If
+there is no subcompart specified, “ägriculturalsoil” will be selected.
 
 ``` r
 World$PlotConcentration(scale = "Regional", subcompart = "agriculturalsoil")
@@ -412,64 +441,125 @@ World$PlotSolution(scale = "Regional", subcompart = "agriculturalsoil")
 ![](x.-Solver-use_files/figure-gfm/Plot%20outcome%20with%20uncertainty-2.png)<!-- -->
 
 <!-- ### Use the solver with uncertain variables and uncertain emissions as a set of functions -->
+
 <!-- #### Create tibble with samples for uncertain variables -->
+
 <!-- The first step is to define the solver to use. For all steady state calculations, this solver is named SteadyODE. -->
+
 <!-- ```{r Define solver, warning=FALSE, message=FALSE} -->
+
 <!-- World$NewSolver("SteadyODE") -->
+
 <!-- ``` -->
+
 <!-- The lhs samples are pulled from a uniform distribution between 0 and 1. So these numbers have to be scaled to the real values you want to use, and it is possible to transform this uniform distribution to a different distribution. In this example, a triangular distribution will be used. -->
+
 <!-- ##### Prepare variable samples -->
+
 <!-- For each variable that is uncertain you can define the distribution type (triangular, uniform or normal) and the corresponding parameters. For this example, an example excel file will be read in containing the necessary parameters for the variables we want to vary. -->
+
 <!-- ```{r Get min, max and peak value of variable values, warning=FALSE, message=FALSE} -->
+
 <!-- source("baseScripts/initWorld_onlyMolec.R") -->
+
 <!-- World$NewSolver("SteadyODE") -->
+
 <!-- # Load the Excel file containing example distributions for variables -->
+
 <!-- Example_vars <- readxl::read_xlsx("vignettes/Example_uncertain_variables.xlsx", sheet = "Variable_data") -->
+
 <!-- # Define functions for each row based on the distribution type -->
+
 <!-- varFuns <- apply(Example_vars, 1, function(aRow) { -->
+
 <!--   dist_type <- aRow["Distribution"] -->
+
 <!--   if (dist_type == "triangular") { -->
+
 <!--     prepArgs <- as.list(as.numeric(aRow[c("a", "b", "c")])) -->
+
 <!--     names(prepArgs) <- c("a", "b", "c") -->
+
 <!--   } else if (dist_type == "normal") { -->
+
 <!--     prepArgs <- as.list(as.numeric(aRow[c("a", "b")])) -->
+
 <!--     names(prepArgs) <- c("a", "b") -->
+
 <!--   } else if (dist_type == "uniform") { -->
+
 <!--     prepArgs <- as.list(as.numeric(aRow[c("a", "b")])) -->
+
 <!--     names(prepArgs) <- c("a", "b") -->
+
 <!--   } else { -->
+
 <!--     stop("Unsupported distribution type") -->
+
 <!--   } -->
+
 <!--   # Create the inverse CDF function using the prepared arguments -->
+
 <!--   World$Make_inv_unif01(fun_type = dist_type, pars = prepArgs) -->
+
 <!-- }) -->
+
 <!-- ``` -->
+
 <!-- ##### Prepare emission data -->
+
 <!-- In this example, we will take a steady state emission data frame as the starting point for creating the triangular distributions. You could also directly enter the min, max and peak values if you have them. -->
+
 <!-- ```{r Create steady state emission dataframe, warning=FALSE, message=FALSE} -->
+
 <!-- # Create the steady state emission dataframe -->
+
 <!-- emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000)) -->
+
 <!-- # convert 1 t/y to si units: kg/s -->
+
 <!-- emissions <- emissions |> -->
+
 <!--   mutate(Emis = Emis*1000/(365*24*60*60)) -->
+
 <!-- ``` -->
+
 <!-- Now that the emission data frame is made, we can scale the samples we took earlier to the triangular distribution just like we did for the variables. -->
+
 <!-- ```{r Scale the emissions to the distributions, warning=FALSE, message=FALSE} -->
+
 <!-- emissions$a <- emissions$Emis * 0.7 -->
+
 <!-- emissions$b <- emissions$Emis * 1.3 -->
+
 <!-- emisFuns <- apply(rowwise(emissions) |> select(a, b, Emis), 1, function(therow){ -->
+
 <!--   abcArgs <- as.list(as.numeric(therow)) -->
+
 <!--   names(abcArgs) <- c("a", "b", "c") -->
+
 <!--   World$Make_inv_unif01("triangular", abcArgs) -->
+
 <!-- }) -->
+
 <!-- # to identify the box by Abbr -->
+
 <!-- names(emisFuns) <- emissions$Abbr -->
+
 <!-- ``` -->
+
 <!-- ```{r Test steady state uncertain solver, warning=FALSE, message=FALSE} -->
+
 <!-- # The number of samples you want to pull from the distributions for each variable -->
+
 <!-- n_samples <- 2 -->
+
 <!-- World$NewSolver("SteadyODE") -->
+
 <!-- World$Solve(emissions = emisFuns, var_box_df = Example_vars, var_invFun = varFuns, nRUNs = n_samples) -->
+
 <!-- sol <- World$Solution() -->
+
 <!-- conc <- World$Concentration() -->
+
 <!-- ``` -->
