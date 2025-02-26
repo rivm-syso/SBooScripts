@@ -108,5 +108,11 @@ vignettes/Development/Quality control/Publication/Combined_table_all.xlsx
 BatchFiles/
 vignettes/CaseStudies/LEON-T/HPC_commands.txt
 warnings.log
+BatchFilesRecipe/
+HPC_commands_recipe.txt
 
 SBooScripts.Rproj
+
+err.txt
+out.txt
+

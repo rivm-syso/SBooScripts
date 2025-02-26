@@ -1,33 +1,22 @@
-################################################################################
-# Script for calculating fate factors for tyre wear and other sources          #
-# Created for LEON-T Deliverable 3.5                                           #
-# Authors: Anne Hids and Joris Quik                                            #
-# RIVM                                                                         #
-# 4-12-2024                                                                    #
-################################################################################
-
 #### Fate Factor calculations
 library(tidyverse)
 
-#env <- "OOD"
-# env <- "HPC"
-env <- "local"
+env <- "OOD"
+#env <- "HPC"
 
 if(env == "OOD"){
   path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.1.xlsx"
 } else if(env == "HPC"){
-  mainfolder <- "/data/BioGrid/hidsa/SimpleBox/SBooScripts/"
+  mainfolder <- "/data/BioGrid/hidsa/GitHub/SBooScripts/"
   path_parameters_file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.1.xlsx")
-  }else if(env == "local"){
-    mainfolder <- ""
-    path_parameters_file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.1.xlsx")
 }
 
 source("baseScripts/initWorld_onlyPlastics.R")
 
-# Select polymers
+# Select polymer's
 # source_of_interest <- "Tyre wear"
 source_of_interest <- NA
+
 
 if(env == "OOD"){
   if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
@@ -41,15 +30,9 @@ if(env == "OOD"){
   } else if(is.na(source_of_interest)){
     load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_Other_20241130.RData"))
   }
-}else if(env == "local"){
-  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
-    load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_TWP_20241130.RData"))
-  } else if(is.na(source_of_interest)){
-    load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_Other_20241130.RData"))
-  }
 }
 
-Polymers_of_interest <- unique(Parameters$Material_Parameters_n$Polymer)
+Polymer_of_interest <- "RUBBER"
 
 if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_interest == "Tyre wear") {
   source <- "TWP"
@@ -60,9 +43,8 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
 }
 
 #### Select subset of RUNs from emission and parameters ####
-
 #  Set the runs that need to be run, should be consecutive from x to y.
-RUNSamples = c(1:2)
+RUNSamples = c(1:1000)
 print(paste("LOG: run started for", min(RUNSamples), "to", max(RUNSamples)))
 ##
 
@@ -170,15 +152,14 @@ EmisSourceFF$EmisUnified[(EmisSourceFF[["Scale"]] == "Continental")] <-
   )
 # empty tibble for storing output for all runs:
 
-Output <- expand_grid(Polymer = Polymers_of_interest,
+Output <- expand_grid(Polymer = Polymer_of_interest,
                       EmisComp = names(EmisSourceFF$EmisUnified[(EmisSourceFF[["Scale"]] ==  "Regional")][[1]]),
-                      Scale = c("Regional","Continental"),
+                      Scale = "Continental",
                       SBoutput = NA)
 
 start_time <- Sys.time() # to see how long it all takes...
 
 World$NewSolver("UncertainSolver")
-
 i <- 1
 
 for(ecomp in unique(Output$EmisComp)){
@@ -208,10 +189,8 @@ for(ecomp in unique(Output$EmisComp)){
       Output$SBoutput[(Output[["EmisComp"]] == ecomp &
                          Output[["Polymer"]] == pol &
                          Output[["Scale"]] == scl)] <- list(solved)
-
       print(i)
       i <- i+1
-
     }
   }
 }
@@ -219,79 +198,12 @@ for(ecomp in unique(Output$EmisComp)){
 
 elapsed_time <- Sys.time() - start_time
 print(paste0("Elapsed time is ", elapsed_time))
-
 elapsed_time 
 
 if(env == "OOD"){
-  save(Output, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FateFactors_LEON-T_D3.5_", source, "_", 
-                           format(Sys.Date(),"%Y%m%d"),".RData"))
-} else if(env == "HPC"){
-  save(Output, file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/FateFactors_LEON-T_D3.5_", source, "_", 
+  save(Output, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FateFactors_Recipe_SS_", source, "_", Polymer_of_interest, 
                              format(Sys.Date(),"%Y%m%d"),".RData"))
-}else if(env == "local"){
-  save(Output, file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/FateFactors_LEON-T_D3.5_", source, "_", 
+} else if(env == "HPC"){
+  save(Output, file = paste0(mainfolder, "vignettes/CaseStudies/Recipe/Output/FateFactors_Recipe_SS_", source, "_", Polymer_of_interest, 
                              format(Sys.Date(),"%Y%m%d"),".RData"))
 }
-
-FF_allScale <- Output |> unnest(SBoutput) |> mutate(OutputType = names(SBoutput)) |> 
-  rename(EmisScale = Scale) |> 
-  filter(OutputType == "SteadyStateMass") |> unnest(SBoutput) |> 
-  filter(Species != "Unbound") |> ungroup() |> group_by(Polymer,EmisComp,EmisScale,RUN,Scale,SubCompart,Unit) |> 
-  summarise(EqMass_SAP = sum(EqMass)) 
-
-FF_NL <- FF_allScale |> filter(EmisScale == "Regional" & Scale == "Regional") |>
-  mutate(
-    CompartmentFF = case_when(
-      SubCompart == "agriculturalsoil" ~ "otherSoil",
-      SubCompart == "naturalsoil" ~ "otherSoil",
-      SubCompart == "othersoil" ~ "RoadSoil",
-      SubCompart == "cloudwater" ~ "air",
-      SubCompart == "lake" ~ "freshwater",
-      SubCompart == "river" ~ "freshwater",
-      SubCompart == "lakesediment" ~ "freshwatersediment",
-      TRUE ~ SubCompart)
-  ) |> ungroup() |> 
-  group_by(Polymer,CompartmentFF,EmisComp) |> 
-  summarise(FF_SteadyState_avg = mean(EqMass_SAP),
-            FF_SteadyState_std = sd(EqMass_SAP)) |> 
-  mutate(Unit = "kg[ss]/kg[e] seconds")
-
-
-FF_EU <- FF_allScale |> 
-  filter(EmisScale == "Continental" & (Scale == c("Regional")|Scale == c("Continental"))) |> 
-  ungroup() |> 
-  group_by(Polymer,EmisComp,EmisScale,RUN,SubCompart,Unit) |> 
-  summarise(EqMass_SAP = sum(EqMass_SAP)) |>  # sum nested regional mass and rest of EU mass
-  mutate(
-    CompartmentFF = case_when(
-      SubCompart == "agriculturalsoil" ~ "otherSoil",
-      SubCompart == "naturalsoil" ~ "otherSoil",
-      SubCompart == "othersoil" ~ "RoadSoil",
-      SubCompart == "cloudwater" ~ "air",
-      SubCompart == "lake" ~ "freshwater",
-      SubCompart == "river" ~ "freshwater",
-      SubCompart == "lakesediment" ~ "freshwatersediment",
-      TRUE ~ SubCompart)
-  ) |> ungroup() |> 
-  group_by(Polymer,CompartmentFF,EmisComp) |> 
-  summarise(FF_SteadyState_avg = mean(EqMass_SAP),
-            FF_SteadyState_std = sd(EqMass_SAP)) |> 
-  mutate(Unit = "kg[ss]/kg[e] seconds")
-
-if(env == "OOD"){
-  write_csv(FF_NL, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_NL_LEON-T_D3.5_", source, "_", 
-                                 format(Sys.Date(),"%Y%m%d"),".csv"))
-  write_csv(FF_EU, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_EU_LEON-T_D3.5_", source, "_", 
-                                 format(Sys.Date(),"%Y%m%d"),".csv"))
-} else if(env == "HPC"){
-  write_csv(FF_NL, file = paste0(mainfolder,"vignettes/CaseStudies/CaseData/FF_NL_LEON-T_D3.5_", source, "_", 
-                                 format(Sys.Date(),"%Y%m%d"),".csv"))
-  write_csv(FF_EU, file = paste0(mainfolder,"vignettes/CaseStudies/CaseData/FF_EU_LEON-T_D3.5_", source, "_", 
-                                 format(Sys.Date(),"%Y%m%d"),".csv"))
-} else if(env == "local"){
-  write_csv(FF_NL, file = paste0(mainfolder,"vignettes/CaseStudies/CaseData/FF_NL_LEON-T_D3.5_", source, "_", 
-                                 format(Sys.Date(),"%Y%m%d"),".csv"))
-  write_csv(FF_EU, file = paste0(mainfolder,"vignettes/CaseStudies/CaseData/FF_EU_LEON-T_D3.5_", source, "_", 
-                                 format(Sys.Date(),"%Y%m%d"),".csv"))
-}
-  

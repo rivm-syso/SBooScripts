@@ -97,3 +97,14 @@ k_WetDeposition,cloudwater,naturalsoil
 k_WetDeposition,cloudwater,othersoil
 k_WetDeposition,cloudwater,river
 k_WetDeposition,cloudwater,sea
+k_Fragmentation,agriculturalsoil,agriculturalsoil
+k_Fragmentation,air,air
+k_Fragmentation,deepocean,deepocean
+k_Fragmentation,freshwatersediment,freshwatersediment
+k_Fragmentation,lake,lake
+k_Fragmentation,lakesediment,lakesediment
+k_Fragmentation,marinesediment,marinesediment
+k_Fragmentation,naturalsoil,naturalsoil
+k_Fragmentation,othersoil,othersoil
+k_Fragmentation,river,river
+k_Fragmentation,sea,sea
