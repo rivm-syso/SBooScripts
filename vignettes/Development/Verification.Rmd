@@ -1,0 +1,56 @@
+---
+title: "Verification"
+author: "Valerie de Rijk, Anne Hids, Joris Quik"
+date: "`r Sys.Date()`"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(
+	eval = FALSE,
+	fig.height = 8,
+	fig.width = 14,
+	include = FALSE
+)
+projectRoot <- paste(getwd(), "..", "..", "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+options(dplyr.summarise.inform=FALSE)
+knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 8)
+
+library(openxlsx)
+library(tidyverse)
+library (ggplot2)
+library(plotly)
+```
+
+## Define the comparison type
+```{r}
+compare_to <- "Excel"
+# compare_to <- "Previous_R_version"
+
+```
+
+## Define substances
+```{r, warning=FALSE, message=FALSE}
+Potential_substances <- c("1-aminoanthraquinone", # no class
+                          "1-HYDROXYANTHRAQUINONE", # acid
+                          "1-Hexadecanamine, N,N-dimethyl-", # base
+                          "1-Chloro-2-nitro-propane", # neutral
+                          "Sb(III)", # metal
+                          "microplastic", # microplastic
+                          "nAg_10nm" # particulate
+                          ) 
+```
+
+## 
+```{r, warning=FALSE, message=FALSE}
+
+
+
+```
+
+
+
+
+
