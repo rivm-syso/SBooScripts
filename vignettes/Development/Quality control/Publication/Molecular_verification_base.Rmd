@@ -84,8 +84,7 @@ library(tidyverse)
 #                          "k_Volatilisation")
 
 #read in K matrix from excel
-SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.05_20240816_",substance,".xlsm") 
-# SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.04_20240723_",substance,".xlsm") 
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SBExcel_verification_",substance,".xlsm")
 
 SBexcel.K <- read.xlsx(SBExcelName,
                   colNames = FALSE,
