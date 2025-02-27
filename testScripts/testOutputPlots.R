@@ -9,6 +9,7 @@ World$Solve(emissions = emissions)
 World$PlotSolution()
 World$PlotSolution(scale = "Regional", subcompart = c("river", "lake", "sea"))
 World$PlotConcentration(scale = "Continental")
+World$PlotMassDistribution(scale = "Continental")
 
 ######################## Test deterministic dynamic plot #######################
 source('baseScripts/initWorld_onlyPlastics.R')
@@ -101,3 +102,4 @@ World$Solve(emissions = example_data, var_box_df = Example_vars, var_invFun = va
 
 World$PlotSolution()
 World$PlotConcentration()
+World$PlotMassDistribution()

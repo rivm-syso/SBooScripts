@@ -1,7 +1,7 @@
 Solver use
 ================
 Anne Hids, Jaap Slootweg, Joris Quik
-2025-02-26
+2025-02-27
 
 ## Initialize World
 
@@ -16,16 +16,18 @@ source("baseScripts/initWorld_onlyMolec.R")
 ```
 
 If you would like to instead initialize the World for particulates or
-microplastics, use: -
-source(“baseScripts/initWorld_onlyParticulate.R”) -
-source(“baseScripts/initWorld_onlyMicroplastics.R”)
+microplastics, use:
+
+- source(“baseScripts/initWorld_onlyParticulate.R”)
+
+- source(“baseScripts/initWorld_onlyMicroplastics.R”)
 
 ## Steady state solver
 
 A steady state solver calculates the masses in each environmental
-compartment (i.e. air, riverwater, naturalsoil) at each scale
-(i.e. Regional, Continental) and for each species (U, S, A, P) when the
-system has reached an equilibrium.
+compartment (i.e. air, riverwater, naturalsoil) at each scale (i.e.
+Regional, Continental) and for each species (U, S, A, P) when the system
+has reached an equilibrium.
 
 There are two ways to use the steady state solver: deterministic (solve
 once with one set of emissions and one set of substance variables), or
@@ -41,9 +43,11 @@ substance’, which behaves as a molecule.
 As we will not vary any substance variables when using the deterministic
 steady state solver, we only need to make a dataframe containing the
 emissions for 1 or more emission compartments. This dataframe should
-contain two columns: - ‘Abbr’, which contains the abbreviations for the
-compartments - ‘Emis’, which contains the emissions to the compartments,
-in kg/s.
+contain two columns:
+
+- ‘Abbr’, which contains the abbreviations for the compartments
+
+- ‘Emis’, which contains the emissions to the compartments, in kg/s.
 
 To see the abbreviations and their meaning, you can run
 \`World\$states\$asDataFrame\`.
@@ -144,6 +148,13 @@ World$PlotSolution(scale = "Regional")
 
 ![](x.-Solver-use_files/figure-gfm/Plot%20the%20SS%20deterministic%20outcome-3.png)<!-- -->
 
+``` r
+# Plot the mass distribution
+World$PlotMassDistribution(scale = "Regional")
+```
+
+![](x.-Solver-use_files/figure-gfm/Plot%20the%20SS%20deterministic%20outcome-4.png)<!-- -->
+
 ### Use the steady state solver probabilistically
 
 To demonstrate the use of the steady state probabilistic solver we will
@@ -167,10 +178,13 @@ source('baseScripts/initWorld_onlyPlastics.R')
 ```
 
 For the probabilistic steady state solver, the emissions need to be
-given as a dataframe with three columns: - ‘Abbr’, which contains the
-abbreviations for the compartments - ‘Emis’, which contains the
-emissions to the compartments, in kg/s - ‘RUN’, which contains the run
-number of the emission.
+given as a dataframe with three columns:
+
+- ‘Abbr’, which contains the abbreviations for the compartments
+
+- ‘Emis’, which contains the emissions to the compartments, in kg/s
+
+- ‘RUN’, which contains the run number of the emission.
 
 This example uses 20 output runs of a DPFMA (Dynamic Probabilistic
 Material Flow Analysis) model. This data is loaded first, and then
@@ -233,10 +247,16 @@ varFuns <- apply(Example_vars, 1, function(aRow) {
 ```
 
 World\$Solve needs the following variables to solve steady state
-probabilistically: - emissions: the emissions dataframe - var_box_df: a
-dataframe with the example variables - var_invFun: the functions created
-from the var_box_df in a list - nRUNs: the number of runs. Should match
-the number of RUNs in the emissions dataframe provided
+probabilistically:
+
+- emissions: the emissions dataframe
+
+- var_box_df: a dataframe with the example variables
+
+- var_invFun: the functions created from the var_box_df in a list
+
+- nRUNs: the number of runs (should match the number of RUNs in the
+  emissions dataframe provided).
 
 Now we can solve and get the solution, variable values, concentration
 and emissions.
@@ -271,6 +291,13 @@ World$PlotSolution(scale = "Regional")
 
 ![](x.-Solver-use_files/figure-gfm/Plot%20the%20SS%20probabilistic%20outcome-2.png)<!-- -->
 
+``` r
+# Plot the mass distribution
+World$PlotMassDistribution(scale = "Regional")
+```
+
+![](x.-Solver-use_files/figure-gfm/Plot%20the%20SS%20probabilistic%20outcome-3.png)<!-- -->
+
 ## Dynamic solver
 
 To demonstrate the use of the dynamic solvers we will initialize the
@@ -283,10 +310,13 @@ source('baseScripts/initWorld_onlyPlastics.R')
 ### Use the dynamic solver deterministically
 
 For the dynamic deterministic solver, the emissions need to be given as
-a dataframe with three columns: - ‘Abbr’, which contains the
-abbreviations for the compartments - ‘Emis’, which contains the
-emissions to the compartments, in kg/s - ‘Timed’, which contains the
-time of the emission in seconds.
+a dataframe with three columns:
+
+- ‘Abbr’, which contains the abbreviations for the compartments
+
+- ‘Emis’, which contains the emissions to the compartments, in kg/s
+
+- ‘Timed’, which contains the time of the emission in seconds.
 
 ``` r
 # Initialize emissions in t/y
@@ -298,9 +328,13 @@ emissions <- emissions |>
 ```
 
 World\$Solve needs the following variables to solve dynamically
-deterministically: - emissions: the emissions dataframe - tmax: the end
-time for running the solver, in seconds - nTIMES: the number of
-calculation time steps.
+deterministically:
+
+- emissions: the emissions dataframe
+
+- tmax: the end time for running the solver, in seconds
+
+- nTIMES: the number of calculation time steps.
 
 Now we can solve and get the solution, concentration and emissions.
 
@@ -344,11 +378,15 @@ World$PlotConcentration(scale = "Regional")
 ## Use the dynamic solver probabilistically
 
 For the dynamic deterministic solver, the emissions need to be given as
-a dataframe with three columns: - ‘Abbr’, which contains the
-abbreviations for the compartments - ‘Emis’, which contains the
-emissions to the compartments, in kg/s - ‘Timed’, which contains the
-time of the emission in seconds, - ‘RUN’, which contains the run number
-of the emission.
+a dataframe with three columns:
+
+- ‘Abbr’, which contains the abbreviations for the compartments
+
+- ‘Emis’, which contains the emissions to the compartments, in kg/s
+
+- ‘Timed’, which contains the time of the emission in seconds,
+
+- ‘RUN’, which contains the run number of the emission.
 
 ``` r
 source('baseScripts/initWorld_onlyPlastics.R')
@@ -399,12 +437,20 @@ varFuns <- apply(Example_vars, 1, function(aRow) {
 ```
 
 `World$Solve` needs the following variables to solve steady state
-probabilistically: - emissions: the emissions dataframe - var_box_df: a
-dataframe with the example variables - var_invFun: the functions created
-from the var_box_df in a list - nRUNs: the number of runs. Should match
-the number of RUNs in the emissions dataframe provided - tmax: the end
-time for running the solver, in seconds - nTIMES: the number of
-calculation time steps.
+probabilistically:
+
+- emissions: the emissions dataframe
+
+- var_box_df: a dataframe with the example variables
+
+- var_invFun: the functions created from the var_box_df in a list
+
+- nRUNs: the number of runs (should match the number of RUNs in the
+  emissions dataframe provided)
+
+- tmax: the end time for running the solver, in seconds
+
+- nTIMES: the number of calculation time steps.
 
 Now we can solve and get the solution, variable values, concentration
 and emissions. NOTE: These calculations take a bit longer than the
