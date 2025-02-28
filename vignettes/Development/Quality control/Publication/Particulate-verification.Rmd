@@ -400,9 +400,6 @@ ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
   geom_hline(yintercept = -0.001, color="red") +
   custom_theme() + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
-
-
-
 ```
 
 The differences in k's drives the model output: the steady state mass. So a final check is to see how much the steady state masses differ between both implementations of SimpleBox (Figure 3). From this it is clear that there  are differences up to `r merged_SS_SB1$reldiff |> max() |> round(digits=3)*100`%. This is larger than the level we can consider negligible.

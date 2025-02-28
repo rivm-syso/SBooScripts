@@ -78,7 +78,7 @@ ProcessMolFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
                           "k_Erosion", "k_Escape", 
                          "k_Leaching", "k_Resuspension", "k_Runoff", "k_Sedimentation", 
                          "k_Volatilisation")
-
+"1-HYDROXYANTHRAQUINONE"
 #read in K matrix from excel
 SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SBExcel_verification_",substance,".xlsm")
 

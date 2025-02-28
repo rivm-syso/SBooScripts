@@ -3,6 +3,8 @@ title: "Verification"
 author: "Valerie de Rijk, Anne Hids, Joris Quik"
 date: "`r Sys.Date()`"
 output: github_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -20,8 +22,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 8)
 
 library(openxlsx)
 library(tidyverse)
-library (ggplot2)
-library(plotly)
+library(ggplot2)
 ```
 
 ## Define the comparison type
@@ -36,21 +37,23 @@ compare_to <- "Excel"
 Potential_substances <- c("1-aminoanthraquinone", # no class
                           "1-HYDROXYANTHRAQUINONE", # acid
                           "1-Hexadecanamine, N,N-dimethyl-", # base
-                          "1-Chloro-2-nitro-propane", # neutral
                           "Sb(III)", # metal
                           "microplastic", # microplastic
                           "nAg_10nm" # particulate
                           ) 
 ```
 
-## 
+## Perform verification
 ```{r, warning=FALSE, message=FALSE}
-
-
-
+for(i in Potential_substances){
+  substance <- i
+  test_value <- "TRUE"
+  source("vignettes/Development/Verification.R")
+}
 ```
 
 
+```{r}
 
-
+```
 

@@ -52,9 +52,9 @@ steady state solver, we only need to make a dataframe containing the
 emissions for 1 or more emission compartments. This dataframe should
 contain two columns:
 
--    'Abbr', which contains the abbreviations for the compartments
+-   'Abbr', which contains the abbreviations for the compartments
 
--    'Emis', which contains the emissions to the compartments, in kg/s.
+-   'Emis', which contains the emissions to the compartments, in kg/s.
 
 To see the abbreviations and their meaning, you can run
 \`World\$states\$asDataFrame\`.

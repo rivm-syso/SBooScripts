@@ -1,0 +1,360 @@
+---
+title: "Comparison between k's in Excel and in R"
+author: "Valerie de Rijk, Anne Hids, Matthias Hof and Joris Quik"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", "..", "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+options(dplyr.summarise.inform=FALSE)
+knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 8)
+```
+
+```{r Load packages}
+library(openxlsx)
+library(tidyverse)
+library (ggplot2)
+library(plotly)
+```
+
+This vignette demonstrates the differences between SimpleBox in Excel and 
+SimpleBox in R. The focus is calculating the relative differences for k's between
+Excel and R, as the functions for some process and variable calculations have been
+updated. To see which processes have changed, please see the verification 
+vignettes for each substance type. 
+
+# Calculate differences for engineered nanoparticles (example substance: nAg_10nm).
+
+```{r Initialize,include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+substance <- "nAg_10nm"
+
+source("baseScripts/initWorld_onlyParticulate.R")
+
+World$substance <- substance
+```
+
+# Step 1. Compare the k's from SBExcel to SBR
+
+# Create functions needed to compare Excel and R results
+
+```{r comparison_1, message=FALSE, include=TRUE, echo=FALSE, warning=FALSE}
+# SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4plastics_rev009-1_",substance,".xlsx") 
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/20240815 SimpleBox4plastics_",substance,".xlsx")
+
+# Function to get the k's from an Excel file using the filename
+GetExcelKaas <- function(SBExcelName){
+  SBexcel.K <- read.xlsx(SBExcelName,
+                    colNames = FALSE,
+                    namedRegion = "K")
+  SBexcel.Names <- read.xlsx(SBExcelName,
+                    colNames = FALSE,
+                    namedRegion = "box_names")
+  
+  colnames(SBexcel.K) <- SBexcel.Names
+  
+  SBexcel.K$to <-  as.character(SBexcel.Names)
+  
+  SBexcel.K <- pivot_longer(SBexcel.K, cols =  as.character(SBexcel.Names), values_to = "k", names_to = "from")
+  
+  if(World$fetchData("ChemClass") != "particle"){
+    SBexcel.K <- SBexcel.K |>
+      mutate(from = paste0(from, "U")) |>
+      mutate(to = paste0(to, "U"))
+  } else {
+    SBexcel.K <- SBexcel.K
+  }
+}
+
+# Function to get k's from the World object and attach the correct abbreviations
+GetRKaas <- function(){
+  #adding "from" and "to" acronyms to the R K matrix
+  kaas <- as_tibble(World$kaas) 
+  
+  #R version does not us the acronyms of the excel version, set-up to convert them
+  #Note: this map creates the wrong acronym for soil and sediment at global scale, this is fixed afterwards
+  accronym_map <- c("marinesediment" = "sd2",
+                    "freshwatersediment" = "sd1",
+                    "lakesediment" = "sd0", #SB Excel does not have this compartment. To do: can we turn this off (exclude this compartment) for testing?
+                    "agriculturalsoil" = "s2",
+                    "naturalsoil" = "s1",
+                    "othersoil" = "s3",
+                    "air" = "a",
+                    "deepocean" = "w3",
+                    "sea" = "w2",
+                    "river" = "w1",
+                    "lake" = "w0", 
+                    "cloudwater" = "cw")
+  
+  accronym_map2 <- c("Arctic" = "A",
+                     "Moderate" = "M",
+                     "Tropic" = "T",
+                     "Continental" = "C",
+                     "Regional" = "R")
+  
+  accronym_map3 <- c("Dissolved" = "D", 
+                     "Gas" = "G", 
+                     "Large" = "P", 
+                     "Small" = "A",
+                     "Solid" = "S", 
+                     "Unbound" = "U")
+  
+  
+  kaas <- kaas |> mutate(from =  paste0(accronym_map[fromSubCompart], 
+                                        accronym_map2[fromScale], 
+                                        accronym_map3[fromSpecies]),
+                         to = paste0(accronym_map[toSubCompart], 
+                                     accronym_map2[toScale], 
+                                     accronym_map3[toSpecies]))
+  
+  kaas <-
+    kaas |>
+    mutate(from =
+             ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") &
+                      (fromSubCompart == "marinesediment" | fromSubCompart == "naturalsoil"),
+                    str_replace_all(from, c("sd2"="sd","s1"="s")),
+                    from)) |>
+    mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") &
+                         (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(to, c("sd2"="sd","s1"="s")), to))
+}
+
+# Function to get the diagonal k's (removal processes) from Excel k's dataframe
+GetDiagonalExcel <- function(SBexcel.K){
+  diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to,] 
+  
+  #filter out dissolved and gas processes
+  filtered_excel <- diagonal_excel[!endsWith(diagonal_excel$from, "D"), ]
+  filtered_excel <- filtered_excel[!endsWith(filtered_excel$from, "G"), ]
+}
+
+# Function to get the R k's without the removal processes
+GetFromToKaasR <- function(kaas){
+  kaas2 <- kaas |>  
+    filter(from != to) |> #filtering the diagonals out
+    group_by(from, to) %>% summarize(k = sum(k)) |>
+    mutate(fromto = paste(sep="_", from, to))
+}
+
+# Function to sum all k's in R that have the same from and to abbreviation
+GetDiagonalR <- function(kaas){
+  #filtered_R <-aggregate(k ~ from, data = kaas, FUN = sum) 
+  filtered_R <- kaas |>
+    group_by(from) |>
+    summarise(k = sum(k))
+}
+
+#filtered_R <- filtered_R[!endsWith(filtered_R$from, "U"), ]
+
+# Function to make one dataframe containing the k's for removal processes from Excel and R, and calculate the absolute and relative differences
+MergeDiagonalExcelR <- function(filtered_R, filtered_excel){
+  merged_diagonal <- merge(filtered_R, filtered_excel, by = "from", suffixes = c("_R", "_Excel")) 
+  merged_diagonal$k_Excel <- -merged_diagonal$k_Excel #Turning the "negative" values from the Excel matrix into positive ones
+  merged_diagonal$diff <- merged_diagonal$k_R - merged_diagonal$k_Excel 
+  sorted_diff <- merged_diagonal[order(abs(merged_diagonal$diff), decreasing = TRUE), ] |>
+    mutate(reldif  = abs(diff/k_R))
+}
+
+# Function to make one dataframe containing the k's for non-removal processes and calculate the absolute and relative differences
+MergeFromToExcelR <- function(kaas2, SBexcel.K){
+  SBexcel.K <- filter(SBexcel.K, k != 0 & SBexcel.K$from != SBexcel.K$to)
+  SBexcel.K$fromto <- paste(sep = "_", SBexcel.K$from, SBexcel.K$to)
+  
+  mergedkaas <- merge(kaas2, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
+  
+  mergedkaas$diff <- mergedkaas$k_R - mergedkaas$k_Excel #compare R k to Excel K
+  
+  mergedkaas <- as_tibble(mergedkaas) |> mutate(reldif = diff/k_R) |> select(-fromto_R) |> select(-fromto_Excel)
+}
+```
+
+## Make relative difference table for nanomaterials (nAg_10nm)
+
+```{r Make relative difference table for nanomaterials (nAg_10nm)}
+# Initialize the world for nAg_10nm
+substance <- "nAg_10nm"
+source("baseScripts/initWorld_onlyParticulate.R")
+World$substance <- substance
+
+# Calculate the relative difference between k's in Excel and R
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/20240815 SimpleBox4plastics_", substance, ".xlsx")
+
+SBexcel.K <- GetExcelKaas(SBExcelName = SBExcelName)
+kaas <- GetRKaas()
+filtered_excel <- GetDiagonalExcel(SBexcel.K)
+kaas2 <- GetFromToKaasR(kaas)
+filtered_R <- GetDiagonalR(kaas)
+sorted_diff <- MergeDiagonalExcelR(filtered_R, filtered_excel)
+mergedkaas <- MergeFromToExcelR(kaas2, SBexcel.K) 
+
+Table_Nano <- bind_rows(mergedkaas, sorted_diff) |>
+  select(from, to, diff, reldif) |>
+  mutate(Substance = "ENP") 
+```
+
+## Make relative difference table for microplastics
+
+```{r Make relative difference table for microplastics}
+# Initialize the world for microplastics
+substance <- "microplastic"
+source("baseScripts/initWorld_onlyPlastics.R")
+World$substance <- substance
+
+# Calculate the relative difference between k's in Excel and R
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/20240815 SimpleBox4plastics.xlsx") 
+
+SBexcel.K <- GetExcelKaas(SBExcelName = SBExcelName)
+kaas <- GetRKaas()
+filtered_excel <- GetDiagonalExcel(SBexcel.K)
+kaas2 <- GetFromToKaasR(kaas)
+filtered_R <- GetDiagonalR(kaas)
+sorted_diff <- MergeDiagonalExcelR(filtered_R, filtered_excel)
+mergedkaas <- MergeFromToExcelR(kaas2, SBexcel.K) 
+
+Table_Microplastics <- bind_rows(mergedkaas, sorted_diff) |>
+  select(from, to, diff, reldif) |>
+  mutate(Substance = "Microplastic") 
+```
+
+## Make relative difference table for acids
+
+```{r Make relative difference table for acids}
+substance <- "1-HYDROXYANTHRAQUINONE"
+source("baseScripts/initWorld_onlyMolec.R")
+World$substance <- substance
+
+# Calculate the relative difference between k's in Excel and R
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.05_20240816_",substance,".xlsm") 
+
+SBexcel.K <- GetExcelKaas(SBExcelName = SBExcelName)
+kaas <- GetRKaas()
+filtered_excel <- GetDiagonalExcel(SBexcel.K)
+kaas2 <- GetFromToKaasR(kaas)
+filtered_R <- GetDiagonalR(kaas)
+sorted_diff <- MergeDiagonalExcelR(filtered_R, filtered_excel)
+mergedkaas <- MergeFromToExcelR(kaas2, SBexcel.K) 
+
+Table_Acids <- bind_rows(mergedkaas, sorted_diff) |>
+  select(from, to, diff, reldif) |>
+  mutate(Substance = "Acid") 
+```
+
+## Make relative difference table for bases
+
+```{r Make relative difference table for bases}
+substance <- "1-Hexadecanamine, N,N-dimethyl-"
+source("baseScripts/initWorld_onlyMolec.R")
+World$substance <- substance
+
+# Calculate the relative difference between k's in Excel and R
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.05_20240816_",substance,".xlsm") 
+
+SBexcel.K <- GetExcelKaas(SBExcelName = SBExcelName)
+kaas <- GetRKaas()
+filtered_excel <- GetDiagonalExcel(SBexcel.K)
+kaas2 <- GetFromToKaasR(kaas)
+filtered_R <- GetDiagonalR(kaas)
+sorted_diff <- MergeDiagonalExcelR(filtered_R, filtered_excel)
+mergedkaas <- MergeFromToExcelR(kaas2, SBexcel.K) 
+
+Table_Bases <- bind_rows(mergedkaas, sorted_diff) |>
+  select(from, to, diff, reldif) |>
+  mutate(Substance = "Base") 
+```
+
+## Make relative difference table for metals
+
+```{r Make relative difference table for metals}
+substance <- "Sb(III)"
+source("baseScripts/initWorld_onlyMolec.R")
+World$substance <- substance
+
+# Calculate the relative difference between k's in Excel and R
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.05_20240816_",substance,".xlsm") 
+
+SBexcel.K <- GetExcelKaas(SBExcelName = SBExcelName)
+kaas <- GetRKaas()
+filtered_excel <- GetDiagonalExcel(SBexcel.K)
+kaas2 <- GetFromToKaasR(kaas)
+filtered_R <- GetDiagonalR(kaas)
+sorted_diff <- MergeDiagonalExcelR(filtered_R, filtered_excel)
+mergedkaas <- MergeFromToExcelR(kaas2, SBexcel.K) 
+
+Table_Metals <- bind_rows(mergedkaas, sorted_diff) |>
+  select(from, to, diff, reldif) |>
+  mutate(Substance = "Metal") 
+```
+
+## Make relative difference table for molecules without a class
+
+```{r Make relative difference table for molecules without a class}
+substance <- "1-aminoanthraquinone"
+source("baseScripts/initWorld_onlyMolec.R")
+World$substance <- substance
+
+# Calculate the relative difference between k's in Excel and R
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SimpleBox4.05_20240816_",substance,".xlsm") 
+
+SBexcel.K <- GetExcelKaas(SBExcelName = SBExcelName)
+kaas <- GetRKaas()
+filtered_excel <- GetDiagonalExcel(SBexcel.K)
+kaas2 <- GetFromToKaasR(kaas)
+filtered_R <- GetDiagonalR(kaas)
+sorted_diff <- MergeDiagonalExcelR(filtered_R, filtered_excel)
+mergedkaas <- MergeFromToExcelR(kaas2, SBexcel.K) 
+
+Table_NoClass <- bind_rows(mergedkaas, sorted_diff) |>
+  select(from, to, diff, reldif) |>
+  mutate(Substance = "No class") 
+```
+
+# Combine the tables
+```{R Combine the tables into one}
+Combined_table <- bind_rows(Table_Acids, Table_Bases, Table_Metals, Table_NoClass, Table_Microplastics, Table_Nano) |>
+  mutate(reldif = abs(reldif)) |>
+  select(-diff)
+
+Combined_table_wide <- Combined_table |>
+  pivot_wider(names_from = "Substance", values_from = reldif)
+
+Combined_large_diffs <- Combined_table |>
+  filter(reldif > 0.1)
+
+Large_diffs_wide <- Combined_large_diffs |>
+    pivot_wider(names_from = "Substance", values_from = reldif) 
+
+# Add states to dataframes
+# Combined_table_wide <- Combined_table_wide |>
+#   left_join(World$states$asDataFrame, by= "Abbr")
+# 
+# states <- World$states$asDataFrame
+
+# Download the table with all relative differces
+write.xlsx(Combined_table_wide, "vignettes/Development/Quality control/Publication/Combined_table_all.xlsx")
+
+# Download the table with the largest relative differences
+write.xlsx(Combined_large_diffs, "vignettes/Development/Quality control/Publication/Combined_table_large_diffs.xlsx")
+
+# Make and save table for molecules only 
+Table_molec <- Combined_table_wide |>
+  select(-c(Microplastic, ENP)) |>
+  drop_na()
+
+write.xlsx(Table_molec, "vignettes/Development/Quality control/Publication/Combined_table_molec.xlsx")
+
+# Make and save table for particles only
+Table_particulate <- Combined_table_wide |>
+  select(-c(Acid, Base, Metal, `No class`)) |>
+  drop_na()
+
+write.xlsx(Table_particulate, "vignettes/Development/Quality control/Publication/Combined_table_particulate.xlsx")
+
+```
+
+
