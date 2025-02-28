@@ -52,9 +52,9 @@ steady state solver, we only need to make a dataframe containing the
 emissions for 1 or more emission compartments. This dataframe should
 contain two columns:
 
--    'Abbr', which contains the abbreviations for the compartments
+-   'Abbr', which contains the abbreviations for the compartments
 
--    'Emis', which contains the emissions to the compartments, in kg/s.
+-   'Emis', which contains the emissions to the compartments, in kg/s.
 
 To see the abbreviations and their meaning, you can run
 \`World\$states\$asDataFrame\`.
@@ -111,21 +111,22 @@ World$PlotMassDistribution(scale = "Regional")
 
 ### Use the steady state solver probabilistically
 
-To demonstrate the use of the steady state probabilistic solver we will
-initialize the World for microplastics first.
+Here the steady state probabilistic solver is demonstrated for a
+microplastic.
 
 When the World is initialized for particulates or plastics, the
 emissions go to the "S", "A" and/or "P" species (this is unlike
 emissions for molecules, where the emissions go to the "U" species).
 
 | Abbreviation | Full species name |
-|--------------|-------------------|
-| U            | Unbound           |
-| S            | Solid             |
-| A            | Aggregated        |
-| P            | Attached          |
+|-------------:|-------------------|
+|            U | Unbound           |
+|            S | Solid             |
+|            A | Aggregated        |
+|            P | Attached          |
 
-: Species abbreviations and the corresponding species names.
+: Table showing species abbreviations and the corresponding species
+names.
 
 ```{r Initialize World for SS probabilistic solve, warning=FALSE, message=FALSE}
 source('baseScripts/initWorld_onlyPlastics.R')
@@ -150,18 +151,23 @@ deterministic steady state solver. Then the solver will use the same set
 of emissions for each run, but vary variable values.)
 
 ```{r Prepare uncertain steady emissions, warning=FALSE, message=FALSE}
-load("vignettes/example_uncertain_data.RData")
+load("data/Example/example_uncertain_data.RData")
 
+# Example of an emission dataframe formatted for for use in SimpleBox
 example_data <- example_data |>
+  # Select the emission compartment, year of analysis and RUN for one microplastic and scale.
   select(To_Compartment, `2023`, RUN) |>
+  # Change the name of column with emission values to "Emis"
   rename("Emis" = `2023`) |>
+  # Add the abreviations with the key for compartment, scale and species
   mutate(Abbr = case_when(
     To_Compartment == "Agricultural soil (micro)" ~ "s2RS",
     To_Compartment == "Residential soil (micro)" ~ "s3RS",
     To_Compartment == "Surface water (micro)" ~ "w1RS"
   )) |>
-  mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> # Convert kt/year to kg/s
-  select(-To_Compartment) 
+  # Convert kt/year to kg/s
+  mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> 
+  select(-To_Compartment) # leave out original compartment name
 ```
 
 Variable values can be varied over runs by specifying the variable name,
@@ -175,8 +181,9 @@ values for 2 variables. Consequently, a distribution is created for each
 row in the dataframe.
 
 ```{r Prepare variable df and functions ss, warning=FALSE, message=FALSE}
+
 # Load the Excel file containing example distributions for variablese
-Example_vars <- readxl::read_xlsx("vignettes/Example_uncertain_variables.xlsx", sheet = "Variable_data")
+Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")
 
 # Define functions for each row based on the distribution type
 varFuns <- apply(Example_vars, 1, function(aRow) {
@@ -198,6 +205,7 @@ varFuns <- apply(Example_vars, 1, function(aRow) {
   # Create the inverse CDF function using the prepared arguments
   Make_inv_unif01(fun_type = dist_type, pars = prepArgs)
 })
+
 ```
 
 World\$Solve needs the following variables to solve steady state
@@ -217,7 +225,7 @@ and emissions.
 
 ```{r Solve SS probabilistic, warning=FALSE, message=FALSE}
 # Call the steady state solver
-World$NewSolver("SteadyODE")
+World$NewSolver("SteadyStateSolver")
 
 # Solve 
 World$Solve(emissions = example_data, var_box_df = Example_vars, var_invFun = varFuns, nRUNs = length(unique(example_data$RUN)))
@@ -227,6 +235,7 @@ solution = World$Solution()
 variable_values = World$VariableValues()
 concentration = World$Concentration()
 emission = World$Emissions()
+
 ```
 
 Finally, we can plot the outcome using the predefined plot functions.
@@ -240,16 +249,21 @@ World$PlotSolution(scale = "Regional")
 
 # Plot the mass distribution
 World$PlotMassDistribution(scale = "Regional")
+
 ```
 
 ## Dynamic solver
 
-To demonstrate the use of the dynamic solvers we will initialize the
-World for microplastics first:
+SimpleBox can also solve the K matrix with semi-dynamically using time
+variable emissions. To do this, one needs to use the DynamicSolver. This
+is demonstrated below or microplastics:
 
 ```{r Init world microplastics, warning=FALSE, message=FALSE}
 source('baseScripts/initWorld_onlyPlastics.R')
 ```
+
+As in steady state, one can do dynamic analysis deterministically or
+probabilistically.
 
 ### Use the dynamic solver deterministically
 
@@ -261,14 +275,23 @@ a dataframe with three columns:
 -   'Emis', which contains the emissions to the compartments, in kg/s
 
 -   'Timed', which contains the time of the emission in seconds.
+    <!--# Why the "d" at the end? -->
 
 ```{r Test dynamic deterministic solver with emission df, warning = FALSE, message=FALSE}
 # Initialize emissions in t/y
-emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS","aRS", "s2RS", "w1RS"), Emis = c(10, 10, 10, 20, 20, 20), Timed = c(1, 2, 3, 4, 5, 6)) 
+emissions <- 
+  # create emission scenario in time:
+  data.frame(Emis = c(10,20, 1,0,0), # emission in tones per year
+             Timed = c(1,5,10,15,20))  # years from start
+# apply emission scenario to intended species and compartments using hte Abbr:
+emissions <- merge(emissions, data.frame(Abbr = c("aRS", "s2RS", "w1RS")))
+
+# Abbr = c("aRS", "s2RS", "w1RS","aRS", "s2RS", "w1RS","aRS", "s2RS", "w1RS")
 
 # convert 1 t/y to si units: kg/s
 emissions <- emissions |>
-  mutate(Timed = Timed*(365.25*24*60*60)) |> ungroup()
+  mutate(Emis = Emis*1000,
+    Timed = Timed*(365.25*24*60*60)) |> ungroup()
 ```
 
 World\$Solve needs the following variables to solve dynamically
@@ -283,11 +306,12 @@ deterministically:
 Now we can solve and get the solution, concentration and emissions.
 
 ```{r Solve dynamically deterministically, warning=FALSE, message=FALSE}
-tmax <- 365.25*24*60*60*10 # 10 years in seconds
-nTIMES <- 10 # Solve 10 times
+
+tmax <- max(emissions$Timed) # set max solve time to last step in emission scenario
+nTIMES <- 1+max(emissions$Timed)/(365.25*24*60*60) # Sets the time step for output, e.g. for 20 year scenarion, add t0 is 21 nTimes
 
 # Initialize the dynamic solver
-World$NewSolver("ApproxODE")
+World$NewSolver("DynamicSolver")
 World$Solve(emissions = emissions, tmax = tmax, nTIMES = nTIMES)
 solution <- World$Solution()
 emission <- World$Emissions()
@@ -301,7 +325,7 @@ given, the outcome is plotted for all subcomparts.
 ```{r Plot the outcome of the dynamic deterministic solver, warning=FALSE, message=FALSE}
 # You can specify a scale and a subcompartment
 World$PlotSolution(scale = "Regional", subcompart = "agriculturalsoil")
-
+World$substance
 # Or just a scale and all subcompartments are plotted:
 World$PlotSolution(scale = "Regional")
 
