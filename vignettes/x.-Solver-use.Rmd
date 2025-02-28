@@ -18,6 +18,7 @@ molecules.
 library(lhs)
 library(tidyverse)
 library(treemapify)
+library(gridExtra)
 
 source("baseScripts/initWorld_onlyMolec.R")
 ```
@@ -265,8 +266,6 @@ emissions <-
 # apply emission scenario to intended species and compartments using hte Abbr:
 emissions <- merge(emissions, data.frame(Abbr = c("aRS", "s2RS", "w1RS")))
 
-# Abbr = c("aRS", "s2RS", "w1RS","aRS", "s2RS", "w1RS","aRS", "s2RS", "w1RS")
-
 # convert 1 t/y to si units: kg/s
 emissions <- emissions |>
   mutate(Emis = Emis*1000,
@@ -287,7 +286,7 @@ Now we can solve and get the solution, concentration and emissions.
 ```{r Solve dynamically deterministically, warning=FALSE, message=FALSE}
 
 tmax <- max(emissions$Timed) # set max solve time to last step in emission scenario
-nTIMES <- 1+max(emissions$Timed)/(365.25*24*60*60) # Sets the time step for output, e.g. for 20 year scenarion, add t0 is 21 nTimes
+nTIMES <- 1+max(emissions$Timed)/(365.25*24*60*60) # Sets the time step for output, e.g. for 20 year scenario, add t0 is 21 nTimes
 
 # Initialize the dynamic solver
 World$NewSolver("DynamicSolver")
@@ -328,7 +327,7 @@ a dataframe with three columns:
 ```{r Prepare uncertain dynamic emissions, warning=FALSE, message=FALSE}
 source('baseScripts/initWorld_onlyPlastics.R')
 
-load("vignettes/example_uncertain_data.RData")
+load("data/Examples/example_uncertain_data.RData")
 
 example_data <- example_data |>
   select(To_Compartment, `2020`, `2021`,`2022`, `2023`, RUN) |>
@@ -349,7 +348,7 @@ steady state probabilistic solver.
 
 ```{r Prepare variable df and functions dyn, warning=FALSE, message=FALSE}
 # Load the Excel file containing example distributions for variablese
-Example_vars <- readxl::read_xlsx("vignettes/Example_uncertain_variables.xlsx", sheet = "Variable_data")
+Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")
 
 varFuns <- World$makeInvFuns(Example_vars)
 ```
@@ -375,7 +374,7 @@ and emissions. NOTE: These calculations take a bit longer than the
 previous calculations.
 
 ```{r Solve dyn probabilistic, warning=FALSE, message=FALSE}
-World$NewSolver("ApproxODE")
+World$NewSolver("DynamicSolver")
 
 tmax <- 365.25*24*60*60*length(unique(example_data$Timed))
 nTIMES <- length(seq(0, tmax, length.out = 10))

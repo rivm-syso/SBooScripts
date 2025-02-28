@@ -51,6 +51,7 @@ check_and_install("ggdag")
 check_and_install("R6")
 check_and_install("rlang")
 check_and_install("treemapify")
+check_and_install("gridExtra")
 ```
 
 ### Choose a substance
