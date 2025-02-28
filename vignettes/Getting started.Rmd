@@ -50,6 +50,7 @@ check_and_install("knitr")
 check_and_install("ggdag")
 check_and_install("R6")
 check_and_install("rlang")
+check_and_install("treemapify")
 ```
 
 ### Choose a substance
