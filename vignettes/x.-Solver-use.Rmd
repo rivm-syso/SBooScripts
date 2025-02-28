@@ -151,7 +151,7 @@ deterministic steady state solver. Then the solver will use the same set
 of emissions for each run, but vary variable values.)
 
 ```{r Prepare uncertain steady emissions, warning=FALSE, message=FALSE}
-load("data/Example/example_uncertain_data.RData")
+load("data/Examples/example_uncertain_data.RData")
 
 # Example of an emission dataframe formatted for for use in SimpleBox
 example_data <- example_data |>
@@ -181,31 +181,10 @@ values for 2 variables. Consequently, a distribution is created for each
 row in the dataframe.
 
 ```{r Prepare variable df and functions ss, warning=FALSE, message=FALSE}
-
 # Load the Excel file containing example distributions for variablese
 Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")
 
-# Define functions for each row based on the distribution type
-varFuns <- apply(Example_vars, 1, function(aRow) {
-  dist_type <- aRow["Distribution"]
-  
-  if (dist_type == "triangular") {
-    prepArgs <- as.list(as.numeric(aRow[c("a", "b", "c")]))
-    names(prepArgs) <- c("a", "b", "c")
-  } else if (dist_type == "normal") {
-    prepArgs <- as.list(as.numeric(aRow[c("a", "b")]))
-    names(prepArgs) <- c("a", "b")
-  } else if (dist_type == "uniform") {
-    prepArgs <- as.list(as.numeric(aRow[c("a", "b")]))
-    names(prepArgs) <- c("a", "b")
-  } else {
-    stop("Unsupported distribution type")
-  }
-  
-  # Create the inverse CDF function using the prepared arguments
-  Make_inv_unif01(fun_type = dist_type, pars = prepArgs)
-})
-
+varFuns <- World$makeInvFuns(Example_vars)
 ```
 
 World\$Solve needs the following variables to solve steady state
@@ -372,27 +351,7 @@ steady state probabilistic solver.
 # Load the Excel file containing example distributions for variablese
 Example_vars <- readxl::read_xlsx("vignettes/Example_uncertain_variables.xlsx", sheet = "Variable_data")
 
-# Define functions for each row based on the distribution type
-varFuns <- apply(Example_vars, 1, function(aRow) {
-  dist_type <- aRow["Distribution"]
-  
-  if (dist_type == "triangular") {
-    prepArgs <- as.list(as.numeric(aRow[c("a", "b", "c")]))
-    names(prepArgs) <- c("a", "b", "c")
-  } else if (dist_type == "normal") {
-    prepArgs <- as.list(as.numeric(aRow[c("a", "b")]))
-    names(prepArgs) <- c("a", "b")
-  } else if (dist_type == "uniform") {
-    prepArgs <- as.list(as.numeric(aRow[c("a", "b")]))
-    names(prepArgs) <- c("a", "b")
-  } else {
-    stop("Unsupported distribution type")
-  }
-  
-  # Create the inverse CDF function using the prepared arguments
-  Make_inv_unif01(fun_type = dist_type, pars = prepArgs)
-})
-
+varFuns <- World$makeInvFuns(Example_vars)
 ```
 
 `World$Solve` needs the following variables to solve steady state
