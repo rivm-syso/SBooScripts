@@ -215,7 +215,6 @@ solution = World$Masses()
 variable_values = World$VariableValues()
 concentration = World$Concentration()
 emission = World$Emissions()
-
 ```
 
 Finally, we can plot the outcome using the predefined plot functions.
@@ -292,6 +291,7 @@ World$NewSolver("DynamicSolver")
 World$Solve(emissions = emissions, tmax = tmax, nTIMES = nTIMES)
 solution <- World$Masses()
 emission <- World$Emissions()
+concentration <- World$Concentration()
 ```
 
 Finally, we can plot the outcome using the predefined plot functions. If
