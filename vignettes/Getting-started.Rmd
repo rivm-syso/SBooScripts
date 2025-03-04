@@ -16,42 +16,17 @@ projectRoot <- paste(getwd(), "..", sep = "/")
 knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
-This vignette demonstrates how to use SimpleBox Object-Oriented (SBOO).
+This vignette demonstrates how to use SimpleBox Object-Oriented (SBoo).
 
 ## Initialize
 
 Before starting, make sure your working directory is set to the
 SBooScripts folder.
 
-### See if required packages are installed
+### Install required packages
 
 ```{r install packages, message = FALSE}
-
-check_and_install <- function(package) {
-  tryCatch({
-    # Load the package
-    library(package, character.only = TRUE)
-    message(paste("Package", package, "is already installed and loaded."))
-  }, error = function(e) {
-    # If an error occurs, install the package
-    message(paste("Package", package, "is not installed. Installing now..."))
-    install.packages(package, dependencies = TRUE)
-    library(package, character.only = TRUE)
-    message(paste("Package", package, "has been successfully installed and loaded."))
-  })
-}
-
-# Install the required packages
-check_and_install("ggplot2")
-check_and_install("tidyverse")
-check_and_install("constants")
-check_and_install("deSolve")
-check_and_install("knitr")
-check_and_install("ggdag")
-check_and_install("R6")
-check_and_install("rlang")
-check_and_install("treemapify")
-check_and_install("gridExtra")
+source("baseScripts/installRequirements.R")
 ```
 
 ### Choose a substance
@@ -201,11 +176,16 @@ World$UpdateDirty("MW")
 After changing the molecular weight, the value is
 `r World$fetchData("MW")`.
 
+**Note that the MW variable is only used for calculations if the
+substance is a molecule. If you change the substance to a
+particle/microplastic, the chunk above will still work but MW is not
+used for calculations.**
+
 ## Calculate steady state output
 
 To calculate steady state masses, emissions and a solver are needed.
 They have to be given to the solver in a particular format. More details
-on solvers can be found [here](vignettes/x. Solver use.md).
+on solvers can be found [here](vignettes/x.-Solver-use.md).
 
 ### Create emissions data frame
 
@@ -213,6 +193,13 @@ To be able to calculate steady state masses, an emission data frame is
 needed. The emissions data frame consists of one column with the
 abbreviation of the scale-subcompartment-species combination, and
 another column containing the emission to that compartment.
+
+Scales are spatial scales, such as "Regional" or "Continental".
+SubComparts are environmental subcompartments within the scales, such as
+"river" or "agriculturalsoil". Species are the form in which the
+substance occurs. For molecules, the species is always "Unbound". For
+particulates, the species can be "Solid" (only the particle),
+"Aggregated" or "Attached".
 
 The abbreviations are as follows:
 
@@ -265,17 +252,21 @@ emissions. In the example below, emissions of 10000 t/y go into regional
 air, regional agricultural soil and regional river water. These
 emissions in tonnes per year are then converted to mol/s.
 
-**Notice that because this script is using a molecular substance, the
-abbreviation "U" for "Unbound" is used here to specify emissions. If the
-substance is a particle, use "S" for "Solid"!**
+**For the species abbreviation, use:**
+
+-   "U" for "Unbound": Used when the substance is molecular (e.g., a
+    chemical dissolved in water or air).
+
+-   "S" for "Solid": Used when the substance is a particle (e.g.,
+    microplastics, dust, or other solid-phase contaminants).
+
+In this case we use U because we initialized the World for a molecule.
 
 ```{r Create emissions data frame, include=TRUE, warning=FALSE, message=FALSE}
 emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10, 10, 10)) 
 
-MW <- World$fetchData("MW")
-
 emissions <- emissions |>
-  mutate(Emis = Emis*1000/(MW*365*24*60*60)) # convert t/y to mol/s
+  mutate(Emis = Emis*1000/(365*24*60*60)) # convert t/y to mol/s
 
 knitr::kable(emissions)
 ```
@@ -288,25 +279,27 @@ state masses are output but the `World$Solve()` function.
 
 ```{r Solve the matrix, include=TRUE, warning=FALSE, message=FALSE}
 # Define the solver function to use. For steady state calculations, this is always "SteadyODE"
-World$NewSolver("SteadyODE")
+World$NewSolver("SteadyStateSolver")
 
 # Solve with the emissions we defined in the previous chunk
 World$Solve(emissions = emissions)
 
 # Access the masses in each compartment
-masses <- World$Solution()
+masses <- World$Masses()
 concentrations <- World$Concentration()
 
 knitr::kable(masses)
 knitr::kable(concentrations)
 ```
 
-We can now plot the masses and concentrations using the built-in plot functions. 
-The functions are called by using `World$PlotMasses` for masses, and `World$PlotConcentration`
-for concentrations. You need to specify which scale you want to plot the outcome for. If no 
-scale is specified, the Regional scale will be chosen for you. Additionally you can define 
-for which SubCompart(s) the outcomes should be plotted. If you don't specify this, the outcomes
-will be plotted for all SubComparts in the Scale. 
+We can now plot the masses and concentrations using the built-in plot
+functions. The functions are called by using `World$PlotMasses` for
+masses, and `World$PlotConcentration` for concentrations. You need to
+specify which scale you want to plot the outcome for. If no scale is
+specified, the Regional scale will be chosen for you. Additionally you
+can define for which SubCompart(s) the outcomes should be plotted. If
+you don't specify this, the outcomes will be plotted for all SubComparts
+in the Scale.
 
 ```{r Plot the masses and concentrations, warning=FALSE, message=FALSE}
 # Plot the masses and concentrations for all subcompartments at regional scale
@@ -321,4 +314,4 @@ Finally, if you are interested in the other functions available in
 World, you can use `ls(World)` to see them all.
 
 **For more information on the different types of solvers and how to use
-them, please see SBooScripts/vignettes/x. Solver use.md.**
+them, please see** [this vignette](vignettes/x.-Solver-use.Rmd).
