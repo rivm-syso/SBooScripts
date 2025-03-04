@@ -2,7 +2,7 @@
 # It will correctly read and apply all relevant parameter inputs, and writes the results to an output file.
 # The input file (and thus this script) is not limited to one substance at a time. It also supports
 # calculations of uncertainty ranges based on the uncertainty of the input parameters. Currently,
-# the input uncertainty supports Triangular, Normal, Lognormal and Weibull distribution.
+# the input uncertainty only supports Triangular distribution.
 # For now, the script only works with Molecular substances.
 
 # NOTE: the ODE will throw a fatal error if very small input values are used (observed so far with 1e-20)
@@ -18,18 +18,13 @@ library(iterators)
 library(tidyverse)
 library(lhs)
 library(openxlsx)
-library(sensitivity)
-library(ggplot2)
-library(ks) ### ks needed for sensiFdiv function
-
-
 
 # Set the number of runs for calculating uncertainty.
-Run_count <- 100
+# NOTE: For some reason, the LEON-T scenario will throw an error if the run count is set higher than 30.
+Run_count <- 30
 
 # Set the path to the input file, as well as the path to the model's data files.
-inoutname <- paste0("/rivm/n/defaresj/Documents/SimpleBox_OO_sensitivity_test.xlsx")
-f_name <- str_split_i(inoutname, "/", -1)
+inoutname <- paste0("/rivm/n/defaresj/Documents/SimpleBox_OO_input_leont.xlsx")
 datadir <- paste0("data")
 
 # Read in the inputs for Landscape, Substance, and Emission parameters.
@@ -50,13 +45,14 @@ MEC_In <- read.xlsx(inoutname,
                     colNames = TRUE,
                     cols = c(1:11))
 
+
 # Read the required model data files.
 ScaleSheet <- read.csv(paste0(datadir, "/ScaleSheet.csv"))
 SubCompartSheet <- read.csv(paste0(datadir, "/SubCompartSheet.csv"))
 SpeciesSheet <- read.csv(paste0(datadir, "/SpeciesSheet.csv"))
 
 # Initialize the World script. 
-source("baseScripts/initWorld_onlyMolec.R")
+#source("baseScripts/initWorld_onlyParticulate.R")
 
 
 # Prepare tibble dataframes for later use.
@@ -102,6 +98,7 @@ Conc_calc <- tibble(Substance = character(),
                     RUN = numeric(),
                     Value = numeric())
 
+
 # Store the substances and parameters in the input file.
 Substances <- unique(EmissionIn$Substance)
 
@@ -109,7 +106,6 @@ if (length(Substances) == 0) {
   Substances <- c("Unnamed Substance")
   SubstanceIn$Substance <- "Unnamed Substance"
   EmissionIn$Substance <- "Unnamed Substance"
-  message("No Substance name detected. Substance will be referred to as 'Unnamed Substance'.")
 }
 
 
@@ -149,7 +145,7 @@ for (i in seq(nrow(EmissionIn))) {
 }
 
 
-# Read Landscape Inputs and separate fixed from uncertain inputs.
+# Read and process Landscape Inputs.
 for (i in seq(nrow(LandscapeIn))) {
   
   
@@ -175,7 +171,7 @@ for (i in seq(nrow(LandscapeIn))) {
 
 
 
-# Read Substance Inputs and separate fixed from uncertain inputs.
+# Read and process Substance Inputs. Do not set them yet.
 for (i in seq(nrow(SubstanceIn))) {
   
   if (SubstanceIn$Distribution[i] == "Fixed") {
@@ -197,7 +193,6 @@ for (i in seq(nrow(SubstanceIn))) {
 }
 
 
-Available_Distributions <- c("Triangular", "Normal", "Log normal", "Weibull", "Fixed")
 
 # The function of the triangular distribution.
 triangular_cdf_inv <- function(u, # LH scaling factor
@@ -212,13 +207,15 @@ triangular_cdf_inv <- function(u, # LH scaling factor
 
 
 # The function of the normal distribution.
+# NOTE: Distribution is not allowed to return values equal to or lower than 0
 normal_pdf <- function(u, b, c){
-
+  
   qnorm(u, c, b)
   
 }
 
 # The function of the log normal distribution.
+# NOTE: Distribution is not allowed to return values equal to or lower than 0
 LogNormal_pdf <- function(u, b, c){
 
   log(qlnorm(u, c, b))
@@ -242,6 +239,7 @@ n_lhs <- n_vars + n_emisscomps + n_MEC
 n_samples <- Run_count
 
 # Generate numbers between 0 and 1 using lhs
+#lhs_samples <- optimumLHS(n_samples, 1)
 lhs_samples <- optimumLHS(n_samples, n_lhs) 
 
 lhs_samples_vars <- lhs_samples[, 1:n_vars]
@@ -249,61 +247,33 @@ lhs_samples_emis <- lhs_samples[, (n_vars + 1):(n_vars+n_emisscomps)]
 lhs_samples_MEC <- lhs_samples[,(n_vars+n_emisscomps+1):ncol(lhs_samples)]
 
 
-
 # Calculate the values used in the uncertainty solver for Parameters
-if (n_vars > 0) {
-  for (i in 1:n_vars) {
-    a <- UncertParams$a[i]
-    b <- UncertParams$b[i]
-    c <- UncertParams$c[i]
-    
-    # Select the Distribution to use to generate the parameter values.
-    # If applicable, make sure all samples are equal to or greater than zero.
-    if (UncertParams$Distribution[i] == "Triangular") {
-      samples <- triangular_cdf_inv(lhs_samples_vars[, i], a, b, c)
-    }
-    if (UncertParams$Distribution[i] == "Normal") {
-      samples <- normal_pdf(lhs_samples_vars[,i], b, c)
-      samples[samples <= 0] <- a
-    }
-    if (UncertParams$Distribution[i] == "Log normal") {
-      samples <- LogNormal_pdf(lhs_samples_vars[, i], b, c)
-      samples[samples <= 0] <- a
-    }
-    if (UncertParams$Distribution[i] == "Weibull") {
-      samples <- Weibull_pdf(lhs_samples_vars[, i], a, b, c)
-    }
-    
-    if (!(UncertParams$Distribution[i] %in% Available_Distributions)) {
-      d <- first(na.omit(c(c, a, b)))
-      samples <- rep(d, Run_count)
-      message(sprintf("No valid Distribution detected for %s. Resorting to using Fixed value %f",
-                      UncertParams$varName[i], d))
-    }
-    
-    # Store the generated list of new input parameters.
-    new_data <- tibble(value = samples)
-    UncertParams$data[[i]] <- new_data
+for (i in 1:n_vars) {
+  a <- UncertParams$a[i]
+  b <- UncertParams$b[i]
+  c <- UncertParams$c[i]
+  
+  # Select the Distribution to use to generate the parameter values.
+  if (UncertParams$Distribution[i] == "Triangular") {
+    samples <- triangular_cdf_inv(lhs_samples_vars[, i], a, b, c)
   }
-} 
-
-# Failsafe in case all parameters are using a fixed distribution
-for (i in Substances[!(Substances %in% UncertParams$Substance)]) {
-  index <- match(i, FixedParams$Substance)
-  # Failsafe if there are no parameters specific to a particular substance
-  if (is.na(index)) {
-    match(NA, FixedParams$Substance)
+  if (UncertParams$Distribution[i] == "Normal") {
+    samples <- normal_pdf(lhs_samples_vars[, i], b, c)
+    samples[samples <= 0] <- a
   }
-  samples <- rep(FixedParams$Waarde[index], Run_count)
+  if (UncertParams$Distribution[i] == "Log normal") {
+    samples <- LogNormal_pdf(lhs_samples_vars[, i], b, c)
+    samples[samples <= 0] <- a
+  }
+  if (UncertParams$Distribution[i] == "Weibull") {
+    samples <- Weibull_pdf(lhs_samples_vars[, i], a, b, c)
+  }
+  
+  # Store the generated list of new input parameters.
   new_data <- tibble(value = samples)
-  UncertParams <- add_row(UncertParams, tibble_row(varName = FixedParams$varName[index] ,
-                                                   Substance = FixedParams$Substance[index],
-                                                   Scale = FixedParams$Scale[index],
-                                                   SubCompart = FixedParams$SubCompart[index],
-                                                   data = list(new_data)
-                                                   ))
-  UncertParams <- UncertParams %>% distinct(.keep_all = TRUE)
+  UncertParams$data[[i]] <- new_data
 }
+
 
 # Calculate the values used in the uncertainty solver for Emissions
 for (i in 1:n_emisscomps) {
@@ -316,11 +286,11 @@ for (i in 1:n_emisscomps) {
     samples <- triangular_cdf_inv(lhs_samples_emis[, i], a, b, c)
   }
   if (Emiss$Distribution[i] == "Normal") {
-    samples <- normal_pdf(lhs_samples_emis[,i], c, b)
+    samples <- normal_pdf(lhs_samples_emis[, i], b, c)
     samples[samples <= 0] <- a
   }
   if (Emiss$Distribution[i] == "Log normal") {
-    samples <- LogNormal_pdf(lhs_samples_emis[, i], c, b)
+    samples <- LogNormal_pdf(lhs_samples_emis[, i], b, c)
     samples[samples <= 0] <- a
   }
   if (Emiss$Distribution[i] == "Weibull") {
@@ -330,41 +300,24 @@ for (i in 1:n_emisscomps) {
     samples <- rep(c, Run_count)
   }
   
-  if (!(Emiss$Distribution[i] %in% Available_Distributions)) {
-    d <- first(na.omit(c(c, a, b)))
-    samples <- rep(d, Run_count)
-    message(sprintf("No valid Distribution detected for %s emission. Resorting to using Fixed value %f",
-                    Emiss$Substance[i], d))
-  }
-  
   # Store the generated list of new input Emissions.
   new_data <- tibble(value = samples)
   Emiss$Emis[[i]] <- new_data
 }
-
-
 
 for (i in 1:n_MEC) {
   a <- ifelse(is.na(MEC_In$a[i]), 1e-15, MEC_In$a[i])  
   b <- MEC_In$b[i]
   c <- MEC_In$c[i]
   
-  # Select the Distribution to use to generate the parameter values.
   if (MEC_In$Distribution[i] == "Triangular") {
     samples <- triangular_cdf_inv(lhs_samples_MEC[, i], a, b, c)
-  }
-  if (MEC_In$Distribution[i] == "Normal") {
-    samples <- normal_pdf(lhs_samples_MEC[,i], c, b)
+  
+  } else if (MEC_In$Distribution[i] == "Normal") {
+    samples <- normal_pdf(lhs_samples_MEC[, i], b, c)
     samples[samples <= 0] <- a
-  }
-  if (MEC_In$Distribution[i] == "Log normal") {
-    samples <- LogNormal_pdf(lhs_samples_MEC[, i], c, b)
-    samples[samples <= 0] <- a
-  }
-  if (MEC_In$Distribution[i] == "Weibull") {
-    samples <- Weibull_pdf(lhs_samples_MEC[, i], a, b, c)
-  }
-  if (MEC_In$Distribution[i] == "Fixed"){
+  
+  } else {
     samples <- rep(c, Run_count)
   }
   
@@ -378,18 +331,24 @@ for (i in 1:n_MEC) {
   
 }
 
-SubstanceCount <- length(UncertParams$varName)
-MEC_compart <- unique(MEC_Distributed$SubCompart)
+
+
+
+
+SubstanceCount <- length(Substances)
+
 
 # For every Substance, complete the rest of the setup and run the model.
 for (Substance in Substances) {
   
   start.time <- Sys.time()
-
-  # TODO: Build in failsave in case users incorrectly input Scale/Subcompart info
+  
+  source("baseScripts/initWorld_onlyParticulate.R")
+  
   FixedParamsM <- FixedParams[FixedParams$Substance == Substance | is.na(FixedParams$Substance),]
   
   World$mutateVars(FixedParamsM)
+  
   
   # Calculating the parameters that are dependent on input parameters
   SBvars <- c("FRACs",
@@ -420,9 +379,9 @@ for (Substance in Substances) {
     World$CalcVar(x)
   }
   
-  
   # Update the transfer rates based on the newly set and calculated parameters
   World$UpdateKaas()
+  
   
   
   # Set the solver
@@ -435,14 +394,13 @@ for (Substance in Substances) {
   UncertParamsM <- UncertParams[UncertParams$Substance == Substance | is.na(UncertParams$Substance),]
   EmissM <- Emiss[Emiss$Substance == Substance,]
   
-  # World$SetConst(Test = "FALSE")
   
   solved <- World$Solve(EmissM, needdebug = F, UncertParamsM)
   
   # Extract the Concentrations from the model. This dataframe will contain all concentrations from all scales and subcomparts.
-  Concentrations_full <- filter(World$GetConcentration(), Scale == "Regional")    
+  Concentrations_full <- filter(World$GetConcentration(), Scale == "Regional", grepl("P$", Abbr))    
   Concentrations_full <- Concentrations_full[,-c(1,2)]
-
+  
   
   Subcomparts <- unique(Concentrations_full$SubCompart)
   
@@ -462,19 +420,39 @@ for (Substance in Substances) {
                                                          Median = Conc_median,
                                                          Quant75 = Conc_quant75,
                                                          Max = Conc_max
-                                                         ))
+    ))
   }
   
   
-  # Assume that all substances want the same subcomparts
-  for (MEC_subcompart in MEC_compart) {
-    for (i in which(Concentrations_full$SubCompart == MEC_subcompart)) {
+  for ( i in which(Concentrations_full$SubCompart == "river")){
+    if (Substance == "TWP" | Substance =="PM10") {
       Conc_calc <- add_row(Conc_calc, tibble_row(Substance = Substance,
-                                                 SubCompart = MEC_subcompart,
+                                                 SubCompart = "river",
                                                  RUN = Concentrations_full$RUN[i],
                                                  Value = Concentrations_full$Concentration[i]))
     }
   }
+  
+  for ( i in which(Concentrations_full$SubCompart == "freshwatersediment")){
+    Conc_calc <- add_row(Conc_calc, tibble_row(Substance = Substance,
+                                               SubCompart = "freshwatersediment",
+                                               RUN = Concentrations_full$RUN[i],
+                                               Value = Concentrations_full$Concentration[i]))
+  }
+  
+  for ( i in which(Concentrations_full$SubCompart == "othersoil")){
+    if (Substance != "PM1"){
+      Conc_calc <- add_row(Conc_calc, tibble_row(Substance = Substance,
+                                                 SubCompart = "othersoil",
+                                                 RUN = Concentrations_full$RUN[i],
+                                                 Value = Concentrations_full$Concentration[i]))
+    }
+  }
+  
+  
+  
+  
+  
   
   
   end.time <- Sys.time()
@@ -482,21 +460,26 @@ for (Substance in Substances) {
   
   SubstanceCount <- SubstanceCount - 1
   if (SubstanceCount > 0) {
+    
     cat(SubstanceCount, "more substances left to go. Estimated time left:", time.taken*SubstanceCount, "\n")
-  }
-  else {
+  } else {
     cat("Done\n")
   }
   
 }
 
 
+# MEC_Distributed <- group_by(MEC_Distributed, Substance)
+# Conc_calc <- group_by(Conc_calc, Substance)
+# MEC_Distributed <- arrange(MEC_Distributed, RUN, .by_group = TRUE)
+# Conc_calc <- arrange(Conc_calc, RUN, .by_group = TRUE)
+
 PECMEC <- tibble(Substance = Conc_calc$Substance,
-                 SubCompart = Conc_calc$SubCompart,
-                 RUN = Conc_calc$RUN,
-                 PEC = Conc_calc$Value,
-                 MEC = MEC_Distributed$Value,
-                 PECMEC = Conc_calc$Value/MEC_Distributed$Value)
+                  SubCompart = Conc_calc$SubCompart,
+                  RUN = Conc_calc$RUN,
+                  PEC = Conc_calc$Value,
+                  MEC = MEC_Distributed$Value,
+                  PECMEC = Conc_calc$Value/MEC_Distributed$Value)
 
 Subcomparts <- unique(PECMEC$SubCompart)
 
@@ -517,7 +500,7 @@ PECMEC_statistics <- tibble(Substance = character(),
                             "PEC:MEC_Median" = numeric(),
                             "PEC:MEC_Quant75" = numeric(),
                             "PEC:MEC_Max" = numeric()
-)
+                            )
 
 for (Substance in Substances) {
   for (SubCompart in Subcomparts){
@@ -564,42 +547,58 @@ for (Substance in Substances) {
 
 # Export the output. This contains the min, median, max and quantiles of the concentrations for all
 # substances and subcompartments.
-outname <- str_replace(inoutname, f_name, "SB_OO_Output.xlsx")
-write.xlsx(Concentrations, outname)
+#write.xlsx(Concentrations, "/rivm/n/defaresj/Documents/SB_OO_Output.xlsx")
+
+write.xlsx(list("PECMEC raw" = PECMEC, "PECMEC statistics" = PECMEC_statistics), "/rivm/n/defaresj/Documents/SB_OO_PECMEC.xlsx")
+
+Spearman_cor <- tibble(Substance = character(),
+                       Correlation = numeric())
+for (Substance in Substances) {
+  index <- which(PECMEC$Substance == Substance)
+  corr <- cor.test(PECMEC$PEC[index], PECMEC$MEC[index], method = "spearman")
+  Spearman_cor <- add_row(Spearman_cor, tibble_row(Substance = Substance,
+                                                   Correlation = corr$estimate))
+  
+}
 
 
+UncertParamsM <- UncertParams[UncertParams$Substance == "ADONA" | is.na(UncertParams$Substance),]
 UncertParamsM <- UncertParamsM %>% mutate(varName_full  = paste(varName,Scale,SubCompart, sep = "_"))
 UncertParams <- UncertParams %>% mutate(varName_full  = paste(varName,Scale,SubCompart, sep = "_"))
 
+
+
+
+
+
 PECMEC <- mutate(PECMEC, S_SC = paste(Substance, SubCompart, sep = " - "))
 df <- PECMEC %>% pivot_longer(cols = c("PEC", "MEC"), names_to = 'PM', values_to = 'Conc')
-
-# Violin plots comparing modelled and predicted concentrations
-ggplot(df, aes(x= S_SC, y=Conc, fill =PM)) + geom_violin(scale="width") +
+#x_label <- c("ADONA", "GenX", "PFBA", "PFBS", "PFHpA", "PFHxA", "PFHxS", "PFOA", "PFOS","PFPeA")
+ggplot(df, aes(x= factor(S_SC, level = unique(S_SC)), y=Conc, fill =PM)) + geom_violin(scale="width") +
   geom_boxplot(width=0.2, outliers = FALSE, position = position_dodge(width = 0.9)) +
   scale_y_continuous(trans="log10") +
-  theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5),
-        axis.title.x = element_blank(),
+  theme(axis.text.x = element_text(angle=45, hjust=1),
         legend.title = element_blank()) +
-  ylab("Concentration") +
-  scale_fill_manual(values=c("lightsalmon", "lightskyblue"), labels = c("Monitored Concentrations","Modelled Concentrations"))
+  labs(x="Substance + Sub-compartment", y="Concentration")+
+  scale_fill_manual(values=c("lightsalmon", "lightskyblue"), labels = c("Monitored","Modelled"))
+  
 
 
-# Violin plots showing the ratio between modelled and predicted concentrations
-ggplot(df, aes(x= S_SC, y=PECMEC, colour = Substance)) + geom_violin(scale="width") +
+ggplot(df, aes(x= factor(S_SC, level = unique(S_SC)), y=PECMEC, colour = Substance)) + geom_violin(scale="width") +
   geom_boxplot(width=0.2, outliers = TRUE, outlier.size = 0.2, position = position_dodge(width = 0.9), colour = "gray30") +
   scale_y_continuous(trans="log10") +
-  theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5),
-        axis.title.x = element_blank(),
+  theme(axis.text.x = element_text(angle=45, hjust=1),
         legend.title = element_blank()) +
-  ylab("Concentration") +
+  labs(x="Substance + Sub-compartment", y="PEC:MEC ratio")+
   scale_fill_hue(labels = c("Monitored Concentrations","Modelled Concentrations")) +
   geom_hline(yintercept = 1, linetype="dashed", colour="black")
 
 
 
-# Sensitivity analysis. Seems unstable with negative values.
+
 Sens_idices <- tibble(UncertParam = c(unique(UncertParams$varName_full), "Emission" ))
+
+
 for (Substance in Substances) {
   
   for (SubCompart in Subcomparts) {
@@ -614,7 +613,8 @@ for (Substance in Substances) {
       GSA_table <- tibble(RUN = seq(Run_count))
       for (i in seq(nrow(UncertParamsM))) {
         GSA_table <- GSA_table %>% mutate("{UncertParamsM$varName_full[i]}" := as.numeric(UncertParamsM$data[[i]][[1]]))
-
+        #print(UncertParams$varName_full[i])
+        #GSA_table <- GSA_table %>% add_column("{UncertParams$varName_full[i]}" := as.numeric(UncertParams$data[[i]][[1]]))
       }
       
       for (i in seq(nrow(EmissM))){
@@ -623,13 +623,18 @@ for (Substance in Substances) {
       }
       
       Conc_name <- paste("Concentration",Substance,SubCompart, sep="_")
+      #GSA_table <- GSA_table %>% add_column("{paste0('Emission_',Substance)}" := as.numeric(Emiss$Emis[[which(Emiss$Substance == Substance)]][[1]]))
       GSA_table <- add_column(GSA_table, "{Conc_name}" := Conc_calc$Value[which(Conc_calc$Substance == Substance & Conc_calc$SubCompart==SubCompart)])
       
       
       
       GSA_data <- GSA_table
       
-
+      library(sensitivity)
+      # library(readxl)
+      library(ggplot2)
+      library(ks) ### ks needed for sensiFdiv function
+      library(tidyverse)
       
       id_identical_columns <- function(df) {
         # Get all column combinations
@@ -654,6 +659,12 @@ for (Substance in Substances) {
         drop_na() |> # drop any rows with NA's
         select(-where(~ var(.) == 0))# remove columns with 0 variance (are constant)
       
+      id_identical_columns(probX_Y)
+      # probX_Y <- 
+      #   probX_Y |> mutate(
+      #     Corg_NA_agriculturalsoil= NULL,
+      #     Corg_NA_othersoil = NULL
+      #   )
       
       id_identical_columns(probX_Y)
       
@@ -673,6 +684,7 @@ for (Substance in Substances) {
                             delta= m$S$original)
       
       
+      # mydf <- transform(borg_d_temp, TC = reorder(TC, delta))
       
       reorder(borg_d_temp$TC, borg_d_temp$delta)
       
@@ -685,7 +697,7 @@ for (Substance in Substances) {
               panel.grid.minor = element_blank(),
               panel.border = element_blank())
       
-      #plot(probX_Y)
+      # plot(probX_Y)
       
       Sens_idices <- add_column(Sens_idices, "{paste(Substance,SubCompart,sep='_')}" := borg_d_temp$delta)
     }
@@ -694,11 +706,15 @@ for (Substance in Substances) {
 
 test <- colnames(Sens_idices)[-1]
 df <- Sens_idices %>% pivot_longer(cols = test, names_to = "Substance", values_to = "Indices")
+x_label <- c("TWP - river", "TWP - freshwater sediment", "TWP - other soil", "PM10 - river", "PM10 - freshwater sediment", "PM10 - other soil",
+             "PM2.5 - freshwater sediment", "PM2.5 - other soil", "PM1 - freshwater sediment")
+y_label <- c("Temp - regional", "WINDspeed - regional", "RAINrate - regional", "VertDistance - regional - river", "FRACrun",
+             "FRACinf", "kwsd.sed", "kwsd.water", "RadS", "RhoS", "Emission")
 
-# Heatmap for sensitivity analysis
 print(ggplot(df, aes(x=factor(Substance, level=unique(Substance)), y=factor(UncertParam, level = rev(unique(UncertParam))), fill=Indices))+ 
         geom_tile(colour="white")+
+        scale_x_discrete(label=x_label) +
+        scale_y_discrete(label= rev(y_label)) +
         scale_fill_gradient(low="white", high = "red")+
-        labs(x="Sub-compartiment + phase", y="Uncertain Parameters")+
+        labs(x="Substance + Sub-compartment", y="Uncertain Parameters")+
         theme(axis.text.x = element_text(angle=45, hjust=1)))
-
