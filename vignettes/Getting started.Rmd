@@ -302,7 +302,7 @@ knitr::kable(concentrations)
 ```
 
 We can now plot the masses and concentrations using the built-in plot functions. 
-The functions are called by using `World$PlotSolution` for masses, and `World$PlotConcentration`
+The functions are called by using `World$PlotMasses` for masses, and `World$PlotConcentration`
 for concentrations. You need to specify which scale you want to plot the outcome for. If no 
 scale is specified, the Regional scale will be chosen for you. Additionally you can define 
 for which SubCompart(s) the outcomes should be plotted. If you don't specify this, the outcomes
@@ -310,7 +310,7 @@ will be plotted for all SubComparts in the Scale.
 
 ```{r Plot the masses and concentrations, warning=FALSE, message=FALSE}
 # Plot the masses and concentrations for all subcompartments at regional scale
-World$PlotSolution(scale = "Regional")
+World$PlotMasses(scale = "Regional")
 World$PlotConcentration(scale = "Regional")
 
 # Select multiple subcomparts to plot the masses for
