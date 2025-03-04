@@ -1,7 +1,7 @@
 Solver use
 ================
 Anne Hids, Jaap Slootweg, Joris Quik
-2025-03-03
+2025-03-04
 
 ## Initialize World
 
@@ -83,47 +83,7 @@ the World object by using the functions in the chunk below.
 solution <- World$Masses()
 emission <- World$Emissions()
 concentration <- World$Concentration()
-
-knitr::kable(concentration)
 ```
-
-| Abbr  | time | RUNs | Concentration | Unit    |
-|:------|:-----|:-----|--------------:|:--------|
-| aAU   | 0    | 1    |     0.0000000 | g/m3    |
-| aCU   | 0    | 1    |     0.0000001 | g/m3    |
-| aMU   | 0    | 1    |     0.0000000 | g/m3    |
-| aRU   | 0    | 1    |     0.0000004 | g/m3    |
-| aTU   | 0    | 1    |     0.0000000 | g/m3    |
-| s1AU  | 0    | 1    |     0.0000102 | g/kg dw |
-| s1CU  | 0    | 1    |     0.0000220 | g/kg dw |
-| s1MU  | 0    | 1    |     0.0000038 | g/kg dw |
-| s1RU  | 0    | 1    |     0.0001227 | g/kg dw |
-| s1TU  | 0    | 1    |     0.0000012 | g/kg dw |
-| s2CU  | 0    | 1    |     0.0000091 | g/kg dw |
-| s2RU  | 0    | 1    |     0.1998416 | g/kg dw |
-| s3CU  | 0    | 1    |     0.0000220 | g/kg dw |
-| s3RU  | 0    | 1    |     0.0001227 | g/kg dw |
-| sd0CU | 0    | 1    |     0.0000322 | g/kg dw |
-| sd0RU | 0    | 1    |     0.0096379 | g/kg dw |
-| sd1CU | 0    | 1    |     0.0001072 | g/kg dw |
-| sd1RU | 0    | 1    |     1.2311868 | g/kg dw |
-| sd2AU | 0    | 1    |     0.0000030 | g/kg dw |
-| sd2CU | 0    | 1    |     0.0000277 | g/kg dw |
-| sd2MU | 0    | 1    |     0.0000003 | g/kg dw |
-| sd2RU | 0    | 1    |     0.0744787 | g/kg dw |
-| sd2TU | 0    | 1    |     0.0000000 | g/kg dw |
-| w0CU  | 0    | 1    |     0.0000000 | g/L     |
-| w0RU  | 0    | 1    |     0.0000001 | g/L     |
-| w1CU  | 0    | 1    |     0.0000000 | g/L     |
-| w1RU  | 0    | 1    |     0.0000092 | g/L     |
-| w2AU  | 0    | 1    |     0.0000000 | g/L     |
-| w2CU  | 0    | 1    |     0.0000000 | g/L     |
-| w2MU  | 0    | 1    |     0.0000000 | g/L     |
-| w2RU  | 0    | 1    |     0.0000006 | g/L     |
-| w2TU  | 0    | 1    |     0.0000000 | g/L     |
-| w3AU  | 0    | 1    |     0.0000000 | g/L     |
-| w3MU  | 0    | 1    |     0.0000000 | g/L     |
-| w3TU  | 0    | 1    |     0.0000000 | g/L     |
 
 Finally, we can plot the outcome using the predefined plot functions. If
 there is no scale specified, the Regional scale will be selected.
@@ -355,6 +315,7 @@ World$NewSolver("DynamicSolver")
 World$Solve(emissions = emissions, tmax = tmax, nTIMES = nTIMES)
 solution <- World$Masses()
 emission <- World$Emissions()
+concentration <- World$Concentration()
 ```
 
 Finally, we can plot the outcome using the predefined plot functions. If
@@ -368,12 +329,6 @@ World$PlotMasses(scale = "Regional", subcompart = "agriculturalsoil")
 ```
 
 ![](x.-Solver-use_files/figure-gfm/Plot%20the%20outcome%20of%20the%20dynamic%20deterministic%20solver-1.png)<!-- -->
-
-``` r
-World$substance
-```
-
-    ## [1] "microplastic"
 
 ``` r
 # Or just a scale and all subcompartments are plotted:

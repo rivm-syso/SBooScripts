@@ -89,8 +89,6 @@ the World object by using the functions in the chunk below.
 solution <- World$Masses()
 emission <- World$Emissions()
 concentration <- World$Concentration()
-
-knitr::kable(concentration)
 ```
 
 Finally, we can plot the outcome using the predefined plot functions. If
@@ -302,7 +300,7 @@ given, the outcome is plotted for all subcomparts.
 ```{r Plot the outcome of the dynamic deterministic solver, warning=FALSE, message=FALSE}
 # You can specify a scale and a subcompartment
 World$PlotMasses(scale = "Regional", subcompart = "agriculturalsoil")
-World$substance
+
 # Or just a scale and all subcompartments are plotted:
 World$PlotMasses(scale = "Regional")
 
