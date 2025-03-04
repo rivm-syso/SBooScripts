@@ -1,41 +1,19 @@
 Getting started
 ================
 Anne Hids
-2025-02-26
+2025-03-04
 
-This vignette demonstrates how to use SimpleBox Object-Oriented (SBOO).
+This vignette demonstrates how to use SimpleBox Object-Oriented (SBoo).
 
 ## Initialize
 
 Before starting, make sure your working directory is set to the
 SBooScripts folder.
 
-### See if required packages are installed
+### Install required packages
 
 ``` r
-check_and_install <- function(package) {
-  tryCatch({
-    # Load the package
-    library(package, character.only = TRUE)
-    message(paste("Package", package, "is already installed and loaded."))
-  }, error = function(e) {
-    # If an error occurs, install the package
-    message(paste("Package", package, "is not installed. Installing now..."))
-    install.packages(package, dependencies = TRUE)
-    library(package, character.only = TRUE)
-    message(paste("Package", package, "has been successfully installed and loaded."))
-  })
-}
-
-# Install the required packages
-check_and_install("ggplot2")
-check_and_install("tidyverse")
-check_and_install("constants")
-check_and_install("deSolve")
-check_and_install("knitr")
-check_and_install("ggdag")
-check_and_install("R6")
-check_and_install("rlang")
+source("baseScripts/installRequirements.R")
 ```
 
 ### Choose a substance
@@ -215,11 +193,16 @@ World$UpdateDirty("MW")
 
 After changing the molecular weight, the value is 0.15.
 
+**Note that the MW variable is only used for calculations if the
+substance is a molecule. If you change the substance to a
+particle/microplastic, the chunk above will still work but MW is not
+used for calculations.**
+
 ## Calculate steady state output
 
 To calculate steady state masses, emissions and a solver are needed.
 They have to be given to the solver in a particular format. More details
-on solvers can be found [here](vignettes/x.%20Solver%20use.md).
+on solvers can be found [here](vignettes/x.-Solver-use.md).
 
 ### Create emissions data frame
 
@@ -227,6 +210,13 @@ To be able to calculate steady state masses, an emission data frame is
 needed. The emissions data frame consists of one column with the
 abbreviation of the scale-subcompartment-species combination, and
 another column containing the emission to that compartment.
+
+Scales are spatial scales, such as “Regional” or “Continental”.
+SubComparts are environmental subcompartments within the scales, such as
+“river” or “agriculturalsoil”. Species are the form in which the
+substance occurs. For molecules, the species is always “Unbound”. For
+particulates, the species can be “Solid” (only the particle),
+“Aggregated” or “Attached”.
 
 The abbreviations are as follows:
 
@@ -316,26 +306,30 @@ emissions. In the example below, emissions of 10000 t/y go into regional
 air, regional agricultural soil and regional river water. These
 emissions in tonnes per year are then converted to mol/s.
 
-**Notice that because this script is using a molecular substance, the
-abbreviation “U” for “Unbound” is used here to specify emissions. If the
-substance is a particle, use “S” for “Solid”!**
+**For the species abbreviation, use:**
+
+- “U” for “Unbound”: Used when the substance is molecular (e.g., a
+  chemical dissolved in water or air).
+
+- “S” for “Solid”: Used when the substance is a particle (e.g.,
+  microplastics, dust, or other solid-phase contaminants).
+
+In this case we use U because we initialized the World for a molecule.
 
 ``` r
 emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10, 10, 10)) 
 
-MW <- World$fetchData("MW")
-
 emissions <- emissions |>
-  mutate(Emis = Emis*1000/(MW*365*24*60*60)) # convert t/y to mol/s
+  mutate(Emis = Emis*1000/(365*24*60*60)) # convert t/y to mol/s
 
 knitr::kable(emissions)
 ```
 
-| Abbr |     Emis |
-|:-----|---------:|
-| aRU  | 0.002114 |
-| s2RU | 0.002114 |
-| w1RU | 0.002114 |
+| Abbr |      Emis |
+|:-----|----------:|
+| aRU  | 0.0003171 |
+| s2RU | 0.0003171 |
+| w1RU | 0.0003171 |
 
 ### Solve the matrix
 
@@ -345,100 +339,100 @@ state masses are output but the `World$Solve()` function.
 
 ``` r
 # Define the solver function to use. For steady state calculations, this is always "SteadyODE"
-World$NewSolver("SteadyODE")
+World$NewSolver("SteadyStateSolver")
 
 # Solve with the emissions we defined in the previous chunk
 World$Solve(emissions = emissions)
 
 # Access the masses in each compartment
-masses <- World$Solution()
+masses <- World$Masses()
 concentrations <- World$Concentration()
 
 knitr::kable(masses)
 ```
 
-| time | Abbr  | RUNs |      Mass_kg |
-|:-----|:------|:-----|-------------:|
-| 0    | aRU   | 1    | 1.409733e+02 |
-| 0    | w1RU  | 1    | 6.718466e+04 |
-| 0    | w0RU  | 1    | 8.943484e+04 |
-| 0    | w2RU  | 1    | 3.570634e+03 |
-| 0    | sd1RU | 1    | 1.910249e+03 |
-| 0    | sd0RU | 1    | 7.362606e+01 |
-| 0    | sd2RU | 1    | 2.985495e+01 |
-| 0    | s1RU  | 1    | 4.437201e+03 |
-| 0    | s2RU  | 1    | 9.481470e+04 |
-| 0    | s3RU  | 1    | 1.643408e+03 |
-| 0    | aCU   | 1    | 8.918501e+01 |
-| 0    | w1CU  | 1    | 3.946687e+03 |
-| 0    | w0CU  | 1    | 9.238642e+03 |
-| 0    | w2CU  | 1    | 2.152346e+05 |
-| 0    | sd1CU | 1    | 1.122154e+02 |
-| 0    | sd0CU | 1    | 7.606064e+00 |
-| 0    | sd2CU | 1    | 8.998146e+01 |
-| 0    | s1CU  | 1    | 1.423634e+03 |
-| 0    | s2CU  | 1    | 6.596337e+03 |
-| 0    | s3CU  | 1    | 5.272718e+02 |
-| 0    | aAU   | 1    | 4.626291e-01 |
-| 0    | w2AU  | 1    | 1.655482e+05 |
-| 0    | w3AU  | 1    | 4.058603e+06 |
-| 0    | sd2AU | 1    | 1.131848e+02 |
-| 0    | s1AU  | 1    | 7.057793e+01 |
-| 0    | aMU   | 1    | 1.090752e+01 |
-| 0    | w2MU  | 1    | 2.107916e+05 |
-| 0    | w3MU  | 1    | 6.165154e+06 |
-| 0    | sd2MU | 1    | 1.718279e+02 |
-| 0    | s1MU  | 1    | 6.939678e+02 |
-| 0    | aTU   | 1    | 6.741550e-01 |
-| 0    | w2TU  | 1    | 2.304121e+05 |
-| 0    | w3TU  | 1    | 7.440820e+06 |
-| 0    | sd2TU | 1    | 2.071484e+02 |
-| 0    | s1TU  | 1    | 1.366106e+01 |
+| Abbr  |      Mass_kg |
+|:------|-------------:|
+| aRU   | 2.114600e+01 |
+| w1RU  | 1.007770e+04 |
+| w0RU  | 1.341523e+04 |
+| w2RU  | 5.355952e+02 |
+| sd1RU | 2.865373e+02 |
+| sd0RU | 1.104391e+01 |
+| sd2RU | 4.478242e+00 |
+| s1RU  | 6.655802e+02 |
+| s2RU  | 1.422221e+04 |
+| s3RU  | 2.465112e+02 |
+| aCU   | 1.337775e+01 |
+| w1CU  | 5.920031e+02 |
+| w0CU  | 1.385796e+03 |
+| w2CU  | 3.228415e+04 |
+| sd1CU | 1.683231e+01 |
+| sd0CU | 1.140910e+00 |
+| sd2CU | 1.349678e+01 |
+| s1CU  | 2.135451e+02 |
+| s2CU  | 9.894505e+02 |
+| s3CU  | 7.909077e+01 |
+| aAU   | 6.939440e-02 |
+| w2AU  | 2.482725e+04 |
+| w3AU  | 6.086643e+05 |
+| sd2AU | 1.697419e+01 |
+| s1AU  | 1.058669e+01 |
+| aMU   | 1.636127e+00 |
+| w2MU  | 3.161333e+04 |
+| w3MU  | 9.246048e+05 |
+| sd2MU | 2.576948e+01 |
+| s1MU  | 1.040952e+02 |
+| aTU   | 1.011232e-01 |
+| w2TU  | 3.455249e+04 |
+| w3TU  | 1.115822e+06 |
+| sd2TU | 3.106387e+01 |
+| s1TU  | 2.049159e+00 |
 
 ``` r
 knitr::kable(concentrations)
 ```
 
-| Abbr  | time | RUNs | Concentration | Unit    |
-|:------|:-----|:-----|--------------:|:--------|
-| aAU   | 0    | 1    |     0.0000000 | g/m3    |
-| aCU   | 0    | 1    |     0.0000000 | g/m3    |
-| aMU   | 0    | 1    |     0.0000000 | g/m3    |
-| aRU   | 0    | 1    |     0.0000000 | g/m3    |
-| aTU   | 0    | 1    |     0.0000000 | g/m3    |
-| s1AU  | 0    | 1    |     0.0000001 | g/kg dw |
-| s1CU  | 0    | 1    |     0.0000532 | g/kg dw |
-| s1MU  | 0    | 1    |     0.0000006 | g/kg dw |
-| s1RU  | 0    | 1    |     0.0013322 | g/kg dw |
-| s1TU  | 0    | 1    |     0.0000000 | g/kg dw |
-| s2CU  | 0    | 1    |     0.0000277 | g/kg dw |
-| s2RU  | 0    | 1    |     0.0032025 | g/kg dw |
-| s3CU  | 0    | 1    |     0.0000532 | g/kg dw |
-| s3RU  | 0    | 1    |     0.0013322 | g/kg dw |
-| sd0CU | 0    | 1    |     0.0001535 | g/kg dw |
-| sd0RU | 0    | 1    |     0.0119368 | g/kg dw |
-| sd1CU | 0    | 1    |     0.0002059 | g/kg dw |
-| sd1RU | 0    | 1    |     0.0281548 | g/kg dw |
-| sd2AU | 0    | 1    |     0.0000007 | g/kg dw |
-| sd2CU | 0    | 1    |     0.0000040 | g/kg dw |
-| sd2MU | 0    | 1    |     0.0000007 | g/kg dw |
-| sd2RU | 0    | 1    |     0.0027659 | g/kg dw |
-| sd2TU | 0    | 1    |     0.0000004 | g/kg dw |
-| w0CU  | 0    | 1    |     0.0111855 | g/L     |
-| w0RU  | 0    | 1    |     0.8699866 | g/L     |
-| w1CU  | 0    | 1    |     0.0144799 | g/L     |
-| w1RU  | 0    | 1    |     1.9804416 | g/L     |
-| w2AU  | 0    | 1    |     0.0000649 | g/L     |
-| w2CU  | 0    | 1    |     0.0002898 | g/L     |
-| w2MU  | 0    | 1    |     0.0000543 | g/L     |
-| w2RU  | 0    | 1    |     0.1984771 | g/L     |
-| w2TU  | 0    | 1    |     0.0000259 | g/L     |
-| w3AU  | 0    | 1    |     0.0000531 | g/L     |
-| w3MU  | 0    | 1    |     0.0000530 | g/L     |
-| w3TU  | 0    | 1    |     0.0000279 | g/L     |
+| Abbr  | Concentration | Unit    |
+|:------|--------------:|:--------|
+| aAU   |     0.0000000 | g/m3    |
+| aCU   |     0.0000000 | g/m3    |
+| aMU   |     0.0000000 | g/m3    |
+| aRU   |     0.0000000 | g/m3    |
+| aTU   |     0.0000000 | g/m3    |
+| s1AU  |     0.0000000 | g/kg dw |
+| s1CU  |     0.0000080 | g/kg dw |
+| s1MU  |     0.0000001 | g/kg dw |
+| s1RU  |     0.0001998 | g/kg dw |
+| s1TU  |     0.0000000 | g/kg dw |
+| s2CU  |     0.0000042 | g/kg dw |
+| s2RU  |     0.0004804 | g/kg dw |
+| s3CU  |     0.0000080 | g/kg dw |
+| s3RU  |     0.0001998 | g/kg dw |
+| sd0CU |     0.0000230 | g/kg dw |
+| sd0RU |     0.0017905 | g/kg dw |
+| sd1CU |     0.0000309 | g/kg dw |
+| sd1RU |     0.0042232 | g/kg dw |
+| sd2AU |     0.0000001 | g/kg dw |
+| sd2CU |     0.0000006 | g/kg dw |
+| sd2MU |     0.0000001 | g/kg dw |
+| sd2RU |     0.0004149 | g/kg dw |
+| sd2TU |     0.0000001 | g/kg dw |
+| w0CU  |     0.0000000 | g/L     |
+| w0RU  |     0.0000001 | g/L     |
+| w1CU  |     0.0000000 | g/L     |
+| w1RU  |     0.0000003 | g/L     |
+| w2AU  |     0.0000000 | g/L     |
+| w2CU  |     0.0000000 | g/L     |
+| w2MU  |     0.0000000 | g/L     |
+| w2RU  |     0.0000000 | g/L     |
+| w2TU  |     0.0000000 | g/L     |
+| w3AU  |     0.0000000 | g/L     |
+| w3MU  |     0.0000000 | g/L     |
+| w3TU  |     0.0000000 | g/L     |
 
 We can now plot the masses and concentrations using the built-in plot
-functions. The functions are called by using `World$PlotSolution` for
+functions. The functions are called by using `World$PlotMasses` for
 masses, and `World$PlotConcentration` for concentrations. You need to
 specify which scale you want to plot the outcome for. If no scale is
 specified, the Regional scale will be chosen for you. Additionally you
@@ -448,7 +442,7 @@ in the Scale.
 
 ``` r
 # Plot the masses and concentrations for all subcompartments at regional scale
-World$PlotSolution(scale = "Regional")
+World$PlotMasses(scale = "Regional")
 ```
 
 ![](Getting-started_files/figure-gfm/Plot%20the%20masses%20and%20concentrations-1.png)<!-- -->
@@ -470,4 +464,4 @@ Finally, if you are interested in the other functions available in
 World, you can use `ls(World)` to see them all.
 
 **For more information on the different types of solvers and how to use
-them, please see SBooScripts/vignettes/x. Solver use.md.**
+them, please see** [this vignette](vignettes/x.-Solver-use.Rmd).

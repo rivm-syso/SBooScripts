@@ -1,7 +1,7 @@
 SimpleBox data and scripts
 ================
 RIVM
-2024-11-11
+2025-03-04
 
 # 1. About SimpleBox
 
@@ -14,54 +14,107 @@ continental and global spatial scales. SimpleBox was first developed in
 (SimpleBox v5.0) is the first implementation in R. The primary use of
 SimpleBox is to calculate the expected environmental fate of specific
 chemicals or particles, given a certain emission into the environment.
-Donald Mackay classified environmental fate models into four levels
-(Table 1). SimpleBox is a level 3 and 4 model, meaning that SimpleBox
-can calculate concentrations for multiple environmental compartments
-(e.g. air, soil, water) and multiple scales (regional, continental,
-global) both at steady-state and dynamically, over time. More
-information can be found
-[here](vignettes/QualityDocumentation.md "More info on SimpleBox").
+Donald Mackay classified environmental fate models into four levels.
+SimpleBox is a level 3 and 4 model, meaning that SimpleBox can calculate
+concentrations for multiple environmental compartments (e.g. air, soil,
+water) and multiple scales (regional, continental, global) both at
+steady-state and dynamically, over time. More information can be found
+[here](vignettes/Development/QualityDocumentation.md "More info on SimpleBox").
 
-# 2. Installation and user guidelines
+# 2. Repository structure
+
+The SBooScripts repository contains serveral folders:
+
+- baseScripts: this folder contains the base scripts for using SBoo,
+  i.e. scripts that can be used to easily create the central object for
+  SimpleBox and a package that installs all needed requirements
+
+- data: folder that contains the data needed for initializing SBoo
+
+- testScripts: folder that contains scripts used to test specific
+  functions
+
+- vignettes: this folder contains explanatory RMarkdown files on several
+  subjects; how to get started with SBoo, information on how to use the
+  solvers, how to use SBoo for development, information on all process
+  functions, and several case studies.
+
+# 3. Installation and user guidelines
 
 ## Installation
 
 SB is split over two repositories. In order to use
 [SBOO](https://github.com/rivm-syso/SBoo) you need two projects with the
-parent folder in common. This repository and the SBOO repository thus
-need to be stored in the same folder. At the moment a sboo library is
-mimicked as part of a script, this will change in the future. For now
-starting point are scripts and R notebooks in SBooScripts. The preferred
-approach is creating two R projects in R-Studio.
+parent folder in common. You can do this as follows:
+
+1.  Create a parent folder (you can name it whatever you like)
+
+2.  Download the [SBoo](https://github.com/rivm-syso/SBoo) repository
+    and save it in your parent folder
+
+3.  Download the [SBooScripts](https://github.com/rivm-syso/SBooScripts)
+    repository and save it in your parent folder
+
+4.  When you start using SimpleBox, set your working directory to your
+    SBooScripts folder.
 
 ### Dependencies
 
-SimpleBox 5.0 required the following packages to run:
+These packages are installed when running the [Getting started
+vignette](vignettes/Getting-started.md) for the first time.
 
-tidyverse ggdag rmarkdown tidyxl openxlsx constants
+## Guidance for users
 
-## Getting started
+If you intend to use the model without changing its functions, read/run
+the following markdown files to get started:
 
-- [Getting Started](vignettes/Getting-started.md) : this file includes
-  all basics for users (not necessarily developers) to use and calculate
-  with the R-implementation of SB.
+- [Getting Started](vignettes/Getting-started.Rmd) : this Rmarkdown file
+  includes all basics for users (not necessarily developers) to use
+  SimpleBox. It includes:
 
-- [x1 Solver use](vignettes/x.1%20Solver%20use.Rmd) : explains how to
-  solve for both static and dynamic data.
+  - Installing and loading the needed packages
+
+  - Setup of the model for a substance
+
+  - How to alter a variable
+
+  - How to calculate deterministic steady state output
+
+  - How to plot the outcome.
+
+- [x1 Solver use](vignettes/x.-Solver-use.Rmd) : explains the use of the
+  four different methods for solving with SimpleBox
+
+  - Steady state deterministic solver: calculate steady state masses and
+    concentrations once
+
+  - Steady state probabilistic solver: calculate steady state masses and
+    concentrations n times, while varying emissions and/or variable
+    values per run
+
+  - Dynamic deterministic solver: calculate masses and concentrations
+    over time once
+
+  - Dynamic probabilistic solver: calculate masses and concentrations
+    over time n times, while varying emissions and/or variable values
+    per run
 
 ## Guidance for developers
 
-\-[Basics for developers](vignettes/Development/BasicsOfDevelopment.md)
-: This vignette is a good starting point for starting developers. The
-underlying structure of the repository is explained here, including the
+If you intend to use the model as well as change its functions, it is
+still useful to run the [Getting started](vignettes/Getting-started.Rmd)
+and [Solver use](vignettes/x.-Solver-use.Rmd) vignettes. Consequently it
+is recommended to follow the [Basics for
+developers](vignettes/Development/BasicsOfDevelopment.md) vignette,
+which explains the underlying structure of the repository, including the
 input data.
 
 The Development folder details the technical construction of the project
 and is most suitable for developers. The vignette
 [start](/vignettes/Development/start.md) explains the basics of
-object-oriented modelling and how this is implemented in this
-repository. Multiple other vignettes are useful if aiming to develop,
-such as [CSV-reordering](/vignettes/Development/CSVdata.Rmd), [creating
+object-oriented modelling and how this is implemented in this model.
+Multiple other vignettes are useful if aiming to develop, such as
+[CSV-reordering](/vignettes/Development/CSVdata.Rmd), [creating
 variables](vignettes/Development/FirstVars.Rmd), [creating and checking
 flows](/vignettes/Development/AirFlow.Rmd), [creating
 processes](vignettes/Development/processFlow.Rmd) and [testing new
@@ -70,14 +123,14 @@ vignette folder outlines the theoretical implementation of the SimpleBox
 model, following the structure of Chapter 3 in [Schoorl et
 al. (2015)](https://www.rivm.nl/bibliotheek/rapporten/2015-0161.html)
 
-# 3. Contact information
+# 4. Contact information
 
-Issues can be submitted through GitHub
+Issues can be submitted through GitHub.
 
 RIVM leads the development of SimpleBox.
 
 Contact: simplebox@rivm.nl
 
-# 4. License
+# 5. License
 
 EUROPEAN UNION PUBLIC LICENCE v. 1.2
