@@ -9,7 +9,7 @@ editor_options:
     wrap: 72
 ---
 
-### 5.4 Advection
+## 5.4 Advection
 
 Here the implementation of the advective flows of air and water in SBoo
 are illustrated. An advective flow in the context of SB is the massflow
@@ -32,7 +32,7 @@ Examples can be found in the case studies.
 
 Here we illustrate all the flow processes defined.
 
-#### Air flow
+### Air flow
 
 The air flow rate is calculated in two steps.
 
@@ -98,7 +98,7 @@ merge(FromFlow, ToFlow, by.x = "fromScale", by.y = "toScale", suffixes = c("_fro
 
 ```
 
-#### Water advection
+### Water flow
 
 All flows dealing with advective processes are denoted by x_files in
 SBOO. Different dimensions are relevant for computing the water flows:
@@ -108,21 +108,25 @@ between scales. This is defined in the following x_flow. The order of
 calculation matters (for regional and continental scale function x 1-5)
 !
 
-*1. x_ContRiver2Reg*
+#### *1. Continental to Regional Fresh water (w1)* 
 
-x_ContRiver2Reg: based on Runoff calculates the flow from contintental
+x_ContRiver2Reg calculates based on the fraction of discharge of fresh
+water to the regional scale the amount of fresh water flowing from
+continental to regional soil. This fucnction also depends on the
+different contributors to continental discharge. These are: Runoff,
+RainOnFreshwater and Lake2River. calculates the flow from contintental
 river to regional river subcompartment (not usually relevant, thus often
 0).
 
 ```{r}
 x_ContRiver2Reg
 
-World$NewCalcVariable("Runoff")
 World$CalcVar("Runoff")
+World$fetchData("FracROWatComp")
 
-World$NewCalcVariable("RainOnFreshwater")
-World$CalcVar("RainOnFreshwater")
+World$fetchData("RainOnFreshwater")
 
+World$fetchData("SumRainRunoff")
 World$fetchData("ScaleName")
 World$fetchData("SubCompartName")
 
@@ -133,14 +137,10 @@ World$fetchData("Area")
 
 World$fetchData("LakeFracRiver")
 
-flow1 <- World$NewFlow("x_ContRiver2Reg")
-
-flow1$FromAndTo
-flow1$execute()
 World$CalcVar("x_ContRiver2Reg")
 ```
 
-*2. x_RiverDischarge*
+#### *2. x_RiverDischarge*
 
 ```{r}
 
@@ -152,26 +152,24 @@ World$fetchData("dischargeFRAC")
 World$fetchData("x_ContRiver2Reg")
 World$fetchData("ScaleName")
 
-flow2 <- World$NewFlow("x_RiverDischarge")
-
-flow2$FromAndTo
-flow2$execute()
 World$CalcVar("x_RiverDischarge")
 ```
 
-*3. x_LakeOutflow*
+#### *3. x_LakeOutflow*
 
 ```{r}
 World$fetchData("x_RiverDischarge")
 World$fetchData("x_ContRiver2Reg")
 World$fetchData("LakeFracRiver")
+World$fetchData("RainOnFreshwater")
+World$fetchData("Runoff")
+World$fetchData("FracROWatComp")
+
 World$fetchData("ScaleName")
-
-flow3 <- World$NewFlow("x_LakeOutflow")
-
-flow3$FromAndTo
-flow3$execute()
-World$CalcVar("x_LakeOutflow")
+World$fetchData("x_LakeOutflow")
+flow = World$NewCalcVariable("x_LakeOutflow")
+flow$execute()
+flow$execute(debugAt = list())
 
 ```
 
@@ -226,7 +224,7 @@ World$CalcVar("x_ToModerateWater")
 
 ```
 
-### Water flow from Moderate Scale
+#### Water flow from Moderate Scale
 
 *7. x_FromModerate2TropWater*
 
@@ -340,7 +338,7 @@ print(table1, n=40)
 
 ```
 
-#### Advection rate constant
+### Advection rate constant
 
 This process is only one step beyond the calculation of the relevant
 flows, see the function f_Advection. All flows are by default associated
