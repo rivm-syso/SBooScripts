@@ -1,5 +1,5 @@
 ---
-title: "Advection"
+title: "5.4 Advection"
 author: "Jaap Slootweg, Joris Quik, Valerie de Rijk"
 date: "`r Sys.Date()`"
 output: github_document
@@ -9,92 +9,82 @@ editor_options:
     wrap: 72
 ---
 
-### Advection
+### 5.4 Advection
 
-```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
+Here the implementation of the advective flows of air and water in SBoo
+are illustrated. An advective flow in the context of SB is the massflow
+of a matrix (air, water ) from one box to another, where either the
+subcompartment or scale is different.
 
-This vignette demonstrates the implementation of the advective flows of
-air and water in SimpleBox (SB). An advective flow in the context of SB
-is the massflow of a matrix (air, water ) from one box to another,
-where either the subcompartment or scale is different.
-
-```{r initialize}
+```{r initialize, include=FALSE}
 source("baseScripts/initWorld_onlyMolec.R")
 ```
 
-#### Data and variables
+For calculating the rate constants for advection there is data needed on
+several parameters such as wind speeds, discharges, residence times etc.
+All the different fluxes or flows of air or water are calculated after
+which these flows can be converted to rate constants. All default data
+are stored in csv files and the values can be read using
+'World\$fetchData("...")'. They can be adjusted using
+'World\$mutateVars(...)' and then the World can be updated for
+downstream variable updates using: 'WorldUpdateDirty(unique(...))'.
+Examples can be found in the case studies.
 
-For calculating the rate constants for advection there is data needed
-on: - Windspeed Together with the variables: -
-
-```{r}
-SBvars <- c("AreaLand",
-            "AreaSea",
-            "Area",
-            "Volume"
-            )
-
-for (x in SBvars) {
-  World$NewCalcVariable(x)
-  World$CalcVar(x)
-}
-```
+Here we illustrate all the flow processes defined.
 
 #### Air flow
 
-We calculate AirFlow in two steps. The first is the application of a
-simple model of air circulation depending on windspeed; The mean
-residence time in the region is according the f_TAU function.
-The AirFlow function calculates the amount that would enter/leave the
-region; namely the volume divided by the residence time. Notice that
-f_TAU is a normal function, but AirFlow will be used as a variable
-defining function. After the call to World\$CalcVar("AirFlow") this
-property is stored in the data within World. This provides
-the overal airflow within a compartment which affects the flow from this
-compartment or scale to the next. Currently air only flows between
-scales.
+The air flow rate is calculated in two steps.
 
-```{r f tau}
-f_TAU
-``` 
+First the AirFlow is calculated based on the residence time of air:
 
 ```{r}
 World$fetchData("Volume")
 World$fetchData("Area")
 World$fetchData("WINDspeed")
-World$NewCalcVariable("AirFlow")
+World$fetchData("SubCompartName")
+
+f_TAU
+
+AirFlow
+
 World$CalcVar("AirFlow")
+
 ```
 
-#### flow mass balance
+The mean residence time in the region is calculated according the f_TAU
+function.
+
+The AirFlow function calculates the amount that would enter/leave the
+region; namely the volume divided by the residence time. Notice that
+f_TAU is a normal function, but AirFlow will be used as a variable
+defining function. This provides the overall airflow within a
+compartment which affects the flow from this compartment or scale to the
+next. Currently air only flows between scales.
+
+Second, from the AirFlow the flows are actually connected to each other.
+
+```{r}
+x_Advection_Air
+# AdvAir <- World$NewFlow("x_Advection_Air")
+# AdvAir$execute(debugAt = list(toScale = "Continental"))
+World$CalcVar("x_Advection_Air")
+```
 
 To ensure mass balance in the model the amount from one scale to the
 next would need to be equal to the amount flowing the opposite way! To
 honor the mass balance we give priority to the amount calculated for the
 smallest volume to calculate the actual flows. This means that for
-nested scales we need to know their 'place' in the world. This brings a new
-challenge; we need to know properties of the scale the flow is going to,
-or possibly the scale where it is coming from. Because of the nesting,
-we need to know even properties of scale not directly related to the to-
-or from- the scale! To accommodate this use of the "to.", the "from." and
-the "all." preposition is made available. The to- and from scaleName are
-atomic (a single string) but the "all." prepositions provides a full
-table of the variable and its dimensions (in this case only across
-Scales). If you want to see what is really going on in the function
-calls you can use the debug parameter.
-
-```{r}
-x_Advection_Air
-AdvAir <- World$NewFlow("x_Advection_Air")
-#AdvAir$execute(debugAt = list(toScale = "Continental"))
-World$CalcVar("x_Advection_Air")
-
-```
+nested scales we need to know their 'place' in the world. This brings a
+new challenge; we need to know properties of the scale the flow is going
+to, or possibly the scale where it is coming from. Because of the
+nesting, we need to know even properties of scale not directly related
+to the to- or from- the scale! To accommodate this use of the "to.", the
+"from." and the "all." preposition is made available. The to- and from
+scaleName are atomic (a single string) but the "all." prepositions
+provides a full table of the variable and its dimensions (in this case
+only across Scales). If you want to see what is really going on in the
+function calls you can use the debug parameter.
 
 This provides the air flows. To test if they add up and give the same
 amount flowing to and from each scale we do the following calculation:
@@ -103,16 +93,20 @@ amount flowing to and from each scale we do the following calculation:
 AirFlows <- World$fetchData("x_Advection_Air")
 ToFlow <- aggregate(flow~toScale, data = AirFlows, FUN = sum)
 FromFlow <- aggregate(flow~fromScale, data = AirFlows, FUN = sum)
-merge(FromFlow, ToFlow, by.x = "fromScale", by.y = "toScale", suffixes = c("_from", "_to"))
+merge(FromFlow, ToFlow, by.x = "fromScale", by.y = "toScale", suffixes = c("_from", "_to")) 
+merge(FromFlow, ToFlow, by.x = "fromScale", by.y = "toScale", suffixes = c("_from", "_to")) |> mutate(from_to_Diff = flow_from-flow_to)
+
 ```
 
-#### Water flow
-All flows dealing with advective processes are denoted by x_files in SBOO.
-Different dimensions are relevant for computing the water flows:
+#### Water advection
+
+All flows dealing with advective processes are denoted by x_files in
+SBOO. Different dimensions are relevant for computing the water flows:
 subcompartments and scale. This relates to water flowing from lake,
-through the river compartment to the sea, after which  the sea flows between
-scales. This is defined in the following x_flow. The order of calculation matters
-(for regional and continental scale function x 1-5) !
+through the river compartment to the sea, after which the sea flows
+between scales. This is defined in the following x_flow. The order of
+calculation matters (for regional and continental scale function x 1-5)
+!
 
 *1. x_ContRiver2Reg*
 
@@ -192,6 +186,9 @@ flow4 <- World$NewFlow("x_ContSea2Reg")
 flow4$FromAndTo
 flow4$execute()
 World$CalcVar("x_ContSea2Reg")
+World$fetchData("x_ContSea2Reg")
+World$fetchDataUnits("x_ContSea2Reg")
+
 ```
 
 *5. x_RegSea2Cont*
@@ -354,7 +351,7 @@ different from other k's. See below:
 
 ```{r}
 World$fetchData("Flows")
- 
+ k_Advection
 # Don't create a new process like: World$FromDataAndTo("k_Advection")
 # find the existing one like this:
 testProc <- World$moduleList[["k_Advection"]]
