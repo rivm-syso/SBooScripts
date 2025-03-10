@@ -158,7 +158,7 @@ MergeDiagonalExcelR <- function(filtered_R, filtered_excel){
   merged_diagonal$k_Excel <- -merged_diagonal$k_Excel #Turning the "negative" values from the Excel matrix into positive ones
   merged_diagonal$diff <- merged_diagonal$k_R - merged_diagonal$k_Excel 
   sorted_diff <- merged_diagonal[order(abs(merged_diagonal$diff), decreasing = TRUE), ] |>
-    mutate(reldif  = abs(diff/k_R))
+    mutate(reldif  = diff/k_R)
 }
 
 # Function to make one dataframe containing the k's for non-removal processes and calculate the absolute and relative differences
@@ -317,7 +317,7 @@ Table_NoClass <- bind_rows(mergedkaas, sorted_diff) |>
 # Combine the tables
 ```{R Combine the tables into one}
 Combined_table <- bind_rows(Table_Acids, Table_Bases, Table_Metals, Table_NoClass, Table_Microplastics, Table_Nano) |>
-  mutate(reldif = abs(reldif)) |>
+  mutate(reldif = reldif) |>
   select(-diff)
 
 Combined_table_wide <- Combined_table |>
@@ -354,7 +354,6 @@ Table_particulate <- Combined_table_wide |>
   drop_na()
 
 write.xlsx(Table_particulate, "vignettes/Development/Quality control/Publication/Combined_table_particulate.xlsx")
-
 ```
 
 
