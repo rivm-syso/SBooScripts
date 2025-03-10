@@ -1,0 +1,121 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{R load packages}
+library(openxlsx)
+library(tidyverse)
+```
+
+# Leslie et al. (2017)
+The data used for validation of the SimpleBox4Plastics model is read in. The data is filtered for samples taken in the Netherlands, and data measured in # particles per km2 was removed from the dataset. This leaves the measurements by Leslie et al. (2017).
+
+Detection method: light microscopy was used to determine the count, size and shape. Detection limit 10 - 5000 um. 
+
+Sampling method: Samples were collected in 1 or 2 liter glass jars. 
+
+```{R Leslie et al. data}
+SB4P_raw <- read.xlsx("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/Measurements/Concentrations_SB4N_validation.xlsx", sheet = "Plastics")
+
+# Select needed data and clean up the dataframe
+SB4P <- SB4P_raw |>
+  filter(country == "Netherlands") |>
+  mutate(type = tolower(type)) |>
+  filter(type2 == "Surf") |>
+  mutate(min_diameter_um = map_chr(str_split(size.um, " - "), 1)) |>
+  mutate(max_diameter_um = map_chr(str_split(size.um, " - "), 2)) |>
+  filter(unit == "#/m3") |>
+  mutate(source = paste0(ref, " (", pub.year, ")")) |>
+  rename(subcompartment = type) |>
+  rename(value = mean) |>
+  select(subcompartment, min_diameter_um, max_diameter_um, value, unit, source, method) |>
+  rename(sampling_method = method) |>
+  mutate(detection_method = "Light microscopy") |>
+  mutate(lower_detection_limit_um = 10) |>
+  mutate(upper_detection_limit_um = 5000)
+```
+
+# KWR data
+KWR measured microplastic concentrations in surface water at different locations in the Netherlands. 
+
+Sampling method: Two samples were taken per sampling event: one for LDIR and one for OM. Sampling depth 15 cm below the water surface. For both detection methods, about 500L of water was run through several filters with different sizes (see Table 1 in the article by Bäuerlein et al. (2023)).
+
+Detection method: Two detection methods were used: laser direct infrared and optical microscopy (combined detection limit of 10 to 5000 um). 
+```{R KWR data}
+#### KWR data
+KWR_data_concentrations <- read.xlsx("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/Measurements/KWR/Data KWR/readme.xlsx", sheet = "Meta")
+
+KWR_path <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/Measurements/KWR/Data KWR/"
+KWR_data_dfs <- data.frame()
+
+for(i in 1:nrow(KWR_data_concentrations)){
+  # Load the file
+  filename <- KWR_data_concentrations$Filename[i]
+  filepath <- paste0(KWR_path, filename, ".xlsx")
+  file_df <- read.xlsx(filepath)
+  
+  MP_m3 <- KWR_data_concentrations$MP.per.m3[i]
+  
+  file_df <- file_df |>
+    mutate(MP_m3 = MP_m3) |>
+    mutate(location = filename)
+  
+  if(nrow(KWR_data_dfs) == 0){
+    KWR_data_dfs <- file_df
+  } else {
+    KWR_data_dfs <- bind_rows(KWR_data_dfs, file_df)
+  }
+}
+
+KWR_location_concentrations_data <- KWR_data_dfs |>
+  group_by(location) |>
+  summarise(min_diameter_um = min(`Diameter.(µm)`),
+            max_diameter_um = max(`Diameter.(µm)`),
+            value = mean(MP_m3)) |>
+  mutate(subcompart = "river") |>
+  mutate(unit = "#/m3")
+
+#### KWR effluent data
+KWR_effluent_concentrations <- read.xlsx("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/Measurements/KWR/Effluent/readme.xlsx", sheet = "Data")
+
+KWR_path <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/Measurements/KWR/Effluent/"
+KWR_effluent_dfs <- data.frame()
+
+for(i in 1:nrow(KWR_effluent_concentrations)){
+  # Load the file
+  filename <- KWR_effluent_concentrations$File[i]
+  filepath <- paste0(KWR_path, filename)
+  file_df <- read.xlsx(filepath)
+  
+  MP_m3 <- KWR_effluent_concentrations$`MP./m3`[i]
+  
+  file_df <- file_df |>
+    mutate(MP_m3 = MP_m3) |>
+    mutate(location = filename)
+  
+  if(nrow(KWR_effluent_dfs) == 0){
+    KWR_effluent_dfs <- file_df
+  } else {
+    KWR_effluent_dfs <- bind_rows(KWR_effluent_dfs, file_df)
+  }
+}
+
+KWR_location_concentrations_effluent <- KWR_effluent_dfs |>
+  group_by(location) |>
+  summarise(min_diameter_um = min(Diameter),
+            max_diameter_um = max(Diameter),
+            value = mean(MP_m3)) |>
+  mutate(subcompart = "river") |>
+  mutate(unit = "#/m3") |>
+  filter(str_detect(location, "front|upstream")) |>
+  mutate(location = str_remove(location, ".xlsx"))
+
+KWR_data <- bind_rows(KWR_location_concentrations_data, KWR_location_concentrations_effluent) |>
+  mutate(source = "Bäuerlein et al. (2023)") |>
+  mutate(sampling_method = "500L water run through differently sized filters") |>
+  mutate(detection_method = "LDIR + OM") |>
+  mutate(lower_detection_limit_um = 10) |>
+  mutate(upper_detection_limit_um = 5000)
+```
