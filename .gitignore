@@ -104,10 +104,12 @@ vignettes/CaseStudies/PFAS Tjebbe/data/
 vignettes/CaseStudies/PFAS Tjebbe/Emissions/
 vignettes/CaseStudies/PFAS Tjebbe/GIS/
 
+vignettes/Development/Quality control/Publication/Combined_table_large_diffs.xlsx
+vignettes/Development/Quality control/Publication/Combined_table_all.xlsx
+
 # ignore BatchFiles folder
 BatchFiles/
-vignettes/CaseStudies/HPC_commands.txt
+vignettes/CaseStudies/LEON-T/HPC_commands.txt
 warnings.log
 
 SBooScripts.Rproj
-
