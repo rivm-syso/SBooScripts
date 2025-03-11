@@ -48,7 +48,7 @@ f_TAU
 
 AirFlow
 
-World$CalcVar("AirFlow")
+World$fetchData("AirFlow")
 
 ```
 
@@ -108,41 +108,38 @@ between scales. This is defined in the following x_flow. The order of
 calculation matters (for regional and continental scale function x 1-5)
 !
 
-#### *1. Continental to Regional Fresh water (w1)* 
+#### *1. Continental to Regional Fresh water (w1)*
 
 x_ContRiver2Reg calculates based on the fraction of discharge of fresh
 water to the regional scale the amount of fresh water flowing from
-continental to regional soil. This fucnction also depends on the
-different contributors to continental discharge. These are: Runoff,
-RainOnFreshwater and Lake2River. calculates the flow from contintental
-river to regional river subcompartment (not usually relevant, thus often
-0).
+continental to regional scale. This function also depends on the
+different contributors to continental discharge. These are: Runoff and
+RainOnFreshwater for both freshwater compartments (w0 and w1). In the
+default scenario where the regional scale coincides with a watershed
+this is 0, but when e.g. country boundaries are taken this becomes
+relevant as there could be inflow of freshwater across the border. The
+main driving variable is 'dischargeFRAC' which indicates the fraction of
+freshwater outflow at continental scale flowing to regional scale (set
+for Cont. Scale).
 
 ```{r}
 x_ContRiver2Reg
+World$fetchData("dischargeFRAC")
 
-World$CalcVar("Runoff")
-World$fetchData("FracROWatComp")
-
+World$fetchData("Runoff")
 World$fetchData("RainOnFreshwater")
-
-World$fetchData("SumRainRunoff")
 World$fetchData("ScaleName")
 World$fetchData("SubCompartName")
 
-World$fetchData("dischargeFRAC")
-World$fetchData("LakeFracRiver")
-World$fetchData("Runoff")
-World$fetchData("Area")
+World$fetchData("LakeFracRiver") # needs to be cleanup after basing on area fraction.
 
-World$fetchData("LakeFracRiver")
-
-World$CalcVar("x_ContRiver2Reg")
+World$fetchData("x_ContRiver2Reg")
 ```
 
 #### *2. x_RiverDischarge*
 
 ```{r}
+x_RiverDischarge
 
 World$fetchData("Runoff")
 
@@ -151,25 +148,29 @@ World$fetchData("RainOnFreshwater")
 World$fetchData("dischargeFRAC")
 World$fetchData("x_ContRiver2Reg")
 World$fetchData("ScaleName")
-
-World$CalcVar("x_RiverDischarge")
+World$fetchData("x_RiverDischarge")
+# World$CalcVar("x_RiverDischarge")
 ```
 
 #### *3. x_LakeOutflow*
 
+The Lake compartment (w0) is an upstream compartment within a Scale that
+has outflow to fresh water (w1). The outflow is dependent on the
+fraction runoff going to lake and the direct Rain on lake fresh water.
+<!--# This currently being worked on, not working as expected yet -->
+
 ```{r}
-World$fetchData("x_RiverDischarge")
-World$fetchData("x_ContRiver2Reg")
-World$fetchData("LakeFracRiver")
+x_LakeOutflow
+
 World$fetchData("RainOnFreshwater")
 World$fetchData("Runoff")
 World$fetchData("FracROWatComp")
-
 World$fetchData("ScaleName")
 World$fetchData("x_LakeOutflow")
-flow = World$NewCalcVariable("x_LakeOutflow")
-flow$execute()
-flow$execute(debugAt = list())
+
+# flow = World$NewCalcVariable("x_LakeOutflow")
+# flow$execute()
+# flow$execute(debugAt = list())
 
 ```
 
@@ -178,14 +179,15 @@ flow$execute(debugAt = list())
 ```{r}
 World$fetchData("LakeFracRiver")
 World$fetchData("x_RiverDischarge")
-
-flow4 <- World$NewFlow("x_ContSea2Reg")
-
-flow4$FromAndTo
-flow4$execute()
-World$CalcVar("x_ContSea2Reg")
 World$fetchData("x_ContSea2Reg")
-World$fetchDataUnits("x_ContSea2Reg")
+# 
+# flow4 <- World$NewFlow("x_ContSea2Reg")
+# 
+# flow4$FromAndTo
+# flow4$execute()
+# World$CalcVar("x_ContSea2Reg")
+# World$fetchData("x_ContSea2Reg")
+# World$fetchDataUnits("x_ContSea2Reg")
 
 ```
 
@@ -195,12 +197,13 @@ World$fetchDataUnits("x_ContSea2Reg")
 
 World$fetchData("LakeFracRiver")
 World$fetchData("x_RiverDischarge")
+World$fetchData("x_RegSea2Cont")
 
-flow5 <- World$NewFlow("x_RegSea2Cont")
-
-flow5$FromAndTo
-flow5$execute()
-World$CalcVar("x_RegSea2Cont")
+# flow5 <- World$NewFlow("x_RegSea2Cont")
+# 
+# flow5$FromAndTo
+# flow5$execute()
+# World$CalcVar("x_RegSea2Cont")
 
 ```
 
@@ -214,13 +217,13 @@ and deepocean at Moderate scale.
 World$fetchData("Volume")
 World$fetchData("TAUsea")
 World$fetchData("x_RegSea2Cont")
+World$fetchData("x_ToModerateWater")
 
-
-flow6 <- World$NewFlow("x_ToModerateWater")
-
-flow6$FromAndTo
-flow6$execute()
-World$CalcVar("x_ToModerateWater")
+# flow6 <- World$NewFlow("x_ToModerateWater")
+# 
+# flow6$FromAndTo
+# flow6$execute()
+# World$CalcVar("x_ToModerateWater")
 
 ```
 
@@ -237,12 +240,14 @@ World$fetchData("TAUsea")
 World$fetchData("OceanCurrent")
 World$fetchData("x_RegSea2Cont")
 World$fetchData("ScaleName")
+World$fetchData("x_FromModerate2TropWater")
 
-flow <- World$NewFlow("x_FromModerate2TropWater")
+# flow <- World$NewFlow("x_FromModerate2TropWater")
 # flow$execute(debugAt = list())
-flow$FromAndTo
-flow$execute()
-World$CalcVar("x_FromModerate2TropWater")
+# flow$FromAndTo
+# flow$execute()
+# World$CalcVar("x_FromModerate2TropWater")
+
 ```
 
 *8. x_FromModerate2ArctWater*
@@ -250,12 +255,13 @@ World$CalcVar("x_FromModerate2TropWater")
 ```{r}
 World$fetchData("OceanCurrent")
 World$fetchData("ScaleName")
+World$fetchData("x_FromModerate2ArctWater")
 
-flow <- World$NewFlow("x_FromModerate2ArctWater")
-# flow$execute(debugAt = list())
-flow$FromAndTo
-flow$execute()
-World$CalcVar("x_FromModerate2ArctWater")
+# flow <- World$NewFlow("x_FromModerate2ArctWater")
+# # flow$execute(debugAt = list())
+# flow$FromAndTo
+# flow$execute()
+# World$CalcVar("x_FromModerate2ArctWater")
 ```
 
 *9. x_FromModerate2ContWater*
@@ -267,12 +273,14 @@ World$fetchData("TAUsea")
 World$fetchData("OceanCurrent")
 World$fetchData("x_RegSea2Cont")
 World$fetchData("ScaleName")
+World$fetchData("x_FromModerate2ContWater")
 
-flow <- World$NewFlow("x_FromModerate2ContWater")
-# flow$execute(debugAt = list())
-flow$FromAndTo
-flow$execute()
-World$CalcVar("x_FromModerate2ContWater")
+# flow <- World$NewFlow("x_FromModerate2ContWater")
+# # flow$execute(debugAt = list())
+# flow$FromAndTo
+# flow$execute()
+# World$CalcVar("x_FromModerate2ContWater")
+
 ```
 
 *10. x_OceanMixing2Deep*
@@ -284,12 +292,13 @@ World$fetchData("Volume")
 World$fetchData("TAUsea")
 World$fetchData("OceanCurrent")
 World$fetchData("SubCompartName")
+World$fetchData("x_OceanMixing2Deep")
 
-flow <- World$NewFlow("x_OceanMixing2Deep")
-
-flow$FromAndTo
-flow$execute()
-World$CalcVar("x_OceanMixing2Deep")
+# flow <- World$NewFlow("x_OceanMixing2Deep")
+# 
+# flow$FromAndTo
+# flow$execute()
+# World$CalcVar("x_OceanMixing2Deep")
 
 ```
 
@@ -302,12 +311,13 @@ World$fetchData("Volume")
 World$fetchData("TAUsea")
 World$fetchData("OceanCurrent")
 World$fetchData("SubCompartName")
+World$fetchData("x_OceanMixing2Sea")
 
-flow <- World$NewFlow("x_OceanMixing2Sea")
-
-flow$FromAndTo
-flow$execute()
-World$CalcVar("x_OceanMixing2Sea")
+# flow <- World$NewFlow("x_OceanMixing2Sea")
+# 
+# flow$FromAndTo
+# flow$execute()
+# World$CalcVar("x_OceanMixing2Sea")
 ```
 
 #### Overview of water flows
