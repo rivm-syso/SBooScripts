@@ -1,4 +1,4 @@
-﻿VarName,Compartment,Substance,Waarde,Unit
+VarName,Compartment,Substance,Waarde,Unit
 EF,air,microplastic,0.333333333,NA
 EF,air,nAg_10nm,0.333333333,NA
 EF,air,nC60_10nm,0.333333333,NA
@@ -3749,3 +3749,18 @@ kdeg,water,vinyltoluene,5.3e-10,NA
 kdeg,water,Xylenes,5.35e-7,NA
 kdeg,water,Zearalenone,2.14e-7,NA
 kdeg,water,Zn(II),1e-20,NA
+kdeg,air,Perfluorobutane_sulfonic,3.51E-06,NA
+kdeg,soil,Perfluorobutane_sulfonic,9.88E-07,NA
+kdeg,water,Perfluorobutane_sulfonic,1.32E-06,NA
+kdeg,air,Perfluoropentanoic,3.51E-06,NA
+kdeg,soil,Perfluoropentanoic,9.88E-07,NA
+kdeg,water,Perfluoropentanoic,1.32E-06,NA
+kdeg,air,Perfluoroheptanoic,3.51E-06,NA
+kdeg,soil,Perfluoroheptanoic,9.88E-07,NA
+kdeg,water,Perfluoroheptanoic,1.32E-06,NA
+kdeg,air,Perfluorooctanoic,3.51E-06,NA
+kdeg,soil,Perfluorooctanoic,9.88E-07,NA
+kdeg,water,Perfluorooctanoic,1.32E-06,NA
+kdeg,air,Trifluoroacetic,3.51E-06,NA
+kdeg,soil,Trifluoroacetic,9.88E-07,NA
+kdeg,water,Trifluoroacetic,1.32E-06,NA

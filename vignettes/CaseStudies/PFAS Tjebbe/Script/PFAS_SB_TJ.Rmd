@@ -57,9 +57,15 @@ library(dplyr)
 
 ##Wereld aanpassen, emissies dataframe maken en tijd instellen
 ```{r Substance list, warning=FALSE, include=TRUE}
-#Stof instellingen
+#Stof instellingen, handmatig 
 substances <- read.csv(here("data", "Substances.csv"))
-substance <- "BENSULFURON-METHYL (PH7)"
+gekozen_stoffen = c("Perfluorobutane_sulfonic", "Perfluorobutanoic", 
+                    "Perfluoropentanoic", "Perfluoroheptanoic", 
+                    "Perfluorooctanoic", "Trifluoroacetic")
+
+
+substance <- "Trifluoroacetic"
+
 chemclass <- substances |>
   filter(Substance == substance) |>
   dplyr::select(ChemClass)
@@ -73,7 +79,8 @@ if(substance == "microplastic"){
 } else {
   source("baseScripts/initWorld_onlyMolec.R")
 }
-
+World$substance <- substance
+  
 #Model aanpassen met AdjustModelCatchment.R 
 catchment <- 'Rhine'
 if(catchment == "Rhine"){
@@ -88,9 +95,25 @@ tmax <- runtime*365.25*24*60*60 #in seconds
 times <- seq(0, tmax, length.out = 100) #array of timesteps
 
 #Emissie Dataframe
-#maakt df met POPE emissies voor 70 jaar, script vult nu nog aan met 70 lege jaren
-#dit werkt niet wachten op nieuwe solver
-source("~/R files/SBooScripts/testScripts/EmissionModel.R")
+source("vignettes/CaseStudies/PFAS Tjebbe/Script/EmissionModel.R")
+
+```
+
+``` {r Scales}
+scales <- data.frame(Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"), Abbreviation = c("A", "C", "M", "R", "T"))
+
+subcompartments <- read.csv("data/SubCompartSheet.csv") |>
+  dplyr::select(SubCompartName, AbbrC) |>
+  rename(Abbreviation = AbbrC) |>
+  rename(SubCompartment = SubCompartName)
+
+species <- read.csv("data/SpeciesSheet.csv") |>
+  dplyr::select(Species, AbbrP) |>
+  rename(Abbreviation = AbbrP)
+
+kable(scales)
+kable(subcompartments)
+kable(species)
 ```
 
 #Solven
@@ -110,9 +133,17 @@ solved_long <- solved |> as_tibble() |>
 "Functie voor plot"
 plot_scale <- function(mass_dataframe, scale, SubCompartments){
   # Filter masses for the specific scale
-  mass_data_scale <- mass_dataframe |>
-    filter(Scale == scale) %>%
-    filter(SubCompart %in% SubCompartments)  
+  if (is.null(SubCompartments)) {
+    print("Plotting all SubCompartments")
+    mass_data_scale <- mass_dataframe %>%
+      filter(Scale == scale)
+  }
+  else {
+    print("Plotting selected SubCompartments")
+    mass_data_scale <- mass_dataframe %>%
+      filter(Scale == scale) %>%
+      filter(SubCompart %in% SubCompartments) 
+  }
   
   # Plot masses on the specific scale
   mass_plot <- ggplot(mass_data_scale, aes(x=Year, y=Mass, col=SubCompart)) + 
@@ -126,8 +157,10 @@ plot_scale <- function(mass_dataframe, scale, SubCompartments){
   return(mass_plot)
 }
 
-# Plot data for regional scale
-regional_plot <- plot_scale(solved_long, "Regional", list("river", "naturalsoil", "agriculturalsoil", "othersoil", "air"))
+plot <- plot_scale(solved_long, "Regional", SubCompartments = NULL)
+regional_plot <- plot_scale(solved_long, "Regional", SubCompartments = list("river", "naturalsoil", "agriculturalsoil", "othersoil", "air"))
+
+#Plot data
 print(regional_plot)
 ```
 

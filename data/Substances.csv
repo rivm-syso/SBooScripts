@@ -1,4 +1,4 @@
-﻿Substance,ChemClass,pKa,MW,Tm,Pvap25,Sol25,Kaw25,Kow,Ksw,Kp.col,Kp.susp,Kp.sed,Kp.soil,RadS,RhoS,hamakerSP.w,Shape,Longest_side,Intermediate_side,Shortest_side
+Substance,ChemClass,pKa,MW,Tm,Pvap25,Sol25,Kaw25,Kow,Ksw,Kp.col,Kp.susp,Kp.sed,Kp.soil,RadS,RhoS,hamakerSP.w,Shape,Longest_side,Intermediate_side,Shortest_side
 (4-chloro-2-methylphenoxy)acetic acid,,NA,201,118,2.7e-4,320000,NA,600,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 (4-Chloro-2-methylphenoxy)acetic acid compd. with N-Methylmethanamine (1:1),acid,3.13,200.62,NA,7.86667e-4,630,NA,1778.27941,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 "[1,1'-Biphenyl]-4,4'-diamine, 3,3'-dimethoxy-, dihydrochloride",base,3.7,317.22,NA,2.77e-14,3178,NA,3.715352291,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
@@ -1045,3 +1045,9 @@ vinyltoluene,,NA,118,-77,150,89,NA,2300,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 Xylenes,neutral,NA,106.17,NA,1065.333333,106,NA,1318.256739,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 Zearalenone,acid,7.55,318.37,NA,1.43e-9,31.76,NA,3801.893963,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 Zn(II),metal,NA,65.38,NA,2e-11,NA,1e-20,NA,2807.918885,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+Perfluorobutane_sulfonic,acid,-2.59,300.09,54.4,13.865488,250575.15,0.000161155,309.0295433,10.42512055,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+Perfluorobutanoic,acid,0.081,214.039,-2.83,2119.8198,2953.7382,0.013671328,144.5439771,6.084933995,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+Perfluoropentanoic,acid,-0.2,264.047,15.6,686.6083,1053.54753,0.038329096,524.8074602,12.6632875,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+Perfluoroheptanoic,acid,0.265,364.062,16.7,53.595444,29015.7414,0.001391711,12302.68771,71.22395829,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+Perfluorooctanoic,acid, 0.422,  414.07, 24.2, 32.397246,  3540.2985,  0.011406249,  100000, 222.1050548,  NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+Trifluoroacetic,acid,0.383,114.023,-17.3,14398.776,305581.64,0.000132146,4.017908108,0.835374908,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA

@@ -20,6 +20,14 @@ values <- array(0, dim = c(720, 360, 70))
 emission <- data.frame(
   year = 1:dim(values)[3])
 print("Door tijdsdimensie loopen en emissie dataframe maken....")
+
+if (catchment == "Rhine") {
+  shape = Rhine
+} else {
+  shape = Meuse
+}
+
+#loopen door variablen en masken op 'catchment'
 for (name in names(nc$var)){
   print(name)
   if (grepl("BB$", name)) {
@@ -29,7 +37,7 @@ for (name in names(nc$var)){
       var_data.slice <- var_data.array[,,i]
       r <- raster(t(var_data.slice), xmn=min(lon), xmx=max(lon), ymn=min(lat), ymx=max(lat), crs=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs+ towgs84=0,0,0"))
       r <- flip(r, direction='y')
-      mask <- mask(r, Rhine)
+      mask <- mask(r, shape)
       emission[i, paste0(name, '_global')] <- cellStats(r, stat='sum', na.rm=TRUE) * 10^6 #tonnes
       emission[i, name] <- cellStats(mask, stat="sum", na.rm=TRUE)* 10^6 #From Teragrams to tonnes
     }
@@ -42,12 +50,20 @@ emission$sum_air <- rowSums(emission[, -1][, grepl("air", names(emission)[-1]) &
 emission$sum_wat_global <- rowSums(emission[, -1][, grepl("wat", names(emission)[-1]) & grepl("global", names(emission)[-1])], na.rm = TRUE)
 emission$sum_air_global <- rowSums(emission[, -1][, grepl("air", names(emission)[-1]) & grepl("global", names(emission)[-1])], na.rm = TRUE)
 
-"plot line graph"
+"plot line graph Rhine"
 ggplot(emission)+
   geom_line(aes(x=year, y =sum_wat, color="water emission")) +
   geom_line(aes(x=year, y=sum_air, color="Air emission")) +
   labs(title= "PFOA emission Rhine catchment (1951-2020)",
        x="Years", y="Emission T/yr")
+
+"Global"
+ggplot(emission)+
+  geom_line(aes(x=year, y =sum_wat_global, color="water emission")) +
+  geom_line(aes(x=year, y=sum_air_global, color="Air emission")) +
+  labs(title= "PFOA emission Global (1951-2020)",
+       x="Years", y="Emission T/yr")
+
 
 "making dataframe fit for SB"
 emissions <- data.frame(
@@ -55,12 +71,13 @@ emissions <- data.frame(
   Emis = emission$sum_air, 
   Timed = 1:nrow(emission)
   ) 
-rows <- data.frame(
-  Abbr = rep(c("aRU", "aRU", "aRU", "aRU", "aRU"), times = (runtime-nrow(emission))/5), 
-  Emis = 0, 
-  Timed = seq(from = nrow(emission) + 1, to = runtime)
-  )
-emissions <- bind_rows(emissions, rows)
+
+# rows <- data.frame(
+#   Abbr = rep(c("aRU", "aRU", "aRU", "aRU", "aRU"), times = (runtime-nrow(emission))/5), 
+#   Emis = 0, 
+#   Timed = seq(from = nrow(emission) + 1, to = runtime)
+#   )
+# emissions <- bind_rows(emissions, rows)
 
 #Converting times and emis:
 MW = World$fetchData('MW')
@@ -72,7 +89,7 @@ emissions <- emissions |>
 
 "close down vars..."
 print("closing NC file and Vars....")
-
+remove(emission, mask, nc, r, var_data.slice, values, var_data.array, lat, lon, name)
 
 
 
