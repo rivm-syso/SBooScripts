@@ -18,41 +18,46 @@ projectRoot <- paste(getwd(), "..", sep = "/")
 ```
 
 ```{R Packages laden}
-print(getwd())
-check_and_install <- function(package) {
-  tryCatch({
-    # Load the package
-    library(package, character.only = TRUE)
-    message(paste("Package", package, "is already installed and loaded."))
-  }, error = function(e) {
-    # If an error occurs, install the package
-    message(paste("Package", package, "is not installed. Installing now..."))
-    install.packages(package, dependencies = TRUE)
-    library(package, character.only = TRUE)
-    message(paste("Package", package, "has been successfully installed and loaded."))
-  })
-}
+# print(getwd())
+# check_and_install <- function(package) {
+#   tryCatch({
+#     # Load the package
+#     library(package, character.only = TRUE)
+#     message(paste("Package", package, "is already installed and loaded."))
+#   }, error = function(e) {
+#     # If an error occurs, install the package
+#     message(paste("Package", package, "is not installed. Installing now..."))
+#     install.packages(package, dependencies = TRUE)
+#     library(package, character.only = TRUE)
+#     message(paste("Package", package, "has been successfully installed and loaded."))
+#   })
+# }
+# 
+# # Install the required packages
+# check_and_install("ggplot2")
+# check_and_install("tidyverse")
+# check_and_install("constants")
+# check_and_install("deSolve")
+# check_and_install("knitr")
+# check_and_install("dplyr")
+# check_and_install("zyp")
+# check_and_install("slider")
+# check_and_install("readxl")
+# check_and_install("Kendall")
+# check_and_install("ggpubr")
+# check_and_install("ncdf4")
+# check_and_install("raster")
+# check_and_install("sf")
+# check_and_install("exactextractr")
+# check_and_install("here")
+# check_and_install("reshape2")
+# check_and_install("scales")
+# library(dplyr)
 
-# Install the required packages
-check_and_install("ggplot2")
-check_and_install("tidyverse")
-check_and_install("constants")
-check_and_install("deSolve")
-check_and_install("knitr")
-check_and_install("dplyr")
-check_and_install("zyp")
-check_and_install("slider")
-check_and_install("readxl")
-check_and_install("Kendall")
-check_and_install("ggpubr")
-check_and_install("ncdf4")
-check_and_install("raster")
-check_and_install("sf")
-check_and_install("exactextractr")
-check_and_install("here")
-check_and_install("reshape2")
-check_and_install("scales")
-library(dplyr)
+library(lhs)
+library(tidyverse)
+library(treemapify)
+library(gridExtra)
 ```
 
 ##Wereld aanpassen, emissies dataframe maken en tijd instellen
@@ -64,7 +69,7 @@ gekozen_stoffen = c("Perfluorobutane_sulfonic", "Perfluorobutanoic",
                     "Perfluorooctanoic", "Trifluoroacetic")
 
 
-substance <- "Trifluoroacetic"
+substance <- "Perfluorobutane_sulfonic"
 
 chemclass <- substances |>
   filter(Substance == substance) |>
@@ -80,8 +85,12 @@ if(substance == "microplastic"){
   source("baseScripts/initWorld_onlyMolec.R")
 }
 World$substance <- substance
+
+for (i in World$substanceProperties) {
+  print(paste0(i,":", World$fetchData(i)))
+}
   
-#Model aanpassen met AdjustModelCatchment.R 
+#Model aanpassen met AdjustModel{catchment}.R 
 catchment <- 'Rhine'
 if(catchment == "Rhine"){
   source("vignettes/CaseStudies/PFAS Tjebbe/Script/AdjustModelRhine.R")
@@ -90,9 +99,9 @@ if(catchment == "Rhine"){
 }
 
 #Tijds instelling
-runtime <- 140 #years
+runtime <- 1400 #years
 tmax <- runtime*365.25*24*60*60 #in seconds
-times <- seq(0, tmax, length.out = 100) #array of timesteps
+nTIMES <- runtime+1 #Number of timesteps, e.g. yearly, 2-year
 
 #Emissie Dataframe
 source("vignettes/CaseStudies/PFAS Tjebbe/Script/EmissionModel.R")
@@ -118,8 +127,31 @@ kable(species)
 
 #Solven
 ``` {r Solve}
-World$NewSolver("DynApproxSolve")
-solved <- World$Solve(tmax = tmax, emissions, needdebug = F)
+#Mutating:
+# df <- data.frame(varName = "kfrag",
+#                     Waarde = 0.000000027)
+# World$mutateVars(df)
+# World$UpdateDirty("kfrag")
+# World$fetchData("RadS")
+
+#New solver
+World$NewSolver("DynamicSolver")
+World$Solve(emissions = emissions, tmax = tmax, nTIMES = nTIMES)
+solution <- World$Masses()
+emission <- World$Emissions()
+concentration <- World$Concentration()
+```
+
+``` {r Plotten nieuwe solver}
+# You can specify a scale and a subcompartment
+World$PlotMasses(scale = "Regional", subcompart = "agriculturalsoil")
+
+# Or just a scale and all subcompartments are plotted:
+World$PlotMasses(scale = "Regional")
+
+# Plot all concentrations at regional scale
+World$PlotConcentration(scale = "Regional")
+
 ```
 
 #Plotten

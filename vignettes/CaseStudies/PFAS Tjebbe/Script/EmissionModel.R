@@ -67,15 +67,15 @@ ggplot(emission)+
 
 "making dataframe fit for SB"
 emissions <- data.frame(
-  Abbr = rep(c("aRU", "aRU", "aRU", "aRU", "aRU"), times = nrow(emission) / 5), 
-  Emis = emission$sum_air, 
-  Timed = 1:nrow(emission)
+  Emis = emission$sum_air,
+  Time = 1:nrow(emission),
+  Abbr = rep(c("aRU", "aRU", "aRU", "aRU", "aRU"), times = nrow(emission) / 5)
   ) 
 
 # rows <- data.frame(
-#   Abbr = rep(c("aRU", "aRU", "aRU", "aRU", "aRU"), times = (runtime-nrow(emission))/5), 
-#   Emis = 0, 
-#   Timed = seq(from = nrow(emission) + 1, to = runtime)
+#   Emis = 0,
+#   Time = seq(from = nrow(emission) + 1, to = runtime),
+#   Abbr = rep(c("aRU", "aRU", "aRU", "aRU", "aRU"), times = (runtime-nrow(emission))/5)
 #   )
 # emissions <- bind_rows(emissions, rows)
 
@@ -83,7 +83,7 @@ emissions <- data.frame(
 MW = World$fetchData('MW')
 
 emissions <- emissions |>
-  mutate(Timed = Timed*(365.25*24*60*60)) |> # Convert time from y to s
+  mutate(Time = Time*(365.25*24*60*60)) |> # Convert time from y to s
   ungroup() |>
   mutate(Emis = Emis*1000/(MW*365*24*60*60))  #MW =500 # convert 1 t/y to si units: kg/s
 
