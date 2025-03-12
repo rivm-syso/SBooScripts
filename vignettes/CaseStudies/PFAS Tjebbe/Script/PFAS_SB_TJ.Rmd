@@ -101,6 +101,21 @@ nTIMES <- runtime+1 #Number of timesteps, e.g. yearly, 2-year
 
 #Emissie Dataframe
 source("vignettes/CaseStudies/PFAS Tjebbe/Script/EmissionModel.R")
+write.csv(emissions, file = "vignettes/CaseStudies/PFAS Tjebbe/Data/20250312_emissions.csv")
+
+
+emissions2 <-
+  emissions |> rbind(data.frame(
+    Emis = 0, 
+    Abbr = "aRU",
+    Time = seq(from = 2209032000+31557600, 
+               to = 2209032000+70*(31557600), by = 31557600)
+  ))
+
+World$fetchData("kdeg") |> 
+  mutate(
+    DegHalfLife_years = log(2) / kdeg / (365.25*24*60*60) # ik zou verwachten veel kdeg van jaren.
+  )
 
 ```
 
@@ -132,7 +147,8 @@ kable(species)
 
 #New solver
 World$NewSolver("DynamicSolver")
-World$Solve(emissions = emissions, tmax = tmax, nTIMES = nTIMES)
+World$Solve(emissions = emissions2, tmax = tmax, nTIMES = nTIMES)
+tmax/(365.25*60*60*24)
 solution <- World$Masses()
 emission <- World$Emissions()
 concentration <- World$Concentration()
@@ -140,7 +156,7 @@ concentration <- World$Concentration()
 
 ``` {r Plotten nieuwe solver}
 # You can specify a scale and a subcompartment
-World$PlotMasses(scale = "Regional", subcompart = "agriculturalsoil")
+World$PlotMasses(scale = "Regional", subcompart = "sea")
 
 # Or just a scale and all subcompartments are plotted:
 World$PlotMasses(scale = "Regional")
@@ -204,7 +220,7 @@ debiet <- left_join(maas, rijn, by="WAARNEMINGDATUM") %>%
 plot_debiet <- function(data) {
   # Ensure WAARNEMINGDATUM is in Date format (though it seems to already be)
   data$WAARNEMINGDATUM <- as.Date(data$WAARNEMINGDATUM)
-
+  
   plot <- ggplot(data) +
     # Plotting Maas and Rijn as separate lines
     geom_line(aes(x = WAARNEMINGDATUM, y = Maas, color = "Maas")) + 
@@ -286,7 +302,7 @@ ggscatter(cor_data, x = "x", y= "y",
           cor.coef = TRUE, cor.method = "pearson",
           xlab = "Precipitation (mm/yr)", ylab = "Flow (m3/yr)") +
   ggtitle(paste("Annual Precipitation vs Flow (n =", nrow(cor_data), ")"))
-          
+
 
 ```
 
