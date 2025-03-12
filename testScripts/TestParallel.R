@@ -291,5 +291,17 @@ elapsed_time_df <- data.frame(
 
 all_elapsed_times <- bind_rows(all_elapsed_times, elapsed_time_df)
 
+# Calculate how much faster
+all_elapsed_times_2 <- all_elapsed_times |>
+  mutate(RunTime_secs = as.double(str_remove(RunTime, " secs"))) |>
+  select(-RunTime)
+
+sequential_time <- all_elapsed_times_2 |>
+  filter(Cores == 1)
+sequential_time <- sequential_time$RunTime_secs
+
+all_elapsed_times_2 <- all_elapsed_times_2 |>
+  mutate(runtime_fraction_of_sequential = RunTime_secs/sequential_time)
+
 openxlsx::write.xlsx(all_elapsed_times_2, paste0("ParallelTestRunTimes_", as.character(nRUNs), "_runs.xlsx"))
 
