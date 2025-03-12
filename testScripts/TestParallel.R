@@ -1,5 +1,4 @@
-library(foreach)
-library(doParallel)
+source("baseScripts/installRequirements.R")
 library(openxlsx)
 
 # Test dynamic parallel calculation with 4 cores, 20 runs, 100 time steps
