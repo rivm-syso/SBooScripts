@@ -157,10 +157,9 @@ World$fetchData("x_RiverDischarge")
 The Lake compartment (w0) is an upstream compartment within a Scale that
 has outflow to fresh water (w1). The outflow is dependent on the
 fraction runoff going to lake and the direct Rain on lake fresh water.
-<!--# This currently being worked on, not working as expected yet -->
 
 ```{r}
-x_LakeOutflow
+x_LakeOut
 
 World$fetchData("RainOnFreshwater")
 World$fetchData("Runoff")
@@ -168,9 +167,9 @@ World$fetchData("FracROWatComp")
 World$fetchData("ScaleName")
 World$fetchData("x_LakeOut")
 
-flow = World$NewCalcVariable("x_LakeOut")
-flow$execute()
-flow$execute(debugAt = list(assembly=NA))
+# flow = World$NewCalcVariable("x_LakeOut")
+# flow$execute()
+# flow$execute(debugAt = list(assembly=NA))
 
 ```
 
