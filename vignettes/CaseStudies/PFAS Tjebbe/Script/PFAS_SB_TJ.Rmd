@@ -18,42 +18,42 @@ projectRoot <- paste(getwd(), "..", sep = "/")
 ```
 
 ```{R Packages laden}
-# print(getwd())
-# check_and_install <- function(package) {
-#   tryCatch({
-#     # Load the package
-#     library(package, character.only = TRUE)
-#     message(paste("Package", package, "is already installed and loaded."))
-#   }, error = function(e) {
-#     # If an error occurs, install the package
-#     message(paste("Package", package, "is not installed. Installing now..."))
-#     install.packages(package, dependencies = TRUE)
-#     library(package, character.only = TRUE)
-#     message(paste("Package", package, "has been successfully installed and loaded."))
-#   })
-# }
-# 
-# # Install the required packages
-# check_and_install("ggplot2")
-# check_and_install("tidyverse")
-# check_and_install("constants")
-# check_and_install("deSolve")
-# check_and_install("knitr")
-# check_and_install("dplyr")
-# check_and_install("zyp")
-# check_and_install("slider")
-# check_and_install("readxl")
-# check_and_install("Kendall")
-# check_and_install("ggpubr")
-# check_and_install("ncdf4")
-# check_and_install("raster")
-# check_and_install("sf")
-# check_and_install("exactextractr")
-# check_and_install("here")
-# check_and_install("reshape2")
-# check_and_install("scales")
-# library(dplyr)
+print(getwd())
+check_and_install <- function(package) {
+  tryCatch({
+    # Load the package
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "is already installed and loaded."))
+  }, error = function(e) {
+    # If an error occurs, install the package
+    message(paste("Package", package, "is not installed. Installing now..."))
+    install.packages(package, dependencies = TRUE)
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "has been successfully installed and loaded."))
+  })
+}
 
+# Install the required packages
+check_and_install("ggplot2")
+check_and_install("tidyverse")
+check_and_install("constants")
+check_and_install("deSolve")
+check_and_install("knitr")
+check_and_install("dplyr")
+check_and_install("zyp")
+check_and_install("slider")
+check_and_install("readxl")
+check_and_install("Kendall")
+check_and_install("ggpubr")
+check_and_install("ncdf4")
+check_and_install("raster")
+check_and_install("sf")
+check_and_install("exactextractr")
+check_and_install("here")
+check_and_install("reshape2")
+check_and_install("scales")
+library(dplyr)
+library(here)
 library(lhs)
 library(tidyverse)
 library(treemapify)
@@ -86,10 +86,6 @@ if(substance == "microplastic"){
 }
 World$substance <- substance
 
-for (i in World$substanceProperties) {
-  print(paste0(i,":", World$fetchData(i)))
-}
-  
 #Model aanpassen met AdjustModel{catchment}.R 
 catchment <- 'Rhine'
 if(catchment == "Rhine"){
@@ -99,7 +95,7 @@ if(catchment == "Rhine"){
 }
 
 #Tijds instelling
-runtime <- 1400 #years
+runtime <- 140 #years
 tmax <- runtime*365.25*24*60*60 #in seconds
 nTIMES <- runtime+1 #Number of timesteps, e.g. yearly, 2-year
 

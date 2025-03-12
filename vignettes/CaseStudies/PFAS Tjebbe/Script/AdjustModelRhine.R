@@ -1,3 +1,5 @@
+library(ncdf4)
+library(sf)
 print("Adjusting model for Rhine catchment...")
 
 "Afvoer: wordt niet gebruikt enkel voor validatie neerslag"
