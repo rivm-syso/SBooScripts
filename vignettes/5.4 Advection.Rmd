@@ -166,11 +166,11 @@ World$fetchData("RainOnFreshwater")
 World$fetchData("Runoff")
 World$fetchData("FracROWatComp")
 World$fetchData("ScaleName")
-World$fetchData("x_LakeOutflow")
+World$fetchData("x_LakeOut")
 
-# flow = World$NewCalcVariable("x_LakeOutflow")
-# flow$execute()
-# flow$execute(debugAt = list())
+flow = World$NewCalcVariable("x_LakeOut")
+flow$execute()
+flow$execute(debugAt = list(assembly=NA))
 
 ```
 
