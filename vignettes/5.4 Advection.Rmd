@@ -173,9 +173,19 @@ World$fetchData("x_LakeOut")
 
 ```
 
-*4. x_ContSea2Reg*
+#### *4. x_ContSea2Reg*
+
+x_ContSea2Reg calculates the flow from the sea at continental scale to
+the sea at regional scale. It is now the default approach which is a
+flow 9 times higher than the river discharge at regional scale. This
+coincides with the regional sea mixing being 10 times the river
+discharge into the sea. However, a change could be implemented here
+based on a residence time of sea at regional scale as the river flow is
+not always relevant for the contribution to this flow, e.g. depending on
+the type of sea and location one is trying to model.
 
 ```{r}
+x_ContSea2Reg
 World$fetchData("LakeFracRiver")
 World$fetchData("x_RiverDischarge")
 World$fetchData("x_ContSea2Reg")
@@ -190,7 +200,7 @@ World$fetchData("x_ContSea2Reg")
 
 ```
 
-*5. x_RegSea2Cont*
+#### *5. x_RegSea2Cont*
 
 ```{r}
 
@@ -322,9 +332,10 @@ World$fetchData("x_OceanMixing2Sea")
 #### Overview of water flows
 
 Overview of flows included above (excludes surface - deep ocean mixing
-and ocean currents at global scales)
+and ocean currents at global scales). All to and from water flows should
+be equal, e.g. the differences is 0.
 
-```{r}
+```{r testing table}
 flows = World$moduleList[["k_Advection"]]$WithFlow
 
 flux2Test <- World$fetchData("Flows")
@@ -342,8 +353,19 @@ flux2Test$frows <- do.call(paste, c(flux2Test[c("toScale", "toSubCompart")], sep
 table1 <- pivot_wider(flux2Test[f2Torder,c("frows","fcolumns","flow")],
             id_cols = frows, names_from = fcolumns, values_from = flow)
 
-print(table1, n=40)
 
+toFlows <- data.frame(Compartment = table1$frows,
+                      tFlow = rowSums(as.data.frame(table1[,-1],),na.rm = TRUE))
+froFlows <- data.frame(Compartment = colnames(table1[,-1]),
+                       fFlow = colSums(as.data.frame(table1[,-1],),na.rm = TRUE))
+
+tfFlows <- merge(toFlows,froFlows, all=TRUE) 
+
+if(c(sum(tfFlows$tFlow,na.rm = TRUE)-sum(tfFlows$fFlow)) != 0){
+  warning("Water flows are not in balance!")
+  }
+
+print(table1, n=40)
 
 ```
 
