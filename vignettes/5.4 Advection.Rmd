@@ -179,10 +179,8 @@ x_ContSea2Reg calculates the flow from the sea at continental scale to
 the sea at regional scale. It is now the default approach which is a
 flow 9 times higher than the river discharge at regional scale. This
 coincides with the regional sea mixing being 10 times the river
-discharge into the sea. However, a change could be implemented here
-based on a residence time of sea at regional scale as the river flow is
-not always relevant for the contribution to this flow, e.g. depending on
-the type of sea and location one is trying to model.
+discharge into the sea.
+<!--# A change could be implemented here based on a residence time of sea at regional scale as the river flow is not always relevant for the contribution to this flow, e.g. depending on the type of sea and location one is trying to model. -->
 
 ```{r}
 x_ContSea2Reg
@@ -201,6 +199,9 @@ World$fetchData("x_ContSea2Reg")
 ```
 
 #### *5. x_RegSea2Cont*
+
+*x_RegSea2Cont is the sea water flow from regional to continental scale.
+It is assumed to be 10 times the discharge flow from the river.*
 
 ```{r}
 
