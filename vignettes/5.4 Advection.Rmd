@@ -200,8 +200,8 @@ World$fetchData("x_ContSea2Reg")
 
 #### *5. x_RegSea2Cont*
 
-*x_RegSea2Cont is the sea water flow from regional to continental scale.
-It is assumed to be 10 times the discharge flow from the river.*
+x_RegSea2Cont is the sea water flow from regional to continental scale.
+It is assumed to be 10 times the discharge flow from the river.
 
 ```{r}
 
