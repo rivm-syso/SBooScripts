@@ -159,7 +159,7 @@ MergeFromToExcelR <- function(kaas2, SBexcel.K){
 MergeMasses <- function(){
   SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SBExcel_verification_", substance,".xlsm")
   
-  World$NewSolver("SteadyODE")
+  World$NewSolver("SteadyStateSolver")
   emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000) ) # convert 1 t/y to si units: kg/s
   
   MW <- World$fetchData("MW")
