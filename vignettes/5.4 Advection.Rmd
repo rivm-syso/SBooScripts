@@ -222,7 +222,7 @@ World$fetchData("x_RegSea2Cont")
 
 ```
 
-#### *6. x_ToModerateWater*
+#### *6. x_ToModerateWater: Ocean currents flowing to Moderate scale (w2 and w3)*
 
 Advection of continental sea, Tropic and Arctic sea compartments to sea
 and deepocean at Moderate scale.
@@ -242,19 +242,16 @@ World$fetchData("x_ToModerateWater")
 
 ```
 
-#### Water flow from Moderate Scale
+#### *7. x_FromModerate2TropWater: flow from Moderate to Tropic deep ocean (w3)*
 
-*7. x_FromModerate2TropWater*
-
-Separated in different flows based on the to Scale
+Moderate scale waters flow into Tropical scale through deep ocean
+currents based on a set ocean current of
+`r World$fetchData("OceanCurrent")/(60*60*24)` m3/day.
 
 ```{r}
+x_FromModerate2TropWater
 
-World$fetchData("Volume")
-World$fetchData("TAUsea")
 World$fetchData("OceanCurrent")
-World$fetchData("x_RegSea2Cont")
-World$fetchData("ScaleName")
 World$fetchData("x_FromModerate2TropWater")
 
 # flow <- World$NewFlow("x_FromModerate2TropWater")
@@ -265,9 +262,14 @@ World$fetchData("x_FromModerate2TropWater")
 
 ```
 
-*8. x_FromModerate2ArctWater*
+#### *8. x_FromModerate2ArctWater: flow from Moderate to Arctic sea water (w2)*
+
+Moderate scale waters flow into Arctic scale through surface ocean
+currents based on a set ocean current of
+`r World$fetchData("OceanCurrent")/(60*60*24)` m3/day.
 
 ```{r}
+x_FromModerate2ArctWater
 World$fetchData("OceanCurrent")
 World$fetchData("ScaleName")
 World$fetchData("x_FromModerate2ArctWater")
@@ -279,9 +281,14 @@ World$fetchData("x_FromModerate2ArctWater")
 # World$CalcVar("x_FromModerate2ArctWater")
 ```
 
-*9. x_FromModerate2ContWater*
+#### *9. x_FromModerate2ContWater: from from Continental to Moderate sea water (w2)*
+
+Moderate scale waters flow into Contentental scale through surface ocean
+currents based on the residence time of sea water at the continental
+scale minus the inflow of regional sea water to continental scale.
 
 ```{r}
+x_FromModerate2ContWater
 # required data:
 World$fetchData("Volume")
 World$fetchData("TAUsea")
@@ -298,7 +305,12 @@ World$fetchData("x_FromModerate2ContWater")
 
 ```
 
-*10. x_OceanMixing2Deep*
+#### *10. x_OceanMixing2Deep: mixing of surface sea to deep ocean (w2 to w3)*
+
+As illustrated in the figures above there are not only currents
+affecting the advection of sea water between scales, but also mixing of
+the surface water and deep ocean layers at global scales. This is
+calculated for both directions.
 
 ```{r}
 x_OceanMixing2Deep
@@ -317,7 +329,7 @@ World$fetchData("x_OceanMixing2Deep")
 
 ```
 
-*11. x_OceanMixing2Sea*
+#### *11. x_OceanMixing2Sea: mixing of deep ocean surface sea (w3 to w2)*
 
 ```{r}
 x_OceanMixing2Sea
@@ -389,13 +401,13 @@ World$fetchData("Flows")
  k_Advection
 # Don't create a new process like: World$FromDataAndTo("k_Advection")
 # find the existing one like this:
-testProc <- World$moduleList[["k_Advection"]]
+# testProc <- World$moduleList[["k_Advection"]]
 # FromDataAndTo is from and to from the data, ultimately the property is used
 # which can derived from the flows for Advection
-FAT <- testProc$FromAndTo
+# FAT <- testProc$FromAndTo
 # the data frmae to be calculated:
-left_join(rename(FAT, "Scale" = "fromScale", "SubCompart" = "fromSubCompart"), World$fetchData("Volume"))
+# left_join(rename(FAT, "Scale" = "fromScale", "SubCompart" = "fromSubCompart"), World$fetchData("Volume"))
 #for testing use:
-testProc$execute()
+World$kaas |> filter(process == "k_Advection")
 
 ```
