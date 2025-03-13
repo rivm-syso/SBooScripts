@@ -1,5 +1,6 @@
 source("baseScripts/installRequirements.R")
 library(openxlsx)
+library(future)
 
 # Test dynamic parallel calculation with 4 cores, 20 runs, 100 time steps
 source('baseScripts/initWorld_onlyPlastics.R')
@@ -17,7 +18,12 @@ example_data <- example_data |>
   select(-To_Compartment) |>
   mutate(Time = ((as.numeric(year)-2019)*365.25*24*3600)) |>
   mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> # Convert kt/year to kg/s
-  select(-year)
+  select(-year) 
+
+example_data <- bind_rows(lapply(0:4, function(i) {
+  example_data |>
+    mutate(RUN = RUN + i * 20)
+}))
 
 # Load the Excel file containing example distributions for variables
 Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")
@@ -172,6 +178,11 @@ example_data <- example_data |>
   # Convert kt/year to kg/s
   mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> 
   select(-To_Compartment) # leave out original compartment name
+
+example_data <- bind_rows(lapply(0:4, function(i) {
+  example_data |>
+    mutate(RUN = RUN + i * 20)
+}))
 
 # Load the Excel file containing example distributions for variablese
 Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")
