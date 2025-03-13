@@ -105,10 +105,15 @@ SBOO. Different dimensions are relevant for computing the water flows:
 subcompartments and scale. This relates to water flowing from lake,
 through the river compartment to the sea, after which the sea flows
 between scales. This is defined in the following x_flow. The order of
-calculation matters (for regional and continental scale function x 1-5)
-!
+calculation matters (for regional and continental scale function x 1-5).
 
-#### *1. Continental to Regional Fresh water (w1)*
+![Overview of water flows between Regional and Continental scale.
+<!--# origin: SBcoreModules.pptx -->](Figures_Custom/x_Reg_Cont_flow_overview.png)
+
+![Overview of water flows at Global scale.
+<!--# origin: SBcoreModules.pptx -->](Figures_Custom/x_GlobalScale.png)
+
+#### *1.* x_ContRiver2Reg: *Continental to Regional Fresh water (w1)*
 
 x_ContRiver2Reg calculates based on the fraction of discharge of fresh
 water to the regional scale the amount of fresh water flowing from
@@ -136,7 +141,7 @@ World$fetchData("LakeFracRiver") # needs to be cleanup after basing on area frac
 World$fetchData("x_ContRiver2Reg")
 ```
 
-#### *2. x_RiverDischarge*
+#### *2. x_RiverDischarge: Freshwater (w1) to sea water (w2).*
 
 ```{r}
 x_RiverDischarge
@@ -152,7 +157,7 @@ World$fetchData("x_RiverDischarge")
 # World$CalcVar("x_RiverDischarge")
 ```
 
-#### *3. x_LakeOutflow*
+#### *3. x_LakeOutflow: isolated freshwater/lake (w0) to fresh water (w1)*
 
 The Lake compartment (w0) is an upstream compartment within a Scale that
 has outflow to fresh water (w1). The outflow is dependent on the
@@ -173,7 +178,7 @@ World$fetchData("x_LakeOut")
 
 ```
 
-#### *4. x_ContSea2Reg*
+#### *4. x_ContSea2Reg: Continental sea water (w2) to Regional sea water (w2)*
 
 x_ContSea2Reg calculates the flow from the sea at continental scale to
 the sea at regional scale. It is now the default approach which is a
@@ -198,7 +203,7 @@ World$fetchData("x_ContSea2Reg")
 
 ```
 
-#### *5. x_RegSea2Cont*
+#### *5. x_RegSea2Cont: Regional sea water (w2) to Continental sea water (w2)*
 
 x_RegSea2Cont is the sea water flow from regional to continental scale.
 It is assumed to be 10 times the discharge flow from the river.
@@ -217,7 +222,7 @@ World$fetchData("x_RegSea2Cont")
 
 ```
 
-*6. x_ToModerateWater*
+#### *6. x_ToModerateWater*
 
 Advection of continental sea, Tropic and Arctic sea compartments to sea
 and deepocean at Moderate scale.
