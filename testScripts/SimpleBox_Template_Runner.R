@@ -3,7 +3,6 @@
 # The input file (and thus this script) is not limited to one substance at a time. It also supports
 # calculations of uncertainty ranges based on the uncertainty of the input parameters. Currently,
 # the input uncertainty supports Triangular, Normal, Lognormal and Weibull distribution.
-# For now, the script only works with Molecular substances.
 
 # NOTE: the ODE will throw a fatal error if very small input values are used (observed so far with 1e-20)
 
@@ -20,7 +19,7 @@ library(lhs)
 library(openxlsx)
 library(sensitivity)
 library(ggplot2)
-library(ks) ### ks needed for sensiFdiv function
+library(ks)
 
 
 
@@ -28,11 +27,10 @@ library(ks) ### ks needed for sensiFdiv function
 Run_count <- 100
 
 # Set the path to the input file, as well as the path to the model's data files.
-inoutname <- paste0("/rivm/n/defaresj/Documents/SimpleBox_OO_sensitivity_test.xlsx")
-f_name <- str_split_i(inoutname, "/", -1)
+inoutname <- paste0("path to input file")
 datadir <- paste0("data")
 
-# Read in the inputs for Landscape, Substance, and Emission parameters.
+# Read in the inputs for Landscape, Substance, Emission and Monitored parameters.
 LandscapeIn <- read.xlsx(inoutname,
                          sheet = 3,
                          colNames = TRUE,
@@ -55,7 +53,7 @@ ScaleSheet <- read.csv(paste0(datadir, "/ScaleSheet.csv"))
 SubCompartSheet <- read.csv(paste0(datadir, "/SubCompartSheet.csv"))
 SpeciesSheet <- read.csv(paste0(datadir, "/SpeciesSheet.csv"))
 
-# Initialize the World script. 
+# Initialize the World object. 
 source("baseScripts/initWorld_onlyMolec.R")
 
 
@@ -97,14 +95,35 @@ MEC_Distributed <- tibble(Substance = character(),
                           SubCompart = character(),
                           RUN = numeric(),
                           Value = numeric())
+
 Conc_calc <- tibble(Substance = character(),
                     SubCompart = character(),
                     RUN = numeric(),
                     Value = numeric())
 
-# Store the substances and parameters in the input file.
+PECMEC_statistics <- tibble(Substance = character(),
+                            SubCompart = character(),
+                            PEC_Min = numeric(),
+                            PEC_Quant25 = numeric(),
+                            PEC_Median = numeric(),
+                            PEC_Quant75 = numeric(),
+                            PEC_Max = numeric(),
+                            MEC_Min = numeric(),
+                            MEC_Quant25 = numeric(),
+                            MEC_Median = numeric(),
+                            MEC_Quant75 = numeric(),
+                            MEC_Max = numeric(),
+                            "PEC:MEC_Min" = numeric(),
+                            "PEC:MEC_Quant25" = numeric(),
+                            "PEC:MEC_Median" = numeric(),
+                            "PEC:MEC_Quant75" = numeric(),
+                            "PEC:MEC_Max" = numeric()
+)
+
+# Store the Substance names that will be modeled from the input file.
 Substances <- unique(EmissionIn$Substance)
 
+# Failsafe in case no Substance was named in the input. 
 if (length(Substances) == 0) {
   Substances <- c("Unnamed Substance")
   SubstanceIn$Substance <- "Unnamed Substance"
@@ -126,7 +145,7 @@ for (i in seq(nrow(EmissionIn))) {
                  ScaleSheet$AbbrS[which(ScaleSheet$ScaleName == Scale)],
                  SpeciesSheet$AbbrP[which(SpeciesSheet$Species == Species)])
   
-  
+  # For each emission with a fixed value, set the mean, min and max to the same value.
   if (EmissionIn$Distribution[i] == "Fixed") {
     Emiss <- add_row(Emiss, tibble_row(Substance = EmissionIn$Substance[i],
                                        Abbr = Abbr,
@@ -151,7 +170,6 @@ for (i in seq(nrow(EmissionIn))) {
 
 # Read Landscape Inputs and separate fixed from uncertain inputs.
 for (i in seq(nrow(LandscapeIn))) {
-  
   
   if (LandscapeIn$Distribution[i] == "Fixed") {
     FixedParams <- add_row(FixedParams, tibble_row(varName = LandscapeIn$VarName[i],
@@ -200,16 +218,12 @@ for (i in seq(nrow(SubstanceIn))) {
 Available_Distributions <- c("Triangular", "Normal", "Log normal", "Weibull", "Fixed")
 
 # The function of the triangular distribution.
-triangular_cdf_inv <- function(u, # LH scaling factor
-                               a, # Minimum
-                               b, # Maximum
-                               c) { # Peak value
+triangular_cdf_inv <- function(u, a, b, c) {
   
   ifelse(u < (c-a)/(b-a),
          a + sqrt(u * (b-a) * (c-a)),
          b - sqrt((1-u) * (b-a) * (b-c)))
 }
-
 
 # The function of the normal distribution.
 normal_pdf <- function(u, b, c){
@@ -274,6 +288,7 @@ if (n_vars > 0) {
       samples <- Weibull_pdf(lhs_samples_vars[, i], a, b, c)
     }
     
+    # Failsafe in case no valid distribution type is passed.
     if (!(UncertParams$Distribution[i] %in% Available_Distributions)) {
       d <- first(na.omit(c(c, a, b)))
       samples <- rep(d, Run_count)
@@ -287,7 +302,7 @@ if (n_vars > 0) {
   }
 } 
 
-# Failsafe in case all parameters are using a fixed distribution
+# Failsafe in case all parameters are using a fixed distribution.
 for (i in Substances[!(Substances %in% UncertParams$Substance)]) {
   index <- match(i, FixedParams$Substance)
   # Failsafe if there are no parameters specific to a particular substance
@@ -312,6 +327,7 @@ for (i in 1:n_emisscomps) {
   c <- Emiss$c[i]
   
   # Select the Distribution to use to generate the parameter values.
+  # If applicable, make sure all samples are equal to or greater than zero.
   if (Emiss$Distribution[i] == "Triangular") {
     samples <- triangular_cdf_inv(lhs_samples_emis[, i], a, b, c)
   }
@@ -330,6 +346,7 @@ for (i in 1:n_emisscomps) {
     samples <- rep(c, Run_count)
   }
   
+  # Failsafe in case no valid distribution type is passed.
   if (!(Emiss$Distribution[i] %in% Available_Distributions)) {
     d <- first(na.omit(c(c, a, b)))
     samples <- rep(d, Run_count)
@@ -343,13 +360,14 @@ for (i in 1:n_emisscomps) {
 }
 
 
-
+# Generate samples for the Monitored concentration.
 for (i in 1:n_MEC) {
   a <- ifelse(is.na(MEC_In$a[i]), 1e-15, MEC_In$a[i])  
   b <- MEC_In$b[i]
   c <- MEC_In$c[i]
   
   # Select the Distribution to use to generate the parameter values.
+  # If applicable, make sure all samples are equal to or greater than zero.
   if (MEC_In$Distribution[i] == "Triangular") {
     samples <- triangular_cdf_inv(lhs_samples_MEC[, i], a, b, c)
   }
@@ -368,6 +386,7 @@ for (i in 1:n_MEC) {
     samples <- rep(c, Run_count)
   }
   
+  # Store the generated list of new input Emissions
   for (j in 1:Run_count) {
     MEC_Distributed <- add_row(MEC_Distributed,
                                Substance = MEC_In$Substance[i],
@@ -379,16 +398,17 @@ for (i in 1:n_MEC) {
 }
 
 SubstanceCount <- length(UncertParams$varName)
+
+# Record the subcompartments needed for the PEC:MEC calculations
 MEC_compart <- unique(MEC_Distributed$SubCompart)
 
 # For every Substance, complete the rest of the setup and run the model.
 for (Substance in Substances) {
   
   start.time <- Sys.time()
-
-  # TODO: Build in failsave in case users incorrectly input Scale/Subcompart info
-  FixedParamsM <- FixedParams[FixedParams$Substance == Substance | is.na(FixedParams$Substance),]
   
+  # For all parameters with a fixed value, set the relevant variables of the model.
+  FixedParamsM <- FixedParams[FixedParams$Substance == Substance | is.na(FixedParams$Substance),]
   World$mutateVars(FixedParamsM)
   
   # Calculating the parameters that are dependent on input parameters
@@ -425,21 +445,15 @@ for (Substance in Substances) {
   World$UpdateKaas()
   
   
-  # Set the solver
+  # Set the solver and prepare its input arguments
   World$NewSolver("UncertainSolver")
-  
-  
-  # Solve the matrix
-
-  
   UncertParamsM <- UncertParams[UncertParams$Substance == Substance | is.na(UncertParams$Substance),]
   EmissM <- Emiss[Emiss$Substance == Substance,]
   
-  # World$SetConst(Test = "FALSE")
-  
+  # Solve the matrix
   solved <- World$Solve(EmissM, needdebug = F, UncertParamsM)
   
-  # Extract the Concentrations from the model. This dataframe will contain all concentrations from all scales and subcomparts.
+  # Extract all regional Concentrations from the model.
   Concentrations_full <- filter(World$GetConcentration(), Scale == "Regional")    
   Concentrations_full <- Concentrations_full[,-c(1,2)]
 
@@ -466,7 +480,7 @@ for (Substance in Substances) {
   }
   
   
-  # Assume that all substances want the same subcomparts
+  # Extract the Concentrations needed for the PEC:MEC ratio calculations.
   for (MEC_subcompart in MEC_compart) {
     for (i in which(Concentrations_full$SubCompart == MEC_subcompart)) {
       Conc_calc <- add_row(Conc_calc, tibble_row(Substance = Substance,
@@ -491,6 +505,7 @@ for (Substance in Substances) {
 }
 
 
+# Calculate the PEC:MEC ratios.
 PECMEC <- tibble(Substance = Conc_calc$Substance,
                  SubCompart = Conc_calc$SubCompart,
                  RUN = Conc_calc$RUN,
@@ -500,25 +515,8 @@ PECMEC <- tibble(Substance = Conc_calc$Substance,
 
 Subcomparts <- unique(PECMEC$SubCompart)
 
-PECMEC_statistics <- tibble(Substance = character(),
-                            SubCompart = character(),
-                            PEC_Min = numeric(),
-                            PEC_Quant25 = numeric(),
-                            PEC_Median = numeric(),
-                            PEC_Quant75 = numeric(),
-                            PEC_Max = numeric(),
-                            MEC_Min = numeric(),
-                            MEC_Quant25 = numeric(),
-                            MEC_Median = numeric(),
-                            MEC_Quant75 = numeric(),
-                            MEC_Max = numeric(),
-                            "PEC:MEC_Min" = numeric(),
-                            "PEC:MEC_Quant25" = numeric(),
-                            "PEC:MEC_Median" = numeric(),
-                            "PEC:MEC_Quant75" = numeric(),
-                            "PEC:MEC_Max" = numeric()
-)
 
+# Calculate PEC:MEC ratio statistics
 for (Substance in Substances) {
   for (SubCompart in Subcomparts){
     index <- which(PECMEC$Substance == Substance & PECMEC$SubCompart == SubCompart)
@@ -562,14 +560,15 @@ for (Substance in Substances) {
 }
 
 
-# Export the output. This contains the min, median, max and quantiles of the concentrations for all
-# substances and subcompartments.
+# Export the PEC, MEC, PEC:MEC and their statistics into an Excel file. This file is created in
+# the same directory as the input file.
+f_name <- str_split_i(inoutname, "/", -1)
 outname <- str_replace(inoutname, f_name, "SB_OO_Output.xlsx")
-write.xlsx(Concentrations, outname)
+write.xlsx(list("PECMEC raw" = PECMEC, "PECMEC statistics" = PECMEC_statistics), outname)
 
 
-UncertParamsM <- UncertParamsM %>% mutate(varName_full  = paste(varName,Scale,SubCompart, sep = "_"))
-UncertParams <- UncertParams %>% mutate(varName_full  = paste(varName,Scale,SubCompart, sep = "_"))
+
+
 
 PECMEC <- mutate(PECMEC, S_SC = paste(Substance, SubCompart, sep = " - "))
 df <- PECMEC %>% pivot_longer(cols = c("PEC", "MEC"), names_to = 'PM', values_to = 'Conc')
@@ -582,7 +581,7 @@ ggplot(df, aes(x= S_SC, y=Conc, fill =PM)) + geom_violin(scale="width") +
         axis.title.x = element_blank(),
         legend.title = element_blank()) +
   ylab("Concentration") +
-  scale_fill_manual(values=c("lightsalmon", "lightskyblue"), labels = c("Monitored Concentrations","Modelled Concentrations"))
+  scale_fill_manual(values=c("lightsalmon", "lightskyblue"), labels = c("Monitored","Modelled"))
 
 
 # Violin plots showing the ratio between modelled and predicted concentrations
@@ -598,7 +597,11 @@ ggplot(df, aes(x= S_SC, y=PECMEC, colour = Substance)) + geom_violin(scale="widt
 
 
 
+
 # Sensitivity analysis. Seems unstable with negative values.
+
+UncertParamsM <- UncertParamsM %>% mutate(varName_full  = paste(varName,Scale,SubCompart, sep = "_"))
+UncertParams <- UncertParams %>% mutate(varName_full  = paste(varName,Scale,SubCompart, sep = "_"))
 Sens_idices <- tibble(UncertParam = c(unique(UncertParams$varName_full), "Emission" ))
 for (Substance in Substances) {
   
@@ -695,7 +698,7 @@ for (Substance in Substances) {
 test <- colnames(Sens_idices)[-1]
 df <- Sens_idices %>% pivot_longer(cols = test, names_to = "Substance", values_to = "Indices")
 
-# Heatmap for sensitivity analysis
+# Generate Heatmap for sensitivity analysis
 print(ggplot(df, aes(x=factor(Substance, level=unique(Substance)), y=factor(UncertParam, level = rev(unique(UncertParam))), fill=Indices))+ 
         geom_tile(colour="white")+
         scale_fill_gradient(low="white", high = "red")+

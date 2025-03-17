@@ -248,6 +248,11 @@ lhs_samples_vars <- lhs_samples[, 1:n_vars]
 lhs_samples_emis <- lhs_samples[, (n_vars + 1):(n_vars+n_emisscomps)]
 lhs_samples_MEC <- lhs_samples[,(n_vars+n_emisscomps+1):ncol(lhs_samples)]
 
+for (i in seq(n_MEC)){
+  lhs_samples_MEC[,i] <- sort(lhs_samples_MEC[,i])
+}
+
+
 
 # Calculate the values used in the uncertainty solver for Parameters
 for (i in 1:n_vars) {
@@ -308,7 +313,7 @@ for (i in 1:n_emisscomps) {
 }
 
 for (i in 1:n_MEC) {
-  a <- ifelse(is.na(MEC_In$a[i]), 1e-15, MEC_In$a[i])  
+  a <- ifelse(is.na(MEC_In$a[i]), 1e-12, MEC_In$a[i])  
   b <- MEC_In$b[i]
   c <- MEC_In$c[i]
   
@@ -522,6 +527,7 @@ Conc_calc <- group_by(Conc_calc, Substance)
 MEC_Distributed <- arrange(MEC_Distributed, RUN, .by_group = TRUE)
 Conc_calc <- arrange(Conc_calc, RUN, .by_group = TRUE)
 
+# Calculate the PEC:MEC ratios
 PECMEC <- tibble(Substance = Conc_calc$Substance,
                   SubCompart = Conc_calc$SubCompart,
                   RUN = Conc_calc$RUN,
@@ -557,6 +563,7 @@ PECMEC_statistics <- tibble(Substance = character(),
 
 Test <- numeric()
 
+# Calculate PEC:MEC ratio relative to freshwater concentration
 for (Substance in rev(Substances)) {
   for (i in 1:Run_count) {
     for (SubCompart in Subcomparts){
@@ -571,7 +578,7 @@ for (Substance in rev(Substances)) {
 
 PECMEC <- mutate(PECMEC, "PECMEC_fw_relative" = Test)
 
-
+# Calculate PEC:MEC ratio statistics
 for (Substance in Substances) {
   for (SubCompart in Subcomparts){
     index <- which(PECMEC$Substance == Substance & PECMEC$SubCompart == SubCompart)
@@ -646,6 +653,7 @@ x_label <- c("agricultural soil", "air", "freshwater - dissolved", "freshwater -
              "air", "freshwater - dissolved")
 
 
+# Violin plots comparing modelled and predicted concentrations
 ggplot(df, aes(x= S_SC, y=Conc, fill =PM)) + geom_violin(scale="width") +
   geom_boxplot(width=0.2, outliers = FALSE, position = position_dodge(width = 0.9)) +
   scale_x_discrete(label=x_label) +
@@ -655,7 +663,7 @@ ggplot(df, aes(x= S_SC, y=Conc, fill =PM)) + geom_violin(scale="width") +
   labs(x="Substance", y="Concentration") +
   scale_fill_manual(values=c("lightsalmon", "lightskyblue"), labels = c("Monitored","Modelled"))
 
-
+# Violin plots showing the ratio between modelled and predicted concentrations
 ggplot(df, aes(x= S_SC, y=PECMEC, colour = Substance)) + geom_violin(scale="width") +
   geom_boxplot(width=0.2, outliers = TRUE, outlier.size = 0.2, position = position_dodge(width = 0.9), colour = "gray30") +
   scale_x_discrete(label=x_label) +
@@ -666,6 +674,7 @@ ggplot(df, aes(x= S_SC, y=PECMEC, colour = Substance)) + geom_violin(scale="widt
   scale_fill_hue(labels = c("Monitored","Modelled")) +
   geom_hline(yintercept = 1, linetype="dashed", colour="black")
 
+# Violin plots showing the PEC:MEC ratio relative to freshwater concentration
 ggplot(df, aes(x= S_SC, y=PECMEC_fw_relative, colour = Substance)) + geom_violin(scale="width") +
   geom_boxplot(width=0.2, outliers = TRUE, outlier.size = 0.2, position = position_dodge(width = 0.9), colour = "gray30") +
   scale_x_discrete(label=x_label) +
@@ -690,13 +699,13 @@ ggplot(df, aes(x= S_SC, y=PECMEC_fw_relative, colour = Substance)) + geom_violin
 
 
 
-UncertParamsM <- UncertParams[UncertParams$Substance == "ADONA" | is.na(UncertParams$Substance),]
+#UncertParamsM <- UncertParams[UncertParams$Substance == "ADONA" | is.na(UncertParams$Substance),]
 UncertParamsM <- UncertParamsM %>% mutate(varName_full  = paste(varName,Scale,SubCompart, sep = "_"))
 UncertParams <- UncertParams %>% mutate(varName_full  = paste(varName,Scale,SubCompart, sep = "_"))
 
 Sens_idices <- tibble(UncertParam = c(unique(UncertParams$varName_full), "Emission1", "Emission2", "Emission3", "Emission4" ))
 
-
+# Global Sensitivity Analysis
 for (Substance in Substances) {
   
   # Sens_idices <- tibble(UncertParam = c(unique(UncertParams$varName_full), "Emission1", "Emission2", "Emission3", "Emission4" ))
@@ -799,9 +808,12 @@ for (Substance in Substances) {
       
       #plot(probX_Y)
       
-      if (nrow(borg_d_temp) <  41){
+      Sens_indices_count <- nrow(Sens_idices)
+      
+      # Add NA values for H0sol for Tetrachloroethylene (it's a fixed value for this substance)
+      if (nrow(borg_d_temp) <  Sens_indices_count){
         borg_d_temp <- add_row(borg_d_temp, TC="H0sol_NA_NA", delta=NA,
-                               .before = 37)
+                               .before = Sens_indices_count-8)
       }
       
       Sens_idices <- add_column(Sens_idices, "{paste(Substance,SubCompart,sep='_')}" := borg_d_temp$delta)
@@ -823,8 +835,10 @@ Parm_label <- c("Corg - freshwater sediment", "Corg - natural soil", "Corg - agr
                 "VertDistance - regional - freshwater sediment", "subFRACw - regional - freshwater sediment", "subFRACw - regional - natural soil",
                 "subFRACw - regional - agricultural soil", "subFRACw - regional - other soil", "FRACs - regional - natural soil", "FRACs - regional - agricultural soil",
                 "FRACs - regional - other soil", "RhoCP", "FRACrun", "FRACinf", "WINDspeed - regional", "RAINrate - regional", "AEROSOLdeprate",
-                "COLLECTeff - regional", "kwsd.sed", "kwsd.water", "Tm", "Pvap25", "Sol25", "Kow", "H0sol", "Emission A", "Emission B", "Emission C", "Emission D")
+                "COLLECTeff - regional", "kwsd.sed", "kwsd.water", "C.OHrad - regional", "Tm", "Pvap25", "Sol25", "Kow", "H0sol", "k.OHrad",
+                "kdeg.water", "kdeg.sed", "kdeg.soil",  "Emission A", "Emission B", "Emission C", "Emission D")
 
+# Generate Heatmap for sensitivity analysis
 test <- colnames(Sens_idices)[-1]
 df <- Sens_idices %>% pivot_longer(cols = test, names_to = "Substance", values_to = "Indices")
 print(ggplot(df, aes(x=Substance, y=factor(UncertParam, level = rev(unique(UncertParam))), fill=Indices))+ 

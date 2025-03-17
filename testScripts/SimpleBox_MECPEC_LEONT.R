@@ -474,6 +474,8 @@ for (Substance in Substances) {
 # MEC_Distributed <- arrange(MEC_Distributed, RUN, .by_group = TRUE)
 # Conc_calc <- arrange(Conc_calc, RUN, .by_group = TRUE)
 
+
+# Calculate PEC:MEC ratio
 PECMEC <- tibble(Substance = Conc_calc$Substance,
                   SubCompart = Conc_calc$SubCompart,
                   RUN = Conc_calc$RUN,
@@ -502,6 +504,7 @@ PECMEC_statistics <- tibble(Substance = character(),
                             "PEC:MEC_Max" = numeric()
                             )
 
+# Calculate PEC:MEC ratio statistics
 for (Substance in Substances) {
   for (SubCompart in Subcomparts){
     index <- which(PECMEC$Substance == Substance & PECMEC$SubCompart == SubCompart)
@@ -551,6 +554,8 @@ for (Substance in Substances) {
 
 write.xlsx(list("PECMEC raw" = PECMEC, "PECMEC statistics" = PECMEC_statistics), "/rivm/n/defaresj/Documents/SB_OO_PECMEC.xlsx")
 
+
+# Spearman rank analysis
 Spearman_cor <- tibble(Substance = character(),
                        Correlation = numeric())
 for (Substance in Substances) {
@@ -570,7 +575,7 @@ UncertParams <- UncertParams %>% mutate(varName_full  = paste(varName,Scale,SubC
 
 
 
-
+# Violin plots comparing modelled and predicted concentrations
 PECMEC <- mutate(PECMEC, S_SC = paste(Substance, SubCompart, sep = " - "))
 df <- PECMEC %>% pivot_longer(cols = c("PEC", "MEC"), names_to = 'PM', values_to = 'Conc')
 #x_label <- c("ADONA", "GenX", "PFBA", "PFBS", "PFHpA", "PFHxA", "PFHxS", "PFOA", "PFOS","PFPeA")
@@ -583,7 +588,7 @@ ggplot(df, aes(x= factor(S_SC, level = unique(S_SC)), y=Conc, fill =PM)) + geom_
   scale_fill_manual(values=c("lightsalmon", "lightskyblue"), labels = c("Monitored","Modelled"))
   
 
-
+# Violin plots showing the ratio between modelled and predicted concentrations
 ggplot(df, aes(x= factor(S_SC, level = unique(S_SC)), y=PECMEC, colour = Substance)) + geom_violin(scale="width") +
   geom_boxplot(width=0.2, outliers = TRUE, outlier.size = 0.2, position = position_dodge(width = 0.9), colour = "gray30") +
   scale_y_continuous(trans="log10") +
@@ -598,7 +603,7 @@ ggplot(df, aes(x= factor(S_SC, level = unique(S_SC)), y=PECMEC, colour = Substan
 
 Sens_idices <- tibble(UncertParam = c(unique(UncertParams$varName_full), "Emission" ))
 
-
+# Global Sensitivity Analysis
 for (Substance in Substances) {
   
   for (SubCompart in Subcomparts) {
@@ -711,6 +716,7 @@ x_label <- c("TWP - river", "TWP - freshwater sediment", "TWP - other soil", "PM
 y_label <- c("Temp - regional", "WINDspeed - regional", "RAINrate - regional", "VertDistance - regional - river", "FRACrun",
              "FRACinf", "kwsd.sed", "kwsd.water", "RadS", "RhoS", "Emission")
 
+# Generate Heatmap for sensitivity analysis
 print(ggplot(df, aes(x=factor(Substance, level=unique(Substance)), y=factor(UncertParam, level = rev(unique(UncertParam))), fill=Indices))+ 
         geom_tile(colour="white")+
         scale_x_discrete(label=x_label) +
