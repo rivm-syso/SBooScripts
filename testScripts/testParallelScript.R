@@ -55,7 +55,7 @@ emissions <- example_data |>
   mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> # Convert kt/year to kg/s
   select(-year)
 
-tmax <- 365.25*24*60*60*length(unique(example_data$Time))
+tmax <- 365.25*24*60*60*length(unique(emissions$Time))
 nTIMES <- length(seq(0, tmax, length.out = 10))
 
 # Specify how many cores you have available. If you are calculating on your own computer, use a maximum of all available cores - 1 
