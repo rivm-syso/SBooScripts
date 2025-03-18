@@ -1,0 +1,147 @@
+---
+title: "Parallel solver use"
+author: "Anne Hids"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+This script shows how to solve probabilistically in steady state and
+dynamically in parallel.
+
+```{R Load packages, warning=FALSE, message=FALSE}
+source("baseScripts/installRequirements.R")
+```
+
+# Solve steady state in parallel
+
+Firstly, initialize the World you want to use for your calculations. In
+this case that is initWorld_onlyPlastics.R.
+
+```{R init World SS, warning=FALSE, message=FALSE}
+source('baseScripts/initWorld_onlyPlastics.R')
+```
+
+Define the variables needed for solving steady state probabilistically.
+These are the same variables needed for the regular steady state
+probabilistic solver:
+
+-   emissions: the emissions dataframe
+
+-   var_box_df: a dataframe with the example variables
+
+-   var_invFun: the functions created from the var_box_df in a list.
+
+**The names given to each of these variables must be the ones given in
+the list above ('emissions', 'var_box_df', 'var_invFun') for the
+parallel calculations to work!**
+
+```{R Define variables SS, warning=FALSE, message=FALSE}
+var_box_df <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")
+
+var_invFun <- World$makeInvFuns(var_box_df)
+
+load("data/Examples/example_uncertain_data.RData")
+
+emissions <- example_data |>
+  select(To_Compartment, `2023`, RUN) |>
+  rename("Emis" = `2023`) |>
+  mutate(Abbr = case_when(
+    To_Compartment == "Agricultural soil (micro)" ~ "s2RS",
+    To_Compartment == "Residential soil (micro)" ~ "s3RS",
+    To_Compartment == "Surface water (micro)" ~ "w1RS"
+  )) |>
+  mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> 
+  select(-To_Compartment)
+```
+
+Specify how many cores you have available for calculations. If you are calculating
+on your own computer, use a maximum of all available cores - 1.
+
+```{R Specify number of cores SS, warning=FALSE, message=FALSE}
+nCores <- 3
+```
+
+Now the script for solving steady state in parallel can be called. After this 
+script finishes running the outcomes are in the list named 'Solution'. You can 
+save the outcome as an RData file.
+
+```{R Solve SS in parallel, warning=FALSE, message=FALSE}
+source("baseScripts/ParallelSteadyState.R")
+
+# Save the outcome
+saveRDS(Solution, "data/Solution.RData")
+```
+
+# Solve dynamically in parallel
+
+Firstly, initialize the World you want to use for your calculations. In
+this case that is initWorld_onlyPlastics.R.
+
+```{R init World Dyn, warning=FALSE, message=FALSE}
+source('baseScripts/initWorld_onlyPlastics.R')
+```
+
+Define the variables needed for solving steady state probabilistically.
+These are the same variables needed for the regular steady state
+probabilistic solver:
+
+-   emissions: the emissions dataframe
+
+-   var_box_df: a dataframe with the example variables
+
+-   var_invFun: the functions created from the var_box_df in a list
+
+-   tmax: the end time for running the solver, in seconds
+
+-   nTIMES: the number of calculation time steps.
+
+**The names given to each of these variables must be the ones given in
+the list above ('emissions', 'var_box_df', 'var_invFun', 'tmax', 'nTIMES') for the
+parallel calculations to work!**
+
+```{R Define variables Dyn, warning=FALSE, message=FALSE}
+var_box_df <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")
+
+var_invFun <- World$makeInvFuns(var_box_df)
+
+load("data/Examples/example_uncertain_data.RData")
+
+emissions <- example_data |>
+  select(To_Compartment, `2020`, `2021`,`2022`, `2023`, RUN) |>
+  pivot_longer(!c(To_Compartment, RUN), names_to = "year", values_to = "Emis") |>
+  mutate(Abbr = case_when(
+    To_Compartment == "Agricultural soil (micro)" ~ "s2RS",
+    To_Compartment == "Residential soil (micro)" ~ "s3RS",
+    To_Compartment == "Surface water (micro)" ~ "w1RS"
+  )) |>
+  select(-To_Compartment) |>
+  mutate(Time = ((as.numeric(year)-2019)*365.25*24*3600)) |>
+  mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> # Convert kt/year to kg/s
+  select(-year)
+
+tmax <- 365.25*24*60*60*length(unique(emissions$Time))
+
+nTIMES <- length(seq(0, tmax, length.out = 10))
+```
+
+Specify how many cores you have available for calculations. If you are calculating
+on your own computer, use a maximum of all available cores - 1.
+
+```{R Specify number of cores Dyn, warning=FALSE, message=FALSE}
+nCores <- 3
+```
+
+Now the script for solving steady state in parallel can be called. After this 
+script finishes running the outcomes are in the list named 'Solution'. You can 
+save the outcome as an RData file.
+
+```{R Solve Dyn in parallel, warning=FALSE, message=FALSE}
+source("baseScripts/ParallelDynamic.R")
+
+# Save the outcome
+saveRDS(Solution, "data/Solution.RData")
+```
