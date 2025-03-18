@@ -4,13 +4,11 @@
 World$NewSolver("SteadyStateSolver")
 World$Solve(emissions = NULL, var_box_df = var_box_df, var_invFun = var_invFun, nRUNs = length(unique(emissions$RUN)), ParallelPreparation = T)
 
-source("baseScripts/installRequirements.R")
-
-###################### Step 3: load the scaled samples
+###################### Step 2: load the scaled samples
 
 LHSsamples <- readRDS("data/scaledLHSsamples.RData")
 
-###################### Step 4: Solve in parallel
+###################### Step 3: Prepare emissions and LHS samples for parallel solving
 
 # Divide the emissions and LHS samples over different lists as evenly as possible for parallel solving
 total_runs <- ncol(LHSsamples)
@@ -45,6 +43,8 @@ for (run in runs_distribution) {
   LHS_slices[[length(LHS_slices) + 1]] <- slice
   start_index <- end_index + 1
 }
+
+###################### Step 4: Solve in parallel
 
 nSlices <- length(emis_slices)
 
@@ -82,6 +82,8 @@ combinedResults <- foreach(i = seq_len(nSlices),
                            }
 
 stopCluster(cl)
+
+###################### Step 5: Combine the outcomes into one list
 
 massesCombined <- do.call(rbind, lapply(combinedResults, `[[`, "Masses"))
 concentrationsCombined <- do.call(rbind, lapply(combinedResults, `[[`, "Concentrations"))
