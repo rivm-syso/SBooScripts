@@ -28,7 +28,7 @@ nCores <- 3
 source("baseScripts/ParallelSteadyState.R")
 
 # Save the outcome
-saveRDS(Solution, "data/Solution.RDS")
+saveRDS(Solution, "data/Solution.RData")
 
 #### Test the dynamic parallel script
 
@@ -64,5 +64,5 @@ nCores <- 3
 source("baseScripts/ParallelDynamic.R")
 
 # Save the outcome
-saveRDS(Solution, "data/Solution.RDS")
+saveRDS(Solution, "data/Solution.RData")
 
