@@ -2,13 +2,13 @@ check_and_install <- function(package) {
   tryCatch({
     # Load the package
     library(package, character.only = TRUE)
-    message(paste("Package", package, "is already installed and loaded."))
+    #message(paste("Package", package, "is already installed and loaded."))
   }, error = function(e) {
     # If an error occurs, install the package
-    message(paste("Package", package, "is not installed. Installing now..."))
+    #message(paste("Package", package, "is not installed. Installing now..."))
     install.packages(package, dependencies = TRUE)
     library(package, character.only = TRUE)
-    message(paste("Package", package, "has been successfully installed and loaded."))
+    #message(paste("Package", package, "has been successfully installed and loaded."))
   })
 }
 
