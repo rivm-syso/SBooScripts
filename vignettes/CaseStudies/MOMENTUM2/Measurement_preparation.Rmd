@@ -24,13 +24,13 @@ SB4P <- SB4P_raw |>
   filter(country == "Netherlands") |>
   mutate(type = tolower(type)) |>
   filter(type2 == "Surf") |>
-  mutate(min_diameter_um = map_chr(str_split(size.um, " - "), 1)) |>
-  mutate(max_diameter_um = map_chr(str_split(size.um, " - "), 2)) |>
+  mutate(min_diameter_um = as.double(map_chr(str_split(size.um, " - "), 1))) |>
+  mutate(max_diameter_um = as.double(map_chr(str_split(size.um, " - "), 2))) |>
   filter(unit == "#/m3") |>
   mutate(source = paste0(ref, " (", pub.year, ")")) |>
   rename(subcompartment = type) |>
   rename(value = mean) |>
-  select(subcompartment, min_diameter_um, max_diameter_um, value, unit, source, method) |>
+  select(subcompartment, min_diameter_um, max_diameter_um, value, unit, source, method, location) |>
   rename(sampling_method = method) |>
   mutate(detection_method = "Light microscopy") |>
   mutate(lower_detection_limit_um = 10) |>
@@ -73,9 +73,12 @@ KWR_location_concentrations_data <- KWR_data_dfs |>
   group_by(location) |>
   summarise(min_diameter_um = min(`Diameter.(µm)`),
             max_diameter_um = max(`Diameter.(µm)`),
+            mean_diameter_um = mean(`Diameter.(µm)`),
+            median_diameter_um = median(`Diameter.(µm)`),
             value = mean(MP_m3)) |>
-  mutate(subcompart = "river") |>
-  mutate(unit = "#/m3")
+  mutate(subcompartment = "river") |>
+  mutate(unit = "#/m3") |>
+  mutate(institute = "KWR")
 
 #### KWR effluent data
 KWR_effluent_concentrations <- read.xlsx("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/Measurements/KWR/Effluent/readme.xlsx", sheet = "Data")
@@ -106,8 +109,10 @@ KWR_location_concentrations_effluent <- KWR_effluent_dfs |>
   group_by(location) |>
   summarise(min_diameter_um = min(Diameter),
             max_diameter_um = max(Diameter),
+            mean_diameter_um = mean(Diameter),
+            median_diameter_um = median(Diameter),
             value = mean(MP_m3)) |>
-  mutate(subcompart = "river") |>
+  mutate(subcompartment = "river") |>
   mutate(unit = "#/m3") |>
   filter(str_detect(location, "front|upstream")) |>
   mutate(location = str_remove(location, ".xlsx"))
@@ -117,8 +122,20 @@ KWR_data <- bind_rows(KWR_location_concentrations_data, KWR_location_concentrati
   mutate(sampling_method = "500L water run through differently sized filters") |>
   mutate(detection_method = "LDIR + OM") |>
   mutate(lower_detection_limit_um = 10) |>
-  mutate(upper_detection_limit_um = 5000)
+  mutate(upper_detection_limit_um = 5000) |>
+  mutate(institute = "KWR")
 ```
+
+```{R Save data}
+
+data <- bind_rows(SB4P, KWR_data) |>
+  select(value, unit, subcompartment, subcompartment, location, min_diameter_um, max_diameter_um, mean_diameter_um, median_diameter_um, sampling_method, detection_method, lower_detection_limit_um, upper_detection_limit_um, source, institute) |>
+  rename(concentration = value,
+         concentration_unit = unit)
+
+write.xlsx(data, "Measurements_MP_surface_water.xlsx")
+```
+
 
 # MoreMomentum
 
