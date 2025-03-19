@@ -23,7 +23,8 @@ library(openxlsx)
 Run_count <- 100
 
 # Set the path to the input file, as well as the path to the model's data files.
-inoutname <- paste0("/rivm/n/defaresj/Documents/SimpleBox_OO_variables_v1.0.xlsx")
+# inoutname <- paste0("/rivm/n/defaresj/Documents/SimpleBox_OO_variables_v1.0.xlsx")
+inoutname <- paste0("C:/Users/quikj/OneDrive - rivm.nl/SB - SimpleBox5 development/Validation SB5/Scripts and Excel templates/SimpleBox_OO_input_bakker.xlsx")
 datadir <- paste0("data")
 
 # Read in the inputs for Landscape, Substance, and Emission parameters.
@@ -211,16 +212,15 @@ triangular_cdf_inv <- function(u, # LH scaling factor
 # The function of the normal distribution.
 # NOTE: Distribution is not allowed to return values equal to or lower than 0
 normal_pdf <- function(u, b, c){
-  
-  qnorm(u, c, b)
-  
+  EnvStats::qnormTrunc(p=u, mean = c, sd = b, min = 0)
 }
 
 # The function of the log normal distribution.
 # NOTE: Distribution is not allowed to return values equal to or lower than 0
+# Use truncated lognormal:
 LogNormal_pdf <- function(u, b, c){
-
-  log(qlnorm(u, c, b))
+  
+  log(EnvStats::qlnormTrunc(p=u, meanlog = c, sdlog = b, min = 1))
   
 }
 
@@ -242,18 +242,67 @@ n_samples <- Run_count
 
 # Generate numbers between 0 and 1 using lhs
 #lhs_samples <- optimumLHS(n_samples, 1)
-lhs_samples <- optimumLHS(n_samples, n_lhs) 
+
+lhs_samples <- optimumLHS(n_samples, n_lhs) # all uncorrelated,but this is in reality not the case!
 
 lhs_samples_vars <- lhs_samples[, 1:n_vars]
 lhs_samples_emis <- lhs_samples[, (n_vars + 1):(n_vars+n_emisscomps)]
 lhs_samples_MEC <- lhs_samples[,(n_vars+n_emisscomps+1):ncol(lhs_samples)]
 
-for (i in seq(n_MEC)){
-  lhs_samples_MEC[,i] <- sort(lhs_samples_MEC[,i])
+
+# for (i in seq(n_MEC)){ # What did this do?
+#   lhs_samples_MEC[,i] <- sort(lhs_samples_MEC[,i])
+# }
+
+
+# add correlation to some variables
+UncertParams$ID <- paste(UncertParams$varName,UncertParams$Scale,UncertParams$SubCompart,
+                         UncertParams$Substance,sep = "_")
+colnames(lhs_samples_vars) = UncertParams$ID
+
+lhs_Temp <- correlatedLHS(lhs_samples_vars[,c("Temp_Regional_NA_NA","Temp_Continental_NA_NA")],
+                       marginal_transform_function = function(W, ...){
+                         return(W)
+                       },
+                       cost_function = function(W, ...){
+                         (cor(W[,1], W[,2]) - 0.9)^2
+                       },
+                       debug = FALSE, maxiter = 1000)
+
+lhs_samples_vars[,c("Temp_Regional_NA_NA","Temp_Continental_NA_NA")] <- lhs_Temp$lhs
+
+lhs_Air <- correlatedLHS(lhs_samples_vars[,c("WINDspeed_Regional_NA_NA","VertDistance_Regional_air_NA")],
+                          marginal_transform_function = function(W, ...){
+                            return(W)
+                          },
+                          cost_function = function(W, ...){
+                            (cor(W[,1], W[,2]) - 0.85)^2
+                          },
+                          debug = FALSE, maxiter = 1000)
+
+lhs_samples_vars[,c("WINDspeed_Regional_NA_NA","VertDistance_Regional_air_NA")] <- lhs_Air$lhs
+
+for(SubName in na.omit(unique(UncertParams$Substance))){
+
+  #TODO test if this works:
+lhs_kdeg <- correlatedLHS(lhs_samples_vars[,c(paste0("kdeg.water_NA_NA_",SubName),
+                                              paste0("kdeg.soil_NA_NA_",SubName),
+                                              paste0("kdeg.sed_NA_NA_",SubName))],
+                         marginal_transform_function = function(W, ...){
+                           return(W)
+                         },
+                         cost_function = function(W, ...){
+                           (cor(W[,1], W[,2]) - 0.85)^2 +  (cor(W[,1], W[,3]) - 0.85)^2 +  (cor(W[,2], W[,3]) - 0.85)^2
+                         },
+                         debug = FALSE, maxiter = 10000)
+
+lhs_samples_vars[,c(paste0("kdeg.water_NA_NA_",SubName),
+                    paste0("kdeg.soil_NA_NA_",SubName),
+                    paste0("kdeg.sed_NA_NA_",SubName))] <- lhs_kdeg$lhs
+
 }
 
-
-
+plot(lhs_kdeg$lhs)
 # Calculate the values used in the uncertainty solver for Parameters
 for (i in 1:n_vars) {
   a <- UncertParams$a[i]
@@ -266,11 +315,9 @@ for (i in 1:n_vars) {
   }
   if (UncertParams$Distribution[i] == "Normal") {
     samples <- normal_pdf(lhs_samples_vars[, i], b, c)
-    samples[samples <= 0] <- a
   }
   if (UncertParams$Distribution[i] == "Log normal") {
     samples <- LogNormal_pdf(lhs_samples_vars[, i], b, c)
-    samples[samples <= 0] <- a
   }
   if (UncertParams$Distribution[i] == "Weibull") {
     samples <- Weibull_pdf(lhs_samples_vars[, i], a, b, c)
