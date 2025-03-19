@@ -335,12 +335,13 @@ mergedkaas |>
 ### Steadystate mass
 ```{r PlotSteadyState_1, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 3: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=FALSE)"}
 library(stringi)
-World$NewSolver("SB1Solve")
+World$NewSolver("SteadyStateSolver")
 emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), Emis = c(10000, 10000, 10000) ) # convert 1 t/y to si units: kg/s
 emissions <- emissions |>
   mutate(Emis = Emis*1000/(365*24*60*60))
 
-SSsolve.R <- World$Solve(emissions)
+World$Solve(emissions)
+SSsolve.R <- World$Masses()
 SSsolve.excel <- read.xlsx(SBExcelName,
                              sheet=8,
                              colNames=TRUE,
@@ -359,15 +360,18 @@ SSsolve.excel <- SSsolve.excel |>
     TRUE ~ "Other"
   )) |>
   filter(EqMass != 0) |>
-  mutate(Abbr = str_sub(Abbr, 1, -2))
+  mutate(Abbr = str_sub(Abbr, 1, -2)) |>
+  rename(Mass_kg = EqMass)
 
-SSsolve.R <- SSsolve.R |> mutate(Abbr =  paste0(accronym_map[SubCompart], 
+SSsolve.R <- SSsolve.R |> 
+  left_join(World$states$asDataFrame, by = "Abbr") |>
+  mutate(Abbr =  paste0(accronym_map[SubCompart], 
                             accronym_map2[Scale])) |>
-  filter(EqMass != 0)
+  filter(Mass_kg != 0)
 
 merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by=c("Abbr", "Species"), suffixes = c(".R", ".Excel")) |>
-  mutate(absdiff = EqMass.R-EqMass.Excel) |>
-  mutate(reldiff = absdiff/EqMass.R) |>
+  mutate(absdiff = Mass_kg.R-Mass_kg.Excel) |>
+  mutate(reldiff = absdiff/Mass_kg.R) |>
   mutate(Abbr = case_when(
     Species == "Large" ~ paste0(Abbr,"P"),
     Species == "Small" ~ paste0(Abbr,"A"),
@@ -383,9 +387,6 @@ ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
   geom_hline(yintercept = -0.001, color="red") +
   custom_theme() + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
-
-
-
 ```
 
 The differences in k's drives the model output: the steady state mass. So a final check is to see how much the steady state masses differ between both implementations of SimpleBox (Figure 3). From this it is clear that there  are differences up to `r merged_SS_SB1$reldiff |> max() |> round(digits=3)*100`%. This is larger than the level we can consider negligible.
@@ -551,18 +552,13 @@ mergedkaas |>
 ```{r PlotSteadyState_2, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 6: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=TRUE)"}
 
 library(stringi)
-
-World$NewSolver("SB1Solve")
-
+World$NewSolver("SteadyStateSolver")
 emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), Emis = c(10000, 10000, 10000) ) # convert 1 t/y to si units: kg/s
-
-# MW <- World$fetchData("MW")
-
 emissions <- emissions |>
   mutate(Emis = Emis*1000/(365*24*60*60))
 
-SSsolve.R <- World$Solve(emissions)
-
+World$Solve(emissions)
+SSsolve.R <- World$Masses()
 SSsolve.excel <- read.xlsx(SBExcelName,
                              sheet=8,
                              colNames=TRUE,
@@ -581,15 +577,18 @@ SSsolve.excel <- SSsolve.excel |>
     TRUE ~ "Other"
   )) |>
   filter(EqMass != 0) |>
-  mutate(Abbr = str_sub(Abbr, 1, -2))
+  mutate(Abbr = str_sub(Abbr, 1, -2)) |>
+  rename(Mass_kg = EqMass)
 
-SSsolve.R <- SSsolve.R |> mutate(Abbr =  paste0(accronym_map[SubCompart], 
+SSsolve.R <- SSsolve.R |> 
+  left_join(World$states$asDataFrame, by = "Abbr") |>
+  mutate(Abbr =  paste0(accronym_map[SubCompart], 
                             accronym_map2[Scale])) |>
-  filter(EqMass != 0)
+  filter(Mass_kg != 0)
 
 merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by=c("Abbr", "Species"), suffixes = c(".R", ".Excel")) |>
-  mutate(absdiff = EqMass.R-EqMass.Excel) |>
-  mutate(reldiff = absdiff/EqMass.R) |>
+  mutate(absdiff = Mass_kg.R-Mass_kg.Excel) |>
+  mutate(reldiff = absdiff/Mass_kg.R) |>
   mutate(Abbr = case_when(
     Species == "Large" ~ paste0(Abbr,"P"),
     Species == "Small" ~ paste0(Abbr,"A"),
@@ -605,7 +604,6 @@ ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
   geom_hline(yintercept = -0.001, color="red") +
   custom_theme() + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
-
 ```
 
 To test if the small differences (<0.1%) in first order rate constants is negligible (Figures 4 and 5), the steady state masses should also not differ by more than 0.1% between the R and Spreadsheet implementations of SimpleBox. This is indeed the case (Figure 6) as the max difference in now only `r merged_SS_SB1$reldiff |> abs() |> max() |> round(digits=4)*100`%. This proves that the port of SimpleBox4Plastics to R is successful in reproducing the results from the original spreadsheet implementation.

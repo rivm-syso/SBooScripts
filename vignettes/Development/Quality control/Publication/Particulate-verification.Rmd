@@ -352,12 +352,13 @@ for the temperature of the current scale.
 ### Steadystate mass
 ```{r PlotSteadyState_1, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 3: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=FALSE)"}
 library(stringi)
-World$NewSolver("SB1Solve")
+World$NewSolver("SteadyStateSolver")
 emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), Emis = c(10000, 10000, 10000) ) # convert 1 t/y to si units: kg/s
 emissions <- emissions |>
   mutate(Emis = Emis*1000/(365*24*60*60))
 
-SSsolve.R <- World$Solve(emissions)
+World$Solve(emissions)
+SSsolve.R <- World$Masses()
 SSsolve.excel <- read.xlsx(SBExcelName,
                              sheet=8,
                              colNames=TRUE,
@@ -376,15 +377,18 @@ SSsolve.excel <- SSsolve.excel |>
     TRUE ~ "Other"
   )) |>
   filter(EqMass != 0) |>
-  mutate(Abbr = str_sub(Abbr, 1, -2))
+  mutate(Abbr = str_sub(Abbr, 1, -2)) |>
+  rename(Mass_kg = EqMass)
 
-SSsolve.R <- SSsolve.R |> mutate(Abbr =  paste0(accronym_map[SubCompart], 
+SSsolve.R <- SSsolve.R |> 
+  left_join(World$states$asDataFrame, by = "Abbr") |>
+  mutate(Abbr =  paste0(accronym_map[SubCompart], 
                             accronym_map2[Scale])) |>
-  filter(EqMass != 0)
+  filter(Mass_kg != 0)
 
 merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by=c("Abbr", "Species"), suffixes = c(".R", ".Excel")) |>
-  mutate(absdiff = EqMass.R-EqMass.Excel) |>
-  mutate(reldiff = absdiff/EqMass.R) |>
+  mutate(absdiff = Mass_kg.R-Mass_kg.Excel) |>
+  mutate(reldiff = absdiff/Mass_kg.R) |>
   mutate(Abbr = case_when(
     Species == "Large" ~ paste0(Abbr,"P"),
     Species == "Small" ~ paste0(Abbr,"A"),
@@ -400,8 +404,6 @@ ggplot(merged_SS_SB1, aes (x = Abbr, y = reldiff)) +
   geom_hline(yintercept = -0.001, color="red") +
   custom_theme() + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
-
-
 
 ```
 
@@ -560,18 +562,13 @@ large than 0.1% between excel and R when Test=TRUE.
 ```{r PlotSteadyState_2, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 6: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=TRUE)"}
 
 library(stringi)
-
-World$NewSolver("SB1Solve")
-
+World$NewSolver("SteadyStateSolver")
 emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), Emis = c(10000, 10000, 10000) ) # convert 1 t/y to si units: kg/s
-
-# MW <- World$fetchData("MW")
-
 emissions <- emissions |>
   mutate(Emis = Emis*1000/(365*24*60*60))
 
-SSsolve.R <- World$Solve(emissions)
-
+World$Solve(emissions)
+SSsolve.R <- World$Masses()
 SSsolve.excel <- read.xlsx(SBExcelName,
                              sheet=8,
                              colNames=TRUE,
@@ -590,15 +587,18 @@ SSsolve.excel <- SSsolve.excel |>
     TRUE ~ "Other"
   )) |>
   filter(EqMass != 0) |>
-  mutate(Abbr = str_sub(Abbr, 1, -2))
+  mutate(Abbr = str_sub(Abbr, 1, -2)) |>
+  rename(Mass_kg = EqMass)
 
-SSsolve.R <- SSsolve.R |> mutate(Abbr =  paste0(accronym_map[SubCompart], 
+SSsolve.R <- SSsolve.R |> 
+  left_join(World$states$asDataFrame, by = "Abbr") |>
+  mutate(Abbr =  paste0(accronym_map[SubCompart], 
                             accronym_map2[Scale])) |>
-  filter(EqMass != 0)
+  filter(Mass_kg != 0)
 
 merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by=c("Abbr", "Species"), suffixes = c(".R", ".Excel")) |>
-  mutate(absdiff = EqMass.R-EqMass.Excel) |>
-  mutate(reldiff = absdiff/EqMass.R) |>
+  mutate(absdiff = Mass_kg.R-Mass_kg.Excel) |>
+  mutate(reldiff = absdiff/Mass_kg.R) |>
   mutate(Abbr = case_when(
     Species == "Large" ~ paste0(Abbr,"P"),
     Species == "Small" ~ paste0(Abbr,"A"),
