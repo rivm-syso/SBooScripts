@@ -11,21 +11,18 @@ library(tidyverse)
 
 # Specify the environment
 #env <- "Local"
-#env <- "OOD"
+# env <- "OOD"
 #env <- "HPC"
 env <- "OOD_BioGrid_mellinky"
 
 # Specify the source
 source_of_interest <- NA
 
-if(env == "OOD" | env == "local"){
+if(env == "OOD" | env == "local" | env == "OOD_BioGrid_mellinky"){
   path_parameters_file = "vignettes/CaseStudies/LEON-T/Microplastic_variables_v1.1c.xlsx"
 } else if(env == "HPC"){
   mainfolder <- "/data/BioGrid/hidsa/SimpleBox/SBooScripts/"
   path_parameters_file = paste0(mainfolder, "vignettes/CaseStudies/LEON-T/Microplastic_variables_v1.1c.xlsx")
-} else if(env == "OOD_BioGrid_mellinky"){
-  # mainfolder <- "/data/BioGrid/mellinky/SimpleBox/SBooScripts/"
-  path_parameters_file = paste0("vignettes/CaseStudies/LEON-T/Microplastic_variables_v1.1c.xlsx")
 }
 
 # ################################
@@ -60,19 +57,17 @@ if(env == "Local"){
 } else if(env == "OOD_BioGrid_mellinky"){
   if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
     load(paste0("/data/BioGrid/mellinky/LEONT_files/DPMFAoutput_LEON-T_D3.5_TWP_20241126.RData"))
-    load(paste0("/data/BioGrid/mellinky/LEONT_files/Parameters_LEON-T_D3.5_TWP_20250224.RData"))
+    load(paste0("/data/BioGrid/mellinky/LEONT_files/Parameters_LEON-T_D3.5_TWP_20241127.RData"))
   } else if(is.na(source_of_interest)){
     load(paste0("/data/BioGrid/mellinky/LEONT_files/DPMFAoutput_LEON-T_D3.5_Other_20241126.RData"))
-    load(paste0("/data/BioGrid/mellinky/LEONT_files/Parameters_LEON-T_D3.5_Other_20250224.RData"))
+    load(paste0("/data/BioGrid/mellinky/LEONT_files/Parameters_LEON-T_D3.5_Other_20241127.RData"))
   }
 }
 
-if(env == "OOD" | env == "local"){
+if(env == "OOD" | env == "local" | env == "OOD_BioGrid_mellinky"){
   source("baseScripts/initWorld_onlyPlastics.R")
 } else if(env == "HPC"){
   source(paste0(mainfolder, "baseScripts/initWorld_onlyPlastics.R"))
-} else if(env == "OOD_BioGrid_mellinky"){
-  source(paste0("baseScripts/initWorld_onlyPlastics.R"))
 }
 
 if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_interest == "Tyre wear") {
@@ -193,5 +188,19 @@ if(env == "local"){
          compress = "xz",
          compression_level = 9)  
   }
-}
+}  else if (env == "OOD_BioGrid_mellinky"){
+  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
+    save(Output, Sel_DPMFA_micro, Material_Parameters_n, elapsed_time,
+         file = paste0("/data/BioGrid/mellinky/LEONT_files/output/SBout_TWP", 
+                       "_RUNS_",min(RUNSamples), "_", max(RUNSamples),"_" , "v1.RData"),
+         compress = "xz",
+         compression_level = 9)
+  } else if(is.na(source_of_interest)){
+    save(Output, Sel_DPMFA_micro, Material_Parameters_n, elapsed_time,
+         file = paste0("/data/BioGrid/mellinky/LEONT_files/output/SBout_Other", 
+                       "_RUNS_",min(RUNSamples), "_", max(RUNSamples),"_" , "v1.RData"),
+         compress = "xz",
+         compression_level = 9)
+  }
+} 
 
