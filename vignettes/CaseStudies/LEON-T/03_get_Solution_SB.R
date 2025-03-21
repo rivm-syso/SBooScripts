@@ -6,11 +6,14 @@
 # 4-12-2024                                                                    #
 ################################################################################
 
-### initialize ###
+### Initialize ###########################################################################################################
 library(tidyverse)
 
 # Specify the environment
-env <- "OOD"
+#env <- "Local"
+#env <- "OOD"
+#env <- "HPC"
+env <- "OOD_BioGrid_mellinky"
 
 # Specify the source
 source_of_interest <- NA
@@ -20,12 +23,15 @@ if(env == "OOD" | env == "local"){
 } else if(env == "HPC"){
   mainfolder <- "/data/BioGrid/hidsa/SimpleBox/SBooScripts/"
   path_parameters_file = paste0(mainfolder, "vignettes/CaseStudies/LEON-T/Microplastic_variables_v1.1c.xlsx")
+} else if(env == "OOD_BioGrid_mellinky"){
+  # mainfolder <- "/data/BioGrid/mellinky/SimpleBox/SBooScripts/"
+  path_parameters_file = paste0("vignettes/CaseStudies/LEON-T/Microplastic_variables_v1.1c.xlsx")
 }
 
 # ################################
 # Requirements:
-#   DPMFA_sink_micro with n samples
-#   Parameters with n samples
+#   The R object "DPMFA_sink_micro" with n samples
+#   The R object "Parameters" with n samples
 
 if(env == "Local"){
   if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
@@ -51,12 +57,22 @@ if(env == "Local"){
     load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/DPMFAoutput_LEON-T_D3.5_Other_20241126.RData"))
     load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_Other_20241127.RData"))
   }
+} else if(env == "OOD_BioGrid_mellinky"){
+  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
+    load(paste0("/data/BioGrid/mellinky/LEONT_files/DPMFAoutput_LEON-T_D3.5_TWP_20241126.RData"))
+    load(paste0("/data/BioGrid/mellinky/LEONT_files/Parameters_LEON-T_D3.5_TWP_20250224.RData"))
+  } else if(is.na(source_of_interest)){
+    load(paste0("/data/BioGrid/mellinky/LEONT_files/DPMFAoutput_LEON-T_D3.5_Other_20241126.RData"))
+    load(paste0("/data/BioGrid/mellinky/LEONT_files/Parameters_LEON-T_D3.5_Other_20250224.RData"))
+  }
 }
 
 if(env == "OOD" | env == "local"){
   source("baseScripts/initWorld_onlyPlastics.R")
 } else if(env == "HPC"){
   source(paste0(mainfolder, "baseScripts/initWorld_onlyPlastics.R"))
+} else if(env == "OOD_BioGrid_mellinky"){
+  source(paste0("baseScripts/initWorld_onlyPlastics.R"))
 }
 
 if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_interest == "Tyre wear") {
@@ -64,20 +80,23 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
 } else {
   World$substance <- "microplastic"
 }
-### end initialize ###
 
-#### Select subset of RUNs from emission and parameters ####
+### End initialize #######################################################################################################
+
+#### Select subset of RUNs from emission and parameters ##################################################################
+
 #  Set the runs that need to be run, should be consequetive from x to y.
-
 RUNSamples = c(131:132)
+
 print(paste("LOG: run started for", min(RUNSamples), "to", max(RUNSamples)))
-##
+
 subsetRuns <- function(dfRUNs,nummers){ #Function to select RUNsamples from emision data
   dfRUNs |> filter(RUN == nummers)
 }
 subsetRuns2 <- function(dfRUNs,nummers){ #Function to select RUNsamples from parameter data
   dfRUNs[nummers,]
 }
+
 # Filter out emission subcompartments for which SimpleBox does not have a compartment (yet)
 Sel_DPMFA_micro <-
   DPMFA_SBoutput$DPMFA_sink_micro |> filter(Subcompartment %in% World$fetchData("AbbrC")$AbbrC) |> 
@@ -86,27 +105,30 @@ Sel_DPMFA_micro <-
 Material_Parameters_n <- Parameters$Material_Parameters_n |> 
   mutate(data = map(data, subsetRuns2, nummers = RUNSamples))
 
-#### Get SB World ####
+##########################################################################################################################
 
+#### Get SB World ########################################################################################################
 
-# Read in data to change Regional scale to fit NL scale DPMFA data
+# Read data to change Regional scale to fit NL scale DPMFA data
 Regional_Parameters <- readxl::read_excel(path_parameters_file, sheet = "Netherlands_data") |>
   rename(varName = Variable) |>
-  rename(Waarde = Value) |>
+  rename(Waarde  = Value) |>
   select(-Unit) 
 
 # Recalculate the area's
 World$mutateVars(Regional_Parameters)
 World$UpdateDirty(unique(Regional_Parameters$varName))
 
-# empty tibble for storing output for all runs:
-Output <- tibble(Polymer = unique(Sel_DPMFA_micro$Polymer), 
+# Empty tibble for storing output for all runs:
+Output <- tibble(Polymer  = unique(Sel_DPMFA_micro$Polymer), 
                  SBoutput = NA)
 
 start_time <- Sys.time() # to see how long it all takes...
 
 World$NewSolver("UncertainDynamicSolver")
+
 # tmax <- max(Sel_DPMFA_micro$Timed)
+
 for(pol in unique(Sel_DPMFA_micro$Polymer)){
   emis_source <- Sel_DPMFA_micro |>
     filter(Polymer == pol) |>

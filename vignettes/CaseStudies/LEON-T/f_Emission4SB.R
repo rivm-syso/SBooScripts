@@ -1,12 +1,12 @@
-# script for running DMPFA Solvers
+# Script for running DMPFA Solvers
 
-# part 1 loading DPMFA data
+# Part 1 loading DPMFA data
 
-Load_DPMFA4SB <- function(abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_EU.RData", 
-                          abspath_NL = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_NL.RData", # data file location
-                          source_of_interest = "Tyre wear", # a specific source or NA for all
+Load_DPMFA4SB <- function(abspath_EU           = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_EU.RData", 
+                          abspath_NL           = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_NL.RData", # data file location
+                          source_of_interest   = "Tyre wear", # a specific source or NA for all
                           path_parameters_file = "vignettes/CaseStudies/LEON-T/Microplastic_variables_v1.1c.xlsx",
-                          TESTING = F # if set to T, using only first 2 runs.
+                          TESTING              = F # if set to T, using only first 2 runs.
 ){
   library(tidyverse)
   load(abspath_EU)
