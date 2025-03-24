@@ -90,7 +90,7 @@ Concentrations <- tibble(Substance = character(),
                          Median = numeric(),
                          Quant75 = numeric(),
                          Max = numeric()
-)
+                         )
 
 MEC_Distributed <- tibble(Substance = character(),
                           SubCompart = character(),
@@ -261,45 +261,45 @@ UncertParams$ID <- paste(UncertParams$varName,UncertParams$Scale,UncertParams$Su
 colnames(lhs_samples_vars) = UncertParams$ID
 
 lhs_Temp <- correlatedLHS(lhs_samples_vars[,c("Temp_Regional_NA_NA","Temp_Continental_NA_NA")],
-                          marginal_transform_function = function(W, ...){
-                            return(W)
-                          },
-                          cost_function = function(W, ...){
-                            (cor(W[,1], W[,2]) - 0.9)^2
-                          },
-                          debug = FALSE, maxiter = 1000)
+                       marginal_transform_function = function(W, ...){
+                         return(W)
+                       },
+                       cost_function = function(W, ...){
+                         (cor(W[,1], W[,2]) - 0.9)^2
+                       },
+                       debug = FALSE, maxiter = 1000)
 
 lhs_samples_vars[,c("Temp_Regional_NA_NA","Temp_Continental_NA_NA")] <- lhs_Temp$lhs
 
 lhs_Air <- correlatedLHS(lhs_samples_vars[,c("WINDspeed_Regional_NA_NA","VertDistance_Regional_air_NA")],
-                         marginal_transform_function = function(W, ...){
-                           return(W)
-                         },
-                         cost_function = function(W, ...){
-                           (cor(W[,1], W[,2]) - 0.85)^2
-                         },
-                         debug = FALSE, maxiter = 1000)
+                          marginal_transform_function = function(W, ...){
+                            return(W)
+                          },
+                          cost_function = function(W, ...){
+                            (cor(W[,1], W[,2]) - 0.85)^2
+                          },
+                          debug = FALSE, maxiter = 1000)
 
 lhs_samples_vars[,c("WINDspeed_Regional_NA_NA","VertDistance_Regional_air_NA")] <- lhs_Air$lhs
 
 for(SubName in na.omit(unique(UncertParams$Substance))){
-  
+
   #TODO test if this works:
-  lhs_kdeg <- correlatedLHS(lhs_samples_vars[,c(paste0("kdeg.water_NA_NA_",SubName),
-                                                paste0("kdeg.soil_NA_NA_",SubName),
-                                                paste0("kdeg.sed_NA_NA_",SubName))],
-                            marginal_transform_function = function(W, ...){
-                              return(W)
-                            },
-                            cost_function = function(W, ...){
-                              (cor(W[,1], W[,2]) - 0.85)^2 +  (cor(W[,1], W[,3]) - 0.85)^2 +  (cor(W[,2], W[,3]) - 0.85)^2
-                            },
-                            debug = FALSE, maxiter = 10000)
-  
-  lhs_samples_vars[,c(paste0("kdeg.water_NA_NA_",SubName),
-                      paste0("kdeg.soil_NA_NA_",SubName),
-                      paste0("kdeg.sed_NA_NA_",SubName))] <- lhs_kdeg$lhs
-  
+lhs_kdeg <- correlatedLHS(lhs_samples_vars[,c(paste0("kdeg.water_NA_NA_",SubName),
+                                              paste0("kdeg.soil_NA_NA_",SubName),
+                                              paste0("kdeg.sed_NA_NA_",SubName))],
+                         marginal_transform_function = function(W, ...){
+                           return(W)
+                         },
+                         cost_function = function(W, ...){
+                           (cor(W[,1], W[,2]) - 0.85)^2 +  (cor(W[,1], W[,3]) - 0.85)^2 +  (cor(W[,2], W[,3]) - 0.85)^2
+                         },
+                         debug = FALSE, maxiter = 10000)
+
+lhs_samples_vars[,c(paste0("kdeg.water_NA_NA_",SubName),
+                    paste0("kdeg.soil_NA_NA_",SubName),
+                    paste0("kdeg.sed_NA_NA_",SubName))] <- lhs_kdeg$lhs
+
 }
 
 plot(lhs_kdeg$lhs)
@@ -396,7 +396,7 @@ SubstanceCount <- length(Substances)
 for (Substance in Substances) {
   
   start.time <- Sys.time()
-  
+
   
   FixedParamsM <- FixedParams[FixedParams$Substance == Substance | is.na(FixedParams$Substance),]
   
@@ -443,7 +443,7 @@ for (Substance in Substances) {
   
   
   # Solve the matrix
-  
+
   
   UncertParamsM <- UncertParams[UncertParams$Substance == Substance | is.na(UncertParams$Substance),]
   EmissM <- Emiss[Emiss$Substance == Substance,]
@@ -569,35 +569,20 @@ for (Substance in Substances) {
   
 }
 
-# Conc_calc <- group_by(Conc_calc, Substance)
-# MEC_Distributed <- arrange(MEC_Distributed, RUN, .by_group = TRUE)
-# Conc_calc <- arrange(Conc_calc, RUN, .by_group = TRUE)
+
+MEC_Distributed <- group_by(MEC_Distributed, Substance)
+Conc_calc <- group_by(Conc_calc, Substance)
+MEC_Distributed <- arrange(MEC_Distributed, RUN, .by_group = TRUE)
+Conc_calc <- arrange(Conc_calc, RUN, .by_group = TRUE)
 
 # Calculate the PEC:MEC ratios
-# Converted to a mutate with arrange according to concentrations instead of the RUN. RUNs are not related.
-# PECMEC <- tibble(Substance = Conc_calc$Substance,
-#                  SubCompart = Conc_calc$SubCompart,
-#                  RUN = Conc_calc$RUN,
-#                  PEC = Conc_calc$Value,
-#                  MEC = MEC_Distributed$Value,
-#                  PECMEC = Conc_calc$Value/MEC_Distributed$Value)
-
-PECMEC <- 
-  MEC_Distributed |> 
-  group_by(Substance, SubCompart) |> 
-  rename(MEC = Value) |> 
-  arrange(MEC) |> 
-  mutate(RUNreord = row_number(MEC)) |> 
-  select(-RUN) |> 
-  full_join(
-    rename(Conc_calc,
-           PEC = Value) |> 
-      group_by(Substance, SubCompart) |> 
-      arrange(PEC) |> 
-      mutate(RUNreord = row_number(PEC)) |> 
-      select(-RUN)
-  ) |> arrange(Substance,SubCompart) |> 
-  mutate(PECMEC = PEC/MEC)
+# TODO: convert to a mutate with arrange according to concentrations instead of the RUN. RUNs are not related.
+PECMEC <- tibble(Substance = Conc_calc$Substance,
+                  SubCompart = Conc_calc$SubCompart,
+                  RUN = Conc_calc$RUN,
+                  PEC = Conc_calc$Value,
+                  MEC = MEC_Distributed$Value,
+                  PECMEC = Conc_calc$Value/MEC_Distributed$Value)
 
 Subcomparts <- unique(PECMEC$SubCompart)
 
@@ -623,7 +608,7 @@ PECMEC_statistics <- tibble(Substance = character(),
                             "PECMEC_fwrel_Median" = numeric(),
                             "PECMEC_fwrel_Quant75" = numeric(),
                             "PECMEC_fwrel_Max" = numeric(),
-)
+                            )
 
 Test <- numeric()
 
@@ -641,18 +626,7 @@ for (Substance in rev(Substances)) {
   }
 }
 
-
-
-
-PECMEC_relative <- 
-  PECMEC |> ungroup() |> 
-  select(-PECMEC) |> 
-  group_by(Substance,RUNreord) |> 
-  pivot_wider(names_from = SubCompart,
-              values_from = c(PEC,MEC)) 
-names(PECMEC_relative)
-PECMEC_relative |> 
-  summarise(PECMEC__soil = )
+PECMEC <- mutate(PECMEC, "PECMEC_fw_relative" = Test)
 
 # Calculate PEC:MEC ratio statistics
 for (Substance in Substances) {
@@ -798,7 +772,7 @@ for (Substance in Substances) {
       GSA_table <- tibble(RUN = seq(Run_count))
       for (i in seq(nrow(UncertParamsM))) {
         GSA_table <- GSA_table %>% mutate("{UncertParamsM$varName_full[i]}" := as.numeric(UncertParamsM$data[[i]][[1]]))
-        
+       
       }
       
       for (i in seq(nrow(EmissM))){
@@ -809,7 +783,7 @@ for (Substance in Substances) {
       Conc_name <- paste("Concentration",Substance,SubCompart, sep="_")
       
       GSA_table <- add_column(GSA_table, "{Conc_name}" := Conc_calc$Value[which(Conc_calc$Substance==Substance & Conc_calc$SubCompart==SubCompart)])
-      
+
       
       
       
