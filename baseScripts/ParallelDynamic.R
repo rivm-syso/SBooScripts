@@ -5,7 +5,7 @@ World$NewSolver("DynamicSolver")
 World$Solve(emissions = NULL, var_box_df = var_box_df, var_invFun = var_invFun, nRUNs = 20, ParallelPreparation = T)
 
 ###################### Step 2: load the scaled samples
-LHSsamples <- readRDS("data/scaledLHSsamples.RData")
+LHSsamples <- readRDS("data/scaledLHSsamples.RDS")
 
 ###################### Step 3: Prepare emissions and LHS samples for parallel solving
 
@@ -54,7 +54,7 @@ processSlice <- function(i) {
   source("baseScripts/fakeLib.R")
   
   # Load a fresh instance of World to avoid mutability issues
-  localWorld <- readRDS("data/World.RData")
+  localWorld <- readRDS("data/World.RDS")
   
   # Perform computations using localWorld and functions from fakeLib
   localWorld$Solve(emissions = emis_slices[[i]], 
