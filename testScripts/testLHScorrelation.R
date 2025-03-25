@@ -17,11 +17,11 @@ nvars = nrow(Example_vars)
 lhs_samples <- randomLHS(nruns, nvars)
 
 # Name the columns of the LHS matrix
-colnames(lhs_samples) <- paste0(Example_vars$varName, "_", Example_vars$SubCompart)
+colnames(lhs_samples) <- paste0(Example_vars$varName, "_", Example_vars$Scale, "_", Example_vars$SubCompart, "_", Example_vars$Species)
 
 # Filter correlations
-correlations <- data.frame(varName_1 = paste0(Correlations$varName_1, "_", Correlations$SubCompart_1),
-                              varName_2 = paste0(Correlations$varName_2, "_", Correlations$SubCompart_2),
+correlations <- data.frame(varName_1 = paste0(Correlations$varName_1, "_", Correlations$Scale_1, "_", Correlations$SubCompart_1, "_", Correlations$Species_1),
+                              varName_2 = paste0(Correlations$varName_2, "_", Correlations$Scale_2, "_", Correlations$SubCompart_2, "_", Correlations$Species_2),
                               correlation = Correlations$correlation)
 
 Correlations <- correlations[
@@ -98,6 +98,143 @@ for (i in seq_along(varFuns_non_correlated)) {
 }
 
 transformed_lhs <- cbind(lhs_non_correlated_transformed, lhs_correlated$transformed_lhs)
+
+################################# Expand columns ###############################
+
+# Function to check which states are needed for the variable
+check_states <- function(varname){
+  var_df <- World$fetchData(varname)
+  var_cnames <- colnames(var_df)
+  var_cnames <- setdiff(var_cnames, varname)
+  return(var_cnames)
+}
+
+# List of possible states
+water_compartments <- c("deepocean", "lake", "river", "sea")
+soil_compartments <- c("agriculturalsoil", "naturalsoil", "othersoil")
+sediment_compartments <- c("freshwatersediment", "lakesediment", "marinesediment")
+all_compartments <- unique(World$states$asDataFrame$SubCompart)
+species <- c("Unbound", "Small", "Large", "Solid")
+scales <- c("Tropic", "Moderate", "Arctic", "Continental", "Regional")
+
+# Initialize a list to store expanded columns
+expanded_lhs_list <- list()
+expanded_lhs_colnames <- c()
+
+# Loop through each column in transformed_lhs
+for(i in seq_len(ncol(transformed_lhs))) {
+  
+  # Extract column name and data
+  cname <- colnames(transformed_lhs)[i]
+  lhs_col <- as.matrix(transformed_lhs[, i])
+  
+  # Extract varname, scale, subcompartment, and species from the column name
+  name_parts <- strsplit(cname, "_")[[1]]
+  varname <- name_parts[1]
+  current_scale <- ifelse(length(name_parts) >= 2, name_parts[2], "NA")
+  current_subcompart <- ifelse(length(name_parts) >= 3, name_parts[3], "NA")
+  current_species <- ifelse(length(name_parts) >= 4, name_parts[4], "NA")
+  
+  # Check which states are required for varname
+  needed_states <- check_states(varname)
+  
+  # Initialize a list to store expanded columns
+  expanded_columns <- list()
+  
+  # If no expansion is needed, store as is
+  if (is.null(needed_states)) {
+    expanded_columns[[cname]] <- lhs_col
+  } else {
+    # Expansion for Species
+    expanded_columns_species <- list()
+    if ("Species" %in% needed_states && current_species == "NA") {
+      for (species_type in species) {
+        col_name <- paste(varname, current_scale, current_subcompart, species_type, sep = "_")
+        expanded_columns_species[[col_name]] <- lhs_col
+      }
+    } else {
+      expanded_columns_species[[cname]] <- lhs_col
+    }
+    
+    # Expansion for Scale
+    expanded_columns_scale <- list()
+    for (expanded_col_name in names(expanded_columns_species)) {
+      expanded_col_data <- expanded_columns_species[[expanded_col_name]]
+      parts <- strsplit(expanded_col_name, "_")[[1]]
+      scale <- parts[2]
+      
+      if ("Scale" %in% needed_states && scale == "NA") {
+        for (scale_type in scales) {
+          col_name <- paste(parts[1], scale_type, parts[3], parts[4], sep = "_")
+          expanded_columns_scale[[col_name]] <- expanded_col_data
+        }
+      } else {
+        expanded_columns_scale[[expanded_col_name]] <- expanded_col_data
+      }
+    }
+    
+    # Expansion for SubCompartments (Final Step - Add Names Here)
+    expanded_columns_final <- list()
+    for (expanded_col_name in names(expanded_columns_scale)) {
+      expanded_col_data <- expanded_columns_scale[[expanded_col_name]]
+      parts <- strsplit(expanded_col_name, "_")[[1]]
+      subcompart <- parts[3]
+      
+      if ("SubCompart" %in% needed_states) {
+        if (subcompart == "Soil") {
+          for (soil in soil_compartments) {
+            col_name <- paste(parts[1], parts[2], soil, parts[4], sep = "_")
+            expanded_columns_final[[col_name]] <- expanded_col_data
+          }
+        } else if (subcompart == "Water") {
+          for (water in water_compartments) {
+            col_name <- paste(parts[1], parts[2], water, parts[4], sep = "_")
+            expanded_columns_final[[col_name]] <- expanded_col_data
+          }
+        } else if (subcompart == "Sediment") {
+          for (sediment in sediment_compartments) {
+            col_name <- paste(parts[1], parts[2], sediment, parts[4], sep = "_")
+            expanded_columns_final[[col_name]] <- expanded_col_data
+          }
+        } else if (subcompart == "NA") {
+          for (comp in all_compartments) {
+            col_name <- paste(parts[1], parts[2], comp, parts[4], sep = "_")
+            expanded_columns_final[[col_name]] <- expanded_col_data
+          }
+        } else {
+          expanded_columns_final[[expanded_col_name]] <- expanded_col_data
+        }
+      } else {
+        expanded_columns_final[[expanded_col_name]] <- expanded_col_data
+      }
+    }
+    
+    # Store only the final column names now
+    expanded_columns <- expanded_columns_final
+  }
+  
+  # Add fully expanded columns to final matrix
+  expanded_lhs_list[[length(expanded_lhs_list) + 1]] <- do.call(cbind, expanded_columns)
+  
+  # **NOW** update column names to avoid saving intermediate names
+  expanded_lhs_colnames <- c(expanded_lhs_colnames, names(expanded_columns))
+}
+
+# Combine all expanded columns into a single matrix
+expanded_lhs_matrix <- do.call(cbind, expanded_lhs_list)
+
+# Now, set the column names of the expanded LHS matrix
+if (length(expanded_lhs_colnames) == ncol(expanded_lhs_matrix)) {
+  colnames(expanded_lhs_matrix) <- expanded_lhs_colnames
+} else {
+  stop("Mismatch between the number of column names and columns in the expanded LHS matrix.")
+}
+
+# The expanded_lhs_matrix now contains the expanded columns with correct names
+View(expanded_lhs_matrix)
+
+
+############################### Check the results ##############################
 
 result_corr_matrix <- cor(transformed_lhs) # correlation matrix
 
