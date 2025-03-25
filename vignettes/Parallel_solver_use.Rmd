@@ -35,8 +35,7 @@ probabilistic solver:
 
 -   var_invFun: the functions created from the var_box_df in a list.
 
-**The names given to each of these variables must be the ones given in
-the list above ('emissions', 'var_box_df', 'var_invFun') for the
+**The emissions dataframe must be named 'emissions' for the
 parallel calculations to work!**
 
 ```{R Define variables SS, warning=FALSE, message=FALSE}
@@ -56,6 +55,20 @@ emissions <- example_data |>
   )) |>
   mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> 
   select(-To_Compartment)
+```
+
+Now call World$Solve() as below: with emissions = NULL and ParallelPreparation = T. 
+In addition the variable functions, the variable dataframe and the number of runs
+Have to be given to the solve function. 
+
+Running the solve function in this manner will do two things:
+- pull and scale the LHS samples for variables, and then save the matrix in the SBooScripts/data folder
+- Save a copy of the current World object, for use in parallel solving.
+
+```{R Save LHS matrix and World using WorldSolve() SS, warning=FALSE, message=FALSE}
+# Call the steady state solver
+World$NewSolver("SteadyStateSolver")
+World$Solve(emissions = NULL, var_box_df = var_box_df, var_invFun = var_invFun, nRUNs = length(unique(emissions$RUN)), ParallelPreparation = T)
 ```
 
 Specify how many cores you have available for calculations. If you are calculating
@@ -99,8 +112,8 @@ probabilistic solver:
 
 -   nTIMES: the number of calculation time steps.
 
-**The names given to each of these variables must be the ones given in
-the list above ('emissions', 'var_box_df', 'var_invFun', 'tmax', 'nTIMES') for the
+**The names given to each of the variables must be the ones given in
+the list above ('emissions', 'tmax', 'nTIMES') for the
 parallel calculations to work!**
 
 ```{R Define variables Dyn, warning=FALSE, message=FALSE}
@@ -126,6 +139,20 @@ emissions <- example_data |>
 tmax <- 365.25*24*60*60*length(unique(emissions$Time))
 
 nTIMES <- length(seq(0, tmax, length.out = 10))
+```
+
+Now call World$Solve() as below: with emissions = NULL and ParallelPreparation = T. 
+In addition the variable functions, the variable dataframe and the number of runs
+Have to be given to the solve function. 
+
+Running the solve function in this manner will do two things:
+- pull and scale the LHS samples for variables, and then save the matrix in the SBooScripts/data folder
+- Save a copy of the current World object, for use in parallel solving.
+
+```{R Save LHS matrix and World using WorldSolve() Dyn, warning=FALSE, message=FALSE}
+# Call the dynamic solver
+World$NewSolver("DynamicSolver")
+World$Solve(emissions = NULL, var_box_df = var_box_df, var_invFun = var_invFun, nRUNs = 20, ParallelPreparation = T)
 ```
 
 Specify how many cores you have available for calculations. If you are calculating
