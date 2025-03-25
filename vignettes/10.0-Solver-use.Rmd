@@ -369,14 +369,14 @@ a dataframe with three columns:
 # Initialize emissions in t/y
 emissions <- 
   # create emission scenario in time:
-  data.frame(Emis = c(10,20, 1,0,0), # emission in tones per year
+  data.frame(Emis = c(10,20, 1,0,0), # emission in tones per year (converted to kg/s later)
              Time = c(1,5,10,15,20))  # years from start
 # apply emission scenario to intended species and compartments using hte Abbr:
 emissions <- merge(emissions, data.frame(Abbr = c("aRS", "s2RS", "w1RS")))
 
 # convert 1 t/y to si units: kg/s
 emissions <- emissions |>
-  mutate(Emis = Emis*1000,
+  mutate(Emis = Emis*1000/(365.25*24*60*60),
     Time = Time*(365.25*24*60*60)) |> ungroup()
 ```
 
@@ -394,11 +394,12 @@ Now we can solve and get the solution, concentration and emissions.
 ```{r Solve dynamically deterministically, warning=FALSE, message=FALSE}
 
 tmax <- max(emissions$Time) # set max solve time to last step in emission scenario
-nTIMES <- 1+max(emissions$Time)/(365.25*24*60*60) # Sets the time step for output, e.g. for 20 year scenario, add t0 is 21 nTimes
+tmin <- min(emissions$Time)
+nTIMES <- 1+max(emissions$Time)/(365.25*24*60*60) # Sets the time step for output, e.g. for 19 year scenario from eyar 1 to 20, add t1 is 20 nTimes
 
 # Initialize the dynamic solver
 World$NewSolver("DynamicSolver")
-World$Solve(emissions = emissions, tmax = tmax, nTIMES = nTIMES)
+World$Solve(emissions = emissions, tmax = tmax, tmin=tmin, nTIMES = nTIMES)
 solution <- World$Masses()
 emission <- World$Emissions()
 concentration <- World$Concentration()
@@ -440,7 +441,8 @@ source('baseScripts/initWorld_onlyPlastics.R')
 
 load("data/Examples/example_uncertain_data.RData")
 
-example_data <- example_data |>
+example_data <- 
+  example_data |>
   select(To_Compartment, `2020`, `2021`,`2022`, `2023`, RUN) |>
   pivot_longer(!c(To_Compartment, RUN), names_to = "year", values_to = "Emis") |>
   mutate(Abbr = case_when(
@@ -449,7 +451,7 @@ example_data <- example_data |>
     To_Compartment == "Surface water (micro)" ~ "w1RS"
   )) |>
   select(-To_Compartment) |>
-  mutate(Time = ((as.numeric(year)-2019)*365.25*24*3600)) |>
+  mutate(Time = ((as.numeric(year))*365.25*24*3600)) |>
   mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> # Convert kt/year to kg/s
   select(-year)
 ```
@@ -487,10 +489,19 @@ previous calculations.
 ```{r Solve dyn probabilistic, warning=FALSE, message=FALSE}
 World$NewSolver("DynamicSolver")
 
-tmax <- 365.25*24*60*60*length(unique(example_data$Time))
+
+tmax <- max(unique(example_data$Time))
+tmin <- min(unique(example_data$Time))
 nTIMES <- length(seq(0, tmax, length.out = 10))
 
-World$Solve(emissions = example_data, var_box_df = Example_vars, var_invFun = varFuns, nRUNs = length(unique(example_data$RUN)), tmax = tmax, nTIMES = nTIMES)
+World$Solve(emissions = example_data, 
+            var_box_df = Example_vars, 
+            var_invFun = varFuns, 
+            nRUNs = length(unique(example_data$RUN)), tmin = tmin,
+            tmax = tmax, 
+            nTIMES = nTIMES,
+            atol_ode = 0.5,
+            rtol_ode = 1e-30)
 
 solution = World$Masses()
 emission = World$Emissions()
