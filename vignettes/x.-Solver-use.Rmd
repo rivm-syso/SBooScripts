@@ -1,5 +1,5 @@
 ---
-title: "Solver use"
+title: "SBoo Solver use"
 author: "Anne Hids, Jaap Slootweg, Joris Quik"
 date: "`r Sys.Date()`"
 output: github_document
@@ -9,7 +9,22 @@ editor_options:
     wrap: 72
 ---
 
-## Initialize World
+SimpleBox (SBoo) has specific solvers available that allow running the
+model deterministic or probabilistic. We assume you already understand
+the basics of using SimpleBox and have an idea of what input variables
+or emissions you want to input with a certain degree of uncertainty or
+variability. There are basically two types of solvers to use here:
+
+1.  SteadyState solver for calculating the steady state mass at infinite
+    time horizon (deterministic or probabilistic).
+2.  DynamicSolver for calculating the time explicit mass based on a
+    constant or time varying emission scenario (deterministic or
+    probabilistic).
+
+Below is are examples of using the SteadyState or Dynamic solvers both
+deterministically or probabilistically.
+
+## Requirements
 
 First, we will load the necessary packages and initialize the world for
 molecules.
@@ -30,19 +45,20 @@ microplastics, use:
 
 -   source("baseScripts/initWorld_onlyMicroplastics.R")
 
-## Steady state solver
+# Steady state solver
 
 A steady state solver calculates the masses in each environmental
 compartment (i.e. air, riverwater, naturalsoil) at each scale (i.e.
 Regional, Continental) and for each species (U, S, A, P) when the system
-has reached an equilibrium.
+has reached an equilibrium of in- and outflows from a compartment
+reaching steady state.
 
 There are two ways to use the steady state solver: deterministic (solve
-once with one set of emissions and one set of substance variables), or
-probabilistic (solve multiple times, once for each run with uncertain
-substance variables and optionally uncertain emissions).
+once with one set of emissions and one set of substance/landscape
+variables), or probabilistic (solve multiple times, once for each run
+with uncertain substance variables and optionally uncertain emissions).
 
-### Use the steady state solver deterministically
+## Use the steady state solver deterministically
 
 We already initialized the World in the previous chunk. This is not done
 for a specific substances, the World was initialized for a 'default
@@ -69,9 +85,12 @@ emissions <- emissions |>
   mutate(Emis = Emis*1000/(365*24*60*60)) 
 ```
 
-Now we will initialize the solver, with is "SteadyODE" for all steady
-state calculations. Consequently, we will use the `World$Solve()`
-function to calculate the masses in each compartment.
+Now we will initialize the solver, with is "SteadyStateSolver" for all
+steady state calculations. Consequently, we will use the `World$Solve()`
+function to calculate the masses in each compartment. The input to
+`World$Solve()` depends on the selected solver, but always requires the
+`emissions` to be defined, other parameters are needed when solving
+probabilisticaly, see below.
 
 ```{r Solve steady state deterministically, warning=FALSE, message=FALSE}
 # Define the solver function to use. For steady state calculations, this is always "SteadyODE"
@@ -81,8 +100,10 @@ World$NewSolver("SteadyStateSolver")
 World$Solve(emissions = emissions)
 ```
 
-Finally we can retrieve the masses, emissions and concentrations from
-the World object by using the functions in the chunk below.
+Finally we can retrieve the masses and concentrations in each
+compartment from the World object by using `World$Masses()` and
+`World$Concentration()`. You can also retrieve the used emissions:
+`World$Emissions()`.
 
 ```{r Get solution emissions and concentration, warning=FALSE, message=FALSE}
 # Get the solution(=mass per compartment), emissions and concentrations from 'World'
@@ -101,17 +122,17 @@ given, the outcome is plotted for all subcomparts.
 World$PlotConcentration(scale = "Regional")
 World$PlotConcentration(scale = "Continental", subcompart = c("agriculturalsoil", "naturalsoil", "othersoil"))
 
-# Plot solution at continental scale 
+# Plot mass at continental scale 
 World$PlotMasses(scale = "Regional")
 
 # Plot the mass distribution
 World$PlotMassDistribution(scale = "Regional")
 ```
 
-### Use the steady state solver probabilistically
+## Use the steady state solver probabilistically
 
-Here the steady state probabilistic solver is demonstrated for a
-microplastic.
+Here the steady state probabilistic solver is demonstrated for a generic
+microplastic particle.
 
 When the World is initialized for particulates or plastics, the
 emissions go to the "S", "A" and/or "P" species (this is unlike
@@ -128,6 +149,7 @@ emissions for molecules, where the emissions go to the "U" species).
 names.
 
 ```{r Initialize World for SS probabilistic solve, warning=FALSE, message=FALSE}
+substance <- "microplastic"
 source('baseScripts/initWorld_onlyPlastics.R')
 ```
 
@@ -186,14 +208,19 @@ Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xls
 varFuns <- World$makeInvFuns(Example_vars)
 ```
 
-World\$Solve needs the following variables to solve steady state
-probabilistically:
+Using the same SteadyStateSolver as above, World\$Solve needs some more
+parameters to run probabilistically:
 
--   emissions: the emissions dataframe
+-   emissions: Dataframe with Emis (kg/s), RUN (1:n) and Abbr (SB
+    compartment abreviations)
 
--   var_box_df: a dataframe with the example variables
+-   var_box_df: Dataframe with SB variable (varName), scope (Scale,
+    SubCompart, Species) and Distribution with relevant parameters (a,
+    b, c or d) defined.
 
--   var_invFun: the functions created from the var_box_df in a list
+-   var_invFun: The relevant probability distribution functions using
+    the distribution specific parameters from var_box_df in a list
+    <!--# Why this extra step? Either exchange the abc with the distribution function in a new var_infFun column in var_box_df. Now the link between the var_box_df and var_invFun is lost! -->
 
 -   nRUNs: the number of runs (should match the number of RUNs in the
     emissions dataframe provided).
@@ -226,7 +253,92 @@ World$PlotMasses(scale = "Regional")
 
 # Plot the mass distribution
 World$PlotMassDistribution(scale = "Regional")
+World$PlotMassDistribution(scale = "Moderate")
 
+```
+
+### Steady state probabilistically with emissions as a set of probability distributions
+
+In addition to the above example where the emissions are set as constant
+one can set the emission per RUN, for instance using probability
+distributions. World\$Solve needs the following variables to solve
+steady state probabilistically with a set of emission distributions (e.g
+normal, triangular).
+<!--# The potential distributions need to be described somewhere and the variables a, b, c, d clearly documented, defined in fGeneral.R in SBoo. -->
+
+-   emissions: a set of emission distributions
+
+-   var_box_df: a dataframe with the example variables
+
+-   var_invFun: the functions created from the var_box_df in a list
+
+-   nRUNs: the number of runs (should match the number of RUNs in the
+    emissions dataframe provided).
+
+Now we can solve and get the solution, variable values, concentration
+and emissions.
+
+#### Prepare variable samples
+
+For each variable that is uncertain you can define the distribution type
+(triangular, uniform or normal) and the corresponding parameters. For
+this example, an example excel file will be read in containing the
+necessary parameters for the variables we want to vary.
+
+```{r Get min, max and peak value of variable values, warning=FALSE, message=FALSE}
+source("baseScripts/initWorld_onlyPlastics.R")  
+
+# Load the Excel file containing example distributions for variablese 
+Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")  
+
+# Define functions for each row based on the distribution type 
+varFuns <- World$makeInvFuns(Example_vars)
+```
+
+#### Prepare emission data
+
+In this example, we will take a steady state emission data frame as the
+starting point for creating the triangular distributions.
+
+```{r Create steady state emission dataframe, warning=FALSE, message=FALSE}
+# Create the steady state emission dataframe 
+emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), Emis = c(10000, 10000, 10000))  
+
+# convert 1 t/y to si units: kg/s 
+emissions <- emissions |>   mutate(Emis = Emis*1000/(365*24*60*60))
+```
+
+We can take the emission dataframe in the chunk above and define a
+(min), b (max) and c (peak) and the distribution type for each
+compartment. Consequently, the `World$makeInvFuns()` function is used to
+create the emission functions.
+
+```{r Scale the emissions to the distributions, warning=FALSE, message=FALSE}
+emissions$a <- emissions$Emis * 0.7 
+emissions$b <- emissions$Emis * 1.3 
+emissions$c <- emissions$Emis 
+emissions$Distribution <- "triangular"  
+emisFuns <- World$makeInvFuns(emissions) 
+names(emisFuns) <- emissions$Abbr
+```
+
+Now we can solve and get the solution, variable values, concentration
+and emissions. We can also plot the outcome using the built-in plot
+functions.
+
+```{r Test steady state uncertain solver, warning=FALSE, message=FALSE}
+# The number of samples you want to pull from the distributions for each variable 
+n_samples <- 20  
+World$NewSolver("SteadyStateSolver")  
+World$Solve(emissions = emisFuns, 
+            var_box_df = Example_vars, 
+            var_invFun = varFuns, 
+            nRUNs = n_samples)  
+
+sol <- World$Masses() 
+conc <- World$Concentration() 
+
+World$PlotConcentration()
 ```
 
 ## Dynamic solver
@@ -306,9 +418,11 @@ World$PlotMasses(scale = "Regional")
 
 # Plot all concentrations at regional scale
 World$PlotConcentration(scale = "Regional")
+# plot(emissions$Time,emissions$Emis)
+
 ```
 
-## Use the dynamic solver probabilistically
+### Use the dynamic solver probabilistically
 
 For the dynamic deterministic solver, the emissions need to be given as
 a dataframe with three columns:
@@ -386,82 +500,10 @@ concentrations = World$Concentration()
 
 Finally, we can plot the outcome using the predefined plot functions. If
 there is no scale specified, the Regional scale will be selected. If
-there is no subcompart specified, "ägriculturalsoil" will be selected.
+there is no subcompart specified, "agriculturalsoil" will be selected.
 
 ```{r Plot outcome with uncertainty, warning=FALSE, message=FALSE}
 World$PlotConcentration(scale = "Regional", subcompart = "agriculturalsoil")
 
 World$PlotMasses(scale = "Regional", subcompart = "agriculturalsoil")
-```
-
-## Steady state probabilistically with emissions as a set of functions
-
-World\$Solve needs the following variables to solve steady state
-probabilistically with a set of emission functions:
-
--   emissions: a set of emission functions
-
--   var_box_df: a dataframe with the example variables
-
--   var_invFun: the functions created from the var_box_df in a list
-
--   nRUNs: the number of runs (should match the number of RUNs in the
-    emissions dataframe provided).
-
-Now we can solve and get the solution, variable values, concentration
-and emissions.
-
-### Prepare variable samples
-
-For each variable that is uncertain you can define the distribution type (triangular, uniform or normal) and the corresponding parameters. For this example, an example excel file will be read in containing the necessary parameters for the variables we want to vary.
-
-```{r Get min, max and peak value of variable values, warning=FALSE, message=FALSE}
-source("baseScripts/initWorld_onlyPlastics.R")
-
-# Load the Excel file containing example distributions for variablese
-Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")
-
-# Define functions for each row based on the distribution type
-varFuns <- World$makeInvFuns(Example_vars)
-```
-
-### Prepare emission data
-
-In this example, we will take a steady state emission data frame as the starting point for creating the triangular distributions.
-
-```{r Create steady state emission dataframe, warning=FALSE, message=FALSE}
-# Create the steady state emission dataframe
-emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), Emis = c(10000, 10000, 10000))
-
-# convert 1 t/y to si units: kg/s
-emissions <- emissions |>
-  mutate(Emis = Emis*1000/(365*24*60*60))
-```
-
-We can take the emission dataframe in the chunk above and define a (min), b (max) and c (peak) and the distribution type for each compartment. Consequently, the `World$makeInvFuns()` function is used to create the emission functions. 
-
-```{r Scale the emissions to the distributions, warning=FALSE, message=FALSE}
-emissions$a <- emissions$Emis * 0.7
-emissions$b <- emissions$Emis * 1.3
-emissions$c <- emissions$Emis
-emissions$Distribution <- "triangular"
-
-emisFuns <- World$makeInvFuns(emissions)
-names(emisFuns) <- emissions$Abbr
-```
-
-Now we can solve and get the solution, variable values, concentration
-and emissions. We can also plot the outcome using the built-in plot functions. 
-
-```{r Test steady state uncertain solver, warning=FALSE, message=FALSE}
-# The number of samples you want to pull from the distributions for each variable
-n_samples <- 20
-
-World$NewSolver("SteadyStateSolver")
-
-World$Solve(emissions = emisFuns, var_box_df = Example_vars, var_invFun = varFuns, nRUNs = n_samples)
-
-sol <- World$Masses()
-conc <- World$Concentration()
-World$PlotConcentration()
 ```
