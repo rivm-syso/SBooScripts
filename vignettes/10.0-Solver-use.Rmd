@@ -9,25 +9,25 @@ editor_options:
     wrap: 72
 ---
 
-SimpleBox (SBoo) has specific solvers available that allow running the
+*SimpleBox (SBoo) has specific solvers available that allow running the
 model deterministic or probabilistic. We assume you already understand
 the basics of using SimpleBox and have an idea of what input variables
 or emissions you want to input with a certain degree of uncertainty or
-variability. There are basically two types of solvers to use here:
+variability. There are basically two types of solvers to use here:*
 
-1.  SteadyState solver for calculating the steady state mass at infinite
-    time horizon (deterministic or probabilistic).
-2.  DynamicSolver for calculating the time explicit mass based on a
+1.  *SteadyState solver for calculating the steady state mass at
+    infinite time horizon (deterministic or probabilistic).*
+2.  *DynamicSolver for calculating the time explicit mass based on a
     constant or time varying emission scenario (deterministic or
-    probabilistic).
+    probabilistic).*
 
-Below is are examples of using the SteadyState or Dynamic solvers both
-deterministically or probabilistically.
+*Below is are examples of using the SteadyState or Dynamic solvers both
+deterministically or probabilistically.*
 
-## Requirements
+## *Requirements*
 
-First, we will load the necessary packages and initialize the world for
-molecules.
+*First, we will load the necessary packages and initialize the world for
+molecules.*
 
 ```{r Initialize World, warning=FALSE, message=FALSE}
 library(lhs)
@@ -38,43 +38,43 @@ library(gridExtra)
 source("baseScripts/initWorld_onlyMolec.R")
 ```
 
-If you would like to instead initialize the World for particulates or
-microplastics, use:
+*If you would like to instead initialize the World for particulates or
+microplastics, use:*
 
--   source("baseScripts/initWorld_onlyParticulate.R")
+-   *source("baseScripts/initWorld_onlyParticulate.R")*
 
--   source("baseScripts/initWorld_onlyMicroplastics.R")
+-   *source("baseScripts/initWorld_onlyMicroplastics.R")*
 
-# Steady state solver
+# *Steady state solver*
 
-A steady state solver calculates the masses in each environmental
+*A steady state solver calculates the masses in each environmental
 compartment (i.e. air, riverwater, naturalsoil) at each scale (i.e.
 Regional, Continental) and for each species (U, S, A, P) when the system
 has reached an equilibrium of in- and outflows from a compartment
-reaching steady state.
+reaching steady state.*
 
-There are two ways to use the steady state solver: deterministic (solve
+*There are two ways to use the steady state solver: deterministic (solve
 once with one set of emissions and one set of substance/landscape
 variables), or probabilistic (solve multiple times, once for each run
-with uncertain substance variables and optionally uncertain emissions).
+with uncertain substance variables and optionally uncertain emissions).*
 
-## Use the steady state solver deterministically
+## *Use the steady state solver deterministically*
 
-We already initialized the World in the previous chunk. This is not done
-for a specific substances, the World was initialized for a 'default
-substance', which behaves as a molecule.
+*We already initialized the World in the previous chunk. This is not
+done for a specific substances, the World was initialized for a 'default
+substance', which behaves as a molecule.*
 
-As we will not vary any substance variables when using the deterministic
-steady state solver, we only need to make a dataframe containing the
-emissions for 1 or more emission compartments. This dataframe should
-contain two columns:
+*As we will not vary any substance variables when using the
+deterministic steady state solver, we only need to make a dataframe
+containing the emissions for 1 or more emission compartments. This
+dataframe should contain two columns:*
 
--   'Abbr', which contains the abbreviations for the compartments
+-   *'Abbr', which contains the abbreviations for the compartments*
 
--   'Emis', which contains the emissions to the compartments, in kg/s.
+-   *'Emis', which contains the emissions to the compartments, in kg/s.*
 
-To see the abbreviations and their meaning, you can run
-\`World\$states\$asDataFrame\`.
+*To see the abbreviations and their meaning, you can run
+\`World\$states\$asDataFrame\`.*
 
 ```{r Make emission dataframe for steady state deterministic solver, warning=FALSE, message=FALSE}
 # Create the steady state emission dataframe
@@ -85,12 +85,12 @@ emissions <- emissions |>
   mutate(Emis = Emis*1000/(365*24*60*60)) 
 ```
 
-Now we will initialize the solver, with is "SteadyStateSolver" for all
+*Now we will initialize the solver, with is "SteadyStateSolver" for all
 steady state calculations. Consequently, we will use the `World$Solve()`
 function to calculate the masses in each compartment. The input to
 `World$Solve()` depends on the selected solver, but always requires the
 `emissions` to be defined, other parameters are needed when solving
-probabilisticaly, see below.
+probabilisticaly, see below.*
 
 ```{r Solve steady state deterministically, warning=FALSE, message=FALSE}
 # Define the solver function to use. For steady state calculations, this is always "SteadyODE"
@@ -100,10 +100,10 @@ World$NewSolver("SteadyStateSolver")
 World$Solve(emissions = emissions)
 ```
 
-Finally we can retrieve the masses and concentrations in each
+*Finally we can retrieve the masses and concentrations in each
 compartment from the World object by using `World$Masses()` and
 `World$Concentration()`. You can also retrieve the used emissions:
-`World$Emissions()`.
+`World$Emissions()`.*
 
 ```{r Get solution emissions and concentration, warning=FALSE, message=FALSE}
 # Get the solution(=mass per compartment), emissions and concentrations from 'World'
@@ -112,10 +112,10 @@ emission <- World$Emissions()
 concentration <- World$Concentration()
 ```
 
-Finally, we can plot the outcome using the predefined plot functions. If
-there is no scale specified, the Regional scale will be selected.
+*Finally, we can plot the outcome using the predefined plot functions.
+If there is no scale specified, the Regional scale will be selected.
 Selecting one or more subcomparts is optional. If no subcomparts are
-given, the outcome is plotted for all subcomparts.
+given, the outcome is plotted for all subcomparts.*
 
 ```{r Plot the SS deterministic outcome, warning=FALSE, message=FALSE}
 # Plot concentrations at regional scale
@@ -129,47 +129,47 @@ World$PlotMasses(scale = "Regional")
 World$PlotMassDistribution(scale = "Regional")
 ```
 
-## Use the steady state solver probabilistically
+## *Use the steady state solver probabilistically*
 
-Here the steady state probabilistic solver is demonstrated for a generic
-microplastic particle.
+*Here the steady state probabilistic solver is demonstrated for a
+generic microplastic particle.*
 
-When the World is initialized for particulates or plastics, the
+*When the World is initialized for particulates or plastics, the
 emissions go to the "S", "A" and/or "P" species (this is unlike
-emissions for molecules, where the emissions go to the "U" species).
+emissions for molecules, where the emissions go to the "U" species).*
 
-| Abbreviation | Full species name |
-|-------------:|-------------------|
-|            U | Unbound           |
-|            S | Solid             |
-|            A | Aggregated        |
-|            P | Attached          |
+| *Abbreviation* | *Full species name* |
+|---------------:|---------------------|
+|            *U* | *Unbound*           |
+|            *S* | *Solid*             |
+|            *A* | *Aggregated*        |
+|            *P* | *Attached*          |
 
-: Table showing species abbreviations and the corresponding species
-names.
+: *Table showing species abbreviations and the corresponding species
+names.*
 
 ```{r Initialize World for SS probabilistic solve, warning=FALSE, message=FALSE}
 substance <- "microplastic"
 source('baseScripts/initWorld_onlyPlastics.R')
 ```
 
-For the probabilistic steady state solver, the emissions need to be
-given as a dataframe with three columns:
+*For the probabilistic steady state solver, the emissions need to be
+given as a dataframe with three columns:*
 
--   'Abbr', which contains the abbreviations for the compartments
+-   *'Abbr', which contains the abbreviations for the compartments*
 
--   'Emis', which contains the emissions to the compartments, in kg/s
+-   *'Emis', which contains the emissions to the compartments, in kg/s*
 
--   'RUN', which contains the run number of the emission.
+-   *'RUN', which contains the run number of the emission.*
 
-This example uses 20 output runs of a DPFMA (Dynamic Probabilistic
+*This example uses 20 output runs of a DPFMA (Dynamic Probabilistic
 Material Flow Analysis) model. This data is loaded first, and then
-transformed to the required format.
+transformed to the required format.*
 
-(Alternatively, if you want one set of emissions but vary the values for
-variables, you can use one emission dataframe as in the example for the
-deterministic steady state solver. Then the solver will use the same set
-of emissions for each run, but vary variable values.)
+*(Alternatively, if you want one set of emissions but vary the values
+for variables, you can use one emission dataframe as in the example for
+the deterministic steady state solver. Then the solver will use the same
+set of emissions for each run, but vary variable values.)*
 
 ```{r Prepare uncertain steady emissions, warning=FALSE, message=FALSE}
 load("data/Examples/example_uncertain_data.RData")
@@ -191,15 +191,15 @@ example_data <- example_data |>
   select(-To_Compartment) # leave out original compartment name
 ```
 
-Variable values can be varied over runs by specifying the variable name,
-the type of distribution and distribution parameters (optionally also
-the Species, Scale and SubCompart). To see the variable names and which
-other variables are needed for the value, see i.e.
-`World$fetchData("kdeg")`.
+*Variable values can be varied over runs by specifying the variable
+name, the type of distribution and distribution parameters (optionally
+also the Species, Scale and SubCompart). To see the variable names and
+which other variables are needed for the value, see i.e.
+`World$fetchData("kdeg")`.*
 
-In the chunk below, an Excel file is read in containing the needed
+*In the chunk below, an Excel file is read in containing the needed
 values for 2 variables. Consequently, a distribution is created for each
-row in the dataframe.
+row in the dataframe.*
 
 ```{r Prepare variable df and functions ss, warning=FALSE, message=FALSE}
 # Load the Excel file containing example distributions for variablese
@@ -208,25 +208,25 @@ Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xls
 varFuns <- World$makeInvFuns(Example_vars)
 ```
 
-Using the same SteadyStateSolver as above, World\$Solve needs some more
-parameters to run probabilistically:
+*Using the same SteadyStateSolver as above, World\$Solve needs some more
+parameters to run probabilistically:*
 
--   emissions: Dataframe with Emis (kg/s), RUN (1:n) and Abbr (SB
-    compartment abreviations)
+-   *emissions: Dataframe with Emis (kg/s), RUN (1:n) and Abbr (SB
+    compartment abreviations)*
 
--   var_box_df: Dataframe with SB variable (varName), scope (Scale,
+-   *var_box_df: Dataframe with SB variable (varName), scope (Scale,
     SubCompart, Species) and Distribution with relevant parameters (a,
-    b, c or d) defined.
+    b, c or d) defined.*
 
--   var_invFun: The relevant probability distribution functions using
-    the distribution specific parameters from var_box_df in a list
+-   *var_invFun: The relevant probability distribution functions using
+    the distribution specific parameters from var_box_df in a list*
     <!--# Why this extra step? Either exchange the abc with the distribution function in a new var_infFun column in var_box_df. Now the link between the var_box_df and var_invFun is lost! -->
 
--   nRUNs: the number of runs (should match the number of RUNs in the
-    emissions dataframe provided).
+-   *nRUNs: the number of runs (should match the number of RUNs in the
+    emissions dataframe provided).*
 
-Now we can solve and get the solution, variable values, concentration
-and emissions.
+*Now we can solve and get the solution, variable values, concentration
+and emissions.*
 
 ```{r Solve SS probabilistic, warning=FALSE, message=FALSE}
 # Call the steady state solver
@@ -242,7 +242,7 @@ concentration = World$Concentration()
 emission = World$Emissions()
 ```
 
-Finally, we can plot the outcome using the predefined plot functions.
+*Finally, we can plot the outcome using the predefined plot functions.*
 
 ```{r Plot the SS probabilistic outcome, warning=FALSE, message=FALSE}
 # Plot concentrations at regional scale
@@ -257,33 +257,33 @@ World$PlotMassDistribution(scale = "Moderate")
 
 ```
 
-### Steady state probabilistically with emissions as a set of probability distributions
+### *Steady state probabilistically with emissions as a set of probability distributions*
 
-In addition to the above example where the emissions are set as constant
-one can set the emission per RUN, for instance using probability
-distributions. World\$Solve needs the following variables to solve
-steady state probabilistically with a set of emission distributions (e.g
-normal, triangular).
+*In addition to the above example where the emissions are set as
+constant one can set the emission per RUN, for instance using
+probability distributions. World\$Solve needs the following variables to
+solve steady state probabilistically with a set of emission
+distributions (e.g normal, triangular).*
 <!--# The potential distributions need to be described somewhere and the variables a, b, c, d clearly documented, defined in fGeneral.R in SBoo. -->
 
--   emissions: a set of emission distributions
+-   *emissions: a set of emission distributions*
 
--   var_box_df: a dataframe with the example variables
+-   *var_box_df: a dataframe with the example variables*
 
--   var_invFun: the functions created from the var_box_df in a list
+-   *var_invFun: the functions created from the var_box_df in a list*
 
--   nRUNs: the number of runs (should match the number of RUNs in the
-    emissions dataframe provided).
+-   *nRUNs: the number of runs (should match the number of RUNs in the
+    emissions dataframe provided).*
 
-Now we can solve and get the solution, variable values, concentration
-and emissions.
+*Now we can solve and get the solution, variable values, concentration
+and emissions.*
 
-#### Prepare variable samples
+#### *Prepare variable samples*
 
-For each variable that is uncertain you can define the distribution type
-(triangular, uniform or normal) and the corresponding parameters. For
-this example, an example excel file will be read in containing the
-necessary parameters for the variables we want to vary.
+*For each variable that is uncertain you can define the distribution
+type (triangular, uniform or normal) and the corresponding parameters.
+For this example, an example excel file will be read in containing the
+necessary parameters for the variables we want to vary.*
 
 ```{r Get min, max and peak value of variable values, warning=FALSE, message=FALSE}
 source("baseScripts/initWorld_onlyPlastics.R")  
@@ -295,10 +295,10 @@ Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xls
 varFuns <- World$makeInvFuns(Example_vars)
 ```
 
-#### Prepare emission data
+#### *Prepare emission data*
 
-In this example, we will take a steady state emission data frame as the
-starting point for creating the triangular distributions.
+*In this example, we will take a steady state emission data frame as the
+starting point for creating the triangular distributions.*
 
 ```{r Create steady state emission dataframe, warning=FALSE, message=FALSE}
 # Create the steady state emission dataframe 
@@ -308,10 +308,10 @@ emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), Emis = c(10000, 10000, 
 emissions <- emissions |>   mutate(Emis = Emis*1000/(365*24*60*60))
 ```
 
-We can take the emission dataframe in the chunk above and define a
+*We can take the emission dataframe in the chunk above and define a
 (min), b (max) and c (peak) and the distribution type for each
 compartment. Consequently, the `World$makeInvFuns()` function is used to
-create the emission functions.
+create the emission functions.*
 
 ```{r Scale the emissions to the distributions, warning=FALSE, message=FALSE}
 emissions$a <- emissions$Emis * 0.7 
@@ -322,9 +322,9 @@ emisFuns <- World$makeInvFuns(emissions)
 names(emisFuns) <- emissions$Abbr
 ```
 
-Now we can solve and get the solution, variable values, concentration
+*Now we can solve and get the solution, variable values, concentration
 and emissions. We can also plot the outcome using the built-in plot
-functions.
+functions.*
 
 ```{r Test steady state uncertain solver, warning=FALSE, message=FALSE}
 # The number of samples you want to pull from the distributions for each variable 
@@ -341,29 +341,29 @@ conc <- World$Concentration()
 World$PlotConcentration()
 ```
 
-## Dynamic solver
+## *Dynamic solver*
 
-SimpleBox can also solve the K matrix with semi-dynamically using time
+*SimpleBox can also solve the K matrix with semi-dynamically using time
 variable emissions. To do this, one needs to use the DynamicSolver. This
-is demonstrated below or microplastics:
+is demonstrated below or microplastics:*
 
 ```{r Init world microplastics, warning=FALSE, message=FALSE}
 source('baseScripts/initWorld_onlyPlastics.R')
 ```
 
-As in steady state, one can do dynamic analysis deterministically or
-probabilistically.
+*As in steady state, one can do dynamic analysis deterministically or
+probabilistically.*
 
-### Use the dynamic solver deterministically
+### *Use the dynamic solver deterministically*
 
-For the dynamic deterministic solver, the emissions need to be given as
-a dataframe with three columns:
+*For the dynamic deterministic solver, the emissions need to be given as
+a dataframe with three columns:*
 
--   'Abbr', which contains the abbreviations for the compartments
+-   *'Abbr', which contains the abbreviations for the compartments*
 
--   'Emis', which contains the emissions to the compartments, in kg/s
+-   *'Emis', which contains the emissions to the compartments, in kg/s*
 
--   'Time', which contains the time of the emission in seconds.
+-   *'Time', which contains the time of the emission in seconds.*
 
 ```{r Test dynamic deterministic solver with emission df, warning = FALSE, message=FALSE}
 # Initialize emissions in t/y
@@ -380,16 +380,16 @@ emissions <- emissions |>
     Time = Time*(365.25*24*60*60)) |> ungroup()
 ```
 
-World\$Solve needs the following variables to solve dynamically
-deterministically:
+*World\$Solve needs the following variables to solve dynamically
+deterministically:*
 
--   emissions: the emissions dataframe
+-   *emissions: the emissions dataframe*
 
--   tmax: the end time for running the solver, in seconds
+-   *tmax: the end time for running the solver, in seconds*
 
--   nTIMES: the number of calculation time steps.
+-   *nTIMES: the number of calculation time steps.*
 
-Now we can solve and get the solution, concentration and emissions.
+*Now we can solve and get the solution, concentration and emissions.*
 
 ```{r Solve dynamically deterministically, warning=FALSE, message=FALSE}
 
@@ -405,10 +405,10 @@ emission <- World$Emissions()
 concentration <- World$Concentration()
 ```
 
-Finally, we can plot the outcome using the predefined plot functions. If
-there is no scale specified, the Regional scale will be selected.
+*Finally, we can plot the outcome using the predefined plot functions.
+If there is no scale specified, the Regional scale will be selected.
 Selecting one or more subcomparts is optional. If no subcomparts are
-given, the outcome is plotted for all subcomparts.
+given, the outcome is plotted for all subcomparts.*
 
 ```{r Plot the outcome of the dynamic deterministic solver, warning=FALSE, message=FALSE}
 # You can specify a scale and a subcompartment
@@ -423,20 +423,21 @@ World$PlotConcentration(scale = "Regional")
 
 ```
 
-### Use the dynamic solver probabilistically
+### *Use the dynamic solver probabilistically*
 
-For the dynamic deterministic solver, the emissions need to be given as
-a dataframe with three columns:
+*For the dynamic deterministic solver, the emissions need to be given as
+a dataframe with three columns:*
 
--   'Abbr', which contains the abbreviations for the compartments
+-   *'Abbr', which contains the abbreviations for the compartments*
 
--   'Emis', which contains the emissions to the compartments, in kg/s
+-   *'Emis', which contains the emissions to the compartments, in kg/s*
 
--   'Time', which contains the time of the emission in seconds,
+-   *'Time', which contains the time of the emission in seconds,*
 
--   'RUN', which contains the run number of the emission.
+-   *'RUN', which contains the run number of the emission.*
 
 ```{r Prepare uncertain dynamic emissions, warning=FALSE, message=FALSE}
+
 source('baseScripts/initWorld_onlyPlastics.R')
 
 load("data/Examples/example_uncertain_data.RData")
@@ -454,37 +455,49 @@ example_data <-
   mutate(Time = ((as.numeric(year))*365.25*24*3600)) |>
   mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> # Convert kt/year to kg/s
   select(-year)
+
+# The raw emission data from 2020 to 2023 will not solve due to unstability in the intital state starting at 0. This can be solved by starting at t=0 and mass=0 see below:
+
+example_data <-
+  example_data |> 
+  mutate(Time = Time - 2019*365.25*24*3600) |> # converting to 0 being one year before 2020
+  full_join(expand.grid(Abbr = unique(example_data$Abbr), 
+                        RUN = c(1:20)) |> 
+              mutate(Time = 0,
+                     Emis = 0))
+
 ```
 
-Prepare the variables the same way as used for the variables in the
-steady state probabilistic solver.
+*Prepare the variables the same way as used for the variables in the
+steady state probabilistic solver.*
 
 ```{r Prepare variable df and functions dyn, warning=FALSE, message=FALSE}
+
 # Load the Excel file containing example distributions for variablese
 Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")
 
 varFuns <- World$makeInvFuns(Example_vars)
 ```
 
-`World$Solve` needs the following variables to solve steady state
-probabilistically:
+*`World$Solve` needs the following variables to solve steady state
+probabilistically:*
 
--   emissions: the emissions dataframe
+-   *emissions: the emissions dataframe*
 
--   var_box_df: a dataframe with the example variables
+-   *var_box_df: a dataframe with the example variables*
 
--   var_invFun: the functions created from the var_box_df in a list
+-   *var_invFun: the functions created from the var_box_df in a list*
 
--   nRUNs: the number of runs (should match the number of RUNs in the
-    emissions dataframe provided)
+-   *nRUNs: the number of runs (should match the number of RUNs in the
+    emissions dataframe provided)*
 
--   tmax: the end time for running the solver, in seconds
+-   *tmax: the end time for running the solver, in seconds*
 
--   nTIMES: the number of calculation time steps.
+-   *nTIMES: the number of calculation time steps.*
 
-Now we can solve and get the solution, variable values, concentration
+*Now we can solve and get the solution, variable values, concentration
 and emissions. NOTE: These calculations take a bit longer than the
-previous calculations.
+previous calculations.*
 
 ```{r Solve dyn probabilistic, warning=FALSE, message=FALSE}
 World$NewSolver("DynamicSolver")
@@ -499,9 +512,7 @@ World$Solve(emissions = example_data,
             var_invFun = varFuns, 
             nRUNs = length(unique(example_data$RUN)), tmin = tmin,
             tmax = tmax, 
-            nTIMES = nTIMES,
-            atol_ode = 0.5,
-            rtol_ode = 1e-30)
+            nTIMES = nTIMES)
 
 solution = World$Masses()
 emission = World$Emissions()
@@ -509,9 +520,9 @@ variable_values = World$VariableValues()
 concentrations = World$Concentration()
 ```
 
-Finally, we can plot the outcome using the predefined plot functions. If
-there is no scale specified, the Regional scale will be selected. If
-there is no subcompart specified, "agriculturalsoil" will be selected.
+*Finally, we can plot the outcome using the predefined plot functions.
+If there is no scale specified, the Regional scale will be selected. If
+there is no subcompart specified, "agriculturalsoil" will be selected.*
 
 ```{r Plot outcome with uncertainty, warning=FALSE, message=FALSE}
 World$PlotConcentration(scale = "Regional", subcompart = "agriculturalsoil")
