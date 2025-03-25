@@ -269,7 +269,7 @@ tidyverse ggdag rmarkdown tidyxl openxlsx constants
 
 -   [Getting Started](vignettes/Getting-started.md) : this file includes all basics for users (not necessarily developers) to use and calculate with the R-implementation of SB.
 
--   [x1 Solver use](vignettes/x.1%20Solver%20use.Rmd) : explains how to solve for both static and dynamic data.
+-   [10.0 Solver use](vignettes/10.0-Solver_use.md) : explains how to solve for both static and dynamic data.
 
 ## Guidance for developers
 

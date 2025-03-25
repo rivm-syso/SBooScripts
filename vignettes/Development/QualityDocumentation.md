@@ -1,7 +1,7 @@
 Model Quality and Transparency document
 ================
 Matthias Hof, Jaap Slootweg, Joris Quik, et al.
-2024-11-11
+2025-03-25
 
 This document provides an overview of information required to assess the
 quality of SimpleBox according to the RIVM quality framework “Quality
@@ -337,7 +337,7 @@ tidyverse ggdag rmarkdown tidyxl openxlsx constants
   all basics for users (not necessarily developers) to use and calculate
   with the R-implementation of SB.
 
-- [x1 Solver use](vignettes/x.1%20Solver%20use.Rmd) : explains how to
+- [10.0 Solver use](vignettes/10.0-Solver_use.md) : explains how to
   solve for both static and dynamic data.
 
 ## Guidance for developers
