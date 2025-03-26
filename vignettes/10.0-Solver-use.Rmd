@@ -9,13 +9,6 @@ editor_options:
     wrap: 72
 ---
 
-```{r setup, include=FALSE, warning=FALSE, message=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
-
 *SimpleBox (SBoo) has specific solvers available that allow running the
 model deterministic or probabilistic. We assume you already understand
 the basics of using SimpleBox and have an idea of what input variables
