@@ -233,6 +233,14 @@ if (length(expanded_lhs_colnames) == ncol(expanded_lhs_matrix)) {
 # The expanded_lhs_matrix now contains the expanded columns with correct names
 View(expanded_lhs_matrix)
 
+cnames <- colnames(expanded_lhs_matrix)
+
+vars <- sapply(strsplit(cnames, "_"), `[`, 1)
+scales <- sapply(strsplit(cnames, "_"), `[`, 2)
+subcomparts <- sapply(strsplit(cnames, "_"), `[`, 3)
+species <- sapply(strsplit(cnames, "_"), `[`, 4)
+
+Example_vars2 <- data.frame(varName = vars, Scale = scales, Subcompart = subcomparts, Species = species)
 
 ############################### Check the results ##############################
 
