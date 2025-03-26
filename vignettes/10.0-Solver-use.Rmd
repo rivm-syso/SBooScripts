@@ -9,6 +9,13 @@ editor_options:
     wrap: 72
 ---
 
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
 *SimpleBox (SBoo) has specific solvers available that allow running the
 model deterministic or probabilistic. We assume you already understand
 the basics of using SimpleBox and have an idea of what input variables
@@ -93,7 +100,7 @@ function to calculate the masses in each compartment. The input to
 probabilisticaly, see below.*
 
 ```{r Solve steady state deterministically, warning=FALSE, message=FALSE}
-# Define the solver function to use. For steady state calculations, this is always "SteadyODE"
+# Define the solver function to use. For steady state calculations, this is always "SteadyStateSolver"
 World$NewSolver("SteadyStateSolver")
 
 # Solve with the emissions we defined in the previous chunk
@@ -202,7 +209,7 @@ values for 2 variables. Consequently, a distribution is created for each
 row in the dataframe.*
 
 ```{r Prepare variable df and functions ss, warning=FALSE, message=FALSE}
-# Load the Excel file containing example distributions for variablese
+# Load the Excel file containing example distributions for variables
 Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")
 
 varFuns <- World$makeInvFuns(Example_vars)
@@ -395,7 +402,7 @@ deterministically:*
 
 tmax <- max(emissions$Time) # set max solve time to last step in emission scenario
 tmin <- min(emissions$Time)
-nTIMES <- 1+max(emissions$Time)/(365.25*24*60*60) # Sets the time step for output, e.g. for 19 year scenario from eyar 1 to 20, add t1 is 20 nTimes
+nTIMES <- 1+max(emissions$Time)/(365.25*24*60*60) # Sets the time step for output, e.g. for 19 year scenario from year 1 to 20, add t1 is 20 nTimes
 
 # Initialize the dynamic solver
 World$NewSolver("DynamicSolver")
