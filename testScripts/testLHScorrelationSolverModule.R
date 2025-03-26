@@ -1,4 +1,3 @@
-####################### Test probabilistic dynamic plot ########################
 source('baseScripts/initWorld_onlyPlastics.R')
 
 # Load the Excel file containing example distributions for variables
@@ -79,8 +78,4 @@ ggplot(melted_corr_matrix, aes(x = Var1, y = Var2, fill = value)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
   ggtitle("Correlation Matrix Heatmap")
-
-
-
-
 
