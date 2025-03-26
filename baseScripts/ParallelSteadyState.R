@@ -7,15 +7,21 @@ LHSsamples <- readRDS("data/scaledLHSsamples.RDS")
 # Divide the emissions and LHS samples over different lists as evenly as possible for parallel solving
 total_runs <- ncol(LHSsamples)
 
-# Calculate base runs per core and remainder
-base_runs_per_core <- total_runs %/% nCores
-extra_runs <- total_runs %% nCores
+base_runs_per_core <- max_runs_per_batch
+nbatches <- total_runs%/%base_runs_per_core
+extra_runs <- total_runs%%base_runs_per_core
+
+if(extra_runs != 0){
+  nbatches = nbatches+1
+}
 
 # Initialize a vector to store the number of runs per core
-runs_distribution <- rep(base_runs_per_core, nCores)
+runs_distribution <- rep(base_runs_per_core, nbatches)
 
-# Distribute the extra runs over the first few cores
-runs_distribution[1:extra_runs] <- runs_distribution[1:extra_runs] + 1
+if(extra_runs != 0){
+  # Overwrite the last batch with the number in extra_runs
+  runs_distribution[length(runs_distribution)] <- extra_runs
+}
 
 # Split emissions data into chunks based on computed runs_distribution
 emis_slices <- list()
@@ -70,10 +76,9 @@ processSlice <- function(i) {
 }
 
 # Define parallel execution and combine results with rbind
-combinedResults <- foreach(i = seq_len(nSlices), 
-                           .export = c("LHS_slices", "emis_slices", "source", "readRDS")) %dopar% {
-                             processSlice(i)
-                           }
+combinedResults <- foreach(i = seq_len(nSlices)) %dopar% {
+  processSlice(i)
+}
 
 stopCluster(cl)
 

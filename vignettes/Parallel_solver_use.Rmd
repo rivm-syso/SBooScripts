@@ -53,7 +53,7 @@ emissions <- example_data |>
     To_Compartment == "Residential soil (micro)" ~ "s3RS",
     To_Compartment == "Surface water (micro)" ~ "w1RS"
   )) |>
-  mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> 
+  mutate(Emis = (Emis*1000)/(365.25*24*3600)) |> # Convert t/y to kg/s
   select(-To_Compartment)
 ```
 
@@ -74,8 +74,11 @@ World$Solve(emissions = NULL, var_box_df = var_box_df, var_invFun = var_invFun, 
 Specify how many cores you have available for calculations. If you are calculating
 on your own computer, use a maximum of all available cores - 1.
 
+Also specify the maximum number of runs per batch.
+
 ```{R Specify number of cores SS, warning=FALSE, message=FALSE}
 nCores <- 3
+max_runs_per_batch <- 3
 ```
 
 Now the script for solving steady state in parallel can be called. After this 
@@ -133,7 +136,7 @@ emissions <- example_data |>
   )) |>
   select(-To_Compartment) |>
   mutate(Time = ((as.numeric(year)-2019)*365.25*24*3600)) |>
-  mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> # Convert kt/year to kg/s
+  mutate(Emis = (Emis*1000)/(365.25*24*3600)) |> # Convert t/year to kg/s
   select(-year)
 
 tmax <- 365.25*24*60*60*length(unique(emissions$Time))
@@ -158,8 +161,11 @@ World$Solve(emissions = NULL, var_box_df = var_box_df, var_invFun = var_invFun, 
 Specify how many cores you have available for calculations. If you are calculating
 on your own computer, use a maximum of all available cores - 1.
 
+Also specify the maximum number of runs per batch.
+
 ```{R Specify number of cores Dyn, warning=FALSE, message=FALSE}
 nCores <- 3
+max_runs_per_batch <- 3
 ```
 
 Now the script for solving steady state in parallel can be called. After this 
