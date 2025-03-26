@@ -400,7 +400,7 @@ emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 
 MW <- World$fetchData("MW")
 
 emissions <- emissions |>
-  mutate(Emis = Emis*1000/(MW*365*24*60*60))
+  mutate(Emis = Emis*1000/(365*24*60*60))
 
 World$Solve(emissions)
 SSsolve.R <- World$Masses()
@@ -413,7 +413,7 @@ SSsolve.excel <- read.xlsx(SBExcelName,
 SSsolve.excel <- SSsolve.excel |>
   select(-c(STEADY.STATE, X2)) |>
   pivot_longer(names_to = "Abbr", values_to = "EqMass", cols = everything()) |>
-  rename(Mass_kg = EqMass)
+  mutate(Mass_kg = EqMass*MW)
 
 SSsolve.R <- SSsolve.R |> 
   left_join(World$states$asDataFrame, by="Abbr") |>
@@ -581,7 +581,7 @@ emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 
 MW <- World$fetchData("MW")
 
 emissions <- emissions |>
-  mutate(Emis = Emis*1000/(MW*365*24*60*60))
+  mutate(Emis = Emis*1000/(365*24*60*60))
 
 World$Solve(emissions)
 SSsolve.R <- World$Masses()
@@ -594,7 +594,7 @@ SSsolve.excel <- read.xlsx(SBExcelName,
 SSsolve.excel <- SSsolve.excel |>
   select(-c(STEADY.STATE, X2)) |>
   pivot_longer(names_to = "Abbr", values_to = "EqMass", cols = everything()) |>
-  rename(Mass_kg = EqMass)
+  mutate(Mass_kg = EqMass*MW)
 
 SSsolve.R <- SSsolve.R |> 
   left_join(World$states$asDataFrame, by="Abbr") |>
@@ -633,6 +633,14 @@ This proves that the port of SimpleBox to R is successful in reproducing
 the results from the original spreadsheet implementation for chemicals
 of class `r World$fetchData("ChemClass")`.*
 
+## Concentrations
+
+```{r}
+
+World$Concentration()
+
+```
+
 # *Step 3. Verify dynamic solver*
 
 *The dynamic solver can use time explicit emissions and provide masses
@@ -653,7 +661,7 @@ emissions <- merge(emissions, data.frame(Abbr = c("aRU", "s2RU", "w1RU")))
 
 # convert time to seconds and emission to kg/s
 emissions <- emissions |>
-  mutate(Emis = Emis*1000/(MW*365.25*24*60*60),
+  mutate(Emis = Emis*1000/(365.25*24*60*60),
     Time = Time*(365.25*24*60*60)) |> ungroup()
 
 

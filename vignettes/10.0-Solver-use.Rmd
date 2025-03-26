@@ -30,11 +30,7 @@ deterministically or probabilistically.*
 molecules.*
 
 ```{r Initialize World, warning=FALSE, message=FALSE}
-library(lhs)
-library(tidyverse)
-library(treemapify)
-library(gridExtra)
-
+source("baseScripts/installRequirements.R")
 source("baseScripts/initWorld_onlyMolec.R")
 ```
 
