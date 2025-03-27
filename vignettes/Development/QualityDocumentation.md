@@ -1,7 +1,7 @@
 Model Quality and Transparency document
 ================
 Matthias Hof, Jaap Slootweg, Joris Quik, et al.
-2025-03-25
+2025-03-27
 
 This document provides an overview of information required to assess the
 quality of SimpleBox according to the RIVM quality framework “Quality
@@ -60,14 +60,14 @@ detailed description of the use of SimpleBox and the evaluation of its
 functioning (sensitivity, uncertainty, fit for purpose) see Chapter 4.
 
 <figure>
-<img src="FiguresQualityDocumentation/SimpleBoxConcept.png"
-alt="Figure 1. Concept of SimpleBox. where: e: Emission rates (ton/year), k: Rate constant (s-1) describing transport between environmental compartments (air, water sediment and soil) based on the relevant fate processes and degradation., A: Matrix of all rate constants, m: Mass in each environmental compartment of emitted compound" />
-<figcaption aria-hidden="true">Figure 1. Concept of SimpleBox. where: e:
-Emission rates (ton/year), k: Rate constant (s-1) describing transport
+<img src="images/SimpleBoxConcept-02.png"
+alt="Figure 1. Concept of SimpleBox, where e = Emission rates (ton/year), k = Rate constants (s-1) describing transport between environmental compartments (air, water sediment and soil) based on the relevant fate processes and degradation, A = Matrix of all rate constants, m = Mass in each environmental compartment of emitted compound." />
+<figcaption aria-hidden="true">Figure 1. Concept of SimpleBox, where e =
+Emission rates (ton/year), k = Rate constants (s-1) describing transport
 between environmental compartments (air, water sediment and soil) based
-on the relevant fate processes and degradation., A: Matrix of all rate
-constants, m: Mass in each environmental compartment of emitted
-compound</figcaption>
+on the relevant fate processes and degradation, A = Matrix of all rate
+constants, m = Mass in each environmental compartment of emitted
+compound.</figcaption>
 </figure>
 
 #### Table 2. An overview of the assumptions made in SimpleBox
@@ -77,8 +77,8 @@ Note: current table only applicable to nano-version, source [OECD,
 
 <table>
 <colgroup>
-<col style="width: 35%" />
-<col style="width: 64%" />
+<col style="width: 26%" />
+<col style="width: 73%" />
 </colgroup>
 <thead>
 <tr class="header">
@@ -99,43 +99,52 @@ compartments)</p></li>
 </tr>
 <tr class="even">
 <td><strong>Transfer</strong></td>
-<td><p>- Pseudo-first order rate processes</p>
-<p>- Mass Balance</p></td>
+<td><ul>
+<li><p>Pseudo-first order rate processes</p></li>
+<li><p>Mass Balance</p></li>
+</ul></td>
 </tr>
 <tr class="odd">
 <td><strong>Transformation</strong></td>
-<td><p>- Pseudo-first order rate processes</p>
-<p>- Stoke’s Law</p>
-<p>- Brownian motion</p></td>
+<td><ul>
+<li><p>Pseudo-first order rate processes</p></li>
+<li><p>Stoke’s Law</p></li>
+<li><p>Brownian motion</p></li>
+</ul></td>
 </tr>
 <tr class="even">
 <td><strong>Substance</strong></td>
-<td><p>- Nanomaterials, particulate matter</p>
-<p>- Particle size determines physical behaviour</p></td>
+<td><ul>
+<li><p>Nanomaterials, particulate matter</p></li>
+<li><p>Particle size determines physical behaviour</p></li>
+</ul></td>
 </tr>
 <tr class="odd">
 <td><strong>Time</strong></td>
-<td><p>- Steady-state solution of mass balance equation (LTA)</p>
-<p>- Re-evaluation of model parameters at each timestep for dynamics</p>
-<p>- Variable time-step that can span years</p></td>
+<td><ul>
+<li><p>Steady-state solution of mass balance equation (LTA)</p></li>
+<li><p>Re-evaluation of model parameters at each timestep for
+dynamics</p></li>
+<li><p>Variable time-step that can span years</p></li>
+</ul></td>
 </tr>
 </tbody>
 </table>
 
 # 2. Technical implementation
 
-SimpleBox 5.0 is Object Oriented
+SimpleBox is Object Oriented
 
 ## What does Object Oriented mean?
 
 <figure>
-<img src="FiguresQualityDocumentation/SimpleBoxObjectOriented.png"
+<img src="images/SBoo_Overview.png"
 alt="Figure 2. Schematic overview of the SimpleBox Object Oriented stucture" />
 <figcaption aria-hidden="true">Figure 2. Schematic overview of the
 SimpleBox Object Oriented stucture</figcaption>
 </figure>
 
-## The need for an object oriented SimpleBox 5.0 in R
+## The need for an object oriented SimpleBox in R
 
 The SimpleBox 1.0, 2.0, 3.0 and 4.0 versions are spreadsheet models
 available in MS Excel. Over the years the number of boxes increased from
@@ -253,8 +262,8 @@ environmental compartment in SimpleBox.
 <figure>
 <img
 src="https://ars.els-cdn.com/content/image/1-s2.0-S0048969720310901-gr4_lrg.jpg"
-alt="Figure x. From Wang et al., 2020: Time series of estimated (solid curves, in pg/m3) and measured concentrations (points, in pg/m3) at different sampling sites for α-HCH in the atmosphere. The red and blue solid curves show the estimated results for the temperate and Arctic climate zone respectively. The red and blue dotted curves show the exponential trend of measured concentrations in the temperate and Arctic climate zone." />
-<figcaption aria-hidden="true">Figure x. From Wang et al., 2020: Time
+alt="Figure 3. From Wang et al., 2020: Time series of estimated (solid curves, in pg/m3) and measured concentrations (points, in pg/m3) at different sampling sites for α-HCH in the atmosphere. The red and blue solid curves show the estimated results for the temperate and Arctic climate zone respectively. The red and blue dotted curves show the exponential trend of measured concentrations in the temperate and Arctic climate zone." />
+<figcaption aria-hidden="true">Figure 3. From Wang et al., 2020: Time
 series of estimated (solid curves, in pg/m3) and measured concentrations
 (points, in pg/m3) at different sampling sites for α-HCH in the
 atmosphere. The red and blue solid curves show the estimated results for
@@ -292,7 +301,7 @@ document. To do: SB4nano and microplastics toevoegen
 | SimpleBox 4.0 | 2015 | Excel + R | [Schoorl, Hollander, van de Meent, 2015](https://www.rivm.nl/publicaties/simplebox-40-a-multimedia-mass-balance-model-for-evaluating-fate-of-chemical-substances) |
 | SimpleBox4nano | 2014 | Excel + R | [Meesters et al., 2014](https://doi.org/10.1021/es500548h) |
 | SimpleBox4Plastics | 2023 | Excel + R | [Quik, Meesters, Koelmans, 2023](https://doi.org/10.1016/j.scitotenv.2023.163437) |
-| 5.0 | 2024 | R | to be determined |
+| SBoo 2024.11 | 2024 | R | to be determined |
 
 # 6. Organisation
 

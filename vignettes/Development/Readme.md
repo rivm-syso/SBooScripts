@@ -1,11 +1,11 @@
 Development readme
 ================
 Jaap Slootweg, Joris Quik, Valerie de Rijk
-2024-07-24
+2025-03-27
 
 # Development of SimpleBox object oriented (SBoo)
 
-There are several important conventions takes as basis for development
+There are several important conventions taken as basis for development
 of SimpleBox in R. This folder contains different examples[^1] and other
 help files aimed at an (advanced) user who wants to extend or modify the
 current implementation of SBoo.
@@ -22,6 +22,10 @@ Important starting documents to read:
   : This vignette is a good starting point for starting developers. The
   underlying structure of the repository is explained here, including
   the input data.
+- [Quality assessment of
+  SBoo](vignettes/Development/QualityDocumentation.md "RIVM quality document")
+  with relevant information using the RIVM quality framework “Quality
+  and Transparancy of Models”.
 
 All other vignettes are useful for their own specific focus.
 
