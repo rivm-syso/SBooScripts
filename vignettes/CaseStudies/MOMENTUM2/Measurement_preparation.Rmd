@@ -7,6 +7,7 @@ editor_options:
 ```{R load packages}
 library(openxlsx)
 library(tidyverse)
+library(countrycode)
 ```
 
 # Leslie et al. (2017)
@@ -19,20 +20,29 @@ Sampling method: Samples were collected in 1 or 2 liter glass jars.
 ```{R Leslie et al. data}
 SB4P_raw <- read.xlsx("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/Measurements/Concentrations_SB4N_validation.xlsx", sheet = "Plastics")
 
+European_countries <- c("France", "Switzerland", "Italy", "England", "Germany", "Ireland", "Slovakia", "Finland", "Netherlands", "Sweden", "Portugal", "Denmark", "Chech Republic")
+
 # Select needed data and clean up the dataframe
 SB4P <- SB4P_raw |>
-  filter(country == "Netherlands") |>
+  filter(country %in% European_countries) |>
+    mutate(Scale = case_when(
+    str_detect(country, "Netherlands") ~ "Regional",
+    TRUE ~ "Continental"
+  )) |>
   mutate(type = tolower(type)) |>
   filter(type2 == "Surf") |>
+  filter(unit == "#/m3") |>
+  select(-location) |>
   mutate(min_diameter_um = as.double(map_chr(str_split(size.um, " - "), 1))) |>
   mutate(max_diameter_um = as.double(map_chr(str_split(size.um, " - "), 2))) |>
-  filter(unit == "#/m3") |>
   mutate(source = paste0(ref, " (", pub.year, ")")) |>
-  rename(subcompartment = type) |>
-  rename(value = mean) |>
-  select(subcompartment, min_diameter_um, max_diameter_um, value, unit, source, method, location) |>
+  rename(SubCompart = type,
+         location = country,
+         value = mean) |>
+  select(SubCompart, Scale, min_diameter_um, max_diameter_um, value, unit, source, method, location) |>
   rename(sampling_method = method) |>
-  mutate(detection_method = "Light microscopy") |>
+  #mutate(detection_method = "Light microscopy") |>
+  mutate(detection_method = NA) |>
   mutate(lower_detection_limit_um = 10) |>
   mutate(upper_detection_limit_um = 5000)
 ```
@@ -76,7 +86,7 @@ KWR_location_concentrations_data <- KWR_data_dfs |>
             mean_diameter_um = mean(`Diameter.(µm)`),
             median_diameter_um = median(`Diameter.(µm)`),
             value = mean(MP_m3)) |>
-  mutate(subcompartment = "river") |>
+  mutate(SubCompart = "river") |>
   mutate(unit = "#/m3") |>
   mutate(institute = "KWR")
 
@@ -112,7 +122,7 @@ KWR_location_concentrations_effluent <- KWR_effluent_dfs |>
             mean_diameter_um = mean(Diameter),
             median_diameter_um = median(Diameter),
             value = mean(MP_m3)) |>
-  mutate(subcompartment = "river") |>
+  mutate(SubCompart = "river") |>
   mutate(unit = "#/m3") |>
   filter(str_detect(location, "front|upstream")) |>
   mutate(location = str_remove(location, ".xlsx"))
@@ -123,45 +133,89 @@ KWR_data <- bind_rows(KWR_location_concentrations_data, KWR_location_concentrati
   mutate(detection_method = "LDIR + OM") |>
   mutate(lower_detection_limit_um = 10) |>
   mutate(upper_detection_limit_um = 5000) |>
-  mutate(institute = "KWR")
+  mutate(institute = "KWR") |>
+  mutate(Scale = "Regional")
 ```
 
-```{R Save data}
+Read in and save data collected by TNO on NR and SBR particles. (Data in mass, not particles)
 
-data <- bind_rows(SB4P, KWR_data) |>
-  select(value, unit, subcompartment, subcompartment, location, min_diameter_um, max_diameter_um, mean_diameter_um, median_diameter_um, sampling_method, detection_method, lower_detection_limit_um, upper_detection_limit_um, source, institute) |>
+```{R}
+source("vignettes/CaseStudies/LEON-T/f_plot_functions.R")
+abs_path_Measurements <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/LEONT_TNO_measurements_clean.xlsx" # Define path to LEON-T measurement data
+LEONT_TWP_data <- prep_LEONT_data(abs_path_Measurements) |>
+  select(-RUN) |>
+  rename(location = Locatie,
+         value = Concentration,
+         unit = Unit) |>
+  mutate(Scale = "NL") |>
+  select(-Polymer) |>
+  select(-SubCompartName) |>
+  mutate(lower_detection_limit_um = 2,
+         upper_detection_limit_um = 1000,
+         min_diameter_um = 2,
+         max_diameter_um = 1000)
+```
+
+Read in the data on soil microplastic concentrations (Redondo-Hasselerharm et al., 2024)
+
+```{R}
+soil_concentrations <- read.xlsx("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/Redondo_2024_soil.xlsx")
+
+# Change "N.R." (not reported) to NA
+soil_concentrations[soil_concentrations == "N.R."] <- NA
+soil_concentrations$Mean_concentration <- gsub("[^0-9.]", "", soil_concentrations$Mean_concentration)
+soil_concentrations$Min_concentration <- gsub("[^0-9.]", "", soil_concentrations$Min_concentration)
+soil_concentrations$Max_concentration <- gsub("[^0-9.]", "", soil_concentrations$Max_concentration)
+
+# Select background concentrations only
+soil_concentrations <- soil_concentrations |>
+  mutate(Mean_concentration = as.integer(Mean_concentration),
+         Min_concentration = as.integer(Min_concentration),
+         Max_concentration = as.integer(Max_concentration)) |>
+  filter(str_detect(MP.source, "Background"))
+
+# Filter for concentrations in Europe 
+soil_concentrations<- soil_concentrations |>
+  filter(str_detect(`Country,.Continent`, "Europe")) |>
+  select(Land.type, `Country,.Continent`, detection_method, lower_detection_limit_um, upper_detection_limit_um, Mean_concentration, unit) |>
+  mutate(SubCompart = case_when(
+    Land.type == "Farmland" ~ "agriculturalsoil",
+    Land.type == "Grassland" ~ "naturalsoil",
+    Land.type == "Forest" ~ "naturalsoil"
+  )) |>
+  rename(value = Mean_concentration,
+         location = `Country,.Continent`) |>
+  select(-Land.type) |>
+  mutate(source = "Redondo-Hasselerharm et al., 2024") |>
+  mutate(Scale = case_when(
+    str_detect(location, "Netherlands") ~ "Regional",
+    TRUE ~ "Continental"
+  )) |>
+  mutate(min_diameter_um = NA,
+         max_diameter_um = NA,
+         sampling_method = NA)
+```
+
+Save the data. #/m3 and weight concentrations on different tabs.
+
+```{R Save data}
+particle_data <- bind_rows(SB4P, KWR_data, soil_concentrations) |>
+  select(value, unit, SubCompart, SubCompart, location, min_diameter_um, max_diameter_um, mean_diameter_um, median_diameter_um, sampling_method, detection_method, lower_detection_limit_um, upper_detection_limit_um, source, institute) |>
   rename(concentration = value,
          concentration_unit = unit)
 
-write.xlsx(data, "Measurements_MP_surface_water.xlsx")
+# Create a new workbook
+wb <- createWorkbook()
+
+# Add `particle_data` to the first sheet
+addWorksheet(wb, "Particle Data")
+writeData(wb, "Particle Data", particle_data)
+
+# Add `mass_data` to the second sheet
+addWorksheet(wb, "Mass Data")
+writeData(wb, "Mass Data", mass_data)
+
+# Save the workbook
+saveWorkbook(wb, "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/MOMENTUM2_measurements.xlsx", overwrite = TRUE)
 ```
-
-
-# MoreMomentum
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
