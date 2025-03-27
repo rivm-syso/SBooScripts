@@ -672,9 +672,21 @@ FlowMass <-
          Flow_kg_s.Excel = Mass_kg.Excel*k_Excel) |> 
   select(-diff,-relDif) |> 
   mutate(FlowDiff = Flow_kg_s.R - Flow_kg_s.Excel) |> 
-  mutate(FlowRelDiff = FlowDiff/Flow_kg_s.R)
+  mutate(FlowRelDiff = FlowDiff/Flow_kg_s.R) |> ungroup()
 
-filter(FlowMass, FlowRelDiff > 0.0001)
+filter(FlowMass, abs(FlowRelDiff) > 0.0001)
+
+World$FromDataAndTo() |> filter(fromScale == "Arctic" & toScale == "Arctic"& toSpecies == "Unbound" & fromSubCompart == "naturalsoil")
+
+ggplot(FlowMass, aes(x = to, y = from, color = abs(FlowRelDiff))) +
+  geom_point() +
+  scale_color_gradient(low = "green", high = "red") +
+  ggtitle(paste0(substance)) +
+  theme(
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    plot.margin = margin(t = 10, r = 10, b = 30, l = 10)
+  )
 
 # print("Difference in emissions between R and Excel")
 
