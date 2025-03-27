@@ -1,0 +1,672 @@
+---
+title: "Verification of SimpleBox - spreadsheet versus R implementation for metals"
+author: "Anne Hids, Valerie de Rijk, Matthias Hof and Joris Quik"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 8)
+```
+
+This vignette demonstrates the verification process of SimpleBox
+implemented in R (version 2024.8.0) and in an Excel^TM^ spreadsheet (xl
+v4.0.5). To do this the 1^st^ order rate constants (k's) and steady
+state masses are compared between the two model implementations. The
+differences should be negligible and only based on rounding errors. In
+this case we choose a relative difference of the k's or masses between
+the models to not exceed 0.1%.
+
+# Verification method
+
+```{r Initialize, message=FALSE, warning=FALSE, include=FALSE}
+# Create a list with the names of substances
+Potential_substances <- c(
+  "1-aminoanthraquinone", # no class
+  "1-HYDROXYANTHRAQUINONE", # acid
+  "1-Hexadecanamine, N,N-dimethyl-", # base
+  "1-Chloro-2-nitro-propane", # neutral
+  "Sb(III)" # metal
+)
+
+substance <- Potential_substances[5]
+
+source("baseScripts/initWorld_onlyMolec.R")
+
+World$substance <- substance
+```
+
+The SBoo world is initialized for a substance. In this case, that
+substance is `r World$fetchData("Substance")`, which is of class:
+`r World$fetchData("ChemClass")`.
+
+At release already improvements or developments have been implemented in
+the R version of SimpleBox (SBoo) which are not implemented in Excel
+which will result in differences between the spreadsheet and R
+implementation. For this reason a TEST variable has been introduced to
+the changed algorithms in R in order to verify the outcome of SimpleBox
+in R with the original implementation in the spreadsheet version. So,
+TEST variable is a boolean, that can be used to calculate some processes
+in R the same way as in excel for the verification without removing the
+improvements that are made. For this reason we show the verification in
+two steps:
+
+1.  Compare k's and steady state masses of SBoo with updates to the
+    spreadsheet.
+
+2.  Compare k's and steady state masses of adapted SBoo using TEST
+    variable to the spreadsheet.
+
+When comparing k's and steady state masses between SimpleBox in R and
+Excel^TM^, the goal is that the relative difference is less than 0.1
+percent for each k and steady state mass. The reason is that smaller
+differences are almost inevitable due to differences in rounding values
+between excel and R, and not the result of mistakes in calculations or
+input values.
+
+# Step 1. Compare SBoo (incl. updates) to spreadsheet
+
+```{r comparison_1, echo=FALSE, warning=FALSE}
+# Comparing K's from R model to K's from excel model
+library(openxlsx)
+library(tidyverse)
+
+ProcessMolFunctions <- c(
+  "k_Adsorption", "k_Advection", "k_Burial",
+  "k_Degradation", "k_Deposition", "k_Desorption",
+  "k_Erosion", "k_Escape",
+  "k_Leaching", "k_Resuspension", "k_Runoff", "k_Sedimentation",
+  "k_Volatilisation"
+)
+
+# read in K matrix from excel
+SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SBExcel_verification_", substance, ".xlsm")
+
+SBexcel.K <- read.xlsx(SBExcelName,
+  colNames = FALSE,
+  namedRegion = "K"
+)
+SBexcel.Names <- read.xlsx(SBExcelName,
+  colNames = FALSE,
+  namedRegion = "box_names"
+)
+
+colnames(SBexcel.K) <- SBexcel.Names
+SBexcel.K$to <- as.character(SBexcel.Names)
+
+SBexcel.K <- pivot_longer(SBexcel.K, cols = as.character(SBexcel.Names), values_to = "k", names_to = "from")
+
+# adding "from" and "to" acronyms to the R K matrix
+kaas <- as_tibble(World$kaas)
+
+# R version does not us the acronyms of the excel version, set-up to convert them
+# Note: this map creates the wrong acronym for soil and sediment at global scale, this is fixed afterwards
+accronym_map <- c(
+  "marinesediment" = "sd2",
+  "freshwatersediment" = "sd1",
+  "lakesediment" = "sd0",
+  "agriculturalsoil" = "s2",
+  "naturalsoil" = "s1",
+  "othersoil" = "s3",
+  "air" = "a",
+  "deepocean" = "w3",
+  "sea" = "w2",
+  "river" = "w1",
+  "lake" = "w0"
+)
+
+accronym_map2 <- c(
+  "Arctic" = "A",
+  "Moderate" = "M",
+  "Tropic" = "T",
+  "Continental" = "C",
+  "Regional" = "R"
+)
+
+kaas <- kaas |> mutate(
+  from = paste0(
+    accronym_map[fromSubCompart],
+    accronym_map2[fromScale]
+  ),
+  to = paste0(
+    accronym_map[toSubCompart],
+    accronym_map2[toScale]
+  )
+)
+
+# Issue that compartments sediment and soil at global scale in excel have sd and s as acronyms instead of sd2 and s1
+kaas <-
+  kaas |>
+  mutate(
+    from =
+      ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") &
+        (fromSubCompart == "marinesediment" | fromSubCompart == "naturalsoil"),
+      str_replace_all(from, c("sd2" = "sd", "s1" = "s")),
+      from
+      )
+  ) |>
+  mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") &
+    (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(to, c("sd2" = "sd", "s1" = "s")), to))
+
+kaas2 <- kaas |>
+  filter(from != to) |> # filtering the diagonals ou
+  group_by(from, to) %>%
+  summarize(k = sum(k)) # R version sometimes has multiple k's per fromto box; excel only has the summed k's per box
+
+kaas2$fromto <- paste(sep = "_", kaas2$from, kaas2$to)
+
+diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to, ] # all the diagonals in excel are negative values -> sums of all the "froms" of that compartment
+
+diagonal_R <-
+  aggregate(k ~ from, data = kaas, FUN = sum) # R model has k values per process, not per box. For the "diagonal" ("from = to") boxes, this is different than in the excel version. summing all the "froms" here to be able to compare them with excel matrix. This should result in one value for each compartment (scale-subcomp-species combo)
+
+# Single dataframe with both the R and excel diagonals
+merged_diagonal <- merge(diagonal_R, diagonal_excel, by = "from", suffixes = c("_R", "_Excel"))
+merged_diagonal$k_Excel <- -merged_diagonal$k_Excel # Turning the "negative" values from the Excel matrix into positive ones
+merged_diagonal$diff <- merged_diagonal$k_R - merged_diagonal$k_Excel
+merged_diagonal$reldif <- merged_diagonal$diff / merged_diagonal$k_R
+
+SBexcel.K <- filter(SBexcel.K, k != 0 & SBexcel.K$from != SBexcel.K$to)
+SBexcel.K$fromto <- paste(sep = "_", SBexcel.K$from, SBexcel.K$to)
+
+mergedkaas <- merge(kaas2, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
+
+mergedkaas$diff <- mergedkaas$k_R - mergedkaas$k_Excel # compare R k to Excel K
+
+mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff / k_R)
+```
+
+## preliminary matrix check
+
+In the chunk below we check if our matrix is as large as we expect it to
+be.
+
+i)  Matrix The SimpleBox model operates over 5 scales, 12
+    subcompartments and 4 different speciations. For molecules, this is
+    already filtered to only include one species: Unbound. As such, we
+    would expect our matrix to have 5 \* 12 \* 1 = 60 rows. However,
+    some exceptions exist within our SB world:
+
+-   The Regional and Continental scale do now have a deepocean layer
+    (w3), reducing the matrix by 2 \* 1 = 2 rows.
+-   The Global Scales (Arctic, Moderate, Tropic) only have one type of
+    soil instead of 3, reducing the matrix by 3 \* 2 = 6 rows.
+-   The Global Scales (Arctic, Moderate, Tropic) only have one type of
+    sediment instead of 3, reducing the matrix by 3 \* 2 = 6 rows.
+-   The Global Scales (Arctic, Moderate, Tropic) only have one type of
+    water instead of 3, reducing the matrix by 3 \* 2 = 6 rows.
+-   Cloudwater (compartment) does not have any values, reducing our
+    matrix by 5 \* 1 \* 1 = 5 rows.
+
+With these exceptions, we expect our matrix to be 60- 25 = 35 rows. This
+script will stop running if this is not the case.
+
+ii) We expect all processes to be included in Processes4SpeciesTp.csv to
+    also be calculated. Therefore, we compare the calculated unique
+    processes with the processes defined in this csv.
+
+```{r check if matrix is 155x155, include=TRUE, echo=FALSE, warning=FALSE}
+dims <- dim(diagonal_R)
+
+# Check if the matrix is 155x155
+is_155x155 <- all(dims == c(35, 2))
+
+# If the matrix is not 155x155, stop the execution
+if (!is_155x155) {
+  stop("The matrix does not have 155 rows. Execution stopped.")
+}
+
+# Continue with the rest of the code if the matrix is 155x155
+matrix_info <- list(dimensions = dims, is_155x155 = is_155x155)
+
+
+## check if all processes included
+Processes4SpeciesTp <- read.csv("data/Processes4SpeciesTp.csv")
+Functions <- Processes4SpeciesTp$Process[grepl("[a-z,A-Z]", Processes4SpeciesTp$Molecular)]
+Functions <- paste0("k_", Functions)
+Functions[!Functions %in% unique(World$kaas$process)]
+world_processes <- unique(World$kaas$process)
+
+# Check if Functions and unique world_processes match exactly
+if (!setequal(Functions, world_processes)) {
+  # Find elements in world_processes not in Functions
+  missing_from_functions <- world_processes[!world_processes %in% Functions]
+
+  # Find elements in Functions not in world_processes
+  extra_in_functions <- Functions[!Functions %in% world_processes]
+
+  # Print the mismatched elements
+  cat("The following process names are missing from Functions:\n")
+  print(missing_from_functions)
+  cat("The following process names are extra in Functions:\n")
+  print(extra_in_functions)
+
+  # Stop the script
+  stop("Mismatch found between Functions and unique(World$kaas$process).")
+}
+```
+
+## Compare first order rate constants
+
+When comparing k's between R and excel, the goal is that the relative
+difference is less than 1 percentile for each k. The reason is that
+smaller differences often are a result of differences in rounding values
+between excel and R, and not the result of mistakes in calculations or
+different input values. In this vignette two types of k's are compared:
+diagonal k's and from-to k's.
+
+At the time of this verification, some improvements were already made in
+the R version versus the excel version. This meant that some k's differ
+between R and excel, but not because the calculations or input values
+are wrong. In order to still be able to compare the two versions, the
+'Test' variable was created. This variable is a boolean, that can be
+used to calculate some processes in R the same way as in excel for the
+verification without removing the improvements that are made. When this
+test variable was used and why will be explained below.
+
+### Diagonal sum of 'from' k's
+
+Diagonal k's are k's that are on the diagonal of the k matrix. They are
+calculated as the sum of all the k's leaving the subcompartment plus the
+sum of the removal process k's (i.e. degradation or burial).
+
+```{r PlotsDiagonalk_1,fig.cap = "Figure 1: Relative differences sum of from-k's between R and Spreadsheet implementation of SimpleBox (Test=FALSE)", echo=FALSE, warning=FALSE}
+custom_theme <- function() {
+  theme(
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    plot.margin = margin(t = 10, r = 10, b = 30, l = 10) # ,
+    # panel.background = element_rect(fill = "white", colour = "grey"),   # White background
+    # panel.grid.major = element_line(colour = "grey")#,                   # Black major grid lines
+    # panel.grid.minor = element_line(colour = "black")                    # Black minor grid lines
+  )
+}
+
+# Plot of differences of the diagonals per compartment
+# ggplot(merged_diagonal, aes(x = from, y = diff)) +
+#   geom_boxplot() +
+#   ggtitle(paste0("Figure 1: Absolute differences removal k's between R and excel for ", substance)) +
+#   geom_hline(yintercept = 0.001, color = "red") +
+#   geom_hline(yintercept = -0.001, color = "red") +
+#   custom_theme()+
+#   labs(x = "from", y = "Absolute diff")
+
+# Plot of relative differences of the diagonals per compartment
+ggplot(merged_diagonal, aes(x = from, y = reldif)) +
+  geom_boxplot() +
+  ggtitle(paste0(substance)) +
+  geom_hline(yintercept = 0.001, color = "red") +
+  geom_hline(yintercept = -0.001, color = "red") +
+  custom_theme() +
+  labs(x = "from", y = "Relative diff")
+```
+
+As can be seen in Figure 1, relative differences larger than 0.1% are in
+the lake and sediment subcompartments.
+
+```{r DiagonalDifferences, include=FALSE, echo=FALSE}
+merged_diagonal |>
+  mutate(reldif = abs(reldif)) |>
+  filter(reldif > 0.001) |>
+  arrange(desc(reldif)) |>
+  knitr::kable(digits = 30)
+```
+
+#### Lake difference
+
+The relative difference in lake removal rate is caused by lake
+sedimentation being included in R but not in excel. To make an accurate
+comparison between R and excel, the Test variable was used to exclude
+flows from lake to lakesediment in the processes k_Sedimentation and
+k_Adsorption.
+
+```{r LakeTest, include=FALSE, echo=FALSE}
+lake <- kaas |>
+  filter(fromSubCompart == "lake") |>
+  filter(toSubCompart == "lake")
+
+lake2 <- kaas |>
+  filter(fromSubCompart == "lake") |>
+  filter(fromScale == "Continental")
+```
+
+#### Settling velocity
+
+The difference in the diagonal k's for sedimentation comes from a
+difference in k's for the sedimentation and resuspension processes.
+
+This is caused by the use of different formulas to calculate settling
+velocity between excel and R. In excel, settling velocity is always
+calculated as:
+
+`SetVel <- 2.5/(24*3600)`
+
+While in R, an improved version of this formula is used:
+
+`SetVel <- 2*(radius^2*(rhoParticle-rhoWater)*GN) / (9*DynViscWaterStandard)`
+
+Using the Test variable, the settling velocity formula is temporarily
+changed to the formula used in excel for the resuspension and
+sedimentation processes (K_resuspension and k_Sedimentation). This
+solves the differences in diagonal k's related to resuspension or
+sedimentation.
+
+### From-to k's
+
+```{r PlotFromTok_1, echo=FALSE, warning=FALSE, fig.cap="Figure 2: Relative differences from-to k's between R and Spreadsheet implementation of SimpleBox (Test=FALSE)"}
+# "To" and "from" in one plot
+# ggplot(mergedkaas, aes(x = to, y = from, color = abs(diff))) +
+#   geom_point() +
+#   scale_color_gradient(low = "green", high = "red", trans = "log10") +
+#   ggtitle(paste0("Figure 3: Absolute differences k's between R and excel for ", substance)) +
+#   theme(
+#     axis.text.y = element_text(size = 12),
+#     axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+#     plot.margin = margin(t = 10, r = 10, b = 30, l = 10)
+#   )
+
+ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
+  geom_point() +
+  scale_color_gradient(low = "green", high = "red") +
+  ggtitle(paste0("Figure 4: Relative differences k's between R and excel for ", substance)) +
+  theme(
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    plot.margin = margin(t = 10, r = 10, b = 30, l = 10)
+  )
+```
+
+We can filter out the exact k's that have a relative difference larger
+than 0.1%:
+
+```{r TableDifferences, echo=FALSE, message=FALSE, warning=FALSE, paged.print=TRUE}
+mergedkaas |>
+  mutate(relDif = abs(relDif)) |>
+  filter(relDif > 0.001) |>
+  arrange(desc(relDif)) |>
+  knitr::kable(digits = 30)
+```
+
+#### Sedimentation and resuspension
+
+As can be seen in Figure 2 and the table above, the k's that have a
+relative difference larger than 0.1% go from water to sediment or from
+sediment to water. Changing the formula for calculating settling
+velocity when Test = TRUE for the sedimentation and resuspension
+processes (explained above under 'Settling velocity') also solves these
+differences.
+
+### Steadystate mass
+
+```{r PlotSteadyState_1, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 3: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=FALSE)"}
+library(stringi)
+
+World$NewSolver("SteadyStateSolver")
+
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: kg/s
+
+MW <- World$fetchData("MW")
+
+emissions <- emissions |>
+  mutate(Emis = Emis * 1000 / (MW * 365 * 24 * 60 * 60))
+
+World$Solve(emissions)
+SSsolve.R <- World$Masses()
+
+SSsolve.excel <- read.xlsx(SBExcelName,
+  sheet = 11,
+  colNames = TRUE,
+  rows = c(44, 45)
+)
+
+SSsolve.excel <- SSsolve.excel |>
+  select(-c(STEADY.STATE, X2)) |>
+  pivot_longer(names_to = "Abbr", values_to = "EqMass", cols = everything()) |>
+  rename(Mass_kg = EqMass)
+
+SSsolve.R <- SSsolve.R |>
+  left_join(World$states$asDataFrame, by = "Abbr") |>
+  mutate(Abbr = paste0(
+    accronym_map[SubCompart],
+    accronym_map2[Scale]
+  )) |>
+  mutate(SubCompart = str_replace(SubCompart, "lakesediment", "lake")) |>
+  mutate(Abbr = str_replace(Abbr, "sd0R", "w0R")) |>
+  mutate(Abbr = str_replace(Abbr, "sd0C", "w0C")) |>
+  group_by(Scale, SubCompart, Species, Abbr) |>
+  summarise(Mass_kg = sum(Mass_kg)) |>
+  mutate(
+    Abbr =
+      ifelse((Scale == "Tropic" | Scale == "Arctic" | Scale == "Moderate") &
+        (SubCompart == "marinesediment" | SubCompart == "naturalsoil"),
+      str_replace_all(Abbr, c("sd2" = "sd", "s1" = "s")),
+      Abbr
+      )
+  )
+
+merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by = "Abbr", suffixes = c(".R", ".Excel")) |>
+  mutate(absdiff = Mass_kg.R - Mass_kg.Excel) |>
+  mutate(reldiff = absdiff / Mass_kg.R)
+
+# Diff per "to" compartment
+ggplot(merged_SS_SB1, aes(x = Abbr, y = reldiff)) +
+  geom_boxplot() +
+  ggtitle(paste0(substance)) +
+  geom_hline(yintercept = 0.001, color = "red") +
+  geom_hline(yintercept = -0.001, color = "red") +
+  custom_theme()
+```
+
+The differences in k's drives the model output: the steady state mass.
+So a final check is to see how much the steady state masses differ
+between both implementations of SimpleBox (Figure 3). From this it is
+clear that there are differences up to
+`r merged_SS_SB1$reldiff |> abs() |> max() |> round(digits=3)*100`%.
+
+# Step 2. Compare SBoo and Spreadsheet excluding updates (Test=TRUE)
+
+Now the value for the Test variable can be changed to TRUE, and the
+difference in k's between excel and R can be tested again:
+
+```{r comparison_2, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+World$SetConst(Test = "TRUE")
+World$UpdateKaas(mergeExisting = FALSE)
+
+SBexcel.K <- read.xlsx(SBExcelName,
+  colNames = FALSE,
+  namedRegion = "K"
+)
+SBexcel.Names <- read.xlsx(SBExcelName,
+  colNames = FALSE,
+  namedRegion = "box_names"
+)
+
+colnames(SBexcel.K) <- SBexcel.Names
+SBexcel.K$to <- as.character(SBexcel.Names)
+
+SBexcel.K <- pivot_longer(SBexcel.K, cols = as.character(SBexcel.Names), values_to = "k", names_to = "from")
+
+# adding "from" and "to" acronyms to the R K matrix
+kaas <- as_tibble(World$kaas)
+
+# R version does not us the acronyms of the excel version, set-up to convert them
+# Note: this map creates the wrong acronym for soil and sediment at global scale, this is fixed afterwards
+accronym_map <- c(
+  "marinesediment" = "sd2",
+  "freshwatersediment" = "sd1",
+  "lakesediment" = "sd0",
+  "agriculturalsoil" = "s2",
+  "naturalsoil" = "s1",
+  "othersoil" = "s3",
+  "air" = "a",
+  "deepocean" = "w3",
+  "sea" = "w2",
+  "river" = "w1",
+  "lake" = "w0"
+)
+
+accronym_map2 <- c(
+  "Arctic" = "A",
+  "Moderate" = "M",
+  "Tropic" = "T",
+  "Continental" = "C",
+  "Regional" = "R"
+)
+
+kaas <- kaas |> mutate(
+  from = paste0(
+    accronym_map[fromSubCompart],
+    accronym_map2[fromScale]
+  ),
+  to = paste0(
+    accronym_map[toSubCompart],
+    accronym_map2[toScale]
+  )
+)
+
+# Issue that compartments sediment and soil at global scale in excel have sd and s as acronyms instead of sd2 and s1
+kaas <-
+  kaas |>
+  mutate(
+    from =
+      ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") &
+        (fromSubCompart == "marinesediment" | fromSubCompart == "naturalsoil"),
+      str_replace_all(from, c("sd2" = "sd", "s1" = "s")),
+      from
+      )
+  ) |>
+  mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") &
+    (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(to, c("sd2" = "sd", "s1" = "s")), to))
+
+kaas2 <- kaas |>
+  filter(from != to) |> # filtering the diagonals ou
+  group_by(from, to) %>%
+  summarize(k = sum(k)) # R version sometimes has multiple k's per fromto box; excel only has the summed k's per box
+
+kaas2$fromto <- paste(sep = "_", kaas2$from, kaas2$to)
+
+diagonal_excel <- SBexcel.K[SBexcel.K$from == SBexcel.K$to, ] # all the diagonals in excel are negative values -> sums of all the "froms" of that compartment
+
+diagonal_R <-
+  aggregate(k ~ from, data = kaas, FUN = sum) # R model has k values per process, not per box. For the "diagonal" ("from = to") boxes, this is different than in the excel version. summing all the "froms" here to be able to compare them with excel matrix. This should result in one value for each compartment (scale-subcomp-species combo)
+
+# Single dataframe with both the R and excel diagonals
+merged_diagonal <- merge(diagonal_R, diagonal_excel, by = "from", suffixes = c("_R", "_Excel"))
+merged_diagonal$k_Excel <- -merged_diagonal$k_Excel # Turning the "negative" values from the Excel matrix into positive ones
+merged_diagonal$diff <- merged_diagonal$k_R - merged_diagonal$k_Excel
+merged_diagonal$reldif <- merged_diagonal$diff / merged_diagonal$k_R
+
+SBexcel.K <- filter(SBexcel.K, k != 0 & SBexcel.K$from != SBexcel.K$to)
+SBexcel.K$fromto <- paste(sep = "_", SBexcel.K$from, SBexcel.K$to)
+
+mergedkaas <- merge(kaas2, SBexcel.K, by = c("from", "to"), suffixes = c("_R", "_Excel"))
+
+mergedkaas$diff <- mergedkaas$k_R - mergedkaas$k_Excel # compare R k to Excel K
+
+mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff / k_R)
+```
+
+## Compare first order rate constants
+
+```{r PlotDiagonalk_2, fig.cap = "Figure 4: Relative differences sum of from-k's between R and Spreadsheet implementation of SimpleBox (Test=TRUE)", include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+# Plot of relative differences of the diagonals per compartment
+ggplot(merged_diagonal, aes(x = from, y = reldif)) +
+  geom_boxplot() +
+  ggtitle(paste0(substance)) +
+  geom_hline(yintercept = 0.001, color = "red") +
+  geom_hline(yintercept = -0.001, color = "red") +
+  custom_theme() +
+  labs(x = "from", y = "Relative diff")
+```
+
+```{r PlotFromTok_2, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="Figure 5: Relative differences from-to k's between R and Spreadsheet implementation of SimpleBox (Test=TRUE)"}
+ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
+  geom_point() +
+  scale_color_gradient(low = "green", high = "red") +
+  ggtitle(paste0(substance)) +
+  theme(
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    plot.margin = margin(t = 10, r = 10, b = 30, l = 10)
+  )
+```
+
+As can be seen in Figures 4 and 5, the temporary changes made using the
+Test variable solved the large differences in k's between R and excel
+for both the diagonal and the from-to k's. All relative differences are
+now smaller than 1 percentile.
+
+## Steadystate mass
+
+```{r PlotSteadyState_2, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 6: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=TRUE)"}
+library(stringi)
+
+World$NewSolver("SteadyStateSolver")
+
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: kg/s
+
+MW <- World$fetchData("MW")
+
+emissions <- emissions |>
+  mutate(Emis = Emis * 1000 / (MW * 365 * 24 * 60 * 60))
+
+World$Solve(emissions)
+SSsolve.R <- World$Masses()
+
+SSsolve.excel <- read.xlsx(SBExcelName,
+  sheet = 11,
+  colNames = TRUE,
+  rows = c(44, 45)
+)
+
+SSsolve.excel <- SSsolve.excel |>
+  select(-c(STEADY.STATE, X2)) |>
+  pivot_longer(names_to = "Abbr", values_to = "EqMass", cols = everything()) |>
+  rename(Mass_kg = EqMass)
+
+SSsolve.R <- SSsolve.R |>
+  left_join(World$states$asDataFrame, by = "Abbr") |>
+  mutate(Abbr = paste0(
+    accronym_map[SubCompart],
+    accronym_map2[Scale]
+  )) |>
+  mutate(SubCompart = str_replace(SubCompart, "lakesediment", "lake")) |>
+  mutate(Abbr = str_replace(Abbr, "sd0R", "w0R")) |>
+  mutate(Abbr = str_replace(Abbr, "sd0C", "w0C")) |>
+  group_by(Scale, SubCompart, Species, Abbr) |>
+  summarise(Mass_kg = sum(Mass_kg)) |>
+  mutate(
+    Abbr =
+      ifelse((Scale == "Tropic" | Scale == "Arctic" | Scale == "Moderate") &
+        (SubCompart == "marinesediment" | SubCompart == "naturalsoil"),
+      str_replace_all(Abbr, c("sd2" = "sd", "s1" = "s")),
+      Abbr
+      )
+  )
+
+merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by = "Abbr", suffixes = c(".R", ".Excel")) |>
+  mutate(absdiff = Mass_kg.R - Mass_kg.Excel) |>
+  mutate(reldiff = absdiff / Mass_kg.R)
+
+# Diff per "to" compartment
+ggplot(merged_SS_SB1, aes(x = Abbr, y = reldiff)) +
+  geom_boxplot() +
+  ggtitle(paste0(substance)) +
+  geom_hline(yintercept = 0.001, color = "red") +
+  geom_hline(yintercept = -0.001, color = "red") +
+  custom_theme()
+```
+
+To test if the small differences (\<0.1%) in first order rate constants
+is negligible (Figures 4 and 5), the steady state masses should also not
+differ by more than 0.1% between the R and Spreadsheet implementations
+of SimpleBox. This is indeed the case (Figure 6) as the max difference
+in now only
+`r merged_SS_SB1$reldiff |> abs() |> max() |> round(digits=5)*100`%.
+This proves that the port of SimpleBox to R is successful in reproducing
+the results from the original spreadsheet implementation for chemicals
+of class `r World$fetchData("ChemClass")`.

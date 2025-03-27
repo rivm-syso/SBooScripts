@@ -1,8 +1,8 @@
-Verification of SimpleBox - spreadsheet versus R implementation for
-neutral organic chemicals or ChemClass not specified
+Verification of SimpleBox - spreadsheet versus R implementation for base
+organic chemicals
 ================
 Anne Hids, Valerie de Rijk, Matthias Hof and Joris Quik
-2024-08-26
+2025-03-27
 
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
@@ -16,14 +16,15 @@ of the k’s or masses between the models to not exceed 0.1%.
 
 ``` r
 # Create a list with the names of substances
-Potential_substances <- c("1-aminoanthraquinone", # no class
-                          "1-HYDROXYANTHRAQUINONE", # acid
-                          "1-Hexadecanamine, N,N-dimethyl-", # base
-                          "1-Chloro-2-nitro-propane", # neutral
-                          "Sb(III)" # metal
-                          ) 
-              
-substance <- Potential_substances[1]
+Potential_substances <- c(
+  "1-aminoanthraquinone", # no class
+  "1-HYDROXYANTHRAQUINONE", # acid
+  "1-Hexadecanamine, N,N-dimethyl-", # base
+  "1-Chloro-2-nitro-propane", # neutral
+  "Sb(III)" # metal
+)
+
+substance <- Potential_substances[3]
 
 source("baseScripts/initWorld_onlyMolec.R")
 
@@ -31,7 +32,7 @@ World$substance <- substance
 ```
 
 The SBoo world is initialized for a substance. In this case, that
-substance is NA, which is of class: neutral.
+substance is NA, which is of class: base.
 
 At release already improvements or developments have been implemented in
 the R version of SimpleBox (SBoo) which are not implemented in Excel
@@ -58,6 +59,9 @@ values between excel and R, and not the result of mistakes in
 calculations or input values.
 
 # Step 1. Compare SBoo (incl. updates) to spreadsheet
+
+    ## `summarise()` has grouped output by 'from'. You can override using the
+    ## `.groups` argument.
 
 ## preliminary matrix check
 
@@ -92,7 +96,7 @@ script will stop running if this is not the case.
 
     ## character(0)
 
-## Compare first order rate constants
+## Compare k’s
 
 When comparing k’s between R and excel, the goal is that the relative
 difference is less than 1 percentile for each k. The reason is that
@@ -118,16 +122,17 @@ sum of the removal process k’s (i.e. degradation or burial).
 
 <figure>
 <img
-src="Molecular_verification_no_class_files/figure-gfm/PlotsDiagonalk_1-1.png"
+src="Molecular_verification_base_files/figure-gfm/PlotsDiagonalk_1-1.png"
 alt="Figure 1: Relative differences sum of from-k’s between R and Spreadsheet implementation of SimpleBox (Test=FALSE)" />
 <figcaption aria-hidden="true">Figure 1: Relative differences sum of
 from-k’s between R and Spreadsheet implementation of SimpleBox
 (Test=FALSE)</figcaption>
 </figure>
 
-Figure 1 above shows the absolute and relative differences in diagonal
-k’s between R and excel. The relative differences larger than 0.1% are
-in the lake and sediment subcompartments.
+Figures 1 and 2 above show the absolute and relative differences in
+diagonal k’s between R and excel. As can be seen in Figure 2, relative
+differences larger than 1 percentile are in the lake, river, sea, air
+and sediment subcompartments.
 
 #### Lake difference
 
@@ -170,11 +175,23 @@ comparison to the R output. There is an
 [issue](https://github.com/rivm-syso/SBoo/issues/158) to fix this in a
 future SBooScript update.
 
+#### Air to soil
+
+The difference in diagonal k’s for air is caused by a different use of
+variables to calculate k_Adsorption. This process uses the fraction of
+original species in the (pore)water of a subcompartment (FRorig). In
+Excel, one FRorig value is used to calculate the adsorption for soil and
+one value is used to calculate the adsorption to water. In R however,
+the FRorig value for each specific subcompartment (natural soil,
+agricultural soil etc.) is used to calculate adsorption. The Test
+variable was used to calculate this variable with the same FRorig value
+as in excel.
+
 ### From-to k’s
 
 <figure>
 <img
-src="Molecular_verification_no_class_files/figure-gfm/PlotFromTok_1-1.png"
+src="Molecular_verification_base_files/figure-gfm/PlotFromTok_1-1.png"
 alt="Figure 2: Relative differences from-to k’s between R and Spreadsheet implementation of SimpleBox (Test=FALSE)" />
 <figcaption aria-hidden="true">Figure 2: Relative differences from-to
 k’s between R and Spreadsheet implementation of SimpleBox
@@ -184,22 +201,34 @@ k’s between R and Spreadsheet implementation of SimpleBox
 We can filter out the exact k’s that have a relative difference larger
 than 0.1%:
 
-| from | to   |          k_R | fromto_R |      k_Excel | fromto_Excel |         diff |      relDif |
-|:-----|:-----|-------------:|:---------|-------------:|:-------------|-------------:|------------:|
-| w1C  | sd1C | 1.042890e-08 | w1C_sd1C | 1.040244e-08 | w1C_sd1C     | 2.645966e-11 | 0.002537148 |
-| w1R  | sd1R | 1.042890e-08 | w1R_sd1R | 1.040244e-08 | w1R_sd1R     | 2.645966e-11 | 0.002537148 |
-| sd1R | w1R  | 3.636282e-07 | sd1R_w1R | 3.629205e-07 | sd1R_w1R     | 7.077253e-10 | 0.001946288 |
-| sd1C | w1C  | 3.636493e-07 | sd1C_w1C | 3.629416e-07 | sd1C_w1C     | 7.077237e-10 | 0.001946171 |
-| w3A  | sdA  | 9.676489e-12 | w3A_sdA  | 9.661945e-12 | w3A_sdA      | 1.454392e-14 | 0.001503016 |
-| w3M  | sdM  | 9.676489e-12 | w3M_sdM  | 9.661945e-12 | w3M_sdM      | 1.454392e-14 | 0.001503016 |
-| w3T  | sdT  | 9.676489e-12 | w3T_sdT  | 9.661945e-12 | w3T_sdT      | 1.454392e-14 | 0.001503016 |
-| w2C  | sd2C | 1.451473e-10 | w2C_sd2C | 1.449292e-10 | w2C_sd2C     | 2.181588e-13 | 0.001503016 |
-| w2R  | sd2R | 2.902947e-09 | w2R_sd2R | 2.898583e-09 | w2R_sd2R     | 4.363177e-12 | 0.001503016 |
-| sd2R | w2R  | 3.448100e-07 | sd2R_w2R | 3.444124e-07 | sd2R_w2R     | 3.975982e-10 | 0.001153094 |
-| sd2C | w2C  | 3.460100e-07 | sd2C_w2C | 3.456114e-07 | sd2C_w2C     | 3.985581e-10 | 0.001151869 |
-| sdM  | w3M  | 3.469203e-07 | sdM_w3M  | 3.465227e-07 | sdM_w3M      | 3.975982e-10 | 0.001146079 |
-| sdA  | w3A  | 3.469212e-07 | sdA_w3A  | 3.465236e-07 | sdA_w3A      | 3.975982e-10 | 0.001146076 |
-| sdT  | w3T  | 3.469212e-07 | sdT_w3T  | 3.465236e-07 | sdT_w3T      | 3.975982e-10 | 0.001146076 |
+| from | to | k_R | fromto_R | k_Excel | fromto_Excel | diff | relDif |
+|:---|:---|---:|:---|---:|:---|---:|---:|
+| aC | s2C | 1.882858e-06 | aC_s2C | 2.115478e-06 | aC_s2C | -2.326199e-07 | 0.123546170 |
+| aC | s3C | 3.138096e-07 | aC_s3C | 3.525796e-07 | aC_s3C | -3.876998e-08 | 0.123546170 |
+| aR | s2R | 4.009689e-06 | aR_s2R | 4.490172e-06 | aR_s2R | -4.804829e-07 | 0.119830457 |
+| aR | s3R | 6.682815e-07 | aR_s3R | 7.483620e-07 | aR_s3R | -8.008048e-08 | 0.119830457 |
+| aC | w2C | 3.482307e-06 | aC_w2C | 3.645614e-06 | aC_w2C | -1.633070e-07 | 0.046896211 |
+| aR | w2R | 3.041425e-08 | aR_w2R | 3.180905e-08 | aR_w2R | -1.394798e-09 | 0.045860033 |
+| w1C | sd1C | 4.670018e-06 | w1C_sd1C | 4.596199e-06 | w1C_sd1C | 7.381927e-08 | 0.015807062 |
+| w1R | sd1R | 4.670018e-06 | w1R_sd1R | 4.596199e-06 | w1R_sd1R | 7.381927e-08 | 0.015807062 |
+| w3A | sdA | 4.646497e-09 | w3A_sdA | 4.573050e-09 | w3A_sdA | 7.344677e-11 | 0.015806912 |
+| w3M | sdM | 4.646497e-09 | w3M_sdM | 4.573050e-09 | w3M_sdM | 7.344677e-11 | 0.015806912 |
+| w3T | sdT | 4.646497e-09 | w3T_sdT | 4.573050e-09 | w3T_sdT | 7.344677e-11 | 0.015806912 |
+| w2C | sd2C | 6.969745e-08 | w2C_sd2C | 6.859575e-08 | w2C_sd2C | 1.101702e-09 | 0.015806912 |
+| w2R | sd2R | 1.393949e-06 | w2R_sd2R | 1.371915e-06 | w2R_sd2R | 2.203403e-08 | 0.015806912 |
+| sd1R | w1R | 3.589714e-08 | sd1R_w1R | 3.542520e-08 | sd1R_w1R | 4.719476e-10 | 0.013147219 |
+| sd1C | w1C | 3.591828e-08 | sd1C_w1C | 3.544634e-08 | sd1C_w1C | 4.719460e-10 | 0.013139437 |
+| sd2R | w2R | 1.707893e-08 | sd2R_w2R | 1.691711e-08 | sd2R_w2R | 1.618205e-10 | 0.009474862 |
+| sd2C | w2C | 1.827893e-08 | sd2C_w2C | 1.811615e-08 | sd2C_w2C | 1.627804e-10 | 0.008905358 |
+| sdM | w3M | 1.918928e-08 | sdM_w3M | 1.902746e-08 | sdM_w3M | 1.618205e-10 | 0.008432860 |
+| sdA | w3A | 1.919015e-08 | sdA_w3A | 1.902833e-08 | sdA_w3A | 1.618205e-10 | 0.008432477 |
+| sdT | w3T | 1.919015e-08 | sdT_w3T | 1.902833e-08 | sdT_w3T | 1.618205e-10 | 0.008432477 |
+| aR | w0R | 1.813573e-08 | aR_w0R | 1.817648e-08 | aR_w0R | -4.075162e-11 | 0.002247034 |
+| aR | w1R | 1.994931e-07 | aR_w1R | 1.999413e-07 | aR_w1R | -4.482678e-10 | 0.002247034 |
+| aR | s1R | 2.016178e-06 | aR_s1R | 2.020577e-06 | aR_s1R | -4.399213e-09 | 0.002181957 |
+| aC | w0C | 8.540034e-09 | aC_w0C | 8.555497e-09 | aC_w0C | -1.546263e-11 | 0.001810605 |
+| aC | w1C | 9.394038e-08 | aC_w1C | 9.411047e-08 | aC_w1C | -1.700889e-10 | 0.001810605 |
+| aC | s1C | 9.502960e-07 | aC_s1C | 9.519650e-07 | aC_s1C | -1.669010e-09 | 0.001756306 |
 
 #### Sedimentation and resuspension
 
@@ -210,11 +239,21 @@ velocity when Test = TRUE for the sedimentation and resuspension
 processes (explained above under ‘Settling velocity’) also solves these
 differences.
 
+#### Air
+
+This problem was also solved by using the Test variable to use the same
+values for FRorig as were used in excel to calculate k_Adsorption
+
 ### Steadystate mass
+
+    ## 12 rate constants (k values) equal to 0; removed for solver
+
+    ## `summarise()` has grouped output by 'Scale', 'SubCompart', 'Species'. You can
+    ## override using the `.groups` argument.
 
 <figure>
 <img
-src="Molecular_verification_no_class_files/figure-gfm/PlotSteadyState_1-1.png"
+src="Molecular_verification_base_files/figure-gfm/PlotSteadyState_1-1.png"
 alt="Figure 3: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=FALSE)" />
 <figcaption aria-hidden="true">Figure 3: Relative differences in steady
 state mass per compartment between R (SB1solve) and Spreadsheet
@@ -224,7 +263,7 @@ implementation of SimpleBox (Test=FALSE)</figcaption>
 The differences in k’s drives the model output: the steady state mass.
 So a final check is to see how much the steady state masses differ
 between both implementations of SimpleBox (Figure 3). From this it is
-clear that there are differences up to 0.1%.
+clear that there are differences up to 70.1%.
 
 # Step 2. Compare SBoo and Spreadsheet excluding updates (Test=TRUE)
 
@@ -238,7 +277,7 @@ difference in k’s between excel and R can be tested again:
 
 <figure>
 <img
-src="Molecular_verification_no_class_files/figure-gfm/PlotDiagonalk_2-1.png"
+src="Molecular_verification_base_files/figure-gfm/PlotDiagonalk_2-1.png"
 alt="Figure 4: Relative differences sum of from-k’s between R and Spreadsheet implementation of SimpleBox (Test=TRUE)" />
 <figcaption aria-hidden="true">Figure 4: Relative differences sum of
 from-k’s between R and Spreadsheet implementation of SimpleBox
@@ -247,7 +286,7 @@ from-k’s between R and Spreadsheet implementation of SimpleBox
 
 <figure>
 <img
-src="Molecular_verification_no_class_files/figure-gfm/PlotFromTok_2-1.png"
+src="Molecular_verification_base_files/figure-gfm/PlotFromTok_2-1.png"
 alt="Figure 5: Relative differences from-to k’s between R and Spreadsheet implementation of SimpleBox (Test=TRUE)" />
 <figcaption aria-hidden="true">Figure 5: Relative differences from-to
 k’s between R and Spreadsheet implementation of SimpleBox
@@ -261,9 +300,14 @@ now smaller than 1 percentile.
 
 ## Steadystate mass
 
+    ## 17 rate constants (k values) equal to 0; removed for solver
+
+    ## `summarise()` has grouped output by 'Scale', 'SubCompart', 'Species'. You can
+    ## override using the `.groups` argument.
+
 <figure>
 <img
-src="Molecular_verification_no_class_files/figure-gfm/PlotSteadyState_2-1.png"
+src="Molecular_verification_base_files/figure-gfm/PlotSteadyState_2-1.png"
 alt="Figure 6: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=TRUE)" />
 <figcaption aria-hidden="true">Figure 6: Relative differences in steady
 state mass per compartment between R (SB1solve) and Spreadsheet
@@ -274,6 +318,6 @@ To test if the small differences (\<0.1%) in first order rate constants
 is negligible (Figures 4 and 5), the steady state masses should also not
 differ by more than 0.1% between the R and Spreadsheet implementations
 of SimpleBox. This is indeed the case (Figure 6) as the max difference
-in now only 0.01%. This proves that the port of SimpleBox to R is
+in now only 0.08%. This proves that the port of SimpleBox to R is
 successful in reproducing the results from the original spreadsheet
-implementation for chemicals of class neutral.
+implementation for chemicals of class base.
