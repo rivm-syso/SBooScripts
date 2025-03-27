@@ -42,7 +42,6 @@ substance <- Potential_substances[2]
 
 source("baseScripts/initWorld_onlyMolec.R")
 
-World$substance <- substance
 ```
 
 The SBoo world is initialized for a substance. In this case, that
@@ -303,7 +302,7 @@ custom_theme <- function() {
 # Plot of relative differences of the diagonals per compartment
 ggplot(merged_diagonal, aes(x = from, y = reldif)) +
   geom_boxplot() +
-  ggtitle(paste0("Figure 2: Relative differences removal k's between R and excel for ", substance)) +
+  ggtitle(paste0("Figure 1: Relative differences removal k's between R and excel for ", substance)) +
   geom_hline(yintercept = 0.001, color = "red") +
   geom_hline(yintercept = -0.001, color = "red") +
   custom_theme() +
@@ -380,7 +379,7 @@ future SBooScript update.
 ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
   geom_point() +
   scale_color_gradient(low = "green", high = "red") +
-  ggtitle(paste0(substance)) +
+  ggtitle(paste0("Figure 2: Relative differences from-to k's between R and Spreadsheet implementation of SimpleBox (Test=FALSE) for", substance)) +
   theme(
     axis.text.y = element_text(size = 12),
     axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
@@ -411,6 +410,7 @@ differences.
 ### Steadystate mass
 
 ```{r PlotSteadyState_1, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 3: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=FALSE)"}
+
 library(stringi)
 
 World$NewSolver("SteadyStateSolver")
@@ -433,8 +433,8 @@ SSsolve.excel <- read.xlsx(SBExcelName,
 
 SSsolve.excel <- SSsolve.excel |>
   select(-c(STEADY.STATE, X2)) |>
-  pivot_longer(names_to = "Abbr", values_to = "EqMass", cols = everything()) |>
-  mutate(Mass_kg = EqMass * MW)
+  pivot_longer(names_to = "Abbr", values_to = "EqMol", cols = everything()) |>
+  mutate(Mass_kg = EqMol * MW)
 
 SSsolve.R <- SSsolve.R |>
   left_join(World$states$asDataFrame, by = "Abbr") |>
@@ -588,8 +588,8 @@ mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff / k_R)
 ggplot(merged_diagonal, aes(x = from, y = reldif)) +
   geom_boxplot() +
   ggtitle(paste0(substance)) +
-  geom_hline(yintercept = 0.001, color = "red") +
-  geom_hline(yintercept = -0.001, color = "red") +
+  geom_hline(yintercept = 0.001, color = "red" ) +
+  geom_hline(yintercept = -0.001, color = "red" ) +
   custom_theme() +
   labs(x = "from", y = "Relative diff")
 ```
@@ -614,6 +614,7 @@ now smaller than 1 percentile.
 ## Steadystate mass
 
 ```{r PlotSteadyState_2, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 6: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=TRUE)"}
+
 library(stringi)
 
 World$NewSolver("SteadyStateSolver")
@@ -636,8 +637,8 @@ SSsolve.excel <- read.xlsx(SBExcelName,
 
 SSsolve.excel <- SSsolve.excel |>
   select(-c(STEADY.STATE, X2)) |>
-  pivot_longer(names_to = "Abbr", values_to = "EqMass", cols = everything()) |>
-  mutate(Mass_kg = EqMass * MW)
+  pivot_longer(names_to = "Abbr", values_to = "EqMol", cols = everything()) |>
+  mutate(Mass_kg = EqMol * MW)
 
 SSsolve.R <- SSsolve.R |>
   left_join(World$states$asDataFrame, by = "Abbr") |>
@@ -662,6 +663,18 @@ SSsolve.R <- SSsolve.R |>
 merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by = "Abbr", suffixes = c(".R", ".Excel")) |>
   mutate(absdiff = Mass_kg.R - Mass_kg.Excel) |>
   mutate(reldiff = absdiff / Mass_kg.R)
+
+
+FlowMass <- 
+  mergedkaas |> left_join(merged_SS_SB1 |> select(-reldiff, -absdiff),
+                        by = join_by(from == Abbr)) |> 
+  mutate(Flow_kg_s.R = Mass_kg.R*k_R,
+         Flow_kg_s.Excel = Mass_kg.Excel*k_Excel) |> 
+  select(-diff,-relDif) |> 
+  mutate(FlowDiff = Flow_kg_s.R - Flow_kg_s.Excel) |> 
+  mutate(FlowRelDiff = FlowDiff/Flow_kg_s.R)
+
+filter(FlowMass, FlowRelDiff > 0.0001)
 
 # print("Difference in emissions between R and Excel")
 

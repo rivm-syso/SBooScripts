@@ -40,8 +40,9 @@ World$substance <- substance
 ```
 
 The SBoo world is initialized for a substance. In this case, that
-substance is `r World$fetchData("Substance")`, which is of class: `r World$fetchData("ChemClass")` and a default
-radius of `r World$fetchData("RadS")*1e6` µm.
+substance is `r World$fetchData("Substance")`, which is of class:
+`r World$fetchData("ChemClass")` and a default radius of
+`r World$fetchData("RadS")*1e6` µm.
 
 At release already improvements or developments have been implemented in
 the R version of SimpleBox (SBoo) which are not implemented in Excel
@@ -194,20 +195,32 @@ mergedkaas <- as_tibble(mergedkaas) |> mutate(relDif = diff / k_R)
 ```
 
 ## preliminary matrix check
-In the chunk below we check if our matrix is as large as we expect it to be. 
 
-i) Matrix 
-The SimpleBox model operates over 5 scales, 12 subcompartments and 4 different speciations. As such, we would expect our matrix to have 5 * 12 * 4 = 240 rows. However, some exceptions exist within our SB world: 
+In the chunk below we check if our matrix is as large as we expect it to
+be.
 
-- The Regional and Continental scale do now have a deepocean layer (w3), reducing the matrix by 2 * 1 * 4 = 8 rows. 
-- The Global Scales (Arctic, Moderate, Tropic) only have one type of soil instead of 3, reducing the matrix by 3 * 2 * 4 = 24 rows.
-- The Global Scales (Arctic, Moderate, Tropic) only have one type of sediment instead of 3, reducing the matrix by 3 * 2 * 4 = 24 rows.
-- The Global Scales (Arctic, Moderate, Tropic) only have one type of water instead of 3, reducing the matrix by 3 * 2 * 4 = 24 rows.
-- Cloudwater (compartment) does not have any values, reducing our matrix by 5 * 1 * 1 = 5 rows. 
+i)  Matrix The SimpleBox model operates over 5 scales, 12
+    subcompartments and 4 different speciations. As such, we would
+    expect our matrix to have 5 \* 12 \* 4 = 240 rows. However, some
+    exceptions exist within our SB world:
 
-With these exceptions, we expect our matrix to be 240-85 = 155 rows. This script will stop running if this is not the case. 
+-   The Regional and Continental scale do now have a deepocean layer
+    (w3), reducing the matrix by 2 \* 1 \* 4 = 8 rows.
+-   The Global Scales (Arctic, Moderate, Tropic) only have one type of
+    soil instead of 3, reducing the matrix by 3 \* 2 \* 4 = 24 rows.
+-   The Global Scales (Arctic, Moderate, Tropic) only have one type of
+    sediment instead of 3, reducing the matrix by 3 \* 2 \* 4 = 24 rows.
+-   The Global Scales (Arctic, Moderate, Tropic) only have one type of
+    water instead of 3, reducing the matrix by 3 \* 2 \* 4 = 24 rows.
+-   Cloudwater (compartment) does not have any values, reducing our
+    matrix by 5 \* 1 \* 1 = 5 rows.
 
-ii) We expect all processes to be included in Processes4SpeciesTp.csv to also be calculated. Therefore, we compare the calculated unique processes with the processes defined in this csv. 
+With these exceptions, we expect our matrix to be 240-85 = 155 rows.
+This script will stop running if this is not the case.
+
+ii) We expect all processes to be included in Processes4SpeciesTp.csv to
+    also be calculated. Therefore, we compare the calculated unique
+    processes with the processes defined in this csv.
 
 ```{r check if matrix is 155x155, include=TRUE, echo=FALSE, warning=FALSE}
 dims <- dim(diagonal_R)
@@ -328,15 +341,20 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
 
 #### Dry deposition {#sec-dry-deposition}
 
-As can be seen in Figure 1 and 2 above, the only relative differences larger than 0.1% (e.g. for
-the diagonal k's in excel and R) are in the air compartment. This is
-caused by a difference in the implementation of the dry deposition process. In R, dry
-deposition is implemented in a new manner, according to the Loteur v2
-reference guide. See v.2.2002 <https://www.rivm.nl/lotos-euros>. Whereas in the spreadsheet implementation a slightly more simplified approach was taken.
+As can be seen in Figure 1 and 2 above, the only relative differences
+larger than 0.1% (e.g. for the diagonal k's in excel and R) are in the
+air compartment. This is caused by a difference in the implementation of
+the dry deposition process. In R, dry deposition is implemented in a new
+manner, according to the Loteur v2 reference guide. See v.2.2002
+<https://www.rivm.nl/lotos-euros>. Whereas in the spreadsheet
+implementation a slightly more simplified approach was taken.
 
-Below Test=TRUE will be used, setting the implementation of dry deposition in R temporarily to the old implementation that was used in the Spreadsheet implementation of SimpleBox.
+Below Test=TRUE will be used, setting the implementation of dry
+deposition in R temporarily to the old implementation that was used in
+the Spreadsheet implementation of SimpleBox.
 
-We can filter out the exact k's that have a relative difference larger than 0.1%:
+We can filter out the exact k's that have a relative difference larger
+than 0.1%:
 
 ```{r TableDifferences, echo=FALSE, message=FALSE, warning=FALSE, paged.print=TRUE}
 mergedkaas |>
@@ -347,6 +365,7 @@ mergedkaas |>
 ```
 
 ### Steadystate mass
+
 ```{r PlotSteadyState_1, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 3: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=FALSE)"}
 library(stringi)
 World$NewSolver("SteadyStateSolver")
@@ -406,11 +425,21 @@ ggplot(merged_SS_SB1, aes(x = Abbr, y = reldiff)) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
-The differences in k's drives the model output: the steady state mass. So a final check is to see how much the steady state masses differ between both implementations of SimpleBox (Figure 3). From this it is clear that there  are differences up to `r merged_SS_SB1$reldiff |> max() |> round(digits=3)*100`%. This is larger than the level we can consider negligible.
+The differences in k's drives the model output: the steady state mass.
+So a final check is to see how much the steady state masses differ
+between both implementations of SimpleBox (Figure 3). From this it is
+clear that there are differences up to
+`r merged_SS_SB1$reldiff |> max() |> round(digits=3)*100`%. This is
+larger than the level we can consider negligible.
 
 # Step 2. Compare SBoo and Spreadsheet excluding updates (Test=TRUE)
-The verification's goal is to make sure no mistakes are made in porting SimpleBox from the spreadsheet implementation to R. For this reason the Test variable was included in algorithms that already implemented changes for specific variables or processes in SimpleBox. With the Test variable changed to TRUE the
-difference in k's and steady state masses is shown again in relation to the intended 0.1% verification level.
+
+The verification's goal is to make sure no mistakes are made in porting
+SimpleBox from the spreadsheet implementation to R. For this reason the
+Test variable was included in algorithms that already implemented
+changes for specific variables or processes in SimpleBox. With the Test
+variable changed to TRUE the difference in k's and steady state masses
+is shown again in relation to the intended 0.1% verification level.
 
 ```{r comparison_2, message=FALSE, warning=FALSE, include=FALSE}
 World$SetConst(Test = "TRUE")
@@ -557,7 +586,6 @@ ggplot(sorted_diff, aes(x = from, y = reldif)) +
   labs(x = "from", y = "Relative diff")
 ```
 
-
 ```{r PlotFromTok_2, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="Figure 5: Relative differences from-to k's between R and Spreadsheet implementation of SimpleBox (Test=TRUE)"}
 ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
   geom_point() +
@@ -571,10 +599,11 @@ ggplot(mergedkaas, aes(x = to, y = from, color = abs(relDif))) +
 ```
 
 As can be seen in Figures 4 and 5, there are no k's with a relative
-difference large than 0.1% between excel and R when Test=TRUE. Several k's have a relative difference between 0.1 and 0.01%. These are related to:
-Heteroagglomeration in porous media between particulate (S) and large heteroagglomerate/attached (P) species.
-Deposition from air to water/soil
-Erosion from soil to water
+difference large than 0.1% between excel and R when Test=TRUE. Several
+k's have a relative difference between 0.1 and 0.01%. These are related
+to: Heteroagglomeration in porous media between particulate (S) and
+large heteroagglomerate/attached (P) species. Deposition from air to
+water/soil Erosion from soil to water
 
 ```{r TableDifferences_2, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
 mergedkaas |>
@@ -584,8 +613,8 @@ mergedkaas |>
   knitr::kable(digits = 30)
 ```
 
-
 ## Steadystate mass
+
 ```{r PlotSteadyState_2, include= TRUE, echo= FALSE, warning=FALSE, fig.cap="Figure 6: Relative differences in steady state mass per compartment between R (SB1solve) and Spreadsheet implementation of SimpleBox (Test=TRUE)"}
 library(stringi)
 World$NewSolver("SteadyStateSolver")
@@ -645,4 +674,11 @@ ggplot(merged_SS_SB1, aes(x = Abbr, y = reldiff)) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
-To test if the small differences (<0.1%) in first order rate constants is negligible (Figures 4 and 5), the steady state masses should also not differ by more than 0.1% between the R and Spreadsheet implementations of SimpleBox. This is indeed the case (Figure 6) as the max difference in now only `r merged_SS_SB1$reldiff |> abs() |> max() |> round(digits=4)*100`%. This proves that the port of SimpleBox4Plastics to R is successful in reproducing the results from the original spreadsheet implementation.
+To test if the small differences (\<0.1%) in first order rate constants
+is negligible (Figures 4 and 5), the steady state masses should also not
+differ by more than 0.1% between the R and Spreadsheet implementations
+of SimpleBox. This is indeed the case (Figure 6) as the max difference
+in now only
+`r merged_SS_SB1$reldiff |> abs() |> max() |> round(digits=4)*100`%.
+This proves that the port of SimpleBox4Plastics to R is successful in
+reproducing the results from the original spreadsheet implementation.
