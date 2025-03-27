@@ -1,4 +1,4 @@
-﻿VarName,Waarde,SB4N_name,Unit,Comments
+VarName,Waarde,SB4N_name,Unit,Comments
 AEROresist,74,NA,m.s-1,air resistance
 BACTtest,40000,BACT.test,CFU.mL-1,CONCENTRATION BACTERIA in test water
 beta.a ,2,NA,-,Dry deposition constant based on LOTEUR reference guide
