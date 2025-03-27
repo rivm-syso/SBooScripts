@@ -4,7 +4,7 @@
 source("baseScripts/fakeLib.R")
 
 #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
-ClassicStateModule <- ClassicNanoWorld$new("data") #by default Substance = "default substance"
+ClassicStateModule <- ClassicNanoWorld$new(MlikeFile = "data", Substance = substance) #by default Substance = "default substance"
 
 #with this data we create an instance of the central "core" object,
 World <- SBcore$new(ClassicStateModule)
