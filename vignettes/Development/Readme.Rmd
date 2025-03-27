@@ -19,6 +19,7 @@ Important starting documents to read:
 -   [Getting-Started](/vignettes/Getting-started.md) : Although not in this folder, before starting to develop it's wise to understand how SB will be used by most users. In this vignette a default calculation is explained.
 -   [Basics for developers](/vignettes/Development/BasicsOfDevelopment.md) : This vignette is a good starting point for starting developers. The underlying structure of the repository is explained here, including the input data.
 -   [Quality assessment of SBoo](vignettes/Development/QualityDocumentation.md "RIVM quality document") with relevant information using the RIVM quality framework "Quality and Transparancy of Models".
+-   Verification vignette's in the [Quality Control folder](vignettes/Development/Quality control). For now these are based on a comparison with the Excel version of Excel. This will be updated in the future, see [Issue 207](https://github.com/rivm-syso/SBoo/issues/207).
 
 All other vignettes are useful for their own specific focus.
 

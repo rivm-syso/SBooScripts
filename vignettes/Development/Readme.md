@@ -26,6 +26,11 @@ Important starting documents to read:
   SBoo](vignettes/Development/QualityDocumentation.md "RIVM quality document")
   with relevant information using the RIVM quality framework “Quality
   and Transparancy of Models”.
+- Verification vignette’s in the [Quality Control
+  folder](vignettes/Development/Quality%20control). For now these are
+  based on a comparison with the Excel version of Excel. This will be
+  updated in the future, see [Issue
+  207](https://github.com/rivm-syso/SBoo/issues/207).
 
 All other vignettes are useful for their own specific focus.
 
