@@ -415,7 +415,7 @@ library(stringi)
 
 World$NewSolver("SteadyStateSolver")
 
-emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: kg/s
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU","sAU"), Emis = c(10000, 10000, 10000,100)) # convert 1 t/y to si units: kg/s
 
 MW <- World$fetchData("MW")
 
@@ -484,9 +484,12 @@ Now the value for the Test variable can be changed to TRUE, and the
 difference in k's between excel and R can be tested again:
 
 ```{r comparison_2, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
-World$SetConst(Test = "TRUE")
-World$UpdateKaas(mergeExisting = FALSE)
+VerificationSBoo = TRUE
 
+substance <- Potential_substances[2]
+
+source("baseScripts/initWorld_onlyMolec.R")
+VerificationSBoo = FALSE # with testing make sure to change back to false
 SBexcel.K <- read.xlsx(SBExcelName,
   colNames = FALSE,
   namedRegion = "K"
@@ -664,30 +667,6 @@ merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by = "Abbr", suffixes = c(".R",
   mutate(absdiff = Mass_kg.R - Mass_kg.Excel) |>
   mutate(reldiff = absdiff / Mass_kg.R)
 
-
-FlowMass <- 
-  mergedkaas |> left_join(merged_SS_SB1 |> select(-reldiff, -absdiff),
-                        by = join_by(from == Abbr)) |> 
-  mutate(Flow_kg_s.R = Mass_kg.R*k_R,
-         Flow_kg_s.Excel = Mass_kg.Excel*k_Excel) |> 
-  select(-diff,-relDif) |> 
-  mutate(FlowDiff = Flow_kg_s.R - Flow_kg_s.Excel) |> 
-  mutate(FlowRelDiff = FlowDiff/Flow_kg_s.R) |> ungroup()
-
-filter(FlowMass, abs(FlowRelDiff) > 0.0001)
-
-World$FromDataAndTo() |> filter(fromScale == "Arctic" & toScale == "Arctic"& toSpecies == "Unbound" & fromSubCompart == "naturalsoil")
-
-ggplot(FlowMass, aes(x = to, y = from, color = abs(FlowRelDiff))) +
-  geom_point() +
-  scale_color_gradient(low = "green", high = "red") +
-  ggtitle(paste0(substance)) +
-  theme(
-    axis.text.y = element_text(size = 12),
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
-    plot.margin = margin(t = 10, r = 10, b = 30, l = 10)
-  )
-
 # print("Difference in emissions between R and Excel")
 
 # knitr::kable(merged_SS_SB1, format="markdown")
@@ -710,6 +689,31 @@ in now only
 This proves that the port of SimpleBox to R is successful in reproducing
 the results from the original spreadsheet implementation for chemicals
 of class `r World$fetchData("ChemClass")`.
+
+```{r CheckFlows}
+FlowMass <- 
+  mergedkaas |> left_join(merged_SS_SB1 |> select(-reldiff, -absdiff),
+                        by = join_by(from == Abbr)) |> 
+  mutate(Flow_kg_s.R = Mass_kg.R*k_R,
+         Flow_kg_s.Excel = Mass_kg.Excel*k_Excel) |> 
+  select(-diff,-relDif) |> 
+  mutate(FlowDiff = Flow_kg_s.R - Flow_kg_s.Excel) |> 
+  mutate(FlowRelDiff = FlowDiff/Flow_kg_s.R) |> ungroup()
+
+filter(FlowMass, abs(FlowRelDiff) > 0.001)
+
+ggplot(FlowMass, aes(x = to, y = from, color = abs(FlowRelDiff))) +
+  geom_point() +
+  scale_color_gradient(low = "green", high = "red") +
+  ggtitle(paste0(substance)) +
+  theme(
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    plot.margin = margin(t = 10, r = 10, b = 30, l = 10)
+  )
+
+```
+
 
 ## Concentrations
 

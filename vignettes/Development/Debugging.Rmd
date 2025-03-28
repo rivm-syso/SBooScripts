@@ -84,7 +84,7 @@ Some other examples of debug code:
   
   
   k_AdvectionH2O <- World$NewProcess("k_AdvectionRiverSeaScales")
-World$allFromAndTo("k_AdvectionRiverSeaScales")
+World$FromDataAndTo("k_AdvectionRiverSeaScales")
 #debugonce(k_AdvectionH2O$execute)
 k_AdvectionH2O$execute()#debugAt = list(from.ScaleName = "Continental", to.ScaleName = "Moderate", from.SubCompartName = "sea")) 
 dframe2excel(k_AdvectionH2O$execute())
