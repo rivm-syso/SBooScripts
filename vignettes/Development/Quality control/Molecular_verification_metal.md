@@ -2,7 +2,7 @@ Verification of SimpleBox - spreadsheet versus R implementation for
 metals
 ================
 Anne Hids, Valerie de Rijk, Matthias Hof and Joris Quik
-2024-08-26
+2025-03-27
 
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
@@ -42,6 +42,9 @@ values between excel and R, and not the result of mistakes in
 calculations or input values.
 
 # Step 1. Compare SBoo (incl. updates) to spreadsheet
+
+    ## `summarise()` has grouped output by 'from'. You can override using the
+    ## `.groups` argument.
 
 ## preliminary matrix check
 
@@ -155,22 +158,22 @@ k’s between R and Spreadsheet implementation of SimpleBox
 We can filter out the exact k’s that have a relative difference larger
 than 0.1%:
 
-| from | to   |          k_R | fromto_R |      k_Excel | fromto_Excel |         diff |     relDif |
-|:-----|:-----|-------------:|:---------|-------------:|:-------------|-------------:|-----------:|
-| sd2R | w2R  | 8.420316e-09 | sd2R_w2R | 8.264725e-09 | sd2R_w2R     | 1.555913e-10 | 0.01847808 |
-| sd1R | w1R  | 2.723853e-08 | sd1R_w1R | 2.677281e-08 | sd1R_w1R     | 4.657184e-10 | 0.01709778 |
-| sd1C | w1C  | 2.725967e-08 | sd1C_w1C | 2.679395e-08 | sd1C_w1C     | 4.657168e-10 | 0.01708446 |
-| sd2C | w2C  | 9.620316e-09 | sd2C_w2C | 9.463765e-09 | sd2C_w2C     | 1.565512e-10 | 0.01627298 |
-| w1C  | sd1C | 6.922767e-07 | w1C_sd1C | 6.814520e-07 | w1C_sd1C     | 1.082472e-08 | 0.01563641 |
-| w1R  | sd1R | 6.922767e-07 | w1R_sd1R | 6.814520e-07 | w1R_sd1R     | 1.082472e-08 | 0.01563641 |
-| w2C  | sd2C | 3.719880e-09 | w2C_sd2C | 3.663050e-09 | w2C_sd2C     | 5.683035e-11 | 0.01527747 |
-| w2R  | sd2R | 7.439760e-08 | w2R_sd2R | 7.326099e-08 | w2R_sd2R     | 1.136607e-09 | 0.01527747 |
-| w3A  | sdA  | 2.479920e-10 | w3A_sdA  | 2.442033e-10 | w3A_sdA      | 3.788690e-12 | 0.01527747 |
-| w3M  | sdM  | 2.479920e-10 | w3M_sdM  | 2.442033e-10 | w3M_sdM      | 3.788690e-12 | 0.01527747 |
-| w3T  | sdT  | 2.479920e-10 | w3T_sdT  | 2.442033e-10 | w3T_sdT      | 3.788690e-12 | 0.01527747 |
-| sdM  | w3M  | 1.053067e-08 | sdM_w3M  | 1.037507e-08 | sdM_w3M      | 1.555913e-10 | 0.01477507 |
-| sdA  | w3A  | 1.053154e-08 | sdA_w3A  | 1.037594e-08 | sdA_w3A      | 1.555913e-10 | 0.01477384 |
-| sdT  | w3T  | 1.053154e-08 | sdT_w3T  | 1.037594e-08 | sdT_w3T      | 1.555913e-10 | 0.01477384 |
+| from | to | k_R | fromto_R | k_Excel | fromto_Excel | diff | relDif |
+|:---|:---|---:|:---|---:|:---|---:|---:|
+| sd2R | w2R | 8.420316e-09 | sd2R_w2R | 8.264725e-09 | sd2R_w2R | 1.555913e-10 | 0.01847808 |
+| sd1R | w1R | 2.723853e-08 | sd1R_w1R | 2.677281e-08 | sd1R_w1R | 4.657184e-10 | 0.01709778 |
+| sd1C | w1C | 2.725967e-08 | sd1C_w1C | 2.679395e-08 | sd1C_w1C | 4.657168e-10 | 0.01708446 |
+| sd2C | w2C | 9.620316e-09 | sd2C_w2C | 9.463765e-09 | sd2C_w2C | 1.565512e-10 | 0.01627298 |
+| w1C | sd1C | 6.922767e-07 | w1C_sd1C | 6.814520e-07 | w1C_sd1C | 1.082472e-08 | 0.01563641 |
+| w1R | sd1R | 6.922767e-07 | w1R_sd1R | 6.814520e-07 | w1R_sd1R | 1.082472e-08 | 0.01563641 |
+| w2C | sd2C | 3.719880e-09 | w2C_sd2C | 3.663050e-09 | w2C_sd2C | 5.683035e-11 | 0.01527747 |
+| w2R | sd2R | 7.439760e-08 | w2R_sd2R | 7.326099e-08 | w2R_sd2R | 1.136607e-09 | 0.01527747 |
+| w3A | sdA | 2.479920e-10 | w3A_sdA | 2.442033e-10 | w3A_sdA | 3.788690e-12 | 0.01527747 |
+| w3M | sdM | 2.479920e-10 | w3M_sdM | 2.442033e-10 | w3M_sdM | 3.788690e-12 | 0.01527747 |
+| w3T | sdT | 2.479920e-10 | w3T_sdT | 2.442033e-10 | w3T_sdT | 3.788690e-12 | 0.01527747 |
+| sdM | w3M | 1.053067e-08 | sdM_w3M | 1.037507e-08 | sdM_w3M | 1.555913e-10 | 0.01477507 |
+| sdA | w3A | 1.053154e-08 | sdA_w3A | 1.037594e-08 | sdA_w3A | 1.555913e-10 | 0.01477384 |
+| sdT | w3T | 1.053154e-08 | sdT_w3T | 1.037594e-08 | sdT_w3T | 1.555913e-10 | 0.01477384 |
 
 #### Sedimentation and resuspension
 
@@ -182,6 +185,11 @@ processes (explained above under ‘Settling velocity’) also solves these
 differences.
 
 ### Steadystate mass
+
+    ## 12 rate constants (k values) equal to 0; removed for solver
+
+    ## `summarise()` has grouped output by 'Scale', 'SubCompart', 'Species'. You can
+    ## override using the `.groups` argument.
 
 <figure>
 <img
@@ -231,6 +239,11 @@ for both the diagonal and the from-to k’s. All relative differences are
 now smaller than 1 percentile.
 
 ## Steadystate mass
+
+    ## 17 rate constants (k values) equal to 0; removed for solver
+
+    ## `summarise()` has grouped output by 'Scale', 'SubCompart', 'Species'. You can
+    ## override using the `.groups` argument.
 
 <figure>
 <img

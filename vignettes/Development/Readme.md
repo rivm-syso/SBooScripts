@@ -1,18 +1,13 @@
-Development readme
+Development of SimpleBox object oriented (SBoo)
 ================
-Jaap Slootweg, Joris Quik, Valerie de Rijk
 2025-03-27
-
-# Development of SimpleBox object oriented (SBoo)
 
 There are several important conventions taken as basis for development
 of SimpleBox in R. This folder contains different examples[^1] and other
 help files aimed at an (advanced) user who wants to extend or modify the
 current implementation of SBoo.
 
-## SBoo
-
-Important starting documents to read:
+## Important starting documents to read:
 
 - [Getting-Started](/vignettes/Getting-started.md) : Although not in
   this folder, before starting to develop it’s wise to understand how SB
