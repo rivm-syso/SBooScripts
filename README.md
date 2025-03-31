@@ -19,7 +19,9 @@ SimpleBox is a level 3 and 4 model, meaning that SimpleBox can calculate
 concentrations for multiple environmental compartments (e.g. air, soil,
 water) and multiple scales (regional, continental, global) both at
 steady-state and dynamically, over time. More information can be found
-[here](vignettes/Development/QualityDocumentation.md "More info on SimpleBox").
+[here](https://www.rivm.nl/SimpleBox "More info on SimpleBox") and in
+the [model quality and transparency
+document.](vignettes/Development/QualityDocumentation.md)
 
 # 2. Repository structure
 
