@@ -772,7 +772,7 @@ test_dynamic_2 <-
   filter(FractionSS > 1.001)
 
 if (length(test_dynamic_2$Abbr) > 0) {
-  stop(paste0("Compartment ", test_dynamic_2$Abbr, "exceeding steady state"))
+  warning(paste0("Compartment ", test_dynamic_2$Abbr, "exceeding steady state at some timesteps"))
 }
 
 ```

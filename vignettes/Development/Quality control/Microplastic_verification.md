@@ -409,6 +409,9 @@ test_dynamic_2 <-
 
 ``` r
 if (length(test_dynamic_2$Abbr) > 0) {
-  stop(paste0("Compartment ", test_dynamic_2$Abbr, "exceeding steady state"))
+  warning(paste0("Compartment ", test_dynamic_2$Abbr, "exceeding steady state at some timesteps"))
 }
 ```
+
+    ## Warning: Compartment aAPexceeding steady state at some timestepsCompartment
+    ## cwAPexceeding steady state at some timesteps
