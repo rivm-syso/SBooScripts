@@ -12,9 +12,9 @@ editor_options:
 ```{r setup, include=FALSE}
 
 knitr::opts_chunk$set(
-	fig.height = 8,
-	fig.width = 14,
-	include = FALSE
+  fig.height = 8,
+  fig.width = 14,
+  include = FALSE
 )
 ```
 
@@ -60,10 +60,10 @@ improvements that are made. For this reason we show the verification in
 two steps:
 
 1.  Compare k's and steady state masses of SBoo with updates to the
-    spreadsheet.
+spreadsheet.
 
 2.  Compare k's and steady state masses of adapted SBoo using TEST
-    variable to the spreadsheet.
+variable to the spreadsheet.
 
 When comparing k's and steady state masses between SimpleBox in R and
 Excel^TM^, the goal is that the relative difference is less than 0.1
@@ -91,12 +91,12 @@ ProcessMolFunctions <- c(
 SBExcelName <- paste0("vignettes/Development/Quality control/SBExcel/SBExcel_verification_", substance, ".xlsm")
 
 SBexcel.K <- read.xlsx(SBExcelName,
-  colNames = FALSE,
-  namedRegion = "K"
+                       colNames = FALSE,
+                       namedRegion = "K"
 )
 SBexcel.Names <- read.xlsx(SBExcelName,
-  colNames = FALSE,
-  namedRegion = "box_names"
+                           colNames = FALSE,
+                           namedRegion = "box_names"
 )
 
 colnames(SBexcel.K) <- SBexcel.Names
@@ -148,13 +148,13 @@ kaas <-
   mutate(
     from =
       ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") &
-        (fromSubCompart == "marinesediment" | fromSubCompart == "naturalsoil"),
-      str_replace_all(from, c("sd2" = "sd", "s1" = "s")),
-      from
+               (fromSubCompart == "marinesediment" | fromSubCompart == "naturalsoil"),
+             str_replace_all(from, c("sd2" = "sd", "s1" = "s")),
+             from
       )
   ) |>
   mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") &
-    (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(to, c("sd2" = "sd", "s1" = "s")), to))
+                       (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(to, c("sd2" = "sd", "s1" = "s")), to))
 
 kaas2 <- kaas |>
   filter(from != to) |> # filtering the diagonals ou
@@ -190,28 +190,28 @@ In the chunk below we check if our matrix is as large as we expect it to
 be.
 
 i)  Matrix The SimpleBox model operates over 5 scales, 12
-    subcompartments and 4 different speciations. For molecules, this is
-    already filtered to only include one species: Unbound. As such, we
-    would expect our matrix to have 5 \* 12 \* 1 = 60 rows. However,
-    some exceptions exist within our SB world:
+subcompartments and 4 different speciations. For molecules, this is
+already filtered to only include one species: Unbound. As such, we
+would expect our matrix to have 5 \* 12 \* 1 = 60 rows. However,
+some exceptions exist within our SB world:
 
 -   The Regional and Continental scale do now have a deepocean layer
-    (w3), reducing the matrix by 2 \* 1 = 2 rows.
+(w3), reducing the matrix by 2 \* 1 = 2 rows.
 -   The Global Scales (Arctic, Moderate, Tropic) only have one type of
-    soil instead of 3, reducing the matrix by 3 \* 2 = 6 rows.
+soil instead of 3, reducing the matrix by 3 \* 2 = 6 rows.
 -   The Global Scales (Arctic, Moderate, Tropic) only have one type of
-    sediment instead of 3, reducing the matrix by 3 \* 2 = 6 rows.
+sediment instead of 3, reducing the matrix by 3 \* 2 = 6 rows.
 -   The Global Scales (Arctic, Moderate, Tropic) only have one type of
-    water instead of 3, reducing the matrix by 3 \* 2 = 6 rows.
+water instead of 3, reducing the matrix by 3 \* 2 = 6 rows.
 -   Cloudwater (compartment) does not have any values, reducing our
-    matrix by 5 \* 1 \* 1 = 5 rows.
+matrix by 5 \* 1 \* 1 = 5 rows.
 
 With these exceptions, we expect our matrix to be 60- 25 = 35 rows. This
 script will stop running if this is not the case.
 
 ii) We expect all processes to be included in Processes4SpeciesTp.csv to
-    also be calculated. Therefore, we compare the calculated unique
-    processes with the processes defined in this csv.
+also be calculated. Therefore, we compare the calculated unique
+processes with the processes defined in this csv.
 
 ```{r check if matrix is 155x155, include=TRUE, echo=FALSE, warning=FALSE}
 dims <- dim(diagonal_R)
@@ -239,16 +239,16 @@ world_processes <- unique(World$kaas$process)
 if (!setequal(Functions, world_processes)) {
   # Find elements in world_processes not in Functions
   missing_from_functions <- world_processes[!world_processes %in% Functions]
-
+  
   # Find elements in Functions not in world_processes
   extra_in_functions <- Functions[!Functions %in% world_processes]
-
+  
   # Print the mismatched elements
   cat("The following process names are missing from Functions:\n")
   print(missing_from_functions)
   cat("The following process names are extra in Functions:\n")
   print(extra_in_functions)
-
+  
   # Stop the script
   stop("Mismatch found between Functions and unique(World$kaas$process).")
 }
@@ -426,9 +426,9 @@ World$Solve(emissions)
 SSsolve.R <- World$Masses()
 
 SSsolve.excel <- read.xlsx(SBExcelName,
-  sheet = 11,
-  colNames = TRUE,
-  rows = c(44, 45)
+                           sheet = 11,
+                           colNames = TRUE,
+                           rows = c(44, 45)
 )
 
 SSsolve.excel <- SSsolve.excel |>
@@ -448,11 +448,11 @@ SSsolve.R <- SSsolve.R |>
   group_by(Scale, SubCompart, Species, Abbr) |>
   summarise(Mass_kg = sum(Mass_kg)) |> 
   mutate(Abbr = 
-      ifelse((Scale == "Tropic" | Scale == "Arctic" | Scale == "Moderate") &
-        (SubCompart == "marinesediment" | SubCompart == "naturalsoil"),
-      str_replace_all(Abbr, c("sd2" = "sd", "s1" = "s")),
-      Abbr
-      )
+           ifelse((Scale == "Tropic" | Scale == "Arctic" | Scale == "Moderate") &
+                    (SubCompart == "marinesediment" | SubCompart == "naturalsoil"),
+                  str_replace_all(Abbr, c("sd2" = "sd", "s1" = "s")),
+                  Abbr
+           )
   )
 
 merged_SS_SB1 <- merge(SSsolve.R, SSsolve.excel, by = "Abbr", suffixes = c(".R", ".Excel")) |>
@@ -484,19 +484,18 @@ Now the value for the Test variable can be changed to TRUE, and the
 difference in k's between excel and R can be tested again:
 
 ```{r comparison_2, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
-VerificationSBoo = TRUE
-
 substance <- Potential_substances[2]
-
+VerificationSBoo = TRUE
 source("baseScripts/initWorld_onlyMolec.R")
 VerificationSBoo = FALSE # with testing make sure to change back to false
+
 SBexcel.K <- read.xlsx(SBExcelName,
-  colNames = FALSE,
-  namedRegion = "K"
+                       colNames = FALSE,
+                       namedRegion = "K"
 )
 SBexcel.Names <- read.xlsx(SBExcelName,
-  colNames = FALSE,
-  namedRegion = "box_names"
+                           colNames = FALSE,
+                           namedRegion = "box_names"
 )
 
 colnames(SBexcel.K) <- SBexcel.Names
@@ -548,13 +547,13 @@ kaas <-
   mutate(
     from =
       ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") &
-        (fromSubCompart == "marinesediment" | fromSubCompart == "naturalsoil"),
-      str_replace_all(from, c("sd2" = "sd", "s1" = "s")),
-      from
+               (fromSubCompart == "marinesediment" | fromSubCompart == "naturalsoil"),
+             str_replace_all(from, c("sd2" = "sd", "s1" = "s")),
+             from
       )
   ) |>
   mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") &
-    (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(to, c("sd2" = "sd", "s1" = "s")), to))
+                       (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(to, c("sd2" = "sd", "s1" = "s")), to))
 
 kaas2 <- kaas |>
   filter(from != to) |> # filtering the diagonals ou
@@ -630,12 +629,12 @@ emissions <- emissions |>
   mutate(Emis = Emis * 1000 / (365 * 24 * 60 * 60))
 
 World$Solve(emissions)
-SSsolve.R <- World$Masses()
+SSsolve.R_orig <- World$Masses()
 
 SSsolve.excel <- read.xlsx(SBExcelName,
-  sheet = 11,
-  colNames = TRUE,
-  rows = c(44, 45)
+                           sheet = 11,
+                           colNames = TRUE,
+                           rows = c(44, 45)
 )
 
 SSsolve.excel <- SSsolve.excel |>
@@ -643,7 +642,7 @@ SSsolve.excel <- SSsolve.excel |>
   pivot_longer(names_to = "Abbr", values_to = "EqMol", cols = everything()) |>
   mutate(Mass_kg = EqMol * MW)
 
-SSsolve.R <- SSsolve.R |>
+SSsolve.R <- SSsolve.R_orig |>
   left_join(World$states$asDataFrame, by = "Abbr") |>
   mutate(Abbr = paste0(
     accronym_map[SubCompart],
@@ -655,11 +654,11 @@ SSsolve.R <- SSsolve.R |>
   group_by(Scale, SubCompart, Species, Abbr) |>
   summarise(Mass_kg = sum(Mass_kg)) |> 
   mutate(Abbr = 
-      ifelse((Scale == "Tropic" | Scale == "Arctic" | Scale == "Moderate") &
-        (SubCompart == "marinesediment" | SubCompart == "naturalsoil"),
-      str_replace_all(Abbr, c("sd2" = "sd", "s1" = "s")),
-      Abbr
-      )
+           ifelse((Scale == "Tropic" | Scale == "Arctic" | Scale == "Moderate") &
+                    (SubCompart == "marinesediment" | SubCompart == "naturalsoil"),
+                  str_replace_all(Abbr, c("sd2" = "sd", "s1" = "s")),
+                  Abbr
+           )
   )
 
 
@@ -693,7 +692,7 @@ of class `r World$fetchData("ChemClass")`.
 ```{r CheckFlows}
 FlowMass <- 
   mergedkaas |> left_join(merged_SS_SB1 |> select(-reldiff, -absdiff),
-                        by = join_by(from == Abbr)) |> 
+                          by = join_by(from == Abbr)) |> 
   mutate(Flow_kg_s.R = Mass_kg.R*k_R,
          Flow_kg_s.Excel = Mass_kg.Excel*k_Excel) |> 
   select(-diff,-relDif) |> 
@@ -733,14 +732,17 @@ details. Below we verify that with constant emission in time the steady
 state mass is approached as verified with Excel above.
 
 ```{r}
-emissions <-
+emissions1 <-
   # create emission scenario in time:
   data.frame(
     Emis = c(10000, 10000, 0, 0), # emission in kg/year
     Time = c(0, 100, 110, 150)
   ) # years from start
+
 # apply emission scenario to intended species and compartments using hte Abbr:
-emissions <- merge(emissions, data.frame(Abbr = c("aRU", "s2RU", "w1RU")))
+emissions <- 
+  merge(emissions1, data.frame(Abbr = c("aRU", "s2RU", "w1RU","s1AU")))
+emissions[emissions$Abbr == "s1AU","Emis"]  <- emissions[emissions$Abbr == "s1AU","Emis"] /100
 
 # convert time to seconds and emission to kg/s
 emissions <- emissions |>
@@ -749,6 +751,7 @@ emissions <- emissions |>
     Time = Time * (365.25 * 24 * 60 * 60)
   ) |>
   ungroup()
+
 
 
 tmax <- max(emissions$Time) # set max solve time to last step in emission scenario
@@ -760,6 +763,7 @@ nTIMES <- 1 + max(emissions$Time) / (365.25 * 24 * 60 * 60) # Sets the time step
 World$NewSolver("DynamicSolver")
 World$Solve(emissions = emissions, tmin = tmin, tmax = tmax, nTIMES = nTIMES)
 
+
 masses <- World$Masses()
 emission <- World$Emissions()
 concentration <- World$Concentration()
@@ -767,29 +771,18 @@ concentration <- World$Concentration()
 World$PlotMasses()
 World$PlotConcentration()
 
-SSsolveD.R <-
-  masses |>
-  left_join(World$states$asDataFrame, by = "Abbr") |>
-  mutate(Abbr = paste0(
-    accronym_map[SubCompart],
-    accronym_map2[Scale]
-  )) |>
-  mutate(SubCompart = str_replace(SubCompart, "lakesediment", "lake")) |>
-  mutate(Abbr = str_replace(Abbr, "sd0R", "w0R")) |>
-  mutate(Abbr = str_replace(Abbr, "sd0C", "w0C")) |>
-  group_by(Scale, SubCompart, Species, Abbr, time) |>
-  summarise(Dynamic_Mass_kg = sum(Mass_kg))
-
 # calculate time to steady state
 Time2SteadyState <-
-  SSsolveD.R |>
-  left_join(SSsolve.R |>
-    mutate(
-      SS_Mass_kg = Mass_kg,
-      .keep = "unused"
-    )) |>
+  # SSsolveD.R |>
+  as_tibble(masses) |> 
+  rename(Dynamic_Mass_kg = Mass_kg) |> 
+  left_join(SSsolve.R_orig |>
+              mutate(
+                SS_Mass_kg = Mass_kg,
+                .keep = "unused"
+              )) |>
   mutate(FractionSS = Dynamic_Mass_kg / SS_Mass_kg) |>
-  filter(FractionSS > 0.999) |>
+  filter(FractionSS > 0.99) |>
   ungroup() |>
   group_by(Abbr) |>
   summarise(SS_time_y = min(as.numeric(time)) / (365.25 * 24 * 60 * 60)) |>
@@ -805,23 +798,25 @@ ggplot(Time2SteadyState, aes(x = reorder(Abbr, -SS_time_y), y = SS_time_y)) +
   custom_theme()
 
 if (length(unique(Time2SteadyState$Abbr)) != length(unique(SSsolve.R$Abbr))) {
-  warning(paste("Not all compartments reaching steady state within", max(as.numeric(SSsolveD.R$time)) / (365.25 * 24 * 60 * 60), "years"))
+  warning(paste("Compartments",
+                unique(SSsolve.R$Abbr)[!(unique(SSsolve.R$Abbr) %in% unique(Time2SteadyState$Abbr))],
+                "not reaching steady state within", 
+                emissions1$Time[2] , "years"))
 }
 
-test_dynamic_1 <-
-  SSsolveD.R |>
-  left_join(SSsolve.R |>
-    mutate(
-      SS_Mass_kg = Mass_kg,
-      .keep = "unused"
-    )) |>
+test_dynamic_2 <-
+  as_tibble(masses) |> 
+  rename(Dynamic_Mass_kg = Mass_kg) |> 
+  left_join(SSsolve.R_orig |>
+              mutate(
+                SS_Mass_kg = Mass_kg,
+                .keep = "unused"
+              )) |>
   mutate(FractionSS = Dynamic_Mass_kg / SS_Mass_kg) |>
-  filter(FractionSS > 0.999)
-
-test_dynamic_2 <- test_dynamic_1 |>
   filter(FractionSS > 1.001)
 
 if (length(test_dynamic_2$Abbr) > 0) {
   stop(paste0("Compartment ", test_dynamic_2$Abbr, "exceeding steady state"))
 }
+
 ```

@@ -412,7 +412,7 @@ emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 
 MW <- World$fetchData("MW")
 
 emissions <- emissions |>
-  mutate(Emis = Emis * 1000 / (MW * 365 * 24 * 60 * 60))
+  mutate(Emis = Emis * 1000 / (365 * 24 * 60 * 60))
 
 World$Solve(emissions)
 SSsolve.R <- World$Masses()
@@ -425,8 +425,8 @@ SSsolve.excel <- read.xlsx(SBExcelName,
 
 SSsolve.excel <- SSsolve.excel |>
   select(-c(STEADY.STATE, X2)) |>
-  pivot_longer(names_to = "Abbr", values_to = "EqMass", cols = everything()) |>
-  rename(Mass_kg = EqMass)
+  pivot_longer(names_to = "Abbr", values_to = "EqMol", cols = everything()) |>
+  mutate(Mass_kg = EqMol * MW)
 
 SSsolve.R <- SSsolve.R |>
   left_join(World$states$asDataFrame, by = "Abbr") |>
@@ -473,8 +473,11 @@ Now the value for the Test variable can be changed to TRUE, and the
 difference in k's between excel and R can be tested again:
 
 ```{r comparison_2, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
-World$SetConst(Test = "TRUE")
-World$UpdateKaas(mergeExisting = FALSE)
+
+VerificationSBoo = TRUE
+source("baseScripts/initWorld_onlyMolec.R")
+VerificationSBoo = FALSE # with testing make sure to change back to false
+
 
 SBexcel.K <- read.xlsx(SBExcelName,
   colNames = FALSE,
@@ -612,10 +615,10 @@ emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 
 MW <- World$fetchData("MW")
 
 emissions <- emissions |>
-  mutate(Emis = Emis * 1000 / (MW * 365 * 24 * 60 * 60))
+  mutate(Emis = Emis * 1000 / (365 * 24 * 60 * 60))
 
 World$Solve(emissions)
-SSsolve.R <- World$Masses()
+SSsolve.R_orig <- World$Masses()
 
 SSsolve.excel <- read.xlsx(SBExcelName,
   sheet = 11,
@@ -623,12 +626,13 @@ SSsolve.excel <- read.xlsx(SBExcelName,
   rows = c(44, 45)
 )
 
+
 SSsolve.excel <- SSsolve.excel |>
   select(-c(STEADY.STATE, X2)) |>
-  pivot_longer(names_to = "Abbr", values_to = "EqMass", cols = everything()) |>
-  rename(Mass_kg = EqMass)
+  pivot_longer(names_to = "Abbr", values_to = "EqMol", cols = everything()) |>
+  mutate(Mass_kg = EqMol * MW)
 
-SSsolve.R <- SSsolve.R |>
+SSsolve.R <- SSsolve.R_orig |>
   left_join(World$states$asDataFrame, by = "Abbr") |>
   mutate(Abbr = paste0(
     accronym_map[SubCompart],

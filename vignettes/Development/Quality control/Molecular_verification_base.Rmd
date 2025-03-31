@@ -427,12 +427,13 @@ library(stringi)
 
 World$NewSolver("SteadyStateSolver")
 
-emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: kg/s
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU","aAU","w2AU"), 
+                        Emis = c(10000, 10000, 10000,100,100)) # t/y
 
 MW <- World$fetchData("MW")
 
 emissions <- emissions |>
-  mutate(Emis = Emis * 1000 / (MW * 365 * 24 * 60 * 60))
+  mutate(Emis = Emis * 1000 / (365 * 24 * 60 * 60)) # convert 1 t/y to si units: kg/s
 
 World$Solve(emissions)
 SSsolve.R <- World$Masses()
@@ -445,8 +446,8 @@ SSsolve.excel <- read.xlsx(SBExcelName,
 
 SSsolve.excel <- SSsolve.excel |>
   select(-c(STEADY.STATE, X2)) |>
-  pivot_longer(names_to = "Abbr", values_to = "EqMass", cols = everything()) |>
-  rename(Mass_kg = EqMass)
+  pivot_longer(names_to = "Abbr", values_to = "EqMol", cols = everything()) |>
+  mutate(Mass_kg = EqMol * MW)
 
 SSsolve.R <- SSsolve.R |>
   left_join(World$states$asDataFrame, by = "Abbr") |>
@@ -493,8 +494,11 @@ Now the value for the Test variable can be changed to TRUE, and the
 difference in k's between excel and R can be tested again:
 
 ```{r comparison_2, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
-World$SetConst(Test = "TRUE")
-World$UpdateKaas(mergeExisting = FALSE)
+
+VerificationSBoo = TRUE
+source("baseScripts/initWorld_onlyMolec.R")
+VerificationSBoo = FALSE # with testing make sure to change back to false
+
 
 SBexcel.K <- read.xlsx(SBExcelName,
   colNames = FALSE,
@@ -627,15 +631,16 @@ library(stringi)
 
 World$NewSolver("SteadyStateSolver")
 
-emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: kg/s
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU","aAU","w2AU"), 
+                        Emis = c(10000, 10000, 10000,100,100)) # t/y
 
 MW <- World$fetchData("MW")
 
 emissions <- emissions |>
-  mutate(Emis = Emis * 1000 / (MW * 365 * 24 * 60 * 60))
+  mutate(Emis = Emis * 1000 / (365 * 24 * 60 * 60)) # convert 1 t/y to si units: kg/s
 
 World$Solve(emissions)
-SSsolve.R <- World$Masses()
+SSsolve.R_orig <- World$Masses()
 
 SSsolve.excel <- read.xlsx(SBExcelName,
   sheet = 11,
@@ -645,10 +650,10 @@ SSsolve.excel <- read.xlsx(SBExcelName,
 
 SSsolve.excel <- SSsolve.excel |>
   select(-c(STEADY.STATE, X2)) |>
-  pivot_longer(names_to = "Abbr", values_to = "EqMass", cols = everything()) |>
-  rename(Mass_kg = EqMass)
+  pivot_longer(names_to = "Abbr", values_to = "EqMol", cols = everything()) |>
+  mutate(Mass_kg = EqMol * MW)
 
-SSsolve.R <- SSsolve.R |>
+SSsolve.R <- SSsolve.R_orig |>
   left_join(World$states$asDataFrame, by = "Abbr") |>
   mutate(Abbr = paste0(
     accronym_map[SubCompart],
@@ -690,3 +695,104 @@ in now only
 proves that the port of SimpleBox to R is successful in reproducing the
 results from the original spreadsheet implementation for chemicals of
 class `r World$fetchData("ChemClass")`.
+
+# Step 3. Verify dynamic solver
+
+The dynamic solver can use time explicit emissions and provide masses or
+concentrations in time. This shows the increase in mass in each
+compartment in time based on a specified emission, see
+[here](vignettes/10.0-Solver-use.md "Solver documentation") for more
+details. Below we verify that with constant emission in time the steady
+state mass is approached as verified with Excel above.
+```{r}
+emissions1 <-
+  # create emission scenario in time:
+  data.frame(
+    Emis = c(10000, 10000, 0, 0), # emission in kg/year
+    Time = c(0, 100, 110, 150)
+  ) # years from start
+
+# apply emission scenario to intended species and compartments using hte Abbr:
+emissions <- 
+  merge(emissions1, data.frame(Abbr = c("aRU", "s2RU", "w1RU", "aAU","w2AU" )))
+emissions[emissions$Abbr == "aAU","Emis"]  <- emissions[emissions$Abbr == "aAU","Emis"] /100
+emissions[emissions$Abbr == "w2AU","Emis"]  <- emissions[emissions$Abbr == "w2AU","Emis"] /100
+
+# convert time to seconds and emission to kg/s
+emissions <- emissions |>
+  mutate(
+    Emis = Emis * 1000 / (365.25 * 24 * 60 * 60),
+    Time = Time * (365.25 * 24 * 60 * 60)
+  ) |>
+  ungroup()
+
+
+
+tmax <- max(emissions$Time) # set max solve time to last step in emission scenario
+tmin <- min(emissions$Time)
+nTIMES <- 1 + max(emissions$Time) / (365.25 * 24 * 60 * 60) # Sets the time step for output, e.g. for 20 year scenario, add t0 is 21 nTimes
+
+
+# Initialize the dynamic solver
+World$NewSolver("DynamicSolver")
+World$Solve(emissions = emissions, tmin = tmin, tmax = tmax, nTIMES = nTIMES)
+
+
+masses <- as_tibble(World$Masses())
+emission <- World$Emissions()
+concentration <- World$Concentration()
+
+World$PlotMasses()
+World$PlotConcentration()
+
+masses |> distinct(Abbr)
+# calculate time to steady state
+Time2SteadyState <-
+  # SSsolveD.R |>
+   masses |> 
+  rename(Dynamic_Mass_kg = Mass_kg) |> 
+  left_join(SSsolve.R_orig |>
+              mutate(
+                SS_Mass_kg = Mass_kg,
+                .keep = "unused"
+              )) |>
+  mutate(FractionSS = Dynamic_Mass_kg / SS_Mass_kg) |>
+  filter(FractionSS > 0.99) |>
+  ungroup() |>
+  group_by(Abbr) |>
+  summarise(SS_time_y = min(as.numeric(time)) / (365.25 * 24 * 60 * 60)) |>
+  arrange(desc(SS_time_y))
+
+ggplot(Time2SteadyState, aes(x = reorder(Abbr, -SS_time_y), y = SS_time_y)) +
+  geom_bar(stat = "identity") +
+  ggtitle(paste0(substance)) +
+  labs(
+    x = "Compartment",
+    y = "Time to steady state (years)"
+  ) +
+  custom_theme()
+
+if (length(unique(Time2SteadyState$Abbr)) != length(unique(SSsolve.R$Abbr))) {
+  warning(paste("Compartments",
+                unique(SSsolve.R$Abbr)[!(unique(SSsolve.R$Abbr) %in% unique(Time2SteadyState$Abbr))],
+                "not reaching steady state within", 
+                emissions1$Time[2] , "years"))
+}
+
+test_dynamic_2 <-
+  as_tibble(masses) |> 
+  rename(Dynamic_Mass_kg = Mass_kg) |> 
+  left_join(SSsolve.R_orig |>
+              mutate(
+                SS_Mass_kg = Mass_kg,
+                .keep = "unused"
+              )) |>
+  mutate(FractionSS = Dynamic_Mass_kg / SS_Mass_kg) |>
+  filter(FractionSS > 1.001)
+
+if (length(test_dynamic_2$Abbr) > 0) {
+  stop(paste0("Compartment ", test_dynamic_2$Abbr, "exceeding steady state"))
+}
+
+```
+

@@ -71,6 +71,24 @@ Some other examples of debug code:
 
 ```{r}
 
+# test procedure when looking at rate constants:
+# 1. see the calcuation:
+test1 <- World$NewProcess("k_Sedimentation")
+World$FromDataAndTo("k_Sedimentation") # dimension application of the calculation
+test1$execute() # calculate the k
+test1$execute(debugAt = list()) # if you want to debug
+#debugAt = list(from.ScaleName = "Continental", to.ScaleName = "Moderate", from.SubCompartName = "sea")) 
+debugonce(k_Sedimentation) # another option
+
+# see input data:
+World$fetchData("kdeg")
+World$fetchData("KdegDorC")
+
+# Filter out the list of kaas which is used for the matrix:
+World$kaas |> filter(fromScale == "Arctic" &  
+                 (toSubCompart == "deepocean" )) 
+
+
 
 #commented out so it does not trigger 
 
@@ -82,14 +100,5 @@ Some other examples of debug code:
                       # emissions    #all solvers need emissions
 # )                    #number of samples
   
-  
-  k_AdvectionH2O <- World$NewProcess("k_AdvectionRiverSeaScales")
-World$FromDataAndTo("k_AdvectionRiverSeaScales")
-#debugonce(k_AdvectionH2O$execute)
-k_AdvectionH2O$execute()#debugAt = list(from.ScaleName = "Continental", to.ScaleName = "Moderate", from.SubCompartName = "sea")) 
-dframe2excel(k_AdvectionH2O$execute())
 
-
-
-debugonce(k_Sedimentation)
 ```

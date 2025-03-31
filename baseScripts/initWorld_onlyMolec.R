@@ -27,7 +27,7 @@ AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 
 # to set verification test at initialisation for proper k update.
-if(VerificationSBoo == FALSE | !exists("VerificationSBoo")){
+if(!exists("VerificationSBoo")){
   World$SetConst(Test = "FALSE")
 } else ifelse(VerificationSBoo == TRUE, World$SetConst(Test = "TRUE") , World$SetConst(Test = "FALSE"))
 
