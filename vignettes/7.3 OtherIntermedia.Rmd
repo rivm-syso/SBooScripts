@@ -6,6 +6,7 @@ output: github_document
 editor_options: 
   chunk_output_type: console
 ---
+
 ```{r setup, include=FALSE}
 knitr::knit_meta()
 knitr::opts_chunk$set(echo = TRUE)
@@ -16,7 +17,6 @@ knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct s
 ### Other intermedia transfer processes
 
 Intermedia processes discussed here are:
-
 
 1.  \- Erosion
 
@@ -34,11 +34,18 @@ We initialise a "World" and calculate the needed parameters.
 source("baseScripts/initWorld_onlyMolec.R")
 ```
 
-
 #### Erosion
-The processes of erosion and runoff are combined into one flow in the Excel version. n the R version, if multiple processes are defined for the same transfer, the k's are automatically added. This makes it easier to define and possibly re-define each process. In this case the factor CORRrunoff / DEPTH will be executed twice. We believe the loss in calculation speed is negligible. And this approach is in favor because of the clearly defined process functions.
 
-The factor CORRrunoff (Correction factor depth dependent soil concentration) however is calculated as EXP((-1/0.1) \* 0) \* (1/0.1) \* DEPTH / (1-EXP((-1/0.1) \* DEPTH)) for the assumed pentration depth of 0.1 m. To make sure this remains the same for both Runoff and erosion, we define a variable to calculate it. The only parameter, so far, is DEPTH, which has been renamed to vertDistance in the R version (combined with height). 
+The processes of erosion and runoff are combined into one flow in the Excel version.
+n the R version, if multiple processes are defined for the same transfer, the k's are automatically added.
+This makes it easier to define and possibly re-define each process.
+In this case the factor CORRrunoff / DEPTH will be executed twice.
+We believe the loss in calculation speed is negligible.
+And this approach is in favor because of the clearly defined process functions.
+
+The factor CORRrunoff (Correction factor depth dependent soil concentration) however is calculated as EXP((-1/0.1) \* 0) \* (1/0.1) \* DEPTH / (1-EXP((-1/0.1) \* DEPTH)) for the assumed pentration depth of 0.1 m.
+To make sure this remains the same for both Runoff and erosion, we define a variable to calculate it.
+The only parameter, so far, is DEPTH, which has been renamed to vertDistance in the R version (combined with height).
 
 ```{r message=FALSE, warning=FALSE}
 # data needed for k_Erosion:
@@ -60,7 +67,11 @@ test1$execute()
 
 #### Runoff
 
-Runoff is implemented in a similar way. Here the formula is: RAINrate \* FRACrun / Ksw \* CORRrunoff / VertDistance. So we need Ksw, which can be in the data, or you can apply a formulas depending on the type of substance. See the vignette partitioning.Rmd for a detailed explanation of Ksw
+Runoff is implemented in a similar way.
+Here the formula is: RAINrate \* FRACrun / Ksw \* CORRrunoff / VertDistance.
+So we need Ksw, which can be in the data, or you can apply a formulas depending on the type of substance.
+See the vignette partitioning.Rmd for a detailed explanation of Ksw
+
 ```{r message=FALSE, warning=FALSE}
 World$fetchData("Kscompw")
 World$NewCalcVariable("Runoff")
@@ -76,7 +87,8 @@ test1$execute()
 
 #### Volatilisation
 
-Volatilsation uses roughly the same two-film resistance model as gas absorption, as described in other K air. However, volatilisation processes are corrected also based on the depth correction, as is described for the processes above.
+Volatilsation uses roughly the same two-film resistance model as gas absorption, as described in other K air.
+However, volatilisation processes are corrected also based on the depth correction, as is described for the processes above.
 
 ```{r Volatilisation, warning= FALSE }
 
@@ -90,24 +102,31 @@ World$CalcVar("MTC_2s")
 World$NewCalcVariable("MTC_2sd")
 World$CalcVar("MTC_2sd")
 
-World$NewCalcVariable("Kacompw")
+testvar <- World$NewCalcVariable("Kacompw")
+testvar$execute(debugAt = list())
 World$CalcVar("Kacompw")
 
+CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
+
+debugonce(k_Volatilisation)
+
+
 testProc <- World$NewProcess("k_Volatilisation")
-testProc$execute()
+testProc$execute(debugAt = list())
 ```
 
 #### Desorption
-Once again, Values for the overall mass transfer coefficients for direct 
-desorption across the sediment-water interface can be obtained using 
-the two-film resistance model. However, for this we need the sediment water partition coefficient. We also correct for the vertical distance of the compartment. 
+
+Once again, Values for the overall mass transfer coefficients for direct desorption across the sediment-water interface can be obtained using the two-film resistance model.
+However, for this we need the sediment water partition coefficient.
+We also correct for the vertical distance of the compartment.
+
 ```{r Desorption, warning = FALSE}
 World$NewCalcVariable("Ksdcompw")
 World$CalcVar("Ksdcompw")
 
 testProc <- World$NewProcess("k_Desorption")
-testProc$execute()
+testProc$execute(debugAt = list())
+
+
 ```
-
-
-``` 
