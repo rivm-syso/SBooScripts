@@ -1,7 +1,7 @@
 Verification of SimpleBox4Nano - spreadsheet versus R implementation
 ================
 Valerie de Rijk, Anne Hids, Matthias Hof and Joris Quik
-2024-08-26
+2025-03-31
 
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
@@ -145,48 +145,48 @@ k’s between R and Spreadsheet implementation of SimpleBox
 We can filter out the exact k’s that have a relative difference larger
 than 0.1%:
 
-| from | to   |          k_R | fromto_R |      k_Excel | fromto_Excel |          diff |      relDif |
-|:-----|:-----|-------------:|:---------|-------------:|:-------------|--------------:|------------:|
-| aCA  | s2CA | 6.712052e-07 | aCA_s2CA | 7.977049e-08 | aCA_s2CA     |  5.914348e-07 | 0.881153353 |
-| aRA  | s2RA | 1.380191e-06 | aRA_s2RA | 1.640311e-07 | aRA_s2RA     |  1.216160e-06 | 0.881153352 |
-| aAA  | sAA  | 7.533075e-07 | aAA_sAA  | 1.039227e-07 | aAA_sAA      |  6.493848e-07 | 0.862044781 |
-| aCA  | s3CA | 9.488775e-08 | aCA_s3CA | 1.329508e-08 | aCA_s3CA     |  8.159267e-08 | 0.859886210 |
-| aRA  | s3RA | 1.951165e-07 | aRA_s3RA | 2.733852e-08 | aRA_s3RA     |  1.677780e-07 | 0.859886210 |
-| aCA  | s1CA | 2.558862e-07 | aCA_s1CA | 3.589672e-08 | aCA_s1CA     |  2.199895e-07 | 0.859716092 |
-| aMA  | sMA  | 9.786626e-07 | aMA_sMA  | 1.372906e-07 | aMA_sMA      |  8.413720e-07 | 0.859716092 |
-| aRA  | s1RA | 5.261758e-07 | aRA_s1RA | 7.381399e-08 | aRA_s1RA     |  4.523618e-07 | 0.859716092 |
-| aTA  | sTA  | 5.998438e-07 | aTA_sTA  | 8.506678e-08 | aTA_sTA      |  5.147770e-07 | 0.858185114 |
-| aCS  | s2CS | 2.621367e-06 | aCS_s2CS | 9.718135e-07 | aCS_s2CS     |  1.649554e-06 | 0.629272296 |
-| aRS  | s2RS | 5.390286e-06 | aRS_s2RS | 1.998328e-06 | aRS_s2RS     |  3.391958e-06 | 0.629272296 |
-| aAS  | sAS  | 3.415423e-06 | aAS_sAS  | 1.284810e-06 | aAS_sAS      |  2.130614e-06 | 0.623821244 |
-| aCS  | s3CS | 4.203858e-07 | aCS_s3CS | 1.619689e-07 | aCS_s3CS     |  2.584169e-07 | 0.614713637 |
-| aRS  | s3RS | 8.644342e-07 | aRS_s3RS | 3.330547e-07 | aRS_s3RS     |  5.313795e-07 | 0.614713637 |
-| aCS  | s1CS | 1.134645e-06 | aCS_s1CS | 4.373161e-07 | aCS_s1CS     |  6.973287e-07 | 0.614578869 |
-| aMS  | sMS  | 4.339563e-06 | aMS_sMS  | 1.672559e-06 | aMS_sMS      |  2.667004e-06 | 0.614578869 |
-| aRS  | s1RS | 2.333156e-06 | aRS_s1RS | 8.992477e-07 | aRS_s1RS     |  1.433909e-06 | 0.614578869 |
-| aTS  | sTS  | 2.626922e-06 | aTS_sTS  | 1.026195e-06 | aTS_sTS      |  1.600727e-06 | 0.609354588 |
-| aAA  | w2AA | 1.687410e-06 | aAA_w2AA | 6.758685e-07 | aAA_w2AA     |  1.011542e-06 | 0.599463966 |
-| aRA  | w2RA | 1.264459e-08 | aRA_w2RA | 5.076051e-09 | aRA_w2RA     |  7.568540e-09 | 0.598559485 |
-| aMA  | w2MA | 1.451409e-06 | aMA_w2MA | 5.826545e-07 | aMA_w2MA     |  8.687548e-07 | 0.598559472 |
-| aCA  | w2CA | 1.497289e-06 | aCA_w2CA | 6.010724e-07 | aCA_w2CA     |  8.962163e-07 | 0.598559472 |
-| aTA  | w2TA | 2.067768e-06 | aTA_w2TA | 8.311476e-07 | aTA_w2TA     |  1.236621e-06 | 0.598046077 |
-| aCA  | w1CA | 3.865207e-08 | aCA_w1CA | 1.670066e-08 | aCA_w1CA     |  2.195142e-08 | 0.567923401 |
-| aCA  | w0CA | 3.513825e-09 | aCA_w0CA | 1.518241e-09 | aCA_w0CA     |  1.995583e-09 | 0.567923401 |
-| aRA  | w1RA | 7.947979e-08 | aRA_w1RA | 3.434136e-08 | aRA_w1RA     |  4.513843e-08 | 0.567923401 |
-| aRA  | w0RA | 7.225435e-09 | aRA_w0RA | 3.121941e-09 | aRA_w0RA     |  4.103494e-09 | 0.567923401 |
-| aAS  | w2AS | 5.605552e-06 | aAS_w2AS | 2.647952e-06 | aAS_w2AS     |  2.957600e-06 | 0.527619742 |
-| aRS  | w2RS | 4.119670e-08 | aRS_w2RS | 1.953491e-08 | aRS_w2RS     |  2.166179e-08 | 0.525813667 |
-| aMS  | w2MS | 4.728763e-06 | aMS_w2MS | 2.242315e-06 | aMS_w2MS     |  2.486448e-06 | 0.525813651 |
-| aCS  | w2CS | 4.878240e-06 | aCS_w2CS | 2.313195e-06 | aCS_w2CS     |  2.565045e-06 | 0.525813651 |
-| aTS  | w2TS | 6.664389e-06 | aTS_w2TS | 3.166802e-06 | aTS_w2TS     |  3.497587e-06 | 0.524817341 |
-| aCS  | w0CS | 1.144821e-08 | aCS_w0CS | 7.472103e-09 | aCS_w0CS     |  3.976111e-09 | 0.347312791 |
-| aCS  | w1CS | 1.259303e-07 | aCS_w1CS | 8.219313e-08 | aCS_w1CS     |  4.373722e-08 | 0.347312791 |
-| aRS  | w0RS | 2.354082e-08 | aRS_w0RS | 1.536479e-08 | aRS_w0RS     |  8.176029e-09 | 0.347312791 |
-| aRS  | w1RS | 2.589490e-07 | aRS_w1RS | 1.690127e-07 | aRS_w1RS     |  8.993631e-08 | 0.347312791 |
-| aAS  | aAA  | 3.691861e-05 | aAS_aAA  | 3.793379e-05 | aAS_aAA      | -1.015175e-06 | 0.027497635 |
-| aTS  | aTA  | 3.996242e-05 | aTS_aTA  | 3.935090e-05 | aTS_aTA      |  6.115157e-07 | 0.015302271 |
-| aAS  | aAP  | 1.426617e-07 | aAS_aAP  | 1.434667e-07 | aAS_aAP      | -8.049447e-10 | 0.005642332 |
-| aTS  | aTP  | 1.601757e-07 | aTS_aTP  | 1.596345e-07 | aTS_aTP      |  5.411832e-10 | 0.003378685 |
+| from | to | k_R | fromto_R | k_Excel | fromto_Excel | diff | relDif |
+|:---|:---|---:|:---|---:|:---|---:|---:|
+| aCA | s2CA | 6.712052e-07 | aCA_s2CA | 7.977049e-08 | aCA_s2CA | 5.914348e-07 | 0.881153353 |
+| aRA | s2RA | 1.380191e-06 | aRA_s2RA | 1.640311e-07 | aRA_s2RA | 1.216160e-06 | 0.881153352 |
+| aAA | sAA | 7.533075e-07 | aAA_sAA | 1.039227e-07 | aAA_sAA | 6.493848e-07 | 0.862044781 |
+| aCA | s3CA | 9.488775e-08 | aCA_s3CA | 1.329508e-08 | aCA_s3CA | 8.159267e-08 | 0.859886210 |
+| aRA | s3RA | 1.951165e-07 | aRA_s3RA | 2.733852e-08 | aRA_s3RA | 1.677780e-07 | 0.859886210 |
+| aCA | s1CA | 2.558862e-07 | aCA_s1CA | 3.589672e-08 | aCA_s1CA | 2.199895e-07 | 0.859716092 |
+| aMA | sMA | 9.786626e-07 | aMA_sMA | 1.372906e-07 | aMA_sMA | 8.413720e-07 | 0.859716092 |
+| aRA | s1RA | 5.261758e-07 | aRA_s1RA | 7.381399e-08 | aRA_s1RA | 4.523618e-07 | 0.859716092 |
+| aTA | sTA | 5.998438e-07 | aTA_sTA | 8.506678e-08 | aTA_sTA | 5.147770e-07 | 0.858185114 |
+| aCS | s2CS | 2.621367e-06 | aCS_s2CS | 9.718135e-07 | aCS_s2CS | 1.649554e-06 | 0.629272296 |
+| aRS | s2RS | 5.390286e-06 | aRS_s2RS | 1.998328e-06 | aRS_s2RS | 3.391958e-06 | 0.629272296 |
+| aAS | sAS | 3.415423e-06 | aAS_sAS | 1.284810e-06 | aAS_sAS | 2.130614e-06 | 0.623821244 |
+| aCS | s3CS | 4.203858e-07 | aCS_s3CS | 1.619689e-07 | aCS_s3CS | 2.584169e-07 | 0.614713637 |
+| aRS | s3RS | 8.644342e-07 | aRS_s3RS | 3.330547e-07 | aRS_s3RS | 5.313795e-07 | 0.614713637 |
+| aCS | s1CS | 1.134645e-06 | aCS_s1CS | 4.373161e-07 | aCS_s1CS | 6.973287e-07 | 0.614578869 |
+| aMS | sMS | 4.339563e-06 | aMS_sMS | 1.672559e-06 | aMS_sMS | 2.667004e-06 | 0.614578869 |
+| aRS | s1RS | 2.333156e-06 | aRS_s1RS | 8.992477e-07 | aRS_s1RS | 1.433909e-06 | 0.614578869 |
+| aTS | sTS | 2.626922e-06 | aTS_sTS | 1.026195e-06 | aTS_sTS | 1.600727e-06 | 0.609354588 |
+| aAA | w2AA | 1.687410e-06 | aAA_w2AA | 6.758685e-07 | aAA_w2AA | 1.011542e-06 | 0.599463966 |
+| aRA | w2RA | 1.264459e-08 | aRA_w2RA | 5.076051e-09 | aRA_w2RA | 7.568540e-09 | 0.598559485 |
+| aMA | w2MA | 1.451409e-06 | aMA_w2MA | 5.826545e-07 | aMA_w2MA | 8.687548e-07 | 0.598559472 |
+| aCA | w2CA | 1.497289e-06 | aCA_w2CA | 6.010724e-07 | aCA_w2CA | 8.962163e-07 | 0.598559472 |
+| aTA | w2TA | 2.067768e-06 | aTA_w2TA | 8.311476e-07 | aTA_w2TA | 1.236621e-06 | 0.598046077 |
+| aCA | w1CA | 3.865207e-08 | aCA_w1CA | 1.670066e-08 | aCA_w1CA | 2.195142e-08 | 0.567923401 |
+| aCA | w0CA | 3.513825e-09 | aCA_w0CA | 1.518241e-09 | aCA_w0CA | 1.995583e-09 | 0.567923401 |
+| aRA | w1RA | 7.947979e-08 | aRA_w1RA | 3.434136e-08 | aRA_w1RA | 4.513843e-08 | 0.567923401 |
+| aRA | w0RA | 7.225435e-09 | aRA_w0RA | 3.121941e-09 | aRA_w0RA | 4.103494e-09 | 0.567923401 |
+| aAS | w2AS | 5.605552e-06 | aAS_w2AS | 2.647952e-06 | aAS_w2AS | 2.957600e-06 | 0.527619742 |
+| aRS | w2RS | 4.119670e-08 | aRS_w2RS | 1.953491e-08 | aRS_w2RS | 2.166179e-08 | 0.525813667 |
+| aMS | w2MS | 4.728763e-06 | aMS_w2MS | 2.242315e-06 | aMS_w2MS | 2.486448e-06 | 0.525813651 |
+| aCS | w2CS | 4.878240e-06 | aCS_w2CS | 2.313195e-06 | aCS_w2CS | 2.565045e-06 | 0.525813651 |
+| aTS | w2TS | 6.664389e-06 | aTS_w2TS | 3.166802e-06 | aTS_w2TS | 3.497587e-06 | 0.524817341 |
+| aCS | w0CS | 1.144821e-08 | aCS_w0CS | 7.472103e-09 | aCS_w0CS | 3.976111e-09 | 0.347312791 |
+| aCS | w1CS | 1.259303e-07 | aCS_w1CS | 8.219313e-08 | aCS_w1CS | 4.373722e-08 | 0.347312791 |
+| aRS | w0RS | 2.354082e-08 | aRS_w0RS | 1.536479e-08 | aRS_w0RS | 8.176029e-09 | 0.347312791 |
+| aRS | w1RS | 2.589490e-07 | aRS_w1RS | 1.690127e-07 | aRS_w1RS | 8.993631e-08 | 0.347312791 |
+| aAS | aAA | 3.691861e-05 | aAS_aAA | 3.793379e-05 | aAS_aAA | -1.015175e-06 | 0.027497635 |
+| aTS | aTA | 3.996242e-05 | aTS_aTA | 3.935090e-05 | aTS_aTA | 6.115157e-07 | 0.015302271 |
+| aAS | aAP | 1.426617e-07 | aAS_aAP | 1.434667e-07 | aAS_aAP | -8.049447e-10 | 0.005642332 |
+| aTS | aTP | 1.601757e-07 | aTS_aTP | 1.596345e-07 | aTS_aTP | 5.411832e-10 | 0.003378685 |
 
 #### Dry deposition
 
@@ -204,6 +204,8 @@ calculating the value specifically for the temperature of the current
 scale.
 
 ### Steadystate mass
+
+    ## 33 rate constants (k values) equal to 0; removed for solver
 
 <figure>
 <img
@@ -256,6 +258,8 @@ difference large than 0.1% between excel and R when Test=TRUE.
 
 ## Steadystate mass
 
+    ## 33 rate constants (k values) equal to 0; removed for solver
+
 <figure>
 <img
 src="Particulate-verification_files/figure-gfm/PlotSteadyState_2-1.png"
@@ -272,3 +276,163 @@ of SimpleBox. This is indeed the case (Figure 6) as the max difference
 in now only 0.03%. This proves that the port of SimpleBox4Plastics to R
 is successful in reproducing the results from the original spreadsheet
 implementation.
+
+# Step 3. Verify dynamic solver
+
+The dynamic solver can use time explicit emissions and provide masses or
+concentrations in time. This shows the increase in mass in each
+compartment in time based on a specified emission, see
+[here](vignettes/10.0-Solver-use.md "Solver documentation") for more
+details. Below we verify that with constant emission in time the steady
+state mass is approached as verified with Excel above.
+
+``` r
+emissions1 <-
+  # create emission scenario in time:
+  data.frame(
+    Emis = c(10000, 10000, 0, 0), # emission in kg/year
+    Time = c(0, 100, 110, 150)
+  ) # years from start
+
+# apply emission scenario to intended species and compartments using hte Abbr:
+emissions <- 
+  merge(emissions1, data.frame(Abbr = c("aRS", "s2RS", "w1RS")))
+
+# convert time to seconds and emission to kg/s
+emissions <- emissions |>
+  mutate(
+    Emis = Emis * 1000 / (365.25 * 24 * 60 * 60),
+    Time = Time * (365.25 * 24 * 60 * 60)
+  ) |>
+  ungroup()
+
+
+
+tmax <- max(emissions$Time) # set max solve time to last step in emission scenario
+tmin <- min(emissions$Time)
+nTIMES <- 1 + max(emissions$Time) / (365.25 * 24 * 60 * 60) # Sets the time step for output, e.g. for 20 year scenario, add t0 is 21 nTimes
+
+
+# Initialize the dynamic solver
+World$NewSolver("DynamicSolver")
+World$Solve(emissions = emissions, tmin = tmin, tmax = tmax, nTIMES = nTIMES)
+```
+
+    ## 33 rate constants (k values) equal to 0; removed for solver
+
+``` r
+masses <- as_tibble(World$Masses())
+emission <- World$Emissions()
+concentration <- World$Concentration()
+```
+
+    ## Joining with `by = join_by(Scale, SubCompart)`
+
+``` r
+World$PlotMasses()
+```
+
+    ## [1] "No scale was given to function, Regional scale is selected"
+
+![](Particulate-verification_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
+
+``` r
+World$PlotConcentration()
+```
+
+    ## Joining with `by = join_by(Scale, SubCompart)`
+
+    ## [1] "No scale was given to function, Regional scale is selected"
+
+    ## Joining with `by = join_by(Scale, SubCompart)`
+
+![](Particulate-verification_files/figure-gfm/unnamed-chunk-1-2.png)<!-- -->
+
+``` r
+masses |> distinct(Abbr)
+```
+
+    ## # A tibble: 155 × 1
+    ##    Abbr 
+    ##    <chr>
+    ##  1 aRU  
+    ##  2 aRS  
+    ##  3 aRA  
+    ##  4 aRP  
+    ##  5 cwRS 
+    ##  6 cwRA 
+    ##  7 cwRP 
+    ##  8 w1RU 
+    ##  9 w1RS 
+    ## 10 w1RA 
+    ## # ℹ 145 more rows
+
+``` r
+# calculate time to steady state
+Time2SteadyState <-
+  # SSsolveD.R |>
+   masses |> 
+  rename(Dynamic_Mass_kg = Mass_kg) |> 
+  left_join(SSsolve.R_orig |>
+              mutate(
+                SS_Mass_kg = Mass_kg,
+                .keep = "unused"
+              )) |>
+  mutate(FractionSS = Dynamic_Mass_kg / SS_Mass_kg) |>
+  filter(FractionSS > 0.99) |>
+  ungroup() |>
+  group_by(Abbr) |>
+  summarise(SS_time_y = min(as.numeric(time)) / (365.25 * 24 * 60 * 60)) |>
+  arrange(desc(SS_time_y))
+```
+
+    ## Joining with `by = join_by(Abbr)`
+
+``` r
+ggplot(Time2SteadyState, aes(x = reorder(Abbr, -SS_time_y), y = SS_time_y)) +
+  geom_bar(stat = "identity") +
+  ggtitle(paste0(substance)) +
+  labs(
+    x = "Compartment",
+    y = "Time to steady state (years)"
+  ) +
+  custom_theme()
+```
+
+![](Particulate-verification_files/figure-gfm/unnamed-chunk-1-3.png)<!-- -->
+
+``` r
+SSsolve.R <- SSsolve.R |>
+  mutate(Abbr = case_when(
+    Species == "Large" ~ paste0(Abbr, "P"),
+    Species == "Small" ~ paste0(Abbr, "A"),
+    Species == "Solid" ~ paste0(Abbr, "S"),
+    TRUE ~ "Other"
+  ))
+
+if (length(unique(Time2SteadyState$Abbr)) != length(unique(SSsolve.R$Abbr))) {
+  warning(paste("Compartments",
+                unique(SSsolve.R$Abbr)[!(unique(SSsolve.R$Abbr) %in% unique(Time2SteadyState$Abbr))],
+                "not reaching steady state within", 
+                emissions1$Time[2] , "years"))
+}
+
+test_dynamic_2 <-
+  as_tibble(masses) |> 
+  rename(Dynamic_Mass_kg = Mass_kg) |> 
+  left_join(SSsolve.R_orig |>
+              mutate(
+                SS_Mass_kg = Mass_kg,
+                .keep = "unused"
+              )) |>
+  mutate(FractionSS = Dynamic_Mass_kg / SS_Mass_kg) |>
+  filter(FractionSS > 1.001)
+```
+
+    ## Joining with `by = join_by(Abbr)`
+
+``` r
+if (length(test_dynamic_2$Abbr) > 0) {
+  stop(paste0("Compartment ", test_dynamic_2$Abbr, "exceeding steady state"))
+}
+```

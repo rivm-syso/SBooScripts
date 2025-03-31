@@ -9,20 +9,6 @@ editor_options:
     wrap: 72
 ---
 
-```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(
-  eval = FALSE,
-  fig.height = 8,
-  fig.width = 14,
-  include = FALSE
-)
-projectRoot <- paste(getwd(), "..", "..", "..", "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) # assuming vignette is in a direct subfolder of the project
-options(dplyr.summarise.inform = FALSE)
-knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 8)
-```
-
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel^TM^ spreadsheet
 (xl4plastic v4.0.5). To do this the 1^st^ order rate constants (k's) and
@@ -34,13 +20,15 @@ between the models to not exceed 0.1%.
 # Verification method
 
 ```{r InitializeSBoo, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+
 substance <- "microplastic"
 source("baseScripts/initWorld_onlyPlastics.R")
-World$substance <- substance
+# World$substance <- substance
+
 ```
 
 The SBoo world is initialized for a substance. In this case, that
-substance is `r World$fetchData("Substance")`, which is of class:
+substance is `r World$substance`, which is of class:
 `r World$fetchData("ChemClass")` and a default radius of
 `r World$fetchData("RadS")*1e6` µm.
 

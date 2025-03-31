@@ -9,15 +9,6 @@ editor_options:
     wrap: 72
 ---
 
-```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", "..", "..", "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) # assuming vignette is in a direct subfolder of the project
-options(dplyr.summarise.inform = FALSE)
-knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 8)
-```
-
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel^TM^ spreadsheet
 (xl4plastic v4.0.5). To do this the 1^st^ order rate constants (k's) and

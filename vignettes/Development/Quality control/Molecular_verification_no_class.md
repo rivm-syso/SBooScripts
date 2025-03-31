@@ -2,7 +2,7 @@ Verification of SimpleBox - spreadsheet versus R implementation for
 neutral organic chemicals or ChemClass not specified
 ================
 Anne Hids, Valerie de Rijk, Matthias Hof and Joris Quik
-2025-03-27
+2025-03-31
 
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
@@ -240,9 +240,6 @@ clear that there are differences up to 0.1%.
 Now the value for the Test variable can be changed to TRUE, and the
 difference in k’s between excel and R can be tested again:
 
-    ##       x Test
-    ## 1 FALSE TRUE
-
 ## Compare first order rate constants
 
 <figure>
@@ -270,7 +267,7 @@ now smaller than 1 percentile.
 
 ## Steadystate mass
 
-    ## 17 rate constants (k values) equal to 0; removed for solver
+    ## 12 rate constants (k values) equal to 0; removed for solver
 
     ## `summarise()` has grouped output by 'Scale', 'SubCompart', 'Species'. You can
     ## override using the `.groups` argument.

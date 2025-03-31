@@ -2,7 +2,7 @@ Verification of SimpleBox - spreadsheet versus R implementation for base
 organic chemicals
 ================
 Anne Hids, Valerie de Rijk, Matthias Hof and Joris Quik
-2025-03-27
+2025-03-31
 
 This vignette demonstrates the verification process of SimpleBox
 implemented in R (version 2024.8.0) and in an Excel<sup>TM</sup>
@@ -270,9 +270,6 @@ clear that there are differences up to 70.1%.
 Now the value for the Test variable can be changed to TRUE, and the
 difference in k’s between excel and R can be tested again:
 
-    ##       x Test
-    ## 1 FALSE TRUE
-
 ## Compare first order rate constants
 
 <figure>
@@ -300,7 +297,7 @@ now smaller than 1 percentile.
 
 ## Steadystate mass
 
-    ## 17 rate constants (k values) equal to 0; removed for solver
+    ## 12 rate constants (k values) equal to 0; removed for solver
 
     ## `summarise()` has grouped output by 'Scale', 'SubCompart', 'Species'. You can
     ## override using the `.groups` argument.
@@ -321,3 +318,157 @@ of SimpleBox. This is indeed the case (Figure 6) as the max difference
 in now only 0.08%. This proves that the port of SimpleBox to R is
 successful in reproducing the results from the original spreadsheet
 implementation for chemicals of class base.
+
+# Step 3. Verify dynamic solver
+
+The dynamic solver can use time explicit emissions and provide masses or
+concentrations in time. This shows the increase in mass in each
+compartment in time based on a specified emission, see
+[here](vignettes/10.0-Solver-use.md "Solver documentation") for more
+details. Below we verify that with constant emission in time the steady
+state mass is approached as verified with Excel above.
+
+``` r
+emissions1 <-
+  # create emission scenario in time:
+  data.frame(
+    Emis = c(10000, 10000, 0, 0), # emission in kg/year
+    Time = c(0, 100, 110, 150)
+  ) # years from start
+
+# apply emission scenario to intended species and compartments using hte Abbr:
+emissions <- 
+  merge(emissions1, data.frame(Abbr = c("aRU", "s2RU", "w1RU", "aAU","w2AU" )))
+emissions[emissions$Abbr == "aAU","Emis"]  <- emissions[emissions$Abbr == "aAU","Emis"] /100
+emissions[emissions$Abbr == "w2AU","Emis"]  <- emissions[emissions$Abbr == "w2AU","Emis"] /100
+
+# convert time to seconds and emission to kg/s
+emissions <- emissions |>
+  mutate(
+    Emis = Emis * 1000 / (365.25 * 24 * 60 * 60),
+    Time = Time * (365.25 * 24 * 60 * 60)
+  ) |>
+  ungroup()
+
+
+
+tmax <- max(emissions$Time) # set max solve time to last step in emission scenario
+tmin <- min(emissions$Time)
+nTIMES <- 1 + max(emissions$Time) / (365.25 * 24 * 60 * 60) # Sets the time step for output, e.g. for 20 year scenario, add t0 is 21 nTimes
+
+
+# Initialize the dynamic solver
+World$NewSolver("DynamicSolver")
+World$Solve(emissions = emissions, tmin = tmin, tmax = tmax, nTIMES = nTIMES)
+```
+
+    ## 12 rate constants (k values) equal to 0; removed for solver
+
+``` r
+masses <- as_tibble(World$Masses())
+emission <- World$Emissions()
+concentration <- World$Concentration()
+```
+
+    ## Joining with `by = join_by(Scale, SubCompart)`
+
+``` r
+World$PlotMasses()
+```
+
+    ## [1] "No scale was given to function, Regional scale is selected"
+
+![](Molecular_verification_base_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
+
+``` r
+World$PlotConcentration()
+```
+
+    ## Joining with `by = join_by(Scale, SubCompart)`
+
+    ## [1] "No scale was given to function, Regional scale is selected"
+
+    ## Joining with `by = join_by(Scale, SubCompart)`
+
+![](Molecular_verification_base_files/figure-gfm/unnamed-chunk-1-2.png)<!-- -->
+
+``` r
+masses |> distinct(Abbr)
+```
+
+    ## # A tibble: 35 × 1
+    ##    Abbr 
+    ##    <chr>
+    ##  1 aRU  
+    ##  2 w1RU 
+    ##  3 w0RU 
+    ##  4 w2RU 
+    ##  5 sd1RU
+    ##  6 sd0RU
+    ##  7 sd2RU
+    ##  8 s1RU 
+    ##  9 s2RU 
+    ## 10 s3RU 
+    ## # ℹ 25 more rows
+
+``` r
+# calculate time to steady state
+Time2SteadyState <-
+  # SSsolveD.R |>
+   masses |> 
+  rename(Dynamic_Mass_kg = Mass_kg) |> 
+  left_join(SSsolve.R_orig |>
+              mutate(
+                SS_Mass_kg = Mass_kg,
+                .keep = "unused"
+              )) |>
+  mutate(FractionSS = Dynamic_Mass_kg / SS_Mass_kg) |>
+  filter(FractionSS > 0.99) |>
+  ungroup() |>
+  group_by(Abbr) |>
+  summarise(SS_time_y = min(as.numeric(time)) / (365.25 * 24 * 60 * 60)) |>
+  arrange(desc(SS_time_y))
+```
+
+    ## Joining with `by = join_by(Abbr)`
+
+``` r
+ggplot(Time2SteadyState, aes(x = reorder(Abbr, -SS_time_y), y = SS_time_y)) +
+  geom_bar(stat = "identity") +
+  ggtitle(paste0(substance)) +
+  labs(
+    x = "Compartment",
+    y = "Time to steady state (years)"
+  ) +
+  custom_theme()
+```
+
+![](Molecular_verification_base_files/figure-gfm/unnamed-chunk-1-3.png)<!-- -->
+
+``` r
+if (length(unique(Time2SteadyState$Abbr)) != length(unique(SSsolve.R$Abbr))) {
+  warning(paste("Compartments",
+                unique(SSsolve.R$Abbr)[!(unique(SSsolve.R$Abbr) %in% unique(Time2SteadyState$Abbr))],
+                "not reaching steady state within", 
+                emissions1$Time[2] , "years"))
+}
+
+test_dynamic_2 <-
+  as_tibble(masses) |> 
+  rename(Dynamic_Mass_kg = Mass_kg) |> 
+  left_join(SSsolve.R_orig |>
+              mutate(
+                SS_Mass_kg = Mass_kg,
+                .keep = "unused"
+              )) |>
+  mutate(FractionSS = Dynamic_Mass_kg / SS_Mass_kg) |>
+  filter(FractionSS > 1.001)
+```
+
+    ## Joining with `by = join_by(Abbr)`
+
+``` r
+if (length(test_dynamic_2$Abbr) > 0) {
+  stop(paste0("Compartment ", test_dynamic_2$Abbr, "exceeding steady state"))
+}
+```
