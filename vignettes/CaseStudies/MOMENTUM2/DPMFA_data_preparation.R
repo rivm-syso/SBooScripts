@@ -8,9 +8,7 @@
 ## Load packages
 library(tidyverse)
 
-
-library(tidyverse)
-data_folder <-  "/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/CaseData/"
+data_folder <-  "/data/BioGrid/hidsa/GitHub/SBooScripts/vignettes/CaseStudies/CaseData/"
 
 ########################## Load and prepare the data ###########################
 MFAtype <- "DPMFA"
@@ -62,15 +60,15 @@ data_long_EU <-data_long_EU |>
 
 ################################ Save datasets #################################
 save(data_long, 
-     file = "/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/Data/MOMENTUM2/DPMFA_NL_EU_long.RData",
+     file = "/data/BioGrid/hidsa/GitHub/SBooScripts/vignettes/CaseStudies/MOMENTUM2/Data/DPMFA_NL_EU_long.RData",
      compress = "xz",
      compression_level = 9) 
 save(data_long_EU,
-     file = "/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/Data/MOMENTUM2/DPMFA_NL_long.RData",
+     file = "/data/BioGrid/hidsa/GitHub/SBooScripts/vignettes/CaseStudies/MOMENTUM2/Data/DPMFA_NL_long.RData",
      compress = "xz",
      compression_level = 9) 
 save(data_long_NL,
-     file = "/data/BioGrid/hidsa/SimpleBox/SBooScripts/vignettes/CaseStudies/Data/MOMENTUM2/DPMFA_EU_long.RData",
+     file = "/data/BioGrid/hidsa/GitHub/SBooScripts/vignettes/CaseStudies/MOMENTUM2/Data/DPMFA_EU_long.RData",
      compress = "xz",
      compression_level = 9) 
 
