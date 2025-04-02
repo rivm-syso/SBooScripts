@@ -1,0 +1,57 @@
+---
+title: "DPMFA calculations"
+author: "Anne Hids"
+date: "`r Sys.Date()`"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load packages
+
+```{R load packages}
+library(ggplot2)
+library(tidyverse)
+library(scales)
+library(openxlsx)
+library(networkD3)
+library(webshot)
+library(jsonlite)
+library(viridis)
+```
+
+Load the data
+
+```{R load data}
+load(file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_NL_EU_long.RData")
+load(file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_NL_long.RData")
+load(file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_EU_long.RData")
+#load(file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_emission_NL_EU_TW_time.RData")
+``` 
+
+Calculate emissions to indoor air
+
+```{R indoor air}
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
