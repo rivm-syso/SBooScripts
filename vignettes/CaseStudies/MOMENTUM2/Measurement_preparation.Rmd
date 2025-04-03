@@ -325,7 +325,10 @@ particle_data <- bind_rows(SB4P, KWR_data, soil_concentrations, Mintenig_particl
   rename(concentration = value,
          concentration_unit = unit)
 
-mass_data <- bind_rows(LEONT_TWP_data, Mintenig_mass)
+mass_data <- bind_rows(LEONT_TWP_data, Mintenig_mass)|>
+  select(value, unit, SubCompart, Scale, location, min_diameter_um, max_diameter_um, lower_detection_limit_um, upper_detection_limit_um, source, country) |>
+  rename(concentration = value,
+         concentration_unit = unit)
 
 # Create a new workbook
 wb <- createWorkbook()

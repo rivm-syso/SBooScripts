@@ -22,36 +22,354 @@ library(networkD3)
 library(webshot)
 library(jsonlite)
 library(viridis)
+library(stringr)
 ```
 
 Load the data
 
 ```{R load data}
-load(file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_NL_EU_long.RData")
-load(file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_NL_long.RData")
-load(file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_EU_long.RData")
-#load(file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_emission_NL_EU_TW_time.RData")
+datafolder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/PlotData/" 
+
+load(file = paste0(datafolder, "DPMFA_NL_EU_long.RData"))
+load(file = paste0(datafolder, "DPMFA_NL_long.RData"))
+load(file = paste0(datafolder, "DPMFA_EU_long.RData"))
+
+Figure_folder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/Figures/" # Define figure folder path
 ``` 
 
 Calculate emissions to indoor air
 
-```{R indoor air}
+```{R indoor air filter}
+# Filter NL data for indoor air
+indoor_NL <- data_long_NL |>
+  filter(To_Compartment == "Indoor air (micro)") |>
+  mutate(Source = case_when(
+    Source == "Clothing (product sector)" ~ "Clothing",
+    Source == "Household textiles (product sector)" ~ "Household textiles",
+    TRUE ~ Source
+  ))
 
+print(unique(indoor_NL$Source))
+
+# Filter NL+EU data for indoor air
+indoor_EU <- data_long |>
+  filter(To_Compartment == "Indoor air (micro)") |>
+  mutate(Source = case_when(
+    Source == "Clothing (product sector)" ~ "Clothing",
+    Source == "Household textiles (product sector)" ~ "Household textiles",
+    TRUE ~ Source
+  ))
+```
+
+```{R plot theme}
+# Create a theme for the plots
+plot_theme = theme(
+  axis.title.x = element_text(size = 32),
+  legend.text = element_text(size = 26),
+  axis.text = element_text(size = 26), 
+  axis.title.y = element_text(size = 32),
+  title = element_text(size = 32),
+  plot.background = element_rect(fill = 'white'),
+  panel.background = element_rect(fill = 'white'),
+  axis.line = element_line(color='black'),
+  plot.margin = margin(2, 4, 2, 2, "cm"),
+  legend.title = element_blank(),  
+  panel.grid.major = element_line(color = "lightgrey", size = 0.5),  # Major grid lines in light grey
+  panel.grid.minor = element_line(color = "lightgrey", size = 0.25)
+)
+
+# Define colors for groups
+source_colors <- c(
+  "Agriculture" = "#F8766D",
+  "Clothing" = "#E58700",
+  "Household textiles" = "#E76BF3",
+  "Intentionally produced microparticles" = "#C99800",
+  "Macroplastic" = "#A3A500",
+  "Packaging" = "#619cff",
+  "Paint" = "#00BA38",
+  "Pre-production pellets" = "#00C0AF",
+  "Technical textiles" = "#00B0F6",
+  "Textile" = "#B983FF",
+  "Tyre wear" = "#ff67a4"
+)
+```
+
+Figures comparing emissions to the environment from different sources
+
+```{R}
+# For NL
+source_data_NL <- data_long_NL |>
+  filter(!is.na(Material_Type)) |>
+  filter(To_Compartment != "Indoor air (micro)") |>
+  mutate(Source = case_when(
+    Material_Type == "macro" ~ "Macroplastic",
+    Source == "Import of primary plastics" ~ "Pre-production pellets",
+    Source == "Domestic primary plastic production" ~ "Pre-production pellets",
+    TRUE ~ Source
+  )) |>
+  group_by(Source, Year, RUN) |>
+  summarise(Mass_Polymer_kt = sum(Mass_Polymer_kt)) |>
+  mutate(Mass_Polymer_t = Mass_Polymer_kt*1000) |>
+  mutate(Source = str_remove(Source, fixed(" (product sector)"))) 
+
+# Make violin plot for NL
+Figure_source_NL <- ggplot(source_data_NL, aes(x = Source, y = Mass_Polymer_t, fill=Source)) +
+  geom_violin() +
+  theme(legend.position="bottom")+
+  scale_fill_manual(values = source_colors) +
+  scale_y_log10(labels = scales::number_format())+          
+  labs(x = "",
+       y = "Microplastic emissions (ton)")+
+  coord_flip() +
+  plot_theme 
+
+Figure_source_NL
+
+# For EU including NL
+source_data_EU <- data_long_EU |>
+  filter(!is.na(Material_Type)) |>
+  filter(To_Compartment != "Indoor air (micro)") |>
+  mutate(Source = case_when(
+    Material_Type == "macro" ~ "Macroplastic",
+    Source == "Import of primary plastics" ~ "Pre-production pellets",
+    Source == "Domestic primary plastic production" ~ "Pre-production pellets",
+    TRUE ~ Source
+  )) |>
+  group_by(Source, Year, RUN) |>
+  summarise(Mass_Polymer_kt = sum(Mass_Polymer_kt)) |>
+  mutate(Mass_Polymer_t = Mass_Polymer_kt*1000) |>
+  mutate(Source = str_remove(Source, fixed(" (product sector)"))) 
+
+# Make violin plot for NL
+Figure_source_EU <- ggplot(source_data_NL, aes(x = Source, y = Mass_Polymer_t, fill=Source)) +
+  geom_violin() +
+  theme(legend.position="bottom")+
+  scale_fill_manual(values = source_colors) +
+  scale_y_log10(labels = scales::number_format())+          
+  labs(x = "",
+       y = "Microplastic emissions (ton)")+
+  coord_flip() +
+  plot_theme 
+
+Figure_source_EU
 
 ```
 
+Figures comparing the different polymers to indoor air
 
+```{R indoor air polymer figures}
+# Sum over sources NL
+indoor_NL_polymer <- indoor_NL |>
+  group_by(Type, Polymer, To_Compartment, RUN, Year) |>
+  summarise(Mass_Polymer_kt = sum(Mass_Polymer_kt)) |>
+  mutate(Mass_Polymer_t = Mass_Polymer_kt*1000)
 
+# Make violin plot for NL
+Figure_indoor_polymer_NL <- ggplot(indoor_NL_polymer, aes(x = Polymer, y = Mass_Polymer_t, fill=Polymer)) +
+  geom_violin() +
+  theme(legend.position="bottom")+
+  scale_fill_discrete() +
+  scale_y_log10(labels = scales::number_format())+          
+  labs(x = "",
+       y = "Microplastic emissions (ton)")+
+  coord_flip() +
+  plot_theme 
 
+Figure_indoor_polymer_NL
 
+ggsave(paste0(Figure_folder, "Figure_indoor_polymers_NL", ".png"), plot=Figure_indoor_polymer_NL,
+       width = 20, height = 10)
 
+# Sum over sources EU
+indoor_EU_polymer <- indoor_EU |>
+  group_by(Type, Polymer, To_Compartment, RUN, Year) |>
+  summarise(Mass_Polymer_kt = sum(Mass_Polymer_kt))  |>
+  mutate(Mass_Polymer_t = Mass_Polymer_kt*1000)
 
+# Make violin plot for EU
+Figure_indoor_polymer_EU <- ggplot(indoor_EU_polymer, aes(x = Polymer, y = Mass_Polymer_t, fill=Polymer)) +
+  geom_violin() +
+  theme(legend.position="bottom")+
+  scale_fill_discrete() +
+  scale_y_log10(labels = scales::number_format())+          
+  labs(x = "",
+       y = "Microplastic emissions (ton)")+
+  coord_flip() +
+  plot_theme 
 
+Figure_indoor_polymer_EU
 
+ggsave(paste0(Figure_folder, "Figure_indoor_polymers_EU_including_NL", ".png"), plot=Figure_indoor_polymer_EU,
+       width = 20, height = 10)
+```
 
+Figures comparing the contributions of sources to indoor air
 
+```{R indoor air sources figures}
+# Sum over polymers NL
+indoor_NL_source <- indoor_NL |>
+  group_by(Type, Source, To_Compartment, RUN, Year) |>
+  summarise(Mass_Polymer_kt = sum(Mass_Polymer_kt)) |>
+  mutate(Mass_Polymer_t = Mass_Polymer_kt*1000)
 
+# Make violin plot for NL
+Figure_indoor_source_NL <- ggplot(indoor_NL_source, aes(x = Source, y = Mass_Polymer_t, fill=Source)) +
+  geom_violin() +
+  theme(legend.position="bottom")+
+  scale_fill_manual(values = source_colors) +
+  scale_y_log10(labels = scales::number_format())+          
+  labs(x = "",
+       y = "Microplastic emissions (ton)")+
+  coord_flip() +
+  plot_theme 
 
+Figure_indoor_source_NL
 
+ggsave(paste0(Figure_folder, "Figure_indoor_source_NL", ".png"), plot=Figure_indoor_source_NL,
+       width = 20, height = 10)
 
+# Sum over polymers EU
+indoor_EU_source <- indoor_EU |>
+  group_by(Type, Source, To_Compartment, RUN, Year) |>
+  summarise(Mass_Polymer_kt = sum(Mass_Polymer_kt)) |>
+  mutate(Mass_Polymer_t = Mass_Polymer_kt*1000)
 
+# Make violin plot for NL
+Figure_indoor_source_EU <- ggplot(indoor_EU_source, aes(x = Source, y = Mass_Polymer_t, fill=Source)) +
+  geom_violin() +
+  theme(legend.position="bottom")+
+  scale_fill_manual(values = source_colors) +
+  scale_y_log10(labels = scales::number_format())+          
+  labs(x = "",
+       y = "Microplastic emissions (ton)")+
+  coord_flip() +
+  plot_theme 
+
+Figure_indoor_source_EU
+
+ggsave(paste0(Figure_folder, "Figure_indoor_source_EU_including_NL", ".png"), plot=Figure_indoor_source_EU,
+       width = 20, height = 10)
+```
+
+Figure microplastic emissions to environmental compartments
+```{R Emissions to environmental compartments}
+# Sum emissions over sources and polymers NL
+env_comp_data_NL <- data_long_NL |>
+  filter(To_Compartment != "Indoor air (micro)") |>
+  filter(Material_Type == "micro") |>
+  mutate(To_Compartment = str_remove(To_Compartment, fixed(" (micro)"))) |>
+  group_by(Year, To_Compartment, RUN) |>
+  summarise(Mass_Polymer_kt = sum(Mass_Polymer_kt)) |>
+  ungroup() |>
+  mutate(Mass_Polymer_t = Mass_Polymer_kt*1000)
+
+# Make violin plot for emissions to environmental compartments
+Micro_to_environmental_compartments_NL <- ggplot(env_comp_data_NL, aes(x = To_Compartment, y = Mass_Polymer_t, fill=To_Compartment)) +
+  geom_violin() +
+  theme(legend.position="none")+
+  scale_y_log10(labels = scales::number_format())+          
+  labs(x = "", y = "Microplastic emissions (ton)") +                   # Adjust labels
+  coord_flip() +
+  plot_theme 
+
+Micro_to_environmental_compartments_NL 
+
+ggsave(paste0(Figure_folder, "Micro_to_environmental_compartments_NL ",".png"), plot=Micro_to_environmental_compartments_NL ,
+       width = 20, height = 10)
+
+# Sum emissions over sources and polymers EU
+env_comp_data_EU <- data_long |>
+  filter(To_Compartment != "Indoor air (micro)") |>
+  filter(Material_Type == "micro") |>
+  mutate(To_Compartment = str_remove(To_Compartment, fixed(" (micro)"))) |>
+  group_by(Year, To_Compartment, RUN) |>
+  summarise(Mass_Polymer_kt = sum(Mass_Polymer_kt)) |>
+  ungroup() |>
+  mutate(Mass_Polymer_t = Mass_Polymer_kt*1000)
+
+# Make violin plot for emissions to environmental compartments
+Micro_to_environmental_compartments_EU_including_NL <- ggplot(env_comp_data_EU, aes(x = To_Compartment, y = Mass_Polymer_t, fill=To_Compartment)) +
+  geom_violin() +
+  theme(legend.position="none")+
+  scale_y_log10(labels = scales::number_format())+          
+  labs(x = "", y = "Microplastic emissions (ton)") +                   # Adjust labels
+  coord_flip() +
+  plot_theme 
+
+Micro_to_environmental_compartments_EU_including_NL 
+
+ggsave(paste0(Figure_folder, "Micro_to_environmental_compartments_EU_including_NL ",".png"), plot=Micro_to_environmental_compartments_EU_including_NL ,
+       width = 20, height = 10)
+```
+
+Calculate fraction of polymer per source and in total
+```{R}
+data_NL <- data_long_NL |>
+  rename(Mass_kt_NL = Mass_Polymer_kt) 
+
+data_EU <- data_long |>
+  rename(Mass_kt_EU = Mass_Polymer_kt) |>
+  select(-Scale)
+
+data_NL_EU <- data_NL |>
+  full_join(data_EU, by = intersect(colnames(data_NL), colnames(data_EU))) |>
+  mutate(Mass_kt_NL = replace_na(Mass_kt_NL, 0)) |>
+  group_by(Polymer, Source,To_Compartment) |>
+  summarise(Mass_kt_NL = mean(Mass_kt_NL),
+            Mass_kt_EU = mean(Mass_kt_EU)) |>
+  filter(str_detect(To_Compartment, "micro"))
+
+total_kt_source <- data_NL_EU |>
+  group_by(To_Compartment) |>
+  summarise(sum_NL = sum(Mass_kt_NL),
+            sum_EU = sum(Mass_kt_EU))
+
+data_NL_EU_fractions <- data_NL_EU |>
+  left_join(total_kt_source, by = "To_Compartment") |>
+  mutate(polymer_fraction_NL = Mass_kt_NL/sum_NL,
+         polymer_fraction_EU = Mass_kt_EU/sum_EU) |>
+  mutate(To_Compartment = str_remove(To_Compartment, fixed(" (micro)"))) 
+
+# Make barplots showing the distributions
+
+library(RColorBrewer)
+
+custom_colors <- c(
+  brewer.pal(n = 9, name = "Set1"),  
+  brewer.pal(n = 8, name = "Set3")  
+)[1:15]  
+
+barplot_polymer_dist_NL <- ggplot(data_NL_EU_fractions, aes(fill = Polymer, x = To_Compartment, y = polymer_fraction_NL)) +
+  geom_bar(position = "fill", stat="identity", color = "transparent") +
+  scale_fill_manual(values = custom_colors) +  
+  scale_y_continuous(labels = scales::percent) +
+  theme(axis.text.x = element_text(size = 28, angle = 45, hjust = 1))+
+  plot_theme +
+  labs(y= "Distribution",
+       x="") +
+  labs(fill='Sink type') +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) 
+
+barplot_polymer_dist_NL
+
+ggsave(paste0(Figure_folder, "Barplot_polymer_distribution_microplastics_NL",".png"), plot=barplot_polymer_dist_NL,
+       width = 20, height = 10)
+
+barplot_polymer_dist_EU <- ggplot(data_NL_EU_fractions, aes(fill = Polymer, x = To_Compartment, y = polymer_fraction_EU)) +
+  geom_bar(position = "fill", stat="identity", color = "transparent") +
+  scale_fill_manual(values = custom_colors) +  
+  theme(axis.text.x = element_text(size = 28, angle = 45, hjust = 1))+
+  scale_y_continuous(labels = scales::percent) +
+  plot_theme +
+  labs(y= "Distribution",
+       x="") +
+  labs(fill='Sink type') +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) 
+
+barplot_polymer_dist_EU
+
+ggsave(paste0(Figure_folder, "Barplot_polymer_distribution_microplastics_EU",".png"), plot=barplot_polymer_dist_EU,
+       width = 20, height = 10)
+```
