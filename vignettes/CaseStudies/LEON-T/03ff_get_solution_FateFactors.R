@@ -6,21 +6,47 @@
 # 4-12-2024                                                                    #
 ################################################################################
 
+#### Fate Factor calculations
 library(tidyverse)
-# based on Material_Parameters_n distributions
-# load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241111.RData"))
-path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.1.xlsx"
+
+#env <- "OOD"
+# env <- "HPC"
+env <- "local"
+
+if(env == "OOD"){
+  path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.1.xlsx"
+} else if(env == "HPC"){
+  mainfolder <- "/data/BioGrid/hidsa/SimpleBox/SBooScripts/"
+  path_parameters_file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.1.xlsx")
+  }else if(env == "local"){
+    mainfolder <- ""
+    path_parameters_file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/Microplastic_variables_v1.1.xlsx")
+}
 
 source("baseScripts/initWorld_onlyPlastics.R")
 
-# Select polymer's
+# Select polymers
 # source_of_interest <- "Tyre wear"
 source_of_interest <- NA
 
-if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
-  load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241127.RData"))
-} else if(is.na(source_of_interest)){
-  load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241127.RData"))
+if(env == "OOD"){
+  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
+    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241130.RData"))
+  } else if(is.na(source_of_interest)){
+    load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241130.RData"))
+  }
+} else if(env == "HPC"){
+  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
+    load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_TWP_20241130.RData"))
+  } else if(is.na(source_of_interest)){
+    load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_Other_20241130.RData"))
+  }
+}else if(env == "local"){
+  if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
+    load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_TWP_20241130.RData"))
+  } else if(is.na(source_of_interest)){
+    load(paste0(mainfolder, "vignettes/CaseStudies/CaseData/Parameters_LEON-T_D3.5_Other_20241130.RData"))
+  }
 }
 
 Polymers_of_interest <- unique(Parameters$Material_Parameters_n$Polymer)
@@ -34,8 +60,9 @@ if(!is.na(source_of_interest) && length(source_of_interest) == 1 && source_of_in
 }
 
 #### Select subset of RUNs from emission and parameters ####
-#  Set the runs that need to be run, should be consequetive from x to y.
-RUNSamples = c(1:1000)
+
+#  Set the runs that need to be run, should be consecutive from x to y.
+RUNSamples = c(1:2)
 print(paste("LOG: run started for", min(RUNSamples), "to", max(RUNSamples)))
 ##
 
@@ -152,24 +179,39 @@ start_time <- Sys.time() # to see how long it all takes...
 
 World$NewSolver("UncertainSolver")
 
+i <- 1
+
 for(ecomp in unique(Output$EmisComp)){
   for(pol in unique(Output$Polymer)){
     for(scl in unique(Output$Scale)){
       
       emis_source <- EmisSourceFF$EmisUnified[(EmisSourceFF[["Scale"]] == scl)][[1]][[ecomp]]
-      sample_source <- Material_Parameters_n |>
-        filter(Source == source_of_interest) |>
-        filter(Polymer == pol)  |>
-        dplyr::select(VarName, Scale, SubCompart, Species, data) |> 
-        rename(varName = VarName) # SBoo uses varName TODO: make Capital...
       
-      solved <- World$Solve((emis_source), needdebug = T, sample_source)
+      if(!is.na(source_of_interest) && source_of_interest == "Tyre wear"){
+        sample_source <- Material_Parameters_n |>
+          filter(Source == source_of_interest) |>
+          filter(Polymer == pol)  |>
+          dplyr::select(VarName, Scale, SubCompart, Species, data) |> 
+          rename(varName = VarName) # SBoo uses varName TODO: make Capital...
+      } else if(is.na(source_of_interest)){
+        sample_source <- Material_Parameters_n |>
+          filter(is.na(Source)) |>
+          filter(Polymer == pol)  |>
+          dplyr::select(VarName, Scale, SubCompart, Species, data) |> 
+          rename(varName = VarName) # SBoo uses varName TODO: make Capital...
+      }
+      
+      solved <- World$Solve(emis_source, needdebug = F, sample_source)
       
       # Output$EmisComp[i] = names(EmisSourceFF) [i]
       
       Output$SBoutput[(Output[["EmisComp"]] == ecomp &
                          Output[["Polymer"]] == pol &
                          Output[["Scale"]] == scl)] <- list(solved)
+
+      print(i)
+      i <- i+1
+
     }
   }
 }
@@ -177,10 +219,19 @@ for(ecomp in unique(Output$EmisComp)){
 
 elapsed_time <- Sys.time() - start_time
 print(paste0("Elapsed time is ", elapsed_time))
-elapsed_time
 
-save(Output, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FateFactors_LEON-T_D3.5_", source, "_", 
+elapsed_time 
+
+if(env == "OOD"){
+  save(Output, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FateFactors_LEON-T_D3.5_", source, "_", 
                            format(Sys.Date(),"%Y%m%d"),".RData"))
+} else if(env == "HPC"){
+  save(Output, file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/FateFactors_LEON-T_D3.5_", source, "_", 
+                             format(Sys.Date(),"%Y%m%d"),".RData"))
+}else if(env == "local"){
+  save(Output, file = paste0(mainfolder, "vignettes/CaseStudies/CaseData/FateFactors_LEON-T_D3.5_", source, "_", 
+                             format(Sys.Date(),"%Y%m%d"),".RData"))
+}
 
 FF_allScale <- Output |> unnest(SBoutput) |> mutate(OutputType = names(SBoutput)) |> 
   rename(EmisScale = Scale) |> 
@@ -227,7 +278,20 @@ FF_EU <- FF_allScale |>
             FF_SteadyState_std = sd(EqMass_SAP)) |> 
   mutate(Unit = "kg[ss]/kg[e] seconds")
 
-write_csv(FF_NL, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_NL_LEON-T_D3.5_", source, "_", 
-                               format(Sys.Date(),"%Y%m%d"),".csv"))
-write_csv(FF_EU, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_EU_LEON-T_D3.5_", source, "_", 
-                               format(Sys.Date(),"%Y%m%d"),".csv"))
+if(env == "OOD"){
+  write_csv(FF_NL, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_NL_LEON-T_D3.5_", source, "_", 
+                                 format(Sys.Date(),"%Y%m%d"),".csv"))
+  write_csv(FF_EU, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/FF_EU_LEON-T_D3.5_", source, "_", 
+                                 format(Sys.Date(),"%Y%m%d"),".csv"))
+} else if(env == "HPC"){
+  write_csv(FF_NL, file = paste0(mainfolder,"vignettes/CaseStudies/CaseData/FF_NL_LEON-T_D3.5_", source, "_", 
+                                 format(Sys.Date(),"%Y%m%d"),".csv"))
+  write_csv(FF_EU, file = paste0(mainfolder,"vignettes/CaseStudies/CaseData/FF_EU_LEON-T_D3.5_", source, "_", 
+                                 format(Sys.Date(),"%Y%m%d"),".csv"))
+} else if(env == "local"){
+  write_csv(FF_NL, file = paste0(mainfolder,"vignettes/CaseStudies/CaseData/FF_NL_LEON-T_D3.5_", source, "_", 
+                                 format(Sys.Date(),"%Y%m%d"),".csv"))
+  write_csv(FF_EU, file = paste0(mainfolder,"vignettes/CaseStudies/CaseData/FF_EU_LEON-T_D3.5_", source, "_", 
+                                 format(Sys.Date(),"%Y%m%d"),".csv"))
+}
+  

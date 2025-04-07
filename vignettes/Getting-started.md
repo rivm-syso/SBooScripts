@@ -1,56 +1,34 @@
 Getting started
 ================
 Anne Hids
+2025-03-04
 
-2025-02-19
-
-This vignette demonstrates how to use SimpleBox Object-Oriented (SBOO).
+This vignette demonstrates how to use SimpleBox Object-Oriented (SBoo).
 
 ## Initialize
-
-This vignette demonstrates how to use SimpleBox Object-Oriented (SBOO).
 
 Before starting, make sure your working directory is set to the
 SBooScripts folder.
 
-### See if required packages are installed
+### Install required packages
 
 ``` r
-check_and_install <- function(package) {
-  tryCatch({
-    # Load the package
-    library(package, character.only = TRUE)
-    message(paste("Package", package, "is already installed and loaded."))
-  }, error = function(e) {
-    # If an error occurs, install the package
-    message(paste("Package", package, "is not installed. Installing now..."))
-    install.packages(package, dependencies = TRUE)
-    library(package, character.only = TRUE)
-    message(paste("Package", package, "has been successfully installed and loaded."))
-  })
-}
-
-# Install the required packages
-check_and_install("ggplot2")
-check_and_install("tidyverse")
-check_and_install("constants")
-check_and_install("deSolve")
-check_and_install("knitr")
+source("baseScripts/installRequirements.R")
 ```
 
 ### Choose a substance
 
 The first step is to initialize the model. Before initialization a
-substance needs to be selected, otherwise the “default substance” is
-used. To select another substance than “default substance”, a substance
-can be chosen from the “Substance” column of the data frame created
-below.
+substance needs to be selected. A substance can be chosen from the
+“Substance” column of the data frame created below. Note the substance
+names are case-sensitive. Please use the exact name of the chemical as
+mentioned in the column “Substance” in Substances.csv.
 
 ``` r
 substances <- read.csv("data/Substances.csv")
 
 # Assign a substance name from the Substance column to the variable "substance":
-substance <- "1-aminoanthraquinone"
+chosen_substance <- "1-aminoanthraquinone"
 ```
 
 ### Initialize the World object
@@ -74,18 +52,20 @@ chosen and run based on the chosen substance:
 
 ``` r
 chemclass <- substances |>
-  filter(Substance == substance) |>
+  filter(Substance == chosen_substance) |>
   select(ChemClass)
 
 chemclass <- chemclass$ChemClass
 
-if(substance == "microplastic"){
+if(chosen_substance == "microplastic"){
   source("baseScripts/initWorld_onlyPlastics.R")
 } else if (chemclass == "particle") {
   source("baseScripts/initWorld_onlyParticulate.R")
 } else {
   source("baseScripts/initWorld_onlyMolec.R")
 }
+
+World$substance <- chosen_substance
 ```
 
 ## Access variables
@@ -93,8 +73,11 @@ if(substance == "microplastic"){
 Now that the World is initialized, its variables and calculated flows
 can be accessed. To access these variables and k’s, first the names of
 the variables are needed. They can be accessed by using the code below.
-The first 10 variable names are printed, but there are 201 variables in
+The first 10 variable names are printed, but there are 195 variables in
 total.
+
+If you want to know more about the abbreviations of variables, their
+units and descriptions please see Units.csv in the data folder.
 
 ``` r
 varnames <- World$fetchData()
@@ -102,107 +85,9 @@ varnames <- World$fetchData()
 print(varnames[1:10])
 ```
 
-    ##   [1] "a"                         "a"                        
-    ##   [3] "AbbrC"                     "AbbrP"                    
-    ##   [5] "AEROresist"                "AEROSOLdeprate"           
-    ##   [7] "AirFlow"                   "alpha.surf"               
-    ##   [9] "Area"                      "AreaLand"                 
-    ##  [11] "AreaSea"                   "b"                        
-    ##  [13] "b"                         "BACTcomp"                 
-    ##  [15] "BACTtest"                  "beta.a"                   
-    ##  [17] "Biodeg"                    "C.OHrad"                  
-    ##  [19] "C.OHrad.n"                 "ChemClass"                
-    ##  [21] "COL"                       "COLLECTeff"               
-    ##  [23] "ColRad"                    "Compartment"              
-    ##  [25] "ContinentalInModerate"     "Corg"                     
-    ##  [27] "CORG.susp"                 "CorgStandard"             
-    ##  [29] "D"                         "DefaultNETsedrate"        
-    ##  [31] "Description"               "Df"                       
-    ##  [33] "Dimension"                 "dischargeFRAC"            
-    ##  [35] "DragMethod"                "DynViscAirStandard"       
-    ##  [37] "DynViscWaterStandard"      "Ea.OHrad"                 
-    ##  [39] "epsilon"                   "Erosion"                  
-    ##  [41] "EROSIONsoil"               "FlowName"                 
-    ##  [43] "forWhich"                  "FRACa"                    
-    ##  [45] "FRACcldw"                  "FRACinf"                  
-    ##  [47] "FracROWatComp"             "FRACrun"                  
-    ##  [49] "FRACs"                     "FRACsea"                  
-    ##  [51] "FRACtwet"                  "FRACw"                    
-    ##  [53] "FricVel"                   "FRinaers"                 
-    ##  [55] "FRinaerw"                  "FRingas"                  
-    ##  [57] "FRinw"                     "fromScale"                
-    ##  [59] "fromSubCompart"            "FRorig"                   
-    ##  [61] "FRorig_spw"                "gamma.surf"               
-    ##  [63] "H0sol"                     "hamakerSP.w"              
-    ##  [65] "Intermediate_side"         "k_Adsorption"             
-    ##  [67] "k_CWscavenging"            "k_Deposition"             
-    ##  [69] "k_DryDeposition"           "k_HeteroAgglomeration.a"  
-    ##  [71] "k_HeteroAgglomeration.wsd" "k_Leaching"               
-    ##  [73] "k_Removal"                 "k_Runoff"                 
-    ##  [75] "k_Volatilisation"          "k_WetDeposition"          
-    ##  [77] "k0.OHrad"                  "Kacompw"                  
-    ##  [79] "Kaers"                     "Kaerw"                    
-    ##  [81] "Kaw25"                     "kdeg"                     
-    ##  [83] "KdegDorC"                  "kdis"                     
-    ##  [85] "Kow"                       "Kp"                       
-    ##  [87] "Kp.col"                    "Kp.sed"                   
-    ##  [89] "Kp.soil"                   "Kp.susp"                  
-    ##  [91] "KpCOL"                     "Kscompw"                  
-    ##  [93] "Ksdcompw"                  "Ksw"                      
-    ##  [95] "Ksw.alt"                   "KswDorC"                  
-    ##  [97] "kwsd"                      "kwsd.sed"                 
-    ##  [99] "kwsd.water"                "LakeFracRiver"            
-    ## [101] "landFRAC"                  "Longest_side"             
-    ## [103] "Mackay1"                   "Mackay2"                  
-    ## [105] "Matrix"                    "MaxPvap"                  
-    ## [107] "MTC_2a"                    "MTC_2s"                   
-    ## [109] "MTC_2sd"                   "MTC_2w"                   
-    ## [111] "MW"                        "NaturalPart"              
-    ## [113] "NETsedrate"                "NotInGlobal"              
-    ## [115] "NumConcAcc"                "NumConcCP"                
-    ## [117] "NumConcNuc"                "OceanCurrent"             
-    ## [119] "OtherkAir"                 "penetration_depth_s"      
-    ## [121] "pH"                        "pKa"                      
-    ## [123] "Porosity"                  "Pvap25"                   
-    ## [125] "Q.10"                      "QSAR.ChemClass"           
-    ## [127] "QSAR.ChemClass"            "rad_species"              
-    ## [129] "RadCOL"                    "RadCP"                    
-    ## [131] "RadNuc"                    "RadS"                     
-    ## [133] "RainOnFreshwater"          "RAINrate"                 
-    ## [135] "relevant_depth_s"          "rho_species"              
-    ## [137] "RhoCOL"                    "RhoCP"                    
-    ## [139] "rhoMatrix"                 "RhoNuc"                   
-    ## [141] "RhoS"                      "Runoff"                   
-    ## [143] "ScaleIsGlobal"             "ScaleName"                
-    ## [145] "ScaleOrder"                "SettlingVelocity"         
-    ## [147] "SettlVelocitywater"        "Shape"                    
-    ## [149] "Shear"                     "Shortest_side"            
-    ## [151] "Sol25"                     "SpeciesName"              
-    ## [153] "SpeciesOrder"              "SubCompartName"           
-    ## [155] "SubCompartOrder"           "subFRACa"                 
-    ## [157] "subFRACs"                  "subFRACw"                 
-    ## [159] "Substance"                 "SUSP"                     
-    ## [161] "t_half_Escape"             "T25"                      
-    ## [163] "table"                     "TAUsea"                   
-    ## [165] "tdry"                      "Temp"                     
-    ## [167] "Tempfactor"                "Test"                     
-    ## [169] "Tm"                        "Tm_default"               
-    ## [171] "toScale"                   "ToSI"                     
-    ## [173] "toSubCompart"              "TotalArea"                
-    ## [175] "twet"                      "Udarcy"                   
-    ## [177] "Unit"                      "VarName"                  
-    ## [179] "VarName"                   "VertDistance"             
-    ## [181] "Volume"                    "Waarde"                   
-    ## [183] "WINDspeed"                 "X"                        
-    ## [185] "X"                         "X"                        
-    ## [187] "X"                         "x_Advection_Air"          
-    ## [189] "x_ContRiver2Reg"           "x_ContSea2Reg"            
-    ## [191] "x_FromModerate2ArctWater"  "x_FromModerate2ContWater" 
-    ## [193] "x_FromModerate2TropWater"  "x_LakeOutflow"            
-    ## [195] "x_OceanMixing2Deep"        "x_OceanMixing2Sea"        
-    ## [197] "x_RegSea2Cont"             "x_RiverDischarge"         
-    ## [199] "x_ToModerateWater"         "X.1"                      
-    ## [201] "X.1"
+    ##  [1] "a"              "a"              "AbbrC"          "AbbrP"         
+    ##  [5] "AEROresist"     "AEROSOLdeprate" "AirFlow"        "alpha.surf"    
+    ##  [9] "Area"           "AreaLand"
 
 A specific variable (in this case AreaSea) can be accessed as follows:
 
@@ -247,7 +132,7 @@ expects the new variable values in a specific format:
 
 ``` r
 # Get the current dataframe of the variable
-kable(World$fetchData("TotalArea"))
+knitr::kable(World$fetchData("TotalArea"))
 ```
 
 | Scale       |   TotalArea |
@@ -262,8 +147,8 @@ kable(World$fetchData("TotalArea"))
 # Make a dataframe in the same format (also same column names)
 TotalArea <- data.frame(
   Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"),
-  Waarde = c(4.25E+13, 7.43E+12, 8.50E+13, 4.13e+11, 1.27e+14)) |>
-  mutate(varName = "TotalArea")
+  Waarde = c(4.25E+13, 7.43E+12, 8.50E+13, 4.13e+11, 1.27e+14),
+  varName = "TotalArea")
 
 # Replace TotalArea variable with new values
 World$mutateVars(TotalArea)
@@ -291,7 +176,7 @@ When using World\$fetchData(), sometimes a value is returned instead of
 a dataframe. In that case we can still use the mutateVars() function,
 but give the function a named value instead of a dataframe.
 
-The default molecular weight for this substance is 0.147. After the
+The default molecular weight for this substance is 0.223. After the
 chuck below, the value should be 0.15.
 
 ``` r
@@ -308,10 +193,16 @@ World$UpdateDirty("MW")
 
 After changing the molecular weight, the value is 0.15.
 
+**Note that the MW variable is only used for calculations if the
+substance is a molecule. If you change the substance to a
+particle/microplastic, the chunk above will still work but MW is not
+used for calculations.**
+
 ## Calculate steady state output
 
-To calculate steady state masses, emissions and a solver are needed. The
-have to be given to the solver in a particular format.
+To calculate steady state masses, emissions and a solver are needed.
+They have to be given to the solver in a particular format. More details
+on solvers can be found [here](vignettes/x.-Solver-use.md).
 
 ### Create emissions data frame
 
@@ -319,6 +210,13 @@ To be able to calculate steady state masses, an emission data frame is
 needed. The emissions data frame consists of one column with the
 abbreviation of the scale-subcompartment-species combination, and
 another column containing the emission to that compartment.
+
+Scales are spatial scales, such as “Regional” or “Continental”.
+SubComparts are environmental subcompartments within the scales, such as
+“river” or “agriculturalsoil”. Species are the form in which the
+substance occurs. For molecules, the species is always “Unbound”. For
+particulates, the species can be “Solid” (only the particle),
+“Aggregated” or “Attached”.
 
 The abbreviations are as follows:
 
@@ -397,133 +295,173 @@ follows:
 2.  Abbreviation of the scale
 3.  Abbreviation of the species.
 
+For example:
+
+aAU –\> “a” for air (subcompartment) + “A” for Arctic (scale) + U for
+unbound (species).
+
 Now the emissions data frame can be created. The column named “Abbr”
 contains the abbreviations, and the column “Emis” contains the
 emissions. In the example below, emissions of 10000 t/y go into regional
 air, regional agricultural soil and regional river water. These
 emissions in tonnes per year are then converted to mol/s.
 
-**Notice that because this script is using a molecular substance, the
-abbreviation “U” for “Unbound” is used here to specify emissions. If the
-substance is a particle, use “S” for “Solid”!**
+**For the species abbreviation, use:**
+
+- “U” for “Unbound”: Used when the substance is molecular (e.g., a
+  chemical dissolved in water or air).
+
+- “S” for “Solid”: Used when the substance is a particle (e.g.,
+  microplastics, dust, or other solid-phase contaminants).
+
+In this case we use U because we initialized the World for a molecule.
 
 ``` r
-emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000) ) 
-
-MW <- World$fetchData("MW")
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10, 10, 10)) 
 
 emissions <- emissions |>
-  mutate(Emis = Emis*1000/(MW*365*24*60*60)) # convert 1 t/y to mol/s
+  mutate(Emis = Emis*1000/(365*24*60*60)) # convert t/y to mol/s
 
 knitr::kable(emissions)
 ```
 
-| Abbr |     Emis |
-|:-----|---------:|
-| aRU  | 2.157129 |
-| s2RU | 2.157129 |
-| w1RU | 2.157129 |
+| Abbr |      Emis |
+|:-----|----------:|
+| aRU  | 0.0003171 |
+| s2RU | 0.0003171 |
+| w1RU | 0.0003171 |
 
 ### Solve the matrix
 
 To solve the matrix, a solver first needs to be specified. To solve for
-a steady state we can use “SB1Solve”. In this case the resulting steady
-state masses are reported in the data frame “masses”.
+a steady state we can use “SteadyODE”. In this case the resulting steady
+state masses are output but the `World$Solve()` function.
 
 ``` r
 # Define the solver function to use. For steady state calculations, this is always "SteadyODE"
-World$NewSolver("SteadyODE")
+World$NewSolver("SteadyStateSolver")
 
 # Solve with the emissions we defined in the previous chunk
 World$Solve(emissions = emissions)
 
 # Access the masses in each compartment
-masses <- World$Solution()
+masses <- World$Masses()
 concentrations <- World$Concentration()
 
 knitr::kable(masses)
 ```
 
-| time | Abbr  | RUNs |      Mass_kg |
-|:-----|:------|:-----|-------------:|
-| 0    | aRU   | 1    | 6.697008e+05 |
-| 0    | w1RU  | 1    | 1.185311e+06 |
-| 0    | w0RU  | 1    | 3.735155e+04 |
-| 0    | w2RU  | 1    | 4.381044e+04 |
-| 0    | sd1RU | 1    | 3.158710e+05 |
-| 0    | sd0RU | 1    | 2.247901e+02 |
-| 0    | sd2RU | 1    | 3.039946e+03 |
-| 0    | s1RU  | 1    | 1.545975e+03 |
-| 0    | s2RU  | 1    | 2.237280e+07 |
-| 0    | s3RU  | 1    | 5.725835e+02 |
-| 0    | aCU   | 1    | 3.757802e+06 |
-| 0    | w1CU  | 1    | 1.574551e+03 |
-| 0    | w0CU  | 1    | 1.899574e+03 |
-| 0    | w2CU  | 1    | 1.212298e+06 |
-| 0    | sd1CU | 1    | 4.195985e+02 |
-| 0    | sd0CU | 1    | 1.143621e+01 |
-| 0    | sd2CU | 1    | 4.205982e+03 |
-| 0    | s1CU  | 1    | 4.218642e+03 |
-| 0    | s2CU  | 1    | 1.554283e+04 |
-| 0    | s3CU  | 1    | 1.562460e+03 |
-| 0    | aAU   | 1    | 2.786144e+06 |
-| 0    | w2AU  | 1    | 1.313177e+06 |
-| 0    | w3AU  | 1    | 1.184929e+07 |
-| 0    | sd2AU | 1    | 3.099939e+03 |
-| 0    | s1AU  | 1    | 3.525621e+04 |
-| 0    | aMU   | 1    | 7.070864e+06 |
-| 0    | w2MU  | 1    | 6.046481e+05 |
-| 0    | w3MU  | 1    | 1.802514e+06 |
-| 0    | sd2MU | 1    | 4.169131e+02 |
-| 0    | s1MU  | 1    | 3.035969e+04 |
-| 0    | aTU   | 1    | 7.043872e+06 |
-| 0    | w2TU  | 1    | 3.020686e+05 |
-| 0    | w3TU  | 1    | 3.204656e+05 |
-| 0    | sd2TU | 1    | 6.092532e+01 |
-| 0    | s1TU  | 1    | 9.298216e+03 |
+| Abbr  |      Mass_kg |
+|:------|-------------:|
+| aRU   | 2.114600e+01 |
+| w1RU  | 1.007770e+04 |
+| w0RU  | 1.341523e+04 |
+| w2RU  | 5.355952e+02 |
+| sd1RU | 2.865373e+02 |
+| sd0RU | 1.104391e+01 |
+| sd2RU | 4.478242e+00 |
+| s1RU  | 6.655802e+02 |
+| s2RU  | 1.422221e+04 |
+| s3RU  | 2.465112e+02 |
+| aCU   | 1.337775e+01 |
+| w1CU  | 5.920031e+02 |
+| w0CU  | 1.385796e+03 |
+| w2CU  | 3.228415e+04 |
+| sd1CU | 1.683231e+01 |
+| sd0CU | 1.140910e+00 |
+| sd2CU | 1.349678e+01 |
+| s1CU  | 2.135451e+02 |
+| s2CU  | 9.894505e+02 |
+| s3CU  | 7.909077e+01 |
+| aAU   | 6.939440e-02 |
+| w2AU  | 2.482725e+04 |
+| w3AU  | 6.086643e+05 |
+| sd2AU | 1.697419e+01 |
+| s1AU  | 1.058669e+01 |
+| aMU   | 1.636127e+00 |
+| w2MU  | 3.161333e+04 |
+| w3MU  | 9.246048e+05 |
+| sd2MU | 2.576948e+01 |
+| s1MU  | 1.040952e+02 |
+| aTU   | 1.011232e-01 |
+| w2TU  | 3.455249e+04 |
+| w3TU  | 1.115822e+06 |
+| sd2TU | 3.106387e+01 |
+| s1TU  | 2.049159e+00 |
 
 ``` r
 knitr::kable(concentrations)
 ```
 
-| Abbr  | time | RUNs | Concentration | Unit    |
-|:------|:-----|:-----|--------------:|:--------|
-| aAU   | 0    | 1    |     0.0000001 | g/m3    |
-| aCU   | 0    | 1    |     0.0000005 | g/m3    |
-| aMU   | 0    | 1    |     0.0000001 | g/m3    |
-| aRU   | 0    | 1    |     0.0000029 | g/m3    |
-| aTU   | 0    | 1    |     0.0000001 | g/m3    |
-| s1AU  | 0    | 1    |     0.0000691 | g/kg dw |
-| s1CU  | 0    | 1    |     0.0001494 | g/kg dw |
-| s1MU  | 0    | 1    |     0.0000261 | g/kg dw |
-| s1RU  | 0    | 1    |     0.0008350 | g/kg dw |
-| s1TU  | 0    | 1    |     0.0000081 | g/kg dw |
-| s2CU  | 0    | 1    |     0.0000619 | g/kg dw |
-| s2RU  | 0    | 1    |     1.3594667 | g/kg dw |
-| s3CU  | 0    | 1    |     0.0001494 | g/kg dw |
-| s3RU  | 0    | 1    |     0.0008350 | g/kg dw |
-| sd0CU | 0    | 1    |     0.0002187 | g/kg dw |
-| sd0RU | 0    | 1    |     0.0655642 | g/kg dw |
-| sd1CU | 0    | 1    |     0.0007295 | g/kg dw |
-| sd1RU | 0    | 1    |     8.3754203 | g/kg dw |
-| sd2AU | 0    | 1    |     0.0000203 | g/kg dw |
-| sd2CU | 0    | 1    |     0.0001888 | g/kg dw |
-| sd2MU | 0    | 1    |     0.0000018 | g/kg dw |
-| sd2RU | 0    | 1    |     0.5066576 | g/kg dw |
-| sd2TU | 0    | 1    |     0.0000001 | g/kg dw |
-| w0CU  | 0    | 1    |     0.0021798 | g/L     |
-| w0RU  | 0    | 1    |     0.6536562 | g/L     |
-| w1CU  | 0    | 1    |     0.0054751 | g/L     |
-| w1RU  | 0    | 1    |    62.8578158 | g/L     |
-| w2AU  | 0    | 1    |     0.0005150 | g/L     |
-| w2CU  | 0    | 1    |     0.0016323 | g/L     |
-| w2MU  | 0    | 1    |     0.0001559 | g/L     |
-| w2RU  | 0    | 1    |     4.3810435 | g/L     |
-| w2TU  | 0    | 1    |     0.0000338 | g/L     |
-| w3AU  | 0    | 1    |     0.0001549 | g/L     |
-| w3MU  | 0    | 1    |     0.0000155 | g/L     |
-| w3TU  | 0    | 1    |     0.0000012 | g/L     |
+| Abbr  | Concentration | Unit    |
+|:------|--------------:|:--------|
+| aAU   |     0.0000000 | g/m3    |
+| aCU   |     0.0000000 | g/m3    |
+| aMU   |     0.0000000 | g/m3    |
+| aRU   |     0.0000000 | g/m3    |
+| aTU   |     0.0000000 | g/m3    |
+| s1AU  |     0.0000000 | g/kg dw |
+| s1CU  |     0.0000080 | g/kg dw |
+| s1MU  |     0.0000001 | g/kg dw |
+| s1RU  |     0.0001998 | g/kg dw |
+| s1TU  |     0.0000000 | g/kg dw |
+| s2CU  |     0.0000042 | g/kg dw |
+| s2RU  |     0.0004804 | g/kg dw |
+| s3CU  |     0.0000080 | g/kg dw |
+| s3RU  |     0.0001998 | g/kg dw |
+| sd0CU |     0.0000230 | g/kg dw |
+| sd0RU |     0.0017905 | g/kg dw |
+| sd1CU |     0.0000309 | g/kg dw |
+| sd1RU |     0.0042232 | g/kg dw |
+| sd2AU |     0.0000001 | g/kg dw |
+| sd2CU |     0.0000006 | g/kg dw |
+| sd2MU |     0.0000001 | g/kg dw |
+| sd2RU |     0.0004149 | g/kg dw |
+| sd2TU |     0.0000001 | g/kg dw |
+| w0CU  |     0.0000000 | g/L     |
+| w0RU  |     0.0000001 | g/L     |
+| w1CU  |     0.0000000 | g/L     |
+| w1RU  |     0.0000003 | g/L     |
+| w2AU  |     0.0000000 | g/L     |
+| w2CU  |     0.0000000 | g/L     |
+| w2MU  |     0.0000000 | g/L     |
+| w2RU  |     0.0000000 | g/L     |
+| w2TU  |     0.0000000 | g/L     |
+| w3AU  |     0.0000000 | g/L     |
+| w3MU  |     0.0000000 | g/L     |
+| w3TU  |     0.0000000 | g/L     |
+
+We can now plot the masses and concentrations using the built-in plot
+functions. The functions are called by using `World$PlotMasses` for
+masses, and `World$PlotConcentration` for concentrations. You need to
+specify which scale you want to plot the outcome for. If no scale is
+specified, the Regional scale will be chosen for you. Additionally you
+can define for which SubCompart(s) the outcomes should be plotted. If
+you don’t specify this, the outcomes will be plotted for all SubComparts
+in the Scale.
+
+``` r
+# Plot the masses and concentrations for all subcompartments at regional scale
+World$PlotMasses(scale = "Regional")
+```
+
+![](Getting-started_files/figure-gfm/Plot%20the%20masses%20and%20concentrations-1.png)<!-- -->
+
+``` r
+World$PlotConcentration(scale = "Regional")
+```
+
+![](Getting-started_files/figure-gfm/Plot%20the%20masses%20and%20concentrations-2.png)<!-- -->
+
+``` r
+# Select multiple subcomparts to plot the masses for
+World$PlotConcentration(scale = "Regional", subcompart = c("river", "lake", "sea"))
+```
+
+![](Getting-started_files/figure-gfm/Plot%20the%20masses%20and%20concentrations-3.png)<!-- -->
+
+Finally, if you are interested in the other functions available in
+World, you can use `ls(World)` to see them all.
 
 **For more information on the different types of solvers and how to use
-them, please see SBooScripts/vignettes/x. Solver use.md.**
-
+them, please see** [this vignette](vignettes/x.-Solver-use.Rmd).
