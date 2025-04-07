@@ -116,3 +116,8 @@ SBooScripts.Rproj
 err.txt
 out.txt
 
+data/World.RData
+data/scaledLHSsamples.RData
+data/Solution.RData
+data/World.RDS
+data/scaledLHSsamples.RDS
