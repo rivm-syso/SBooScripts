@@ -5,8 +5,77 @@ message: >-
   metadata from this file.
 type: software
 authors:
-  - name: RIVM
-    website: 'https://www.rivm.nl/en/'
+  - given-names: Jaap
+    family-names: Slootweg
+    email: jaap.slootweg@rivm.nl
+    affiliation: >-
+      National Institute for Public Health and the
+      Environment
+  - given-names: Anne 
+    family-names: Hids
+    email: anne.hids@rivm.nl
+    affiliation: >-
+      National Institute for Public Health and the
+      Environment
+  - given-names: Joris
+    family-names: Meesters
+    email: joris.meesters@rivm.nl
+    affiliation: >-
+      Environment
+  - given-names: Matthias
+    family-names: Hof
+    email: matthias.hof@rivm.nl
+    affiliation: >-
+      National Institute for Public Health and the
+      Environment     
+  - given-names: Valerie
+    family-names: de Rijk
+    affiliation: >-
+      National Institute for Public Health and the
+      Environment
+  - given-names: Lotte
+    family-names: Bakker
+    affiliation: >-
+      National Institute for Public Health and the
+      Environment
+  - given-names: Julius
+    family-names Defares
+    affiliation: >-
+      National Institute for Public Health and the
+      Environment
+  - given-names: Eric
+    family-names: Verbruggen
+    email: eric.verbruggen@rivm.nl
+    affiliation: >-
+      National Institute for Public Health and the
+      Environment     
+  - given-names: Joost
+    family-names: Bakker
+    email: joost.bakker@rivm.nl
+    affiliation: >-
+      National Institute for Public Health and the
+      Environment     
+  - given-names: Joris 
+    family-names: Quik
+    email: joris.quik@rivm.nl
+    affiliation: >-
+      National Institute for Public Health and the
+      Environment   
+contact:
+  - email: simplebox@rivm.nl
+    name: "National Institute for Public Health and the Environment"
 repository-code: 'https://github.com/rivm-syso/SBoo'
 url: 'https://www.rivm.nl/en/soil-and-water/simplebox'
 repository-artifact: 'https://github.com/rivm-syso/SimpleBox'
+abstract: This model is used to estimate the masses and concentrations of a substance in different environmental compartments and at different scales. 
+keywords:
+  - RIVM
+  - environmental fate
+  - fate model
+  - soil
+  - air
+  - water 
+  - sediment 
+  - concentration
+license: EUPL-1.2
+version: 2025.04.0
