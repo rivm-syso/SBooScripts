@@ -301,7 +301,7 @@ document. To do: SB4nano and microplastics toevoegen
 | SimpleBox 4.0 | 2015 | Excel + R | [Schoorl, Hollander, van de Meent, 2015](https://www.rivm.nl/publicaties/simplebox-40-a-multimedia-mass-balance-model-for-evaluating-fate-of-chemical-substances) |
 | SimpleBox4nano | 2014 | Excel + R | [Meesters et al., 2014](https://doi.org/10.1021/es500548h) |
 | SimpleBox4Plastics | 2023 | Excel + R | [Quik, Meesters, Koelmans, 2023](https://doi.org/10.1016/j.scitotenv.2023.163437) |
-| SBoo 2024.11 | 2024 | R | to be determined |
+| SBoo 2025.4.1 | 2025 | R | Hids et al., in prep. |
 
 # 6. Organisation
 
