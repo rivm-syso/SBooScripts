@@ -10,6 +10,7 @@ authors:
     city: Bilthoven
     country: NL
     post-code: 3720 BA
+    website: 'https://www.rivm.nl/SimpleBox/'
 contact:
   - email: simplebox@rivm.nl
     name: "National Institute for Public Health and the Environment"
