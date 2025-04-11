@@ -16,7 +16,7 @@ contact:
 repository-code: 'https://github.com/rivm-syso/SBoo'
 url: 'https://www.rivm.nl/en/soil-and-water/simplebox'
 repository-artifact: 'https://github.com/rivm-syso/SimpleBox'
-abstract: This model is used to estimate the masses and concentrations of a substance in different environmental compartments and at different scales. 
+abstract: SimpleBox is a multimedia mass balance model of the so-called ‘Mackay type’. It simulates environmental fate of chemicals as fluxes (mass flows) between a series of well-mixed boxes of air, water, sediment and soil on regional, continental and global spatial scales. 
 keywords:
   - RIVM
   - environmental fate
