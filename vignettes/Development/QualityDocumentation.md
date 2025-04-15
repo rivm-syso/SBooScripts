@@ -1,7 +1,7 @@
 Model Quality and Transparency document
 ================
 Matthias Hof, Jaap Slootweg, Joris Quik, et al.
-2025-03-27
+2025-04-15
 
 This document provides an overview of information required to assess the
 quality of SimpleBox according to the RIVM quality framework “Quality
@@ -77,8 +77,8 @@ Note: current table only applicable to nano-version, source [OECD,
 
 <table>
 <colgroup>
-<col style="width: 26%" />
-<col style="width: 73%" />
+<col style="width: 23%" />
+<col style="width: 76%" />
 </colgroup>
 <thead>
 <tr class="header">
@@ -223,9 +223,9 @@ near identical results to version 4.0, see Chapter 4.3.
 |----|----|----|
 | SimpleBox4nano v.4.01 | [OECD, 2021](https://one.oecd.org/document/ENV/CBC/MONO(2021)23/En/pdf) | 58-61 |
 | SimpleBox4nano Concept | Meesters et.al. 2016 |  |
-|  | SimpleBox 2.0 | Bakker et al., 2003 |
+| SimpleBox 2.0 | Bakker et al., 2003 |  |
 
-Table x. Uncertainty analyses performed on previous SimpleBox versions
+Table 3. Uncertainty analyses performed on previous SimpleBox versions
 
 ## 4.3 Model validation
 
@@ -277,8 +277,8 @@ the temperate and Arctic climate zone.</figcaption>
 | Use | Where/By who | Type | Reference |
 |----|----|----|----|
 | Environmental exposure estimation within EUSES | ECHA, REACH applicants | Regulatory | [ECHA, 2012](https://www.rivm.nl/documenten/guidance-on-information-requirements-and-chemical-safety-assessment-chapter-r16) |
-| Comparative exposure assessment in Life Cycle Assessments | USEtox | Scientific? | [USEtox](https://usetox.org/) |
-| Environmenal stock modelling for socio-economic analysis | RIVM | Scientific |  |
+| Comparative exposure assessment in Life Cycle Assessments | USEtox | Industrial and scientific | [USEtox](https://usetox.org/) |
+| Environmenal stock modelling for socio-economic analysis | RIVM | Scientific and Regulatory | [Gabbert et al.](https://doi.org/10.1111/jiec.13329) |
 
 ## 4.5 Fitness for purpose
 
@@ -301,7 +301,7 @@ document. To do: SB4nano and microplastics toevoegen
 | SimpleBox 4.0 | 2015 | Excel + R | [Schoorl, Hollander, van de Meent, 2015](https://www.rivm.nl/publicaties/simplebox-40-a-multimedia-mass-balance-model-for-evaluating-fate-of-chemical-substances) |
 | SimpleBox4nano | 2014 | Excel + R | [Meesters et al., 2014](https://doi.org/10.1021/es500548h) |
 | SimpleBox4Plastics | 2023 | Excel + R | [Quik, Meesters, Koelmans, 2023](https://doi.org/10.1016/j.scitotenv.2023.163437) |
-| SBoo 2025.4.1 | 2025 | R | Hids et al., in prep. |
+| SBoo 2025.xx | 2025 | R | Hids et al., in preparation |
 
 # 6. Organisation
 
@@ -320,7 +320,7 @@ Institutes that have contributed:
 - Wageningen University - Department of Aquatic Ecology and Water
   Quality management
 
-- .UseTox..?. ..
+- …
 
 # 7. User guidelines
 
