@@ -1,8 +1,8 @@
 ---
 title: "Model Quality and Transparency document"
-date: "`r Sys.Date()`"
 author: "Matthias Hof, Jaap Slootweg, Joris Quik, et al."
-output: github_document
+date: "`r Sys.Date()`"
+output: pdf_document
 ---
 
 This document provides an overview of information required to assess the quality of SimpleBox according to the RIVM quality framework "Quality and Transparancy of Models".
@@ -51,37 +51,37 @@ For a detailed description of the use of SimpleBox and the evaluation of its fun
 
 Note: current table only applicable to nano-version, source [OECD, 2021](https://one.oecd.org/document/ENV/CBC/MONO(2021)23/En/pdf)\|62-67\|
 
-+------------------------+---------------------------------------------------------------------+
-| **Model Feature**      | **Assumption**                                                      |
-+========================+=====================================================================+
-| **Compartment**        | -   Spatial resolution (pseudo-3D, conjoined cubic compartments)    |
-|                        |                                                                     |
-|                        | -   Physical media (Water, Air, Soil, Sediment)                     |
-|                        |                                                                     |
-|                        | -   Homogeneous distribution of nanomaterial                        |
-|                        |                                                                     |
-|                        | -   Well mixed                                                      |
-+------------------------+---------------------------------------------------------------------+
-| **Transfer**           | -   Pseudo-first order rate processes                               |
-|                        |                                                                     |
-|                        | -   Mass Balance                                                    |
-+------------------------+---------------------------------------------------------------------+
-| **Transformation**     | -   Pseudo-first order rate processes                               |
-|                        |                                                                     |
-|                        | -   Stoke’s Law                                                     |
-|                        |                                                                     |
-|                        | -   Brownian motion                                                 |
-+------------------------+---------------------------------------------------------------------+
-| **Substance**          | -   Nanomaterials, particulate matter                               |
-|                        |                                                                     |
-|                        | -   Particle size determines physical behaviour                     |
-+------------------------+---------------------------------------------------------------------+
-| **Time**               | -   Steady-state solution of mass balance equation (LTA)            |
-|                        |                                                                     |
-|                        | -   Re-evaluation of model parameters at each timestep for dynamics |
-|                        |                                                                     |
-|                        | -   Variable time-step that can span years                          |
-+------------------------+---------------------------------------------------------------------+
++--------------------+---------------------------------------------------------------------+
+| **Model Feature**  | **Assumption**                                                      |
++====================+=====================================================================+
+| **Compartment**    | -   Spatial resolution (pseudo-3D, conjoined cubic compartments)    |
+|                    |                                                                     |
+|                    | -   Physical media (Water, Air, Soil, Sediment)                     |
+|                    |                                                                     |
+|                    | -   Homogeneous distribution of nanomaterial                        |
+|                    |                                                                     |
+|                    | -   Well mixed                                                      |
++--------------------+---------------------------------------------------------------------+
+| **Transfer**       | -   Pseudo-first order rate processes                               |
+|                    |                                                                     |
+|                    | -   Mass Balance                                                    |
++--------------------+---------------------------------------------------------------------+
+| **Transformation** | -   Pseudo-first order rate processes                               |
+|                    |                                                                     |
+|                    | -   Stoke’s Law                                                     |
+|                    |                                                                     |
+|                    | -   Brownian motion                                                 |
++--------------------+---------------------------------------------------------------------+
+| **Substance**      | -   Nanomaterials, particulate matter                               |
+|                    |                                                                     |
+|                    | -   Particle size determines physical behaviour                     |
++--------------------+---------------------------------------------------------------------+
+| **Time**           | -   Steady-state solution of mass balance equation (LTA)            |
+|                    |                                                                     |
+|                    | -   Re-evaluation of model parameters at each timestep for dynamics |
+|                    |                                                                     |
+|                    | -   Variable time-step that can span years                          |
++--------------------+---------------------------------------------------------------------+
 
 # 2. Technical implementation
 
@@ -160,10 +160,10 @@ Version 5.0 has been validated to provide near identical results to version 4.0,
 +------------------------+-------------------------------------------------------------------------+-------------------------+
 | SimpleBox4nano Concept | Meesters et.al. 2016                                                    |                         |
 +------------------------+-------------------------------------------------------------------------+-------------------------+
-|                        | SimpleBox 2.0                                                           | Bakker et al., 2003     |
+| SimpleBox 2.0          | Bakker et al., 2003                                                     |                         |
 +------------------------+-------------------------------------------------------------------------+-------------------------+
 
-: Table x. Uncertainty analyses performed on previous SimpleBox versions
+: Table 3. Uncertainty analyses performed on previous SimpleBox versions
 
 ## 4.3 Model validation
 
@@ -188,15 +188,15 @@ Discrepancies between estimations and measurements may be attributed to the vari
 
 ## 4.4 Overview of the use of SimpleBox
 
-+-----------------------------------------------------------+------------------------+-------------+------------------------------------------------------------------------------------------------------------------------------+
-| Use                                                       | Where/By who           | Type        | Reference                                                                                                                    |
-+===========================================================+========================+=============+==============================================================================================================================+
-| Environmental exposure estimation within EUSES            | ECHA, REACH applicants | Regulatory  | [ECHA, 2012](https://www.rivm.nl/documenten/guidance-on-information-requirements-and-chemical-safety-assessment-chapter-r16) |
-+-----------------------------------------------------------+------------------------+-------------+------------------------------------------------------------------------------------------------------------------------------+
-| Comparative exposure assessment in Life Cycle Assessments | USEtox                 | Scientific? | [USEtox](https://usetox.org/)                                                                                                |
-+-----------------------------------------------------------+------------------------+-------------+------------------------------------------------------------------------------------------------------------------------------+
-| Environmenal stock modelling for socio-economic analysis  | RIVM                   | Scientific  |                                                                                                                              |
-+-----------------------------------------------------------+------------------------+-------------+------------------------------------------------------------------------------------------------------------------------------+
++-----------------------------------------------------------+------------------------+---------------------------+------------------------------------------------------------------------------------------------------------------------------+
+| Use                                                       | Where/By who           | Type                      | Reference                                                                                                                    |
++===========================================================+========================+===========================+==============================================================================================================================+
+| Environmental exposure estimation within EUSES            | ECHA, REACH applicants | Regulatory                | [ECHA, 2012](https://www.rivm.nl/documenten/guidance-on-information-requirements-and-chemical-safety-assessment-chapter-r16) |
++-----------------------------------------------------------+------------------------+---------------------------+------------------------------------------------------------------------------------------------------------------------------+
+| Comparative exposure assessment in Life Cycle Assessments | USEtox                 | Industrial and scientific | [USEtox](https://usetox.org/)                                                                                                |
++-----------------------------------------------------------+------------------------+---------------------------+------------------------------------------------------------------------------------------------------------------------------+
+| Environmenal stock modelling for socio-economic analysis  | RIVM                   | Scientific and Regulatory | [Gabbert et al.](https://doi.org/10.1111/jiec.13329)                                                                         |
++-----------------------------------------------------------+------------------------+---------------------------+------------------------------------------------------------------------------------------------------------------------------+
 
 ## 4.5 Fitness for purpose
 
@@ -226,7 +226,7 @@ To do: SB4nano and microplastics toevoegen
 +--------------------+-------+-----------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | SimpleBox4Plastics | 2023  | Excel + R | [Quik, Meesters, Koelmans, 2023](https://doi.org/10.1016/j.scitotenv.2023.163437)                                                                                   |
 +--------------------+-------+-----------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| SBoo 2024.11       | 2024  | R         | to be determined                                                                                                                                                    |
+| SBoo 2025.xx       | 2025  | R         | Hids et al., in preparation                                                                                                                                         |
 +--------------------+-------+-----------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 # 6. Organisation
@@ -245,8 +245,7 @@ Institutes that have contributed:
 
 -   Wageningen University - Department of Aquatic Ecology and Water Quality management
 
--   .UseTox..?.
-    ..
+-   ...
 
 # 7. User guidelines
 
