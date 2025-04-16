@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-title: 'SimpleBox in R - Object Oriented'
+title: 'SimpleBox object oriented - Scripts, Data and Documentation repository'
 message: >-
   If you use this software, please cite it using the
   metadata from this file.
@@ -14,7 +14,7 @@ authors:
 contact:
   - email: simplebox@rivm.nl
     name: "National Institute for Public Health and the Environment"
-repository-code: 'https://github.com/rivm-syso/SBoo'
+repository-code: 'https://github.com/rivm-syso/SBooScripts'
 url: 'https://www.rivm.nl/en/soil-and-water/simplebox'
 repository-artifact: 'https://github.com/rivm-syso/SimpleBox'
 abstract: SimpleBox is a multimedia mass balance model of the so-called ‘Mackay type’. It simulates environmental fate of chemicals as fluxes (mass flows) between a series of well-mixed boxes of air, water, sediment and soil on regional, continental and global spatial scales. 
