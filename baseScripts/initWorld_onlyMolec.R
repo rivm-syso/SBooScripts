@@ -3,12 +3,8 @@
 #script to faking the future library(SBoo)
 source("baseScripts/fakeLib.R")
 
-library(parallel)
-library(doParallel)
-library(foreach)
-
 #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
-ClassicStateModule <- ClassicNanoWorld$new("data") #by default Substance = "default substance"
+ClassicStateModule <- ClassicNanoWorld$new(MlikeFile = "data", Substance = substance) #by default Substance = "default substance"
 
 #with this data we create an instance of the central "core" object,
 World <- SBcore$new(ClassicStateModule)
@@ -30,7 +26,10 @@ World$SetConst(DragMethod = "Original")
 AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 
-World$SetConst(Test = "FALSE") 
+# to set verification test at initialisation for proper k update.
+if(!exists("VerificationSBoo")){
+  World$SetConst(Test = "FALSE")
+} else ifelse(VerificationSBoo == TRUE, World$SetConst(Test = "TRUE") , World$SetConst(Test = "FALSE"))
 
 #Which are Molecular? Create those as module NB the k_ is missing in the processlist
 Processes4SpeciesTp <- read.csv("data/Processes4SpeciesTp.csv")

@@ -97,8 +97,8 @@ for (i in 1:n_vars) {
 }
 
 # Solve with dynamic uncertain solver
-World$NewSolver("UncertainDynamicSolver")
-solved_emis_df <- World$Solve(emissions, sample_df, tmax = tmax, needdebug = F)
+#World$NewSolver("UncertainDynamicSolver")
+#solved_emis_df <- World$Solve(emissions, sample_df, tmax = tmax, needdebug = F)
 
 conc <- World$GetConcentration()
 
@@ -122,11 +122,21 @@ SBEmissions3 <-
 funlist <- SBEmissions3$EmisFun
 names(funlist) <- SBEmissions3$Abbr
 
+# Extract the list of functions
+funlist <- SBEmissions3$EmisFun
+names(funlist) <- SBEmissions3$Abbr
+
+# Get the formal arguments of each function in the list
+argNames <- lapply(funlist, function(f) formalArgs(f))
+
+# If you want unique argument names across all functions
+uniqueArgNames <- unique(unlist(argNames))
+
 tmax <- 365.25*24*60*60*10
 times <- seq(0, tmax, length.out = 10)
 
-World$NewSolver("UncertainDynamicSolver")
-solved_funlist <- World$Solve(funlist, sample_df, tmax = tmax, needdebug = F)
+# World$NewSolver("UncertainDynamicSolver")
+# solved_funlist <- World$Solve(funlist, sample_df, tmax = tmax, needdebug = F)
 
 ##### Solve with nested emission dataframe 
 
@@ -291,8 +301,8 @@ for (i in 1:nrow(params)) {
 emis_df <- emis_df |>
   select(Abbr, Timed, Emis)
 
-World$NewSolver("UncertainDynamicSolver")
-solved_nested_emis_df <- World$Solve(emis_df, sample_df, tmax = tmax, needdebug = F)
+# World$NewSolver("UncertainDynamicSolver")
+# solved_nested_emis_df <- World$Solve(emis_df, sample_df, tmax = tmax, needdebug = F)
 
 ##### Solve with nested tibble containing approxfuns 
 
@@ -332,7 +342,7 @@ final_fun_tibble <- fun_tibble |>
   summarize(Funlist = list(EmisFun))
 
 # Solve
-World$NewSolver("UncertainDynamicSolver")
-solved_nested_funlist<- World$Solve(final_fun_tibble, sample_df, tmax = tmax, needdebug = F)
+# World$NewSolver("UncertainDynamicSolver")
+# solved_nested_funlist<- World$Solve(final_fun_tibble, sample_df, tmax = tmax, needdebug = F)
 
 
