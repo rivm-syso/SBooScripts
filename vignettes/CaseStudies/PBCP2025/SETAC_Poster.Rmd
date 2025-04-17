@@ -1,0 +1,91 @@
+---
+title: "SETAC_Poster"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+
+emissions_SSP <- 
+  readxl::read_excel("vignettes/CaseData/Emission results_JQ.xlsx", sheet=1)
+emissions_SSP$Abbr = "w1CU"
+
+
+
+```
+
+```{r}
+# substance <- "Glyphosate"
+# sel_Scenario <- "SSP1"
+emission_w1CU <- NULL
+concentration_w1CU <- NULL
+for (substance in unique(emissions_SSP$Substance)){
+  for (sel_Scenario in unique(emissions_SSP$Scenario)){
+    
+    # convert 1 t/y to si units: kg/s
+    emissions <- 
+      emissions_SSP |>
+      filter(Substance == substance,
+             Scenario == sel_Scenario)
+    emissions <-
+      emissions |> 
+      full_join(tibble(
+        Year = (min(emissions$Year)-1),
+        Emission_tpy = filter(emissions, Year == min(emissions$Year)) |>
+          pull(Emission_tpy),
+        Scenario = sel_Scenario,
+        Substance = substance,
+        Abbr = unique(emissions$Abbr))) |> # as it is not true that in the previous year the environment is 'empty' we assume the previous year is included with same emission as first year in SSP data. This needs a more robust decision.
+      mutate(Emis = Emission_tpy*1000/(365.25*24*60*60),
+             Time = Year*(365.25*24*60*60))
+    
+    source("baseScripts/initWorld_onlyMolec.R")
+    
+    tmax <- max(emissions$Time) # set max solve time to last step in emission scenario
+    tmin <- min(emissions$Time)
+    nTIMES <- tmax/(365.25*24*60*60)-tmin/(365.25*24*60*60)+1 # Sets the time step for output, e.g. for 19 year scenario from year 1 to 20, add t1 is 20 nTimes
+    
+    # Initialize the dynamic solver
+    World$NewSolver("DynamicSolver")
+    World$Solve(emissions = emissions, tmax = tmax, tmin=tmin, nTIMES = nTIMES)
+    # solution <- World$Masses()
+    emission <- World$Emissions()
+    emission$Scenario <- sel_Scenario
+    emission$Substance <- substance
+    emission_w1CU <- rbind(emission_w1CU,
+                           filter(emission, Abbr == "w1CU"))
+    concentration <- World$Concentration()
+    concentration$Scenario <- sel_Scenario
+    concentration$Substance <- substance
+    concentration_w1CU <- rbind(concentration_w1CU,
+                                filter(concentration, Abbr == "w1CU"))
+  }
+  
+}
+concentration_w1CU <-
+  concentration_w1CU |> filter(Abbr == "w1CU",
+                               Concentration > 0) |> 
+  mutate(Year = as.numeric(time)/(365.25*24*60*60))
+class(concentration_w1CU$Year)
+writexl::write_xlsx(concentration_w1CU,
+                    path = "vignettes/CaseData/Concentration results.xlsx")
+unique(concentration_w1CU$Substance)
+names(concentration_w1CU)
+
+p1 <- ggplot(data = filter(concentration_w1CU,Substance == "Glyphosate"),
+       aes(Year,Concentration*1e6, group = c(Scenario), colour = Scenario))+
+  geom_line(linewidth = 2)+
+  scale_color_manual(values = c("SSP1" = "green", "SSP2" = "blue", "SSP3" = "red")) +
+  labs(title = "Glyphosate", x = "", y = "Freshwater Conc. (ug/L)")
+
+p2 <- 
+ggplot(data = filter(concentration_w1CU,Substance == "Terbuthylazine"),
+       aes(Year,Concentration*1e9, group = c(Scenario), colour = Scenario))+
+  geom_line(linewidth = 2)+
+  scale_color_manual(values = c("SSP1" = "green", "SSP2" = "blue", "SSP3" = "red")) +
+  labs(title = "Terbuthylazine", x = "", y = "Freshwater Conc. (ng/L)")
+
+```
+
