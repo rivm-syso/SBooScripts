@@ -1,4 +1,4 @@
-﻿VarName,Compartment,Substance,Waarde,Unit
+VarName,Compartment,Substance,Waarde,Unit
 EF,air,microplastic,0.333333333,NA
 EF,air,nAg_10nm,0.333333333,NA
 EF,air,nC60_10nm,0.333333333,NA
@@ -17,7 +17,7 @@ EF,water,TRWP,0.333333333,NA
 kdeg,air,(4-chloro-2-methylphenoxy)acetic acid,8.7e-7,NA
 kdeg,air,(4-Chloro-2-methylphenoxy)acetic acid compd. with N-Methylmethanamine (1:1),9.47e-6,NA
 kdeg,air,"[1,1'-Biphenyl]-4,4'-diamine, 3,3'-dimethoxy-, dihydrochloride",1.32e-5,NA
-kdeg,air,"[1,1'-Biphenyl]-4,4'-diamine, 3,3'-dimethyl-, dihydrochloride",1.41611e-4,NA
+kdeg,air,"[1,1'-Biphenyl]-4,4'-diamine, 3,3'-dimethyl-, dihydrochloride",1.42e-4,NA
 kdeg,air,1-AMINO-2-PROPANOL,3.03e-5,NA
 kdeg,air,1-CHLORO-2-METHYLPROPENE,1.39e-5,NA
 kdeg,air,1-Chloro-2-nitro-propane,1.49e-7,NA
@@ -34,8 +34,8 @@ kdeg,air,1-HYDROXYANTHRAQUINONE,1.03e-5,NA
 kdeg,air,1-methoxypropan-2-ol,1.3e-5,NA
 kdeg,air,1-methyl-2-pyrrolidone,2.5e-5,NA
 kdeg,air,1-METHYL-PYRROLIDINE,6.21e-5,NA
-kdeg,air,"1-NAPHTHALENAMINE, N-ETHYL-",1.5664e-4,NA
-kdeg,air,1-NAPHTHOL,4.125e-4,NA
+kdeg,air,"1-NAPHTHALENAMINE, N-ETHYL-",1.57e-4,NA
+kdeg,air,1-NAPHTHOL,4.13e-4,NA
 kdeg,air,1-NITROBUTANE,1.13e-6,NA
 kdeg,air,1-NONANOL,1.05e-5,NA
 kdeg,air,1-OCTADECANOL,2e-5,NA
@@ -78,7 +78,7 @@ kdeg,air,"1,3,4-Metheno-1H-cyclobuta[cd]pentalene, 1,1a,2,2,3,3a,4,5,5,5a,5b-und
 kdeg,air,"1,3,5-TRIOXANE",4.65e-6,NA
 kdeg,air,"1,4-Benzenediamine, 2,6-dichloro-",6.55e-5,NA
 kdeg,air,"1,4-BENZENEDIOL, 2-METHYL-",4.52e-5,NA
-kdeg,air,"1,4-Benzenediol, 2,3,5-trimethyl-",1.44277e-4,NA
+kdeg,air,"1,4-Benzenediol, 2,3,5-trimethyl-",1.44e-4,NA
 kdeg,air,"1,4-BENZODIOXAN",1.89e-5,NA
 kdeg,air,"1,4-DIAZABICYCLO(2,2,2)OCTANE  (DABCO)",1.65e-5,NA
 kdeg,air,"1,4-dichlorobenzene",5.2e-7,NA
@@ -89,7 +89,7 @@ kdeg,air,"1,4-DITHIANE",2.94e-5,NA
 kdeg,air,"1,5-DIAMINONAPHTHALENE",1.5e-4,NA
 kdeg,air,"1,5-DIMETHYLNAPHTHALENE",5.2e-5,NA
 kdeg,air,"1,5-HEXADIEN-3-OL",4.67e-5,NA
-kdeg,air,"1,6-Hexanediamine, N,N,N',N'-tetramethyl-",1.2306e-4,NA
+kdeg,air,"1,6-Hexanediamine, N,N,N',N'-tetramethyl-",1.23e-4,NA
 kdeg,air,"1H-BENZIMIDAZOLE, 5-NITRO-",3.37e-6,NA
 kdeg,air,"1H-IMIDAZOLE, 1-(PHENYLMETHYL)-",3.13e-5,NA
 kdeg,air,"1H-IMIDAZOLE, 2-METHYL-",7.06e-5,NA
@@ -116,8 +116,8 @@ kdeg,air,2-chloro-4-nitroaniline,1.1e-5,NA
 kdeg,air,2-Chloroacetophenone,1.53e-6,NA
 kdeg,air,2-CHLOROBENZALDEHYDE,1.3e-5,NA
 kdeg,air,2-CHLOROTOLUENE,1.36e-6,NA
-kdeg,air,"2-Cyclohexen-1-one, 2-methyl-5-(1-methylethenyl)",1.05899e-4,NA
-kdeg,air,2-DIBENZOFURANAMINE,1.42892e-4,NA
+kdeg,air,"2-Cyclohexen-1-one, 2-methyl-5-(1-methylethenyl)",1.06e-4,NA
+kdeg,air,2-DIBENZOFURANAMINE,1.43e-4,NA
 kdeg,air,2-dimethylaminoethanol,8.7e-5,NA
 kdeg,air,2-DIMETHYLAMINOPYRIDINE,5.45e-5,NA
 kdeg,air,2-ethoxyethanol,4e-6,NA
@@ -134,7 +134,7 @@ kdeg,air,"2-HYDROXYMETHYL-2-NITRO-1,3-PROPANEDIOL",1.44e-6,NA
 kdeg,air,2-IODOBUTANE,1.5e-6,NA
 kdeg,air,2-MERCAPTOBENZOTHIAZOLE,3.05e-5,NA
 kdeg,air,2-methoxy-1-methylethyl acetate,8.9e-6,NA
-kdeg,air,2-METHOXY-3-AMINODIBENZOFURAN,1.29157e-4,NA
+kdeg,air,2-METHOXY-3-AMINODIBENZOFURAN,1.29e-4,NA
 kdeg,air,2-methoxyethanol,9.8e-6,NA
 kdeg,air,2-METHYL-4-CHLOROPHENOL,9.15e-6,NA
 kdeg,air,2-Methyl-4-chlorophenoxyacetic acid,9.47e-6,NA
@@ -162,13 +162,13 @@ kdeg,air,"2,2'-(ethylenedioxy)diethanol",2.9e-5,NA
 kdeg,air,"2,2'-oxydiethanol",1.9e-5,NA
 kdeg,air,"2,2',6,6'-tetrabromo-4,4'-isopropylidenediphenol",2.2e-6,NA
 kdeg,air,"2,3-DICHLOROPHENOL",1.25e-6,NA
-kdeg,air,"2,3-DIMETHYLANILINE",1.50204e-4,NA
+kdeg,air,"2,3-DIMETHYLANILINE",1.5e-4,NA
 kdeg,air,"2,3-DIMETHYLPHENOL",6.02e-5,NA
 kdeg,air,"2,3-Dinitrotoluene",1.44e-7,NA
 kdeg,air,"2,3,4,5-tetrachlorophenol",1.16e-6,NA
 kdeg,air,"2,3,4,5,6-PENTACHLORPYRIDINE",8.24e-9,NA
 kdeg,air,"2,3,5-trichlorophenol",3.72e-6,NA
-kdeg,air,"2,3,5-TRIMETHYLPHENOL",1.50411e-4,NA
+kdeg,air,"2,3,5-TRIMETHYLPHENOL",1.5e-4,NA
 kdeg,air,"2,3,5,6-TETRACHLORO-4-NITROANILINE",7.07e-7,NA
 kdeg,air,"2,3,5,6-tetrachlorophenol",1.16e-6,NA
 kdeg,air,"2,3,6-TRICHLOROPHENOL",1.6e-6,NA
@@ -176,8 +176,8 @@ kdeg,air,"2,3,7,8-TetraCDF",6.02e-7,NA
 kdeg,air,"2,4-DICHLORO-6-NITROPHENOL",1.49e-7,NA
 kdeg,air,"2,4-Dichlorodiphenyl ether",2.84e-6,NA
 kdeg,air,"2,4-dichlorophenol",7.95e-7,NA
-kdeg,air,"2,4-DIMETHOXY-6-HYDROXY-BENZALDEHYD",1.64008e-4,NA
-kdeg,air,"2,4-DIMETHYLANILINE",1.21526e-4,NA
+kdeg,air,"2,4-DIMETHOXY-6-HYDROXY-BENZALDEHYD",1.64e-4,NA
+kdeg,air,"2,4-DIMETHYLANILINE",1.22e-4,NA
 kdeg,air,"2,4-dimethylphenol",5.36e-5,NA
 kdeg,air,"2,4-Dinitrophenol",4.95e-7,NA
 kdeg,air,"2,4-dinitrotoluene",2.6e-5,NA
@@ -185,8 +185,8 @@ kdeg,air,"2,4-IMIDAZOLIDINEDIONE, 5,5-DIMETHYL-",2.3e-6,NA
 kdeg,air,"2,4-PENTANEDIONE",8.63e-7,NA
 kdeg,air,"2,4,4-trimethylpentene",4.8e-5,NA
 kdeg,air,"2,4,5-T triethylammonium salt",2.22e-5,NA
-kdeg,air,"2,4,5-Trimethylaniline",1.50306e-4,NA
-kdeg,air,"2,4,5-Trimethylaniline hydrochloride",1.50306e-4,NA
+kdeg,air,"2,4,5-Trimethylaniline",1.5e-4,NA
+kdeg,air,"2,4,5-Trimethylaniline hydrochloride",1.5e-4,NA
 kdeg,air,"2,4,6-TRIBROMOPHENOL",3.56e-7,NA
 kdeg,air,"2,4,6-trichloro-1,3,5-triazine",2.8e-9,NA
 kdeg,air,"2,4,6-TRICHLORO-3-METHYLPHENOL",6.37e-7,NA
@@ -202,15 +202,15 @@ kdeg,air,"2,6-dichlorophenol",2.24e-6,NA
 kdeg,air,"2,6-DIMETHYLPHENOL",4.94e-5,NA
 kdeg,air,"2,6-DIMETHYLQUINOLINE",2.8e-5,NA
 kdeg,air,"2,6-DINITROPHENOL",4.95e-7,NA
-kdeg,air,"2,6-xylidine",1.21526e-4,NA
-kdeg,air,"2,7-Naphthalenediol",1.5021e-4,NA
+kdeg,air,"2,6-xylidine",1.22e-4,NA
+kdeg,air,"2,7-Naphthalenediol",1.5e-4,NA
 kdeg,air,"2H-3,1-Benzoxazine-2,4(1H)-dione",2.92e-5,NA
 kdeg,air,3-(Chloromethyl)pyridine hydrochloride,5.52e-7,NA
-kdeg,air,"3-Amino-1-methyl-5H-pyrido(4,3-b)indole acetate",1.50134e-4,NA
-kdeg,air,"3-AMINO-9-ETHYLCARBAZOLE, HYDROCHLORIDE",1.5664e-4,NA
+kdeg,air,"3-Amino-1-methyl-5H-pyrido(4,3-b)indole acetate",1.5e-4,NA
+kdeg,air,"3-AMINO-9-ETHYLCARBAZOLE, HYDROCHLORIDE",1.57e-4,NA
 kdeg,air,3-AMINOPYRIDINE,1.53e-5,NA
 kdeg,air,3-BROMO-1-PROPENE,1.52e-5,NA
-kdeg,air,"3-Buten-2-one, 4-(2,6,6-trimethyl-1-cyclohexen-1-yl)-, (E)-",1.78911e-4,NA
+kdeg,air,"3-Buten-2-one, 4-(2,6,6-trimethyl-1-cyclohexen-1-yl)-, (E)-",1.79e-4,NA
 kdeg,air,3-CHLORO-1-PROPANOL,3.76e-6,NA
 kdeg,air,3-CHLOROANILINE,5.68e-5,NA
 kdeg,air,3-CHLOROPHENOL,1.77e-5,NA
@@ -227,11 +227,11 @@ kdeg,air,3-NITROPHENOL,2.29e-6,NA
 kdeg,air,3-PHENYL-N-BUTYRIC ACID,6.19e-6,NA
 kdeg,air,3-TRIFLUOROMETHYL-4-NITROPHENOL,5.78e-7,NA
 kdeg,air,"3,3'-dichlorobenzidine",2.97e-5,NA
-kdeg,air,"3,3'-Dimethylbenzidine",1.41611e-4,NA
+kdeg,air,"3,3'-Dimethylbenzidine",1.42e-4,NA
 kdeg,air,"3,4-dichloroaniline",1.9e-5,NA
 kdeg,air,"3,4-DICHLORONITROBENZENE",3.75e-8,NA
 kdeg,air,"3,4-DIHYDROXYBENZOIC ACID",6.97e-6,NA
-kdeg,air,"3,4-XYLIDINE",1.50204e-4,NA
+kdeg,air,"3,4-XYLIDINE",1.5e-4,NA
 kdeg,air,"3,4,5-TRICHLORO-2-METHOXYPHENOL",3.85e-6,NA
 kdeg,air,"3,4,5-TRICHLOROCATECHOL",2.7e-6,NA
 kdeg,air,"3,4,5-TRICHLOROPHENOL",3.72e-6,NA
@@ -249,10 +249,10 @@ kdeg,air,"4-CHLORO-1,2-BENZENEDIAMINE",9.3e-5,NA
 kdeg,air,"4-CHLORO-3,5-DIMETHYL PHENOL",5e-5,NA
 kdeg,air,4-CHLOROANISOLE,5.33e-6,NA
 kdeg,air,4-chlorophenol,7.4e-6,NA
-kdeg,air,4-CHLORORESORCINOL,1.24949e-4,NA
+kdeg,air,4-CHLORORESORCINOL,1.25e-4,NA
 kdeg,air,4-chlorotoluene,1.4e-6,NA
-kdeg,air,4-Decylaniline,1.07628e-4,NA
-kdeg,air,4-DIMETHYLAMINO-3'-METHYLAZOBENZENE,1.12626e-4,NA
+kdeg,air,4-Decylaniline,1.08e-4,NA
+kdeg,air,4-DIMETHYLAMINO-3'-METHYLAZOBENZENE,1.13e-4,NA
 kdeg,air,4-DIMETHYLAMINOPYRIDINE,5.45e-5,NA
 kdeg,air,4-Ethylbenzyl alcohol,7.81e-6,NA
 kdeg,air,4-ETHYLNITROBENZENE,1.28e-6,NA
@@ -264,7 +264,7 @@ kdeg,air,4-METHYL-2-NITROPHENOL,4.04e-6,NA
 kdeg,air,"4-METHYL-2,6-DICHLOROPHENOL",1.51e-6,NA
 kdeg,air,4-METHYLPENTANOIC ACID,4.14e-6,NA
 kdeg,air,4-Nitrophenol,3.23e-6,NA
-kdeg,air,4-Octylaniline,1.05508e-4,NA
+kdeg,air,4-Octylaniline,1.06e-4,NA
 kdeg,air,4-Pentenoic acid,2.16e-5,NA
 kdeg,air,4-PENTYNOIC ACID,7.15e-6,NA
 kdeg,air,4-PHENYLBUTYRIC ACID,6.59e-6,NA
@@ -274,7 +274,7 @@ kdeg,air,4-tert-butylphenol,2.5e-5,NA
 kdeg,air,4-VINYLPYRIDINE,2e-5,NA
 kdeg,air,"4,4'-BIPHENOL",3.59e-5,NA
 kdeg,air,"4,4'-isopropylidenediphenol",6e-5,NA
-kdeg,air,"4,4'-Methylene di-o-toluidine",1.50904e-4,NA
+kdeg,air,"4,4'-Methylene di-o-toluidine",1.51e-4,NA
 kdeg,air,"4,5-dihydroxy-1,3-bis(hydroxymethyl)imidazolidin-2-one",5.5e-5,NA
 kdeg,air,"4,5,6-TRICHLOROGUAIACOL",2.33e-6,NA
 kdeg,air,"4,6-DICHLORO-O-CRESOL",1.51e-6,NA
@@ -285,7 +285,7 @@ kdeg,air,"5-CHLORO-2-(2,4-DICHLOROPHENOXY)PHENOL",1.21e-5,NA
 kdeg,air,5-CHLORO-2-HYDROXYDIPHENYLMETHANE,1.33e-5,NA
 kdeg,air,"5-HYDROXY-1,4-NAPHTHOQUINONE",1.14e-5,NA
 kdeg,air,5-PHENYLPENTANOIC ACID,7.65e-6,NA
-kdeg,air,"5H-Pyrido(4,3-b)indol-3-amine, 1,4-dimethyl-, acetate",1.50204e-4,NA
+kdeg,air,"5H-Pyrido(4,3-b)indol-3-amine, 1,4-dimethyl-, acetate",1.5e-4,NA
 kdeg,air,6-AMINOHEXANOIC ACID,2.8e-5,NA
 kdeg,air,6-CHLORO-2-NITROPHENOL,1.02e-6,NA
 kdeg,air,6-CHLOROPICOLINIC ACID,4.43e-7,NA
@@ -296,11 +296,11 @@ kdeg,air,"9-Octadecen-1-amine, (Z)-",8.04e-5,NA
 kdeg,air,"9,10-Anthracenedione, 1,8-dihydroxy-",1.94e-5,NA
 kdeg,air,"9H-FLUORENE-9-CARBOXYLIC AICD, 2-CHLORO-9-HYDROX",4.36e-6,NA
 kdeg,air,"9H-PYRIDO[3,4-B]INDOLE",3e-5,NA
-kdeg,air,Abietic acid,2.08218e-4,NA
-kdeg,air,"Acetamide, N-(3-amino-4-ethoxyphenyl)-",1.54707e-4,NA
+kdeg,air,Abietic acid,2.08e-4,NA
+kdeg,air,"Acetamide, N-(3-amino-4-ethoxyphenyl)-",1.55e-4,NA
 kdeg,air,ACETIC ACID,5.55e-7,NA
 kdeg,air,ACETIC ACID HYDRAZIDE,4.2e-6,NA
-kdeg,air,"Acetimidoylphosphoramidothioic acid, O,O-bis(p-Chlorophenyl) ester",1.74958e-4,NA
+kdeg,air,"Acetimidoylphosphoramidothioic acid, O,O-bis(p-Chlorophenyl) ester",1.75e-4,NA
 kdeg,air,acetonitrile,1.9e-8,NA
 kdeg,air,ACETYLSALICYLIC ACID,9.8e-7,NA
 kdeg,air,ACRIDINE,2.06e-5,NA
@@ -311,53 +311,53 @@ kdeg,air,Actarit,1.06e-5,NA
 kdeg,air,adiponitrile,6.1e-7,NA
 kdeg,air,Ag(I),1e-20,NA
 kdeg,air,Al(III),1e-20,NA
-kdeg,air,Albuterol,1.01315e-4,NA
+kdeg,air,Albuterol,1.01e-4,NA
 kdeg,air,ALCOFENAC,2.98e-5,NA
 kdeg,air,"Alcohols, C12-14, ethoxylated",2.24e-5,NA
 kdeg,air,Aldrin,4.84e-5,NA
 kdeg,air,ALIZARINE,7.38e-6,NA
 kdeg,air,ALKYLBENZENE (C10-C15),1.5e-5,NA
-kdeg,air,ALLETHRIN,1.66689e-4,NA
+kdeg,air,ALLETHRIN,1.67e-4,NA
 kdeg,air,alpha-Cypermethrin,1.61e-5,NA
 kdeg,air,alpha-Naphthylamine,1.5e-4,NA
 kdeg,air,ALPHA-PHENYLPROPIONIC ACID,5.08e-6,NA
 kdeg,air,"alpha,alpha,alpha-trichlorotoluene",1e-6,NA
 kdeg,air,AMANTADINE,3.02e-5,NA
 kdeg,air,AMITRAZ,9.98e-5,NA
-kdeg,air,AMOXICILLIN,1.04206e-4,NA
+kdeg,air,AMOXICILLIN,1.04e-4,NA
 kdeg,air,Ampicillin Trihydrate,7.75e-5,NA
 kdeg,air,ANETHOLE,5.82e-5,NA
 kdeg,air,aniline,8.33e-5,NA
 kdeg,air,ANILINE HYDROCHLORIDE,3.13e-7,NA
-kdeg,air,Anthrarobin,1.50315e-4,NA
+kdeg,air,Anthrarobin,1.5e-4,NA
 kdeg,air,Antimycin A,7.79e-5,NA
 kdeg,air,ARECOLINE.HCl,8.88e-5,NA
 kdeg,air,AROCLOR 1248,9.65e-7,NA
 kdeg,air,As(III),1e-20,NA
 kdeg,air,As(V),1e-20,NA
-kdeg,air,Astemizole,2.70196e-4,NA
-kdeg,air,AUREOMYCIN,1.56418e-4,NA
+kdeg,air,Astemizole,2.7e-4,NA
+kdeg,air,AUREOMYCIN,1.56e-4,NA
 kdeg,air,"Azocine, octahydro-",6.86e-5,NA
 kdeg,air,"B,B,B-TRICHLORO-T-BUTANOL",8.8e-7,NA
 kdeg,air,Ba(II),1e-20,NA
 kdeg,air,BARBITURIC ACID,1.89e-6,NA
 kdeg,air,Be(II),1e-20,NA
 kdeg,air,BENAZOLIN,4.01e-6,NA
-kdeg,air,BENSULFURON-METHYL (PH7),1.57622e-4,NA
+kdeg,air,BENSULFURON-METHYL (PH7),1.58e-4,NA
 kdeg,air,Bentonite,4.82e-6,NA
 kdeg,air,BENZ(A)ACRIDINE,2.1e-5,NA
 kdeg,air,Benz(c)acridine,2.1e-5,NA
 kdeg,air,BENZALACETOPHENONE,1.75e-5,NA
-kdeg,air,"Benzaldehyde, 2,4-dihydroxy-",1.53558e-4,NA
+kdeg,air,"Benzaldehyde, 2,4-dihydroxy-",1.54e-4,NA
 kdeg,air,"BENZALDEHYDE, 3-ETHOXY-4-HYDROXY-",2.45e-5,NA
-kdeg,air,"Benzaldehyde, 4-(diethylamino)-2-hydroxy-",1.76044e-4,NA
+kdeg,air,"Benzaldehyde, 4-(diethylamino)-2-hydroxy-",1.76e-4,NA
 kdeg,air,"Benzaldehyde, 5-bromo-2-hydroxy-",1.51e-5,NA
 kdeg,air,"Benzaldehyde, 5-chloro-2-hydroxy-",1.52e-5,NA
 kdeg,air,"Benzenamine, 2-chloro-4-methyl-",2.9e-5,NA
-kdeg,air,"Benzenamine, 2-ethyl-6-methyl-",1.21504e-4,NA
-kdeg,air,"Benzenamine, 2,6-bis(1-methylethyl)-",1.20324e-4,NA
+kdeg,air,"Benzenamine, 2-ethyl-6-methyl-",1.22e-4,NA
+kdeg,air,"Benzenamine, 2,6-bis(1-methylethyl)-",1.2e-4,NA
 kdeg,air,"Benzenamine, 4-(4-chlorophenoxy)-",6.42e-5,NA
-kdeg,air,"BENZENAMINE, 4-BUTYL-",1.01269e-4,NA
+kdeg,air,"BENZENAMINE, 4-BUTYL-",1.01e-4,NA
 kdeg,air,"Benzenamine, N-ethyl-2-methyl-",4.6e-5,NA
 kdeg,air,benzene,1.5e-6,NA
 kdeg,air,"Benzene, 1-(1,1-dimethylethyl)-3,5-dimethyl-2,4,",6.23e-7,NA
@@ -373,14 +373,14 @@ kdeg,air,"Benzenemethanol, 4-bromo-",3.68e-6,NA
 kdeg,air,"BENZENESULFONIC ACID, 4-AMINO-",1.74e-5,NA
 kdeg,air,"Benzenesulfonic acid, dodecyloxydi-, disodium salt",1.41e-5,NA
 kdeg,air,BENZENESULFONYL CHLORIDE,3.13e-7,NA
-kdeg,air,BENZIDINE DIHYDROCHLORIDE,1.15354e-4,NA
+kdeg,air,BENZIDINE DIHYDROCHLORIDE,1.15e-4,NA
 kdeg,air,"BENZO(B)THIOPHENE S,S-DIOXIDE",4.26e-5,NA
 kdeg,air,BENZO(H)QUINOLINE,6.75e-6,NA
 kdeg,air,"Benzoic acid, 2-(4-chlorobenzoyl)-",1.69e-6,NA
 kdeg,air,"BENZOIC ACID, 4-(TERT-BUTYL)-",1.96e-6,NA
 kdeg,air,"Benzonitrile, 4-fluoro-",3.23e-7,NA
 kdeg,air,BENZOTRIFLUORIDE,3.45e-7,NA
-kdeg,air,Benzthiazuron,1.16026e-4,NA
+kdeg,air,Benzthiazuron,1.16e-4,NA
 kdeg,air,benzyl butyl phthalate,7.3e-7,NA
 kdeg,air,"BENZYLMALONIC ACID, DIETHYL ESTER",7.16e-6,NA
 kdeg,air,BETA-CYPERMETHRIN ISOMER,1.61e-5,NA
@@ -392,14 +392,14 @@ kdeg,air,bis(2-ethylhexyl) phthalate,1e-5,NA
 kdeg,air,bis(2-methoxyethyl) ether,3.3e-5,NA
 kdeg,air,"bis(alpha,alpha-dimethylbenzyl) peroxide",6.9e-6,NA
 kdeg,air,BIS(TRI-N-BUTYLTIN) OXIDE,6.4e-5,NA
-kdeg,air,Bixin,3.64808e-4,NA
+kdeg,air,Bixin,3.65e-4,NA
 kdeg,air,Borneol,8.56e-6,NA
 kdeg,air,BROMACIL,1.46e-5,NA
 kdeg,air,BROMOCYCLOHEXANE,4.59e-6,NA
 kdeg,air,Bromoethylene,5.11e-6,NA
 kdeg,air,BROMOXYNIL,1.57e-7,NA
 kdeg,air,Bromoxynil octanoate,5.55e-6,NA
-kdeg,air,BRUCINE,2.62159e-4,NA
+kdeg,air,BRUCINE,2.62e-4,NA
 kdeg,air,Buprofezin,4.03e-5,NA
 kdeg,air,"buta-1,3-diene",7.8e-5,NA
 kdeg,air,"Butanamide, N,N'-(3,3'-dimethyl 1,1'-biphenyl -4,4'-diyl)bis 2- (2,4-dichlorophenyl)azo -3-oxo-",1.89e-5,NA
@@ -411,25 +411,25 @@ kdeg,air,"Butanoic acid, 3,3-dimethyl-",1.41e-6,NA
 kdeg,air,butanone oxime,1.1e-6,NA
 kdeg,air,BUTYL XANTHATE,3.36e-5,NA
 kdeg,air,BUTYRIC ACID,1.8e-6,NA
-kdeg,air,"C,I, Basic Green 4",3.30637e-4,NA
+kdeg,air,"C,I, Basic Green 4",3.31e-4,NA
 kdeg,air,caffeine,1.5e-5,NA
 kdeg,air,camphene,4.2e-5,NA
 kdeg,air,CAMPHENE,4e-5,NA
 kdeg,air,CAPTAFOL,6.58e-5,NA
-kdeg,air,CARBENDAZIM,1.5049e-4,NA
+kdeg,air,CARBENDAZIM,1.5e-4,NA
 kdeg,air,Carbofuran,1.95e-5,NA
 kdeg,air,CARBOFURAN PHENOL,5.61e-5,NA
 kdeg,air,carbon tetrachloride,9.3e-7,NA
 kdeg,air,"CARBONIC ACID, DIPHENYL ESTER",3.02e-6,NA
-kdeg,air,CARBOPHENOTHION-METHYL,1.58695e-4,NA
+kdeg,air,CARBOPHENOTHION-METHYL,1.59e-4,NA
 kdeg,air,Cartap,9.68e-5,NA
 kdeg,air,catechol,7.8e-5,NA
 kdeg,air,Cd(II),1e-20,NA
 kdeg,air,Cetrimonium Bromide,2.56e-5,NA
-kdeg,air,CGA 219417 (CYPRODINIL),1.50188e-4,NA
+kdeg,air,CGA 219417 (CYPRODINIL),1.5e-4,NA
 kdeg,air,CHENODEOXYCHOLIC ACID,3.96e-5,NA
 kdeg,air,Chitosan,1e-20,NA
-kdeg,air,Chlorambucil,1.42216e-4,NA
+kdeg,air,Chlorambucil,1.42e-4,NA
 kdeg,air,CHLORDIMEFORM,6.8e-5,NA
 kdeg,air,CHLORFENSON,4.93e-6,NA
 kdeg,air,CHLORIDAZON,3.02e-5,NA
@@ -445,12 +445,12 @@ kdeg,air,chloroform,2.4e-7,NA
 kdeg,air,CHLOROMERCURIPHENOL,2.51e-5,NA
 kdeg,air,Chloropicrin,9.75e-8,NA
 kdeg,air,CHORAL HYDRATE,1.44e-6,NA
-kdeg,air,CIMETIDINE,1.57347e-4,NA
+kdeg,air,CIMETIDINE,1.57e-4,NA
 kdeg,air,Ciprofibrate,2.05e-5,NA
 kdeg,air,"cis-2,6-dimethylmorpholine",8.54e-5,NA
 kdeg,air,cis-Chlordane,3.78e-6,NA
 kdeg,air,citral,4.1e-4,NA
-kdeg,air,CLETHODIM,1.16453e-4,NA
+kdeg,air,CLETHODIM,1.16e-4,NA
 kdeg,air,Cloquintocet-mexyl,2.07e-5,NA
 kdeg,air,Closantel,1.16e-5,NA
 kdeg,air,Co(II),1e-20,NA
@@ -463,7 +463,7 @@ kdeg,air,Cs(I),1e-20,NA
 kdeg,air,Cu(II),1e-20,NA
 kdeg,air,cumene,6.8e-6,NA
 kdeg,air,CUMYLPHENYL DIPHENYL PHOSPHATE,1.33e-5,NA
-kdeg,air,CURCUMIN,1.18643e-4,NA
+kdeg,air,CURCUMIN,1.19e-4,NA
 kdeg,air,CYANAZINE,6.98e-6,NA
 kdeg,air,Cyclanilide,1.39e-6,NA
 kdeg,air,CYCLOHEPTANE,9.38e-6,NA
@@ -511,7 +511,7 @@ kdeg,air,Diethanolamine,6.95e-5,NA
 kdeg,air,DIETHYL SEBACATE,9.39e-6,NA
 kdeg,air,diethyl sulphate,1.2e-6,NA
 kdeg,air,DIETHYLENE GLYCOL,2.25e-5,NA
-kdeg,air,Diethylstilbestrol,1.31361e-4,NA
+kdeg,air,Diethylstilbestrol,1.31e-4,NA
 kdeg,air,DIFENACOUM,4.63e-5,NA
 kdeg,air,DIFORMYLHYDRAZINE,8.25e-6,NA
 kdeg,air,DIFTALONE,2.14e-5,NA
@@ -529,33 +529,33 @@ kdeg,air,DIMETHYLTIN DICHLORIDE,2.04e-6,NA
 kdeg,air,DINITROPHENOL,4.95e-7,NA
 kdeg,air,Dinoseb,3.03e-6,NA
 kdeg,air,DINOSEB ACETATE,2.95e-6,NA
-kdeg,air,DIPHENYL DISULFIDE,1.87606e-4,NA
+kdeg,air,DIPHENYL DISULFIDE,1.88e-4,NA
 kdeg,air,diphenylamine,1.5e-4,NA
 kdeg,air,DIPHENYLCHLOROARSINE,2.92e-6,NA
 kdeg,air,diuron,8.2e-6,NA
-kdeg,air,DL-TRYPTOPHAN,1.79484e-4,NA
+kdeg,air,DL-TRYPTOPHAN,1.79e-4,NA
 kdeg,air,dodecan-1-ol,1.4e-5,NA
 kdeg,air,DODECYLBENZENE,1.5e-5,NA
 kdeg,air,dodecyldimethylamine,5.3e-5,NA
 kdeg,air,Dodine,8.16e-5,NA
 kdeg,air,DODINE,8.16e-5,NA
-kdeg,air,EMODIN,1.50417e-4,NA
+kdeg,air,EMODIN,1.5e-4,NA
 kdeg,air,Endosulfan (beta),6.13e-6,NA
 kdeg,air,ENDOTHAL,1.52e-5,NA
 kdeg,air,Endrocide (Endox) (Coumatetralyl),3.95e-5,NA
 kdeg,air,Enoxolone,8.38e-5,NA
-kdeg,air,Enrofloxacin,2.43824e-4,NA
+kdeg,air,Enrofloxacin,2.44e-4,NA
 kdeg,air,epsilon-caprolactam,2.3e-5,NA
-kdeg,air,ERYTHROMYCIN,3.02156e-4,NA
+kdeg,air,ERYTHROMYCIN,3.02e-4,NA
 kdeg,air,Estazolam,5.73e-6,NA
 kdeg,air,ESTRADIOL,9.2e-5,NA
 kdeg,air,"ethane-1,2-diol",3.2e-6,NA
-kdeg,air,"Ethanol, 2- ethyl(3-methylphenyl)amino -",1.67876e-4,NA
+kdeg,air,"Ethanol, 2- ethyl(3-methylphenyl)amino -",1.68e-4,NA
 kdeg,air,"Ethanol, 2-(2-aminoethoxy)-",5.22e-5,NA
 kdeg,air,"Ethanol, 2-hydrazino-",5.84e-5,NA
 kdeg,air,"Ethanol, 2-mercapto-",3.42e-5,NA
 kdeg,air,ETHANOLAMINE,2.69e-5,NA
-kdeg,air,"ETHANONE, 1-[2-HYDROXY-3-PROPYL-4-[4-(1H-TETRAZO",1.62223e-4,NA
+kdeg,air,"ETHANONE, 1-[2-HYDROXY-3-PROPYL-4-[4-(1H-TETRAZO",1.62e-4,NA
 kdeg,air,ETHINYL ESTRADIOL,9.38e-5,NA
 kdeg,air,Ethionamide,1.81e-5,NA
 kdeg,air,ETHYL 2-HYDROXYBENZOATE,9.43e-6,NA
@@ -569,21 +569,21 @@ kdeg,air,ethylbenzene,2.3e-5,NA
 kdeg,air,ETHYLENE GLYCOL DIACETATE,2.82e-6,NA
 kdeg,air,"Ethylene glycol, monobutyl ether",1.4e-5,NA
 kdeg,air,Ethylene oxide,5.7e-8,NA
-kdeg,air,Ethyrimol,1.59756e-4,NA
-kdeg,air,Etodolac,1.6334e-4,NA
+kdeg,air,Ethyrimol,1.6e-4,NA
+kdeg,air,Etodolac,1.63e-4,NA
 kdeg,air,ETOFENPROX,4.66e-5,NA
 kdeg,air,"exo-1,7,7-trimethylbicyclo[2.2.1]hept-2-yl acetate",6.1e-6,NA
 kdeg,air,"Fatty acids, C9-13-neo-",7.29e-6,NA
 kdeg,air,Fe(II),1e-20,NA
 kdeg,air,Fe(III),1e-20,NA
 kdeg,air,FENPROPATHRIN,1.34e-5,NA
-kdeg,air,Fenpropimorph,1.03548e-4,NA
-kdeg,air,FENSULFOTHION,1.15097e-4,NA
+kdeg,air,Fenpropimorph,1.04e-4,NA
+kdeg,air,FENSULFOTHION,1.15e-4,NA
 kdeg,air,FENTHION,5.33e-5,NA
 kdeg,air,FENTIN ACETATE,4.42e-6,NA
 kdeg,air,FLUMETSULAM,4.15e-6,NA
 kdeg,air,FLURPRIMIDOL,2.56e-5,NA
-kdeg,air,Fluvastatin,1.8256e-4,NA
+kdeg,air,Fluvastatin,1.83e-4,NA
 kdeg,air,formaldehyde,4.9e-5,NA
 kdeg,air,Formic acid,3.38e-7,NA
 kdeg,air,FUBERIDAZOLE,9.97e-5,NA
@@ -593,19 +593,19 @@ kdeg,air,FUROSEMIDE,8.42e-5,NA
 kdeg,air,gamma-butyrolactone,1.4e-6,NA
 kdeg,air,GAMMA-BUTYROLACTONE,1.73e-6,NA
 kdeg,air,Gemfibrozil,6.18e-5,NA
-kdeg,air,GERANIOL,1.34936e-4,NA
+kdeg,air,GERANIOL,1.35e-4,NA
 kdeg,air,GIBBERELLIC ACID,9.87e-5,NA
 kdeg,air,glutaral,3.2e-5,NA
 kdeg,air,glycerol,1.4e-5,NA
 kdeg,air,GO-Chitosan,1e-20,NA
 kdeg,air,Graphene Oxide,1e-20,NA
 kdeg,air,guaiacol,2.23e-5,NA
-kdeg,air,"Guanidine, N,N'''-1,6-hexanediylbis N'-cyano-",1.14765e-4,NA
+kdeg,air,"Guanidine, N,N'''-1,6-hexanediylbis N'-cyano-",1.15e-4,NA
 kdeg,air,Gyromitrin,1.38e-5,NA
-kdeg,air,HALOSULFURON-METHYL,1.5226e-4,NA
-kdeg,air,HARMALINE,1.52471e-4,NA
+kdeg,air,HALOSULFURON-METHYL,1.52e-4,NA
+kdeg,air,HARMALINE,1.52e-4,NA
 kdeg,air,HARMONY,2.32e-6,NA
-kdeg,air,Hematoxylin,1.72005e-4,NA
+kdeg,air,Hematoxylin,1.72e-4,NA
 kdeg,air,HEPTANOIC ACID,5.2e-6,NA
 kdeg,air,hexabromocyclododecane,4.6e-6,NA
 kdeg,air,Hexachloroprene,1.63e-6,NA
@@ -625,7 +625,7 @@ kdeg,air,IBUPROFEN,8.88e-6,NA
 kdeg,air,IMAZALIL BASE,6.36e-5,NA
 kdeg,air,IMIDAZOLE,2.69e-5,NA
 kdeg,air,indan,6.9e-6,NA
-kdeg,air,INDOLE-3-ACETIC ACID,1.50915e-4,NA
+kdeg,air,INDOLE-3-ACETIC ACID,1.51e-4,NA
 kdeg,air,Iodinated Glycerol,2.01e-5,NA
 kdeg,air,IODOFENPHOS,4.41e-5,NA
 kdeg,air,IODOFORM,2.17e-7,NA
@@ -653,18 +653,18 @@ kdeg,air,LETHANE 60,1.78e-5,NA
 kdeg,air,LITHOCHOLIC ACID,3.28e-5,NA
 kdeg,air,M-CHLOROBENZOIC ACID,6.71e-7,NA
 kdeg,air,M-HYDROXYBENZOIC ACID,7.31e-6,NA
-kdeg,air,M-METHOXYANILINE,1.50622e-4,NA
-kdeg,air,M-METHOXYPHENOL,1.50727e-4,NA
+kdeg,air,M-METHOXYANILINE,1.51e-4,NA
+kdeg,air,M-METHOXYPHENOL,1.51e-4,NA
 kdeg,air,M-PHENOXYBENZOIC ACID,5.09e-6,NA
 kdeg,air,m-phenylenediamine,1.5e-4,NA
 kdeg,air,m-Phenylenediamine dihydrochloride,1.5e-4,NA
-kdeg,air,"m-Toluidine, hydrochloride",1.50102e-4,NA
+kdeg,air,"m-Toluidine, hydrochloride",1.5e-4,NA
 kdeg,air,M-TRIFLUOROMETHYLPHENOL,3.89e-6,NA
 kdeg,air,Malathion,5.81e-5,NA
 kdeg,air,MALEIC HYDRAZIDE,9.94e-6,NA
-kdeg,air,MANCOZEB,1.59276e-4,NA
+kdeg,air,MANCOZEB,1.59e-4,NA
 kdeg,air,MCPB,1.52e-5,NA
-kdeg,air,MEBENDAZOLE,0.00010202200000000001,NA
+kdeg,air,MEBENDAZOLE,0.000102022,NA
 kdeg,air,mecoprop,1.3e-5,NA
 kdeg,air,Mecoprop-P,1.3e-5,NA
 kdeg,air,median substance SimpleBox vs 3,3.5e-6,NA
@@ -673,14 +673,14 @@ kdeg,air,Meloxicam,2.33e-5,NA
 kdeg,air,METHACRYLIC ACID,1.4e-5,NA
 kdeg,air,"METHACRYLIC ACID, I-BUTYL ESTER",1.7e-5,NA
 kdeg,air,METHANE ARSONATE,3.53e-7,NA
-kdeg,air,"Methanone,  2-hydroxy-4-(octyloxy)phenyl phenyl-",1.63603e-4,NA
-kdeg,air,Methapyrilene hydrochloride,1.20056e-4,NA
+kdeg,air,"Methanone,  2-hydroxy-4-(octyloxy)phenyl phenyl-",1.64e-4,NA
+kdeg,air,Methapyrilene hydrochloride,1.2e-4,NA
 kdeg,air,methenamine,3.8e-4,NA
 kdeg,air,Methionine Hydroxy Analog,1.5e-5,NA
 kdeg,air,METHOPRENE,6.22e-5,NA
 kdeg,air,METHOPROPTRYNE,3.17e-5,NA
-kdeg,air,METHOTREXATE,2.37806e-4,NA
-kdeg,air,"METHYL 2,4-DIHYDROXYBENZOATE",1.37632e-4,NA
+kdeg,air,METHOTREXATE,2.38e-4,NA
+kdeg,air,"METHYL 2,4-DIHYDROXYBENZOATE",1.38e-4,NA
 kdeg,air,"METHYL 2,5-DICHLOROBENZOATE",2.6e-7,NA
 kdeg,air,methyl acetate,3.1e-7,NA
 kdeg,air,METHYL ACETATE,2.56e-7,NA
@@ -702,7 +702,7 @@ kdeg,air,MEXACARBATE,2.17e-5,NA
 kdeg,air,MISOPROSTOL,8.05e-5,NA
 kdeg,air,Mn(II),1e-20,NA
 kdeg,air,Mo(VI),1e-20,NA
-kdeg,air,MORPHOLINE,1.03364e-4,NA
+kdeg,air,MORPHOLINE,1.03e-4,NA
 kdeg,air,"Morpholine, 2,6-dimethyl-",8.54e-5,NA
 kdeg,air,n-Butyl hydrazine hydrochloride,5.73e-5,NA
 kdeg,air,N-BUTYLAMINE,2.58e-5,NA
@@ -723,14 +723,14 @@ kdeg,air,n-PENTYLHYDRAZINE.HCl,5.84e-5,NA
 kdeg,air,N-PROPYL-N'-NITRO-N-NITROSOGUANIDINE,9e-6,NA
 kdeg,air,"N,N-Dimethylaniline",1.11e-4,NA
 kdeg,air,"N,N-DIMETHYLTRIAZENOBENZENE",2.48e-6,NA
-kdeg,air,"N,N,4-TRIMETHYLANILINE",1.51999e-4,NA
+kdeg,air,"N,N,4-TRIMETHYLANILINE",1.52e-4,NA
 kdeg,air,"N,N'-DIMETHYLACETAMIDE",1.02e-5,NA
 kdeg,air,"N,N'-DIPHENYLGUANIDINE",6.4e-5,NA
 kdeg,air,nAg_10nm,1e-20,NA
 kdeg,air,nAg_NanoFase,1e-20,NA
 kdeg,air,NALED,4.76e-6,NA
 kdeg,air,nanoparticle,1e-20,NA
-kdeg,air,"NAPHTHALENE, 2-METHOXY-",1.50622e-4,NA
+kdeg,air,"NAPHTHALENE, 2-METHOXY-",1.51e-4,NA
 kdeg,air,"naphthalene, pure",4e-5,NA
 kdeg,air,NAPHTHALENEACETIC ACID,2.78e-5,NA
 kdeg,air,nC60_10nm,1e-20,NA
@@ -773,10 +773,10 @@ kdeg,air,OHRIC,7.23e-6,NA
 kdeg,air,OLEIC ACID,5.66e-5,NA
 kdeg,air,organic acid,7.95e-7,NA
 kdeg,air,organic base,3.82e-4,NA
-kdeg,air,"Oxirane, 2,2'- 1,3-phenylenebis(oxymethylene) bi",1.61259e-4,NA
+kdeg,air,"Oxirane, 2,2'- 1,3-phenylenebis(oxymethylene) bi",1.61e-4,NA
 kdeg,air,OXOLINIC ACID,9.44e-5,NA
 kdeg,air,Oxymetholone,8.38e-5,NA
-kdeg,air,OXYTETRACYLCINE,1.98711e-4,NA
+kdeg,air,OXYTETRACYLCINE,1.99e-4,NA
 kdeg,air,"P-(1,1,3,3-TETRAMETHYLBUTYL)PHENOL",3.18e-5,NA
 kdeg,air,P-(T-BUTYL)TOLUENE,1.05e-5,NA
 kdeg,air,p-Anisidine,7.05e-5,NA
@@ -786,7 +786,7 @@ kdeg,air,p-cresol,3.53e-5,NA
 kdeg,air,P-CYANOPHENOL,4.52e-6,NA
 kdeg,air,P-DIBUTYLTEREPHTHALATE,6.96e-6,NA
 kdeg,air,P-DINITROBENZENE,1.6e-8,NA
-kdeg,air,P-DODECYLANILINE,1.09747e-4,NA
+kdeg,air,P-DODECYLANILINE,1.1e-4,NA
 kdeg,air,P-ETHYLANILINE,9.92e-5,NA
 kdeg,air,P-ETHYLPHENOL,3.14e-5,NA
 kdeg,air,P-HYDROXYACETOPHENONE,2.3e-5,NA
@@ -800,9 +800,9 @@ kdeg,air,P-PHENYLPHENOL,2.05e-5,NA
 kdeg,air,P-TOLUALDEHYDE,1.4e-5,NA
 kdeg,air,P-TOLUIDINE,9.91e-5,NA
 kdeg,air,p-Toluidine hydrochloride,9.91e-5,NA
-kdeg,air,PALUSTRIC ACID,2.25628e-4,NA
-kdeg,air,PARAROSANILINE,3.26843e-4,NA
-kdeg,air,PARATHION-AMINO,1.28022e-4,NA
+kdeg,air,PALUSTRIC ACID,2.26e-4,NA
+kdeg,air,PARAROSANILINE,3.27e-4,NA
+kdeg,air,PARATHION-AMINO,1.28e-4,NA
 kdeg,air,Parathion-methyl,4.43e-5,NA
 kdeg,air,Pb(II),1e-20,NA
 kdeg,air,PCBS,7.5e-7,NA
@@ -817,11 +817,11 @@ kdeg,air,"PENTANE-1,5-DIAL",1.79e-5,NA
 kdeg,air,PENTANOCHLOR,1.42e-5,NA
 kdeg,air,"PENTANOIC ACID, 2-METHYL-",3.9e-6,NA
 kdeg,air,Pentanol,8.85e-6,NA
-kdeg,air,PHENKAPTON,1.82668e-4,NA
+kdeg,air,PHENKAPTON,1.83e-4,NA
 kdeg,air,Phenobarbital,7.58e-6,NA
 kdeg,air,phenol,2.4e-4,NA
 kdeg,air,"Phenol, 2-(2-propenyl)-",5.1e-5,NA
-kdeg,air,"PHENOL, 3-AMINO-",1.50105e-4,NA
+kdeg,air,"PHENOL, 3-AMINO-",1.5e-4,NA
 kdeg,air,"PHENOL, 4-AMINO-",5.57e-5,NA
 kdeg,air,"PHENOL, 4-AMINO-2-NITRO-",5.22e-6,NA
 kdeg,air,"PHENOL, 4-PHENOXY-",2.88e-5,NA
@@ -832,7 +832,7 @@ kdeg,air,PHENOLPHTHALEIN,6.31e-5,NA
 kdeg,air,PHENYLBUTAZONE,2.47e-5,NA
 kdeg,air,PHENYLEPHRINE HCL,7.47e-5,NA
 kdeg,air,PHENYLTRICHLOROSILANE,1.46e-6,NA
-kdeg,air,PHOSMET,1.14621e-4,NA
+kdeg,air,PHOSMET,1.15e-4,NA
 kdeg,air,"PHOSPHONIC ACID, METHYL-, DIISOPROPYL ESTER",6.03e-5,NA
 kdeg,air,"Phosphoric acid, tris(2-methylpropyl) ester",5.91e-5,NA
 kdeg,air,"PHOSPHORIC ACID,2-CHLORO-(2,4-DICHLOROPHENYL)VIN",1.85e-5,NA
@@ -841,18 +841,18 @@ kdeg,air,PHTHALIMIDE,4.69e-6,NA
 kdeg,air,"Picloram, potassium salt",3.87e-7,NA
 kdeg,air,PICOLINIC ACID,4.93e-7,NA
 kdeg,air,pin-2(3)-ene,3.1e-4,NA
-kdeg,air,PIPERAZINE,1.26552e-4,NA
-kdeg,air,"Piperazine, 1-methyl-",1.29751e-4,NA
-kdeg,air,"Piperazine, 2-methyl-",1.35308e-4,NA
-kdeg,air,PIRIMICARB,1.13643e-4,NA
+kdeg,air,PIPERAZINE,1.27e-4,NA
+kdeg,air,"Piperazine, 1-methyl-",1.3e-4,NA
+kdeg,air,"Piperazine, 2-methyl-",1.35e-4,NA
+kdeg,air,PIRIMICARB,1.14e-4,NA
 kdeg,air,PIROXICAM,2.47e-5,NA
-kdeg,air,PRALLETHRIN,1.52214e-4,NA
+kdeg,air,PRALLETHRIN,1.52e-4,NA
 kdeg,air,PRAZEPAM,1.06e-5,NA
 kdeg,air,PROBENECID,1.85e-5,NA
 kdeg,air,PROCHLORAZ,5.85e-5,NA
 kdeg,air,PROCLONOL,2.78e-6,NA
 kdeg,air,PROFENOFOS,3.36e-5,NA
-kdeg,air,PRONETHALOL,1.13848e-4,NA
+kdeg,air,PRONETHALOL,1.14e-4,NA
 kdeg,air,propan-1-ol,2.7e-6,NA
 kdeg,air,Propane sultone,1.62e-6,NA
 kdeg,air,"propane-1,2-diol",6.8e-6,NA
@@ -868,17 +868,17 @@ kdeg,air,propylidynetrimethanol,1e-5,NA
 kdeg,air,PYRAZOPHOS,8.53e-5,NA
 kdeg,air,PYRIDAPHENTHION,8.65e-5,NA
 kdeg,air,Pyrilamine maleate,6.73e-5,NA
-kdeg,air,PYRIMETHAMINE,1.50826e-4,NA
-kdeg,air,Pyrimethanil,1.50204e-4,NA
-kdeg,air,QUERCETIN,1.794e-4,NA
+kdeg,air,PYRIMETHAMINE,1.51e-4,NA
+kdeg,air,Pyrimethanil,1.5e-4,NA
+kdeg,air,QUERCETIN,1.79e-4,NA
 kdeg,air,Quinclorac,9.58e-7,NA
 kdeg,air,quinoline,8.7e-6,NA
-kdeg,air,RESERPINE,2.81324e-4,NA
-kdeg,air,RESMETHRIN,2.17509e-4,NA
+kdeg,air,RESERPINE,2.81e-4,NA
+kdeg,air,RESMETHRIN,2.18e-4,NA
 kdeg,air,resorcinol,5e-5,NA
-kdeg,air,RESORCINOL,1.5021e-4,NA
-kdeg,air,RETINOIC ACID,2.19403e-4,NA
-kdeg,air,Retrorsine,1.30071e-4,NA
+kdeg,air,RESORCINOL,1.5e-4,NA
+kdeg,air,RETINOIC ACID,2.19e-4,NA
+kdeg,air,Retrorsine,1.3e-4,NA
 kdeg,air,RONNEL,4.41e-5,NA
 kdeg,air,RUBEANIC ACID,3.15e-5,NA
 kdeg,air,S-BUTYLACETATE,4.13e-6,NA
@@ -887,7 +887,7 @@ kdeg,air,SALICYLANILIDE,3.22e-5,NA
 kdeg,air,Sb(III),1e-20,NA
 kdeg,air,Sb(V),1e-20,NA
 kdeg,air,Se(IV),1e-20,NA
-kdeg,air,Sethoxydim,1.08755e-4,NA
+kdeg,air,Sethoxydim,1.09e-4,NA
 kdeg,air,SIMETRYN,1.43e-5,NA
 kdeg,air,Sn(II),1e-20,NA
 kdeg,air,Sodium dichlorocyanurate,2.25e-6,NA
@@ -899,12 +899,12 @@ kdeg,air,SULFADIAZINE,2.1e-5,NA
 kdeg,air,SULFAMETHAZINE,4.32e-5,NA
 kdeg,air,Sulfentrazone,1.83e-5,NA
 kdeg,air,SULFOMETURON (pH 5-7),2.69e-5,NA
-kdeg,air,SULFOSULFURON,1.58818e-4,NA
-kdeg,air,SULFOTEPP,1.37443e-4,NA
+kdeg,air,SULFOSULFURON,1.59e-4,NA
+kdeg,air,SULFOTEPP,1.37e-4,NA
 kdeg,air,T-BUTYLBENZENE,3.45e-6,NA
-kdeg,air,Tannins,2.02359e-4,NA
-kdeg,air,TERBUFOS,1.82383e-4,NA
-kdeg,air,Terbutaline,2.12218e-4,NA
+kdeg,air,Tannins,2.02e-4,NA
+kdeg,air,TERBUFOS,1.82e-4,NA
+kdeg,air,Terbutaline,2.12e-4,NA
 kdeg,air,TERBUTRYN,8e-6,NA
 kdeg,air,terephthalic acid,4.1e-7,NA
 kdeg,air,tert-butyl hydroperoxide,4.9e-6,NA
@@ -921,7 +921,7 @@ kdeg,air,TETRANITROMETHANE,3.9e-7,NA
 kdeg,air,THEOPHYLLINE,1.45e-5,NA
 kdeg,air,THIABENDAZOLE,4.87e-5,NA
 kdeg,air,THIOFANOX,1.2e-5,NA
-kdeg,air,Thiram,2.71544e-4,NA
+kdeg,air,Thiram,2.72e-4,NA
 kdeg,air,THYMOL,8.04e-5,NA
 kdeg,air,Tl(I),1e-20,NA
 kdeg,air,TOLCLOFOS-METHYL,4.54e-5,NA
@@ -939,10 +939,10 @@ kdeg,air,trichloroethylene,4.9e-6,NA
 kdeg,air,TRICHLORONATE,5.52e-5,NA
 kdeg,air,TRICHLOROPHENOL,4.55e-7,NA
 kdeg,air,TRICLOPYR,3.63e-6,NA
-kdeg,air,Tridemorph,1.07209e-4,NA
+kdeg,air,Tridemorph,1.07e-4,NA
 kdeg,air,trientine,1.7e-4,NA
 kdeg,air,Triethyltin bromide,2.14e-5,NA
-kdeg,air,TRIFENMORPH,1.1528e-4,NA
+kdeg,air,TRIFENMORPH,1.15e-4,NA
 kdeg,air,TRIFORINE,4.94e-5,NA
 kdeg,air,Trinexapac-ethyl,7.13e-5,NA
 kdeg,air,TRIPHENYLPHOSPHATE,8.13e-6,NA
@@ -950,16 +950,16 @@ kdeg,air,Triphenyltin fluoride,4.39e-6,NA
 kdeg,air,TRIPHENYLTIN HYDROXIDE,4.49e-6,NA
 kdeg,air,TRIPROPYNYL-AMINE,8.48e-5,NA
 kdeg,air,tris(2-chloroethyl) phosphate,8.7e-6,NA
-kdeg,air,TRYPTOPHAN,1.79484e-4,NA
+kdeg,air,TRYPTOPHAN,1.79e-4,NA
 kdeg,air,URACIL,6.58e-6,NA
 kdeg,air,"UREA, N-(2-HYDROXYETHYL)-N-NITROSO",7.4e-6,NA
 kdeg,air,"UREA, N-ETHYL-N'-(5-NITRO-2-THIAZOLYL)-",3.9e-6,NA
 kdeg,air,V(V),1e-20,NA
-kdeg,air,Validamycin,2.56546e-4,NA
+kdeg,air,Validamycin,2.57e-4,NA
 kdeg,air,VANILLIN,2.05e-5,NA
 kdeg,air,vinyl acetate,2.5e-5,NA
 kdeg,air,Xylenes,1.03e-5,NA
-kdeg,air,Zearalenone,2.05433e-4,NA
+kdeg,air,Zearalenone,2.05e-4,NA
 kdeg,air,Zn(II),1e-20,NA
 kdeg,sediment,(4-Chloro-2-methylphenoxy)acetic acid compd. with N-Methylmethanamine (1:1),5.94e-8,NA
 kdeg,sediment,"[1,1'-Biphenyl]-4,4'-diamine, 3,3'-dimethoxy-, dihydrochloride",2.38e-8,NA
@@ -3749,3 +3749,7 @@ kdeg,water,vinyltoluene,5.3e-10,NA
 kdeg,water,Xylenes,5.35e-7,NA
 kdeg,water,Zearalenone,2.14e-7,NA
 kdeg,water,Zn(II),1e-20,NA
+Kssdr,air,microplastic,0,m.s-1
+Kssdr,sediment,microplastic,2.80624e-13,m.s-1
+Kssdr,soil,microplastic,3.78991e-12,m.s-1
+Kssdr,water,microplastic,5.23356e-13,m.s-1

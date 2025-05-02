@@ -13,7 +13,6 @@ DynViscWaterStandard,0.001002,DYNVISC.w,kg.m-1.s-1,Dynamic Viscosity of water
 Ea.OHrad,6000,Ea.OHrad,J.mol-1,activation OH radical energy
 epsilon,3,NA,-,Dry deposition constant based on LOTEUR reference guide
 Erosion,0.03,EROSION.R,mm/yr,Constant rate of yearly erorsion
-FRACrun,0.25,FRACrun,[-],Fraction of runoff
 FricVel,0.19,NA,NA,friction velocity [ m s-1]
 H0sol,10000,H0sol,mol.m-3,enthalpy of dissolution
 k0.OHrad,7.90E-11,k0.OHrad,cm3.s-1,frequency factor OH radical reaction

@@ -50,6 +50,7 @@ World$CalcVar("SettlingVelocity" )
 ```
 
 Sedimentation is directly to the sediment below. Its rate is thus dependent on the vertical depth, resulting in k_sedimentation = SettlingVelocity/Vertical depth for particulates. For molecules, we correct for the fact that some molecular species will be dissolved in the water column and thus not attached to suspended matter. As such, the sedimentation rate is divided by (1- FRofmoleculesdissolved.)
+Sedimentation is directly to the sediment below. Its rate is thus dependent on the vertical depth, resulting in k_sedimentation = SettlingVelocity/Vertical depth for particulates. For molecules, we correct for the fact that some molecular species will be dissolved in the water column and thus not attached to suspended matter. As such, the sedimentation rate is divided by (1- FRofmoleculesdissolved.)
 
 
 ```{r message=FALSE, warning=FALSE}
