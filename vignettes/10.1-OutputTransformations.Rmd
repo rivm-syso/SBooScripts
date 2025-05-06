@@ -1,0 +1,51 @@
+---
+title: "SBoo Solver output"
+author: "Anne Hids, Jaap Slootweg, Joris Quik"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+The SteadyState solver and DynamicSolver have initial output relative to
+the emission input which is by default in mass (kilograms) in each
+compartment. Several transformations of this output are possible some of
+which are already implemented for ease of use.
+
+These are calculation of:
+
+1.  Concentrations
+
+OVERALL WORK IN PROGRESS.
+
+```{r Initialize World, message=FALSE, warning=FALSE, include=FALSE}
+source("baseScripts/initWorld_onlyMolec.R")
+
+# Create the steady state emission dataframe
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000)) 
+
+# convert 1 t/y to si units: kg/s
+emissions <- emissions |>
+  mutate(Emis = Emis*1000/(365*24*60*60)) 
+# Define the solver function to use. For steady state calculations, this is always "SteadyODE"
+World$NewSolver("SteadyStateSolver")
+
+# Solve with the emissions we defined in the previous chunk
+World$Solve(emissions = emissions)
+```
+
+After initializing and solving the processing functions are available.
+
+## World\$Cocentration()
+
+This function is based on the `v_Mass2Conc` variable and the hard coded
+default conversions in the `R6SolverModule` in the function
+`ConcentrationToGrams`. No other units are supported at the moment, this
+is up to the user for further analysis and conversion.
+
+```{r}
+
+World$Concentration()
+```
