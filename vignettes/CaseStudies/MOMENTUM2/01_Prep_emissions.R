@@ -1,6 +1,6 @@
 ################################################################################
-# Script to run SimpleBox for Momentum2 
-# Task 6.2
+# Script to prepare emission data for Momentum2 
+# Task 6.2.2
 # 27-3-2025
 # Anne Hids and Joris Quik
 ################################################################################
@@ -8,14 +8,8 @@
 library(tidyverse)
 
 ##### Prepare emission data
-# abspath_NL = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_NL.RData" # data file location
-# abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_EU.RData"
-
-
-abspath_NL = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/TEST_DPMFA_NL.RData"
-abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/TEST_DPMFA_EU.RData"
-path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/Microplastic_variables_MOMENTUM2.xlsx"
-
+abspath_NL = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/InputData/DPMFA_sink_NL.RData" # data file location
+abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/InputData/DPMFA_sink_EU.RData"
 
 load(abspath_EU)
 
@@ -56,7 +50,7 @@ data_long_NL <-
 
 data_long <- rbind(data_long_EU, data_long_NL)
 
-rm("DPMFA_sink", "DPMFA_inflow", "DPMFA_outflow", "DPMFA_stock")
+rm("DPMFA_sink")
 
 # Split data between tyre wear and other compartments
 TW_long <- data_long |>
@@ -128,120 +122,6 @@ DPMFA_sink_micro <- data_long |>
   mutate(Time = as.numeric(Year)*365.25*24*3600) |>
   select(Abbr, Time, Polymer, Emis, RUN)
 
-save(DPMFA_sink_micro, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/DPMFA_SBinput_test_", 
+save(DPMFA_sink_micro, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/InputData/DPMFA_SBinput_", 
                                    format(Sys.Date(),"%Y%m%d"),".RData"))
-
-##### Prepare variable data
-Material_Parameters <- readxl::read_excel(path_parameters_file, sheet = "Polymer_data") |> 
-  # change um to nm unit conversion
-  mutate(across(c(a, b, c, d), as.numeric)) |>
-  mutate(across(c(a, b, c, d), ~ case_when(
-    str_detect(Unit, "um") ~ . * 1000,
-    TRUE ~ .
-  ))) |>
-  mutate(Unit = case_when(
-    str_detect(Unit, "um") ~ "nm",
-    TRUE ~ Unit
-  ))
-
-# Define the name of 'other' polymers
-materials <- c("ABS", "Acryl", "EPS", "HDPE", "LDPE", "OTHER", "PA", "PC", "PET", "PMMA", "PP", "PS", "PUR", "PVC", "RUBBER")
-
-explodeF <- function(df, target_col, explode_value, new_values) {
-  df |>
-    # Use mutate to create a new column if the target column equals explode_value
-    mutate(!!sym(target_col) := ifelse(!!sym(target_col) == explode_value, list(new_values), !!sym(target_col))) %>%
-    # Unnest the target column to duplicate rows
-    unnest(!!sym(target_col))
-}
-
-suppressWarnings({
-  Material_Parameters <- explodeF(Material_Parameters, target_col = "Polymer", explode_value = "any", new_values = materials) # move this after and save unique values (n=same as in xlsx)
-})
-
-Material_Parameters <- Material_Parameters |>
-  mutate(d = as.character(d)) |>
-  mutate(d = case_when(
-    Distribution == "TRWP_size" ~ path_parameters_file,
-    TRUE ~ d
-  ))
-
-##### Run SimpleBox
-load("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/DPMFA_SBinput_test_20250327.RData")
-
-emis_list <- list()
-
-# Split the emissions per polymer
-for(i in unique(DPMFA_sink_micro$Polymer)){
-  emissions <- DPMFA_sink_micro |>
-    filter(Polymer == i)
-
-  emis_list[[i]] <- emissions
-}
-
-variable_list <- list()
-
-# Split the variable values per polymer
-for(i in unique(Material_Parameters$Polymer)){
-  variable_df <- Material_Parameters |>
-    filter(Polymer == i)
-  
-  variable_list[[i]] <- variable_df
-}
-
-i <- "PET"
-
-output_masses = list()
-output_concentrations = list()
-output_emissions = list()
-output_variables = list
-
-for(i in unique(Material_Parameters$Polymer)){
-  source("baseScripts/initWorld_onlyPlastics.R")
-  if(i %in% c("NR", "SBR")){
-    World$substance <- "TRWP"
-  } else {
-    World$substance <- "microplastic"  
-  }
-  
-  # Alter landscape parameters
-  # Read in data to change Regional scale to fit NL scale DPMFA data
-  Regional_Parameters <- readxl::read_excel(path_parameters_file, sheet = "Netherlands_data") |>
-    rename(varName = Variable) |>
-    rename(Waarde = Value) |>
-    select(-Unit) 
-  
-  # Recalculate the area's
-  World$mutateVars(Regional_Parameters)
-  World$UpdateDirty(unique(Regional_Parameters$varName))
-  
-  # Get variable values, emissions and variable functions for the polymer
-  emissions <- emis_list[[i]]
-  variable_df <- variable_list[[i]]
-  variable_distributions <- World$makeInvFuns(variable_df)
-  
-  nRUNs = length(unique(emissions$RUN))
-  tmax = max(emissions$Time)
-  nTIMES = length(unique(emissions$Time))
-  
-  #nTIMES = 10
-  
-  # Solve
-  World$NewSolver("DynamicSolver")
-  World$Solve(emissions = emissions, var_box_df = variable_df, var_invFun = variable_distributions, nRUNs = nRUNs, tmax = tmax, nTIMES = nTIMES)
-  
-  output_masses[[i]] <- World$Masses()
-  output_emissions[[i]] <- World$Emissions()
-  output_concentrations[[i]] <- World$Concentration()
-  output_variables[[i]] <- World$VariableValues()
-  vars <- World$VariableValues()
-}
-
-
-
-
-
-
-
-
 
