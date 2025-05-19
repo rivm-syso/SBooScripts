@@ -32,6 +32,7 @@ data_long_EU <-
 # Load NL data
 load(abspath_NL)
 
+
 # Convert to long format
 data_long_NL <- 
   DPMFA_sink |> unnest(Mass_Polymer_kt, keep_empty = TRUE) |> 

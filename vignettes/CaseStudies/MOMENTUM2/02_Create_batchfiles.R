@@ -120,10 +120,10 @@ for(polymer in unique(Material_Parameters$Polymer)){
 
 # Now write HPC commands into a txt file
 mb <- 30
-time <- 20000
+time <- 5000
 
 # Make a string with the needed information for the cluster
-LSF_string <- paste0("bsub -n 1 -W ", time, " -M ", mb, "MB Rscript")
+LSF_string <- paste0("bsub -n 1 -e err.txt -o out.txt -W ", time, " -M ", mb, "MB Rscript")
 
 # Paste the information to very string
 LSF_vector <- paste(LSF_string, filepaths)

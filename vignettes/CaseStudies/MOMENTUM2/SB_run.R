@@ -9,8 +9,8 @@ path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/Var
 input_folder <- "vignettes/CaseStudies/MOMENTUM2/Data/"
 output_folder <- "vignettes/CaseStudies/MOMENTUM2/Output/"
 
-# load(paste0(input_folder, "emis_list.RData"))
-# load(paste0(input_folder, "variable_list.RData"))
+load(paste0(input_folder, "emis_list.RData"))
+load(paste0(input_folder, "variable_list.RData"))
 
 polymer <- "PET"
 
@@ -37,11 +37,12 @@ World$UpdateDirty(unique(Regional_Parameters$varName))
 
 # Get variable values, emissions and variable functions for the polymer
 emissions <- emis_list[[polymer]] |>
-  filter(RUN %in% 1:10)
+  filter(RUN %in% 1:2)
 variable_df <- variable_list[[polymer]]
 variable_distributions <- World$makeInvFuns(variable_df)
 
 nRUNs = length(unique(emissions$RUN))
+tmin = min(emissions$Time)
 tmax = max(emissions$Time)
 nTIMES = length(unique(emissions$Time))
 
@@ -49,7 +50,7 @@ nTIMES = length(unique(emissions$Time))
 
 # Solve
 World$NewSolver("DynamicSolver")
-World$Solve(emissions = emissions, var_box_df = variable_df, var_invFun = variable_distributions, nRUNs = nRUNs, tmax = tmax, nTIMES = nTIMES)
+World$Solve(emissions = emissions, var_box_df = variable_df, var_invFun = variable_distributions, nRUNs = nRUNs, tmin = tmin, tmax = tmax, nTIMES = nTIMES)
 
 output_masses <- World$Masses()
 output_emissions <- World$Emissions()
@@ -60,4 +61,3 @@ save(output_masses, file = paste0(data_folder, "Masses_", polymer))
 save(output_emissions, file = paste0(data_folder, "Emissions_", polymer))
 save(output_concentrations, file = paste0(data_folder, "Concentrations_", polymer))
 save(output_variables, file = paste0(data_folder, "Variables_", polymer))
-
