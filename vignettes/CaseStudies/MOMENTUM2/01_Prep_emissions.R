@@ -7,9 +7,15 @@
 
 library(tidyverse)
 
+# Define file paths
+
+data_folder <- "vignettes/CaseStudies/MOMENTUM2/Data/"
+
+abspath_NL <- paste0(data_folder, "DPMFA_sink_NL.RData")
+abspath_EU <- paste0(data_folder, "DPMFA_sink_EU.RData")
+path_parameters_file <- paste0(data_folder, "Microplastic_variables_MOMENTUM2.xlsx")
+
 ##### Prepare emission data
-abspath_NL = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/InputData/DPMFA_sink_NL.RData" # data file location
-abspath_EU = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/InputData/DPMFA_sink_EU.RData"
 
 load(abspath_EU)
 
@@ -31,7 +37,6 @@ data_long_EU <-
 
 # Load NL data
 load(abspath_NL)
-
 
 # Convert to long format
 data_long_NL <- 
@@ -123,6 +128,6 @@ DPMFA_sink_micro <- data_long |>
   mutate(Time = as.numeric(Year)*365.25*24*3600) |>
   select(Abbr, Time, Polymer, Emis, RUN)
 
-save(DPMFA_sink_micro, file = paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/InputData/DPMFA_SBinput_", 
+save(DPMFA_sink_micro, file = paste0(data_folder, "DPMFA_SBinput_", 
                                    format(Sys.Date(),"%Y%m%d"),".RData"))
 

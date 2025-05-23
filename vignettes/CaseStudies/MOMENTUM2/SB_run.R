@@ -4,15 +4,17 @@
 # 19-5-2025
 # Anne Hids and Joris Quik
 ################################################################################
+starttime <- Sys.time()
+data_folder <- "vignettes/CaseStudies/MOMENTUM2/Data/"
 
-path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/Variables/Microplastic_variables_MOMENTUM2.xlsx"
+path_parameters_file <- paste0(data_folder, "Microplastic_variables_MOMENTUM2.xlsx")
 input_folder <- "vignettes/CaseStudies/MOMENTUM2/Data/"
 output_folder <- "vignettes/CaseStudies/MOMENTUM2/Output/"
 
 load(paste0(input_folder, "emis_list.RData"))
 load(paste0(input_folder, "variable_list.RData"))
 
-polymer <- "PET"
+polymer <- "Acryl"
 
 source("baseScripts/initWorld_onlyPlastics.R")
 if(polymer %in% c("NR", "SBR")){
@@ -46,18 +48,27 @@ tmin = min(emissions$Time)
 tmax = max(emissions$Time)
 nTIMES = length(unique(emissions$Time))
 
-#nTIMES = 10
-
 # Solve
 World$NewSolver("DynamicSolver")
 World$Solve(emissions = emissions, var_box_df = variable_df, var_invFun = variable_distributions, nRUNs = nRUNs, tmin = tmin, tmax = tmax, nTIMES = nTIMES)
 
-output_masses <- World$Masses()
-output_emissions <- World$Emissions()
-output_concentrations <- World$Concentration()
-output_variables <- World$VariableValues()
+output_masses <- World$Masses() |>
+  mutate(year = as.numeric(time)/(365.25*24*60*60)) |>
+  select(-time)
+output_emissions <- World$Emissions() |>
+  mutate(year = as.numeric(time)/(365.25*24*60*60)) |>
+  select(-time)
+output_concentrations <- World$Concentration() |>
+  mutate(year = as.numeric(time)/(365.25*24*60*60)) |>
+  select(-time)
+output_variables <- World$VariableValues() 
 
-save(output_masses, file = paste0(data_folder, "Masses_", polymer))
-save(output_emissions, file = paste0(data_folder, "Emissions_", polymer))
-save(output_concentrations, file = paste0(data_folder, "Concentrations_", polymer))
-save(output_variables, file = paste0(data_folder, "Variables_", polymer))
+save(output_masses, file = paste0(output_folder, "Masses_", polymer))
+save(output_emissions, file = paste0(output_folder, "Emissions_", polymer))
+save(output_concentrations, file = paste0(output_folder, "Concentrations_", polymer))
+save(output_variables, file = paste0(output_folder, "Variables_", polymer))
+
+endtime <- Sys.time()
+elapsed_time <- endtime-starttime
+
+print(paste0("Elapses time is ", elapsed_time))

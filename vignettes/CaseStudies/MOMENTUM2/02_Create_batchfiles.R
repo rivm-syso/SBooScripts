@@ -7,8 +7,10 @@
 
 library(tidyverse)
 
-path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/Variables/Microplastic_variables_MOMENTUM2.xlsx"
+data_folder <- "vignettes/CaseStudies/MOMENTUM2/Data/"
 
+path_parameters_file <- paste0(data_folder, "Microplastic_variables_MOMENTUM2.xlsx")
+  
 ##### Prepare variable data
 Material_Parameters <- readxl::read_excel(path_parameters_file, sheet = "Polymer_data") |> 
   # change um to nm unit conversion
@@ -48,8 +50,8 @@ Material_Parameters <- Material_Parameters |>
     TRUE ~ d
   ))
 
-##### Run SimpleBox
-load("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/InputData/DPMFA_SBinput_20250519.RData")
+##### Create the batch files for running SimpleBox
+load(paste0(data_folder, "DPMFA_SBinput_20250520.RData"))
 
 emis_list <- list()
 

@@ -122,3 +122,6 @@ Measurements_MP_surface_water.xlsx
 vignettes/CaseStudies/MOMENTUM2/Data/variable_list.RData
 vignettes/CaseStudies/MOMENTUM2/Data/emis_list.RData
 vignettes/CaseStudies/MOMENTUM2/HPC_commands.txt
+/vignettes/CaseStudies/MOMENTUM2/Output
+/vignettes/CaseStudies/MOMENTUM2/Data
+vignettes/CaseStudies/MOMENTUM2/HPC_commands.txt
