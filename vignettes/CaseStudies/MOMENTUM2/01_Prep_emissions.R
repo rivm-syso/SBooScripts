@@ -8,7 +8,6 @@
 library(tidyverse)
 
 # Define file paths
-
 data_folder <- "vignettes/CaseStudies/MOMENTUM2/Data/"
 
 abspath_NL <- paste0(data_folder, "DPMFA_sink_NL.RData")

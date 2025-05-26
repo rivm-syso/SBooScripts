@@ -51,7 +51,7 @@ Material_Parameters <- Material_Parameters |>
   ))
 
 ##### Create the batch files for running SimpleBox
-load(paste0(data_folder, "DPMFA_SBinput_20250520.RData"))
+load(paste0(data_folder, "DPMFA_SBinput_20250526.RData"))
 
 emis_list <- list()
 
