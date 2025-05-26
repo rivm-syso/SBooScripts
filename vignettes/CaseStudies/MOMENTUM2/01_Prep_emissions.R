@@ -46,7 +46,7 @@ data_long_NL <-
   rename(Cum_Mass_Polymer_kt = Mass_Polymer_kt) |> 
   ungroup() |> 
   group_by(Scale,Source,Polymer,To_Compartment, Material_Type, RUN) |> 
-  reframe(Mass_Polymer_kt = Cum_Mass_Polymer_kt - lag(Cum_Mass_Polymer_kt, default = 0), # calculate yearly emission from cummulative
+  reframe(Mass_Polymer_kt = Cum_Mass_Polymer_kt - lag(Cum_Mass_Polymer_kt, default = 0), # calculate yearly emission from cumulative
           Year = Year) |> 
   ungroup() |> 
   mutate(Emis = Mass_Polymer_kt*1000000/(365.25*24*3600)) |> # Convert kt/year to kg/s

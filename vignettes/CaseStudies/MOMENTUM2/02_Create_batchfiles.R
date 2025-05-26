@@ -125,7 +125,7 @@ mb <- 30
 time <- 5000
 
 # Make a string with the needed information for the cluster
-LSF_string <- paste0("bsub -n 1 -e err.txt -o out.txt -W ", time, " -M ", mb, "MB Rscript")
+LSF_string <- paste0("bsub -n 1 -e err.txt -o out.txt -W ", time, " -M ", mb, " Rscript")
 
 # Paste the information to very string
 LSF_vector <- paste(LSF_string, filepaths)
