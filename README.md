@@ -1,7 +1,7 @@
 SimpleBox data and scripts
 ================
 RIVM
-2025-03-04
+2025-03-31
 
 # 1. About SimpleBox
 
@@ -19,7 +19,9 @@ SimpleBox is a level 3 and 4 model, meaning that SimpleBox can calculate
 concentrations for multiple environmental compartments (e.g. air, soil,
 water) and multiple scales (regional, continental, global) both at
 steady-state and dynamically, over time. More information can be found
-[here](vignettes/Development/QualityDocumentation.md "More info on SimpleBox").
+[here](https://www.rivm.nl/SimpleBox "More info on SimpleBox") and in
+the [model quality and transparency
+document.](vignettes/Development/QualityDocumentation.md)
 
 # 2. Repository structure
 
@@ -82,7 +84,7 @@ the following markdown files to get started:
 
   - How to plot the outcome.
 
-- [x1 Solver use](vignettes/x.-Solver-use.Rmd) : explains the use of the
+- [Solver use](vignettes/10.0-Solver-use.md) : explains the use of the
   four different methods for solving with SimpleBox
 
   - Steady state deterministic solver: calculate steady state masses and
@@ -102,9 +104,9 @@ the following markdown files to get started:
 ## Guidance for developers
 
 If you intend to use the model as well as change its functions, it is
-still useful to run the [Getting started](vignettes/Getting-started.Rmd)
-and [Solver use](vignettes/x.-Solver-use.Rmd) vignettes. Consequently it
-is recommended to follow the [Basics for
+still useful to run the [Getting started](vignettes/Getting-started.md)
+and [Solver use](vignettes/10.0-Solver-use.md) vignettes. Consequently
+it is recommended to follow the [Basics for
 developers](vignettes/Development/BasicsOfDevelopment.md) vignette,
 which explains the underlying structure of the repository, including the
 input data.

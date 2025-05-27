@@ -43,4 +43,8 @@ First, the gross sedimentation rate is calculated. Then the resuspension flow is
 ```{r Calculate k_Resuspension, warning=FALSE}
 resuspension <- World$NewProcess("k_Resuspension")
 resuspension$execute()
+World$FromDataAndTo("k_Resuspension")
+#debugonce(k_AdvectionH2O$execute)
+# resuspension$execute(debugAt = list()) 
+
 ```

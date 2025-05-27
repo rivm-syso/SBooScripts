@@ -16,7 +16,7 @@ The current version (SimpleBox v5.0) is the first implementation in R.
 The primary use of SimpleBox is to calculate the expected environmental fate of specific chemicals or particles, given a certain emission into the environment.
 Donald Mackay classified environmental fate models into four levels.
 SimpleBox is a level 3 and 4 model, meaning that SimpleBox can calculate concentrations for multiple environmental compartments (e.g. air, soil, water) and multiple scales (regional, continental, global) both at steady-state and dynamically, over time.
-More information can be found [here](vignettes/Development/QualityDocumentation.md "More info on SimpleBox").
+More information can be found [here](https://www.rivm.nl/SimpleBox "More info on SimpleBox") and in the [model quality and transparency document.](vignettes/Development/QualityDocumentation.md)
 
 # 2. Repository structure
 
@@ -67,7 +67,7 @@ If you intend to use the model without changing its functions, read/run the foll
 
     -   How to plot the outcome.
 
--   [x1 Solver use](vignettes/x.-Solver-use.Rmd) : explains the use of the four different methods for solving with SimpleBox
+-   [Solver use](vignettes/10.0-Solver-use.md) : explains the use of the four different methods for solving with SimpleBox
 
     -   Steady state deterministic solver: calculate steady state masses and concentrations once
 
@@ -79,7 +79,7 @@ If you intend to use the model without changing its functions, read/run the foll
 
 ## Guidance for developers
 
-If you intend to use the model as well as change its functions, it is still useful to run the [Getting started](vignettes/Getting-started.Rmd) and [Solver use](vignettes/x.-Solver-use.Rmd) vignettes.
+If you intend to use the model as well as change its functions, it is still useful to run the [Getting started](vignettes/Getting-started.md) and [Solver use](vignettes/10.0-Solver-use.md) vignettes.
 Consequently it is recommended to follow the [Basics for developers](vignettes/Development/BasicsOfDevelopment.md) vignette, which explains the underlying structure of the repository, including the input data.
 
 The Development folder details the technical construction of the project and is most suitable for developers.
