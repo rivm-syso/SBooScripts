@@ -1,0 +1,188 @@
+---
+title: "Comparison water advection update"
+author: "Anne Hids, Joris Quik"
+date: "2025-05-27"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The advection flow calculations for the water compartments were updated from the Excel version of SimpleBox. Below the changes are outlined, and finally a comparison between the k's of the two version is made.
+
+## Update RainOnFreshwater function
+
+In the previous version of SimpleBox, RainOnFreshwater was set to 0 for lake compartments. This is resolved by using the same calculation for lake as was already used for the river compartments.
+
+```{R Old RainOnFreshwater function}
+RainOnFreshwater <- function (RAINrate, Area, SubCompartName) {
+  if (SubCompartName %in% c("river", "lake")) {
+    #TODO resolve lake issues in waterflow; for now: old formulas
+    if (SubCompartName == "lake"){
+      return(0)
+    } else {
+      # RAINrateToSI is generated from units !
+      return(RAINrate * Area)
+    }     
+  } else    return(NA)
+}
+```
+
+```{R New RainOnFreshwater function}
+RainOnFreshwater <- function (RAINrate, Area, FracROWatComp, SubCompartName) {
+  if (SubCompartName %in% c("river", "lake")) {
+    # RAINrateToSI is generarted from units !
+    return(RAINrate * Area*FracROWatComp)
+  } else    return(NA)
+}
+```
+
+## Update FracROWatComp
+This function calculates the area fraction of river and lake of the total freshwater
+area at Regional and Continental scales. This is needed to calculate how much runoff 
+goes from soil to the different water compartments. 
+
+The new function calculates the same as the old function with two exceptions: 
+-The function is shorter but calculates the same
+-If the scale is not Regional or Continental and the SubCompart is not river or 
+lake, the function returns NA instead of 1 as it did before. 
+
+```{R Old FracROWatComp function}
+FracROWatComp <- function(all.landFRAC, all.Matrix, Matrix, SubCompartName, ScaleName) {
+  compFrac <- all.landFRAC$landFRAC[all.landFRAC$SubCompart == SubCompartName & all.landFRAC$Scale ==  ScaleName]
+  all.landFrac <- as_tibble(all.landFRAC)
+  all.Matrix <- as_tibble(all.Matrix)
+  mergeddata <- left_join(
+    x = all.landFRAC,
+    y = all.Matrix,
+    by = join_by(SubCompart))
+
+  if ((Matrix == "water") & (ScaleName %in% c("Regional", "Continental"))) {
+    # total landfrac of (fresh) water compartments
+    waterFrac <- mergeddata |>
+      filter(Matrix == "water" & Scale == ScaleName) |>
+      summarise(waterFrac = sum(landFRAC, na.rm = TRUE)) |>
+      pull(waterFrac)
+    return(compFrac / waterFrac)
+  } else {
+    return(1)
+  }
+}
+```
+
+```{R New FracROWatComp function}
+FracROWatComp <- function(all.landFRAC, all.Matrix, Matrix, SubCompartName, ScaleName) {
+  # browser()
+
+  if ((Matrix == "water") & (ScaleName %in% c("Regional", "Continental"))) {
+    compFrac <- all.landFRAC$landFRAC[all.landFRAC$SubCompart == SubCompartName & all.landFRAC$Scale ==  ScaleName]
+    mergeddata <- merge(all.landFRAC,all.Matrix)
+    waterFrac = sum(mergeddata$landFRAC[mergeddata$Matrix == "water" & mergeddata$Scale ==  ScaleName])
+    return(compFrac / waterFrac)
+  } else {
+    return(NA)
+  }
+}
+```
+
+## Update ContRiver2Reg
+
+For the 'river' SubCompart at 'Continental' Scale, the flow from Continental to Regional river is now calculated as:
+
+(sum of all runoff + the sum of all rain on freshwater) * dischargefraction between regional and continental scale.
+
+The previously used function can be seen in the chunk below
+
+```{R Old ContRiver2Reg}
+x_ContRiver2Reg <- function (ScaleName, SubCompartName, 
+                             all.Runoff, RainOnFreshwater, 
+                             dischargeFRAC, LakeFracRiver){
+  switch (ScaleName,
+          "Continental" = {
+            switch (SubCompartName,
+                    "river" = {            SumRainRunoff <- sum(all.Runoff$Runoff[all.Runoff$Scale == "Continental"])
+                    River2sea  <- RainOnFreshwater + SumRainRunoff * (1-dischargeFRAC)
+                    Lake2River <- LakeFracRiver * River2sea
+
+                    return((RainOnFreshwater + SumRainRunoff + Lake2River) * dischargeFRAC)
+                    },
+                    return(NA)
+            )
+          },
+          return(NA)
+            )
+}
+```
+
+```{R New ContRiver2Reg}
+x_ContRiver2Reg <- function (ScaleName, SubCompartName, 
+                             all.Runoff, all.RainOnFreshwater, 
+                             dischargeFRAC){
+
+  switch (ScaleName,
+          "Continental" = {
+            switch (SubCompartName,
+                    "river" = {
+                      SumRainRunoff <- sum(all.Runoff$Runoff[all.Runoff$Scale == ScaleName])+
+                        sum(all.RainOnFreshwater$RainOnFreshwater[all.RainOnFreshwater$Scale == ScaleName])
+
+                      return((SumRainRunoff) * dischargeFRAC)
+                    },
+                    return(NA)
+            )
+          },
+          return(NA)
+  )
+}
+``` 
+
+## Update LakeOut function
+The flow from lake to river at Regional and Continental scale is now calculated as: 
+
+RainOnFreshwater + FracROWatComp*SumRunoff
+
+```{R Old LakeOut function}
+x_LakeOutflow <- function (all.x_RiverDischarge, 
+                           all.x_ContRiver2Reg, 
+                           LakeFracRiver, 
+                           ScaleName){
+  x_RiverDischarge <- all.x_RiverDischarge$flow[all.x_RiverDischarge$fromScale==ScaleName]
+  if(ScaleName == "Continental"){
+    return(LakeFracRiver * x_RiverDischarge)
+  } 
+  if(ScaleName == "Regional"){
+    x_ContRiver2Reg <- all.x_ContRiver2Reg$flow
+    return(LakeFracRiver * (x_RiverDischarge + x_ContRiver2Reg))
+  } 
+  else NA
+}
+```
+
+```{R New LakeOut function}
+x_LakeOut <- function (RainOnFreshwater,
+                           all.Runoff,
+                           FracROWatComp,
+                       SubCompartName,
+                           ScaleName){
+  switch (SubCompartName, # if this is coded with if statement it fails as SubCompartName for Arctic is NA
+          "lake" = {
+            SumRunoff <- sum(all.Runoff$Runoff[all.Runoff$Scale == ScaleName])
+            return(RainOnFreshwater + FracROWatComp*SumRunoff)
+          },
+          NA
+  )
+}
+```
+
+# Change in k values for advection flows
+
+
+
+
+
+
+
+
+
+
