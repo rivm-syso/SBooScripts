@@ -116,8 +116,11 @@ SBooScripts.Rproj
 err.txt
 out.txt
 
-ParallelTestRunTimes_20_runs_100_times.xlsx
-ParallelTestRunTimes_20_runs.xlsx
-ParallelTestRunTimes_100_runs.xlsx
-ParallelTestRunTimes_20_runs_100_times_future_method.xlsx
-ParallelTestRunTimes_100_runs_100_times.xlsx
+data/World.RData
+data/scaledLHSsamples.RData
+data/Solution.RData
+data/World.RDS
+data/scaledLHSsamples.RDS
+
+Measurements_MP_surface_water.xlsx
+

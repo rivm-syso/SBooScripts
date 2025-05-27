@@ -10,10 +10,8 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+  
+
 ```
 
 ### Other K Air
@@ -25,7 +23,7 @@ as described in 7.1.1.
 
 2.  \- Degradation
 
-3.  \- Advection 
+3.  \- Advection
 
 #### Initialization
 
@@ -130,7 +128,13 @@ testProc$execute()
 ```
 
 #### Degradation
-Degradation of the molecule in the air also is part of other processes happening in the air. For a description of this process, see vignette 6.0 Removal. 
 
-### Advection 
-Advective processes (movement of air from one scale to another scale) are also part of the kaas in air. For a detailed description of this process, see vignette 5.4 Advection. 
+Degradation of the molecule in the air also is part of other processes
+happening in the air. For a description of this process, see vignette
+6.0 Removal.
+
+### Advection
+
+Advective processes (movement of air from one scale to another scale)
+are also part of the kaas in air. For a detailed description of this
+process, see vignette 5.4 Advection.
