@@ -369,10 +369,18 @@ changed_kaas <- kaas_comparison |>
 ``` r
 mean_diffs <- kaas_comparison |>
   mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
-  mutate(toname = paste0(toSubCompart, "_", toScale))
+  mutate(toname = paste0(toSubCompart, "_", toScale)) |>
+  mutate(diff = ifelse(diff == 0, NaN, diff))
 
 ggplot(mean_diffs, mapping = aes(x = toname, y = fromname, color = diff)) + 
   geom_point() + 
+  scale_color_gradient2(
+    low = "red",    # Colors for negative values
+    mid = "grey",   # Neutral point at zero
+    high = "blue",  # Colors for positive values
+    midpoint = 0,   # Center the scale at zero
+    limits = c(-max(abs(mean_diffs$diff)), max(abs(mean_diffs$diff)))  # Ensure symmetric scale
+  ) +
   labs(
     title = "Difference between old and new advection k's",
     x = "To",  
@@ -405,3 +413,31 @@ ggplot(mean_diffs, mapping = aes(x = toname, y = fromname, color = rel_diff)) +
 ```
 
 ![](Comparison-water-advection-update_files/figure-gfm/Plot%20the%20differences%20between%20ks-2.png)<!-- -->
+
+``` r
+table_for_display <- changed_kaas |>
+  select(fromScale, fromSubCompart, toScale, toSubCompart, Substance, k_Old, k_New, diff, rel_diff) |>
+  mutate(diff = format(diff, scientific = TRUE, digits = 2)) |>
+  mutate(rel_diff = format(rel_diff, scientific = TRUE, digits = 2))
+
+knitr::kable(table_for_display)
+```
+
+| fromScale | fromSubCompart | toScale | toSubCompart | Substance | k_Old | k_New | diff | rel_diff |
+|:---|:---|:---|:---|:---|---:|---:|:---|:---|
+| Continental | lake | Continental | river | 1-aminoanthraquinone | 0.0e+00 | 0.0e+00 | -5.8e-10 | -3.2e-01 |
+| Continental | river | Continental | sea | 1-aminoanthraquinone | 1.0e-07 | 1.0e-07 | -5.6e-10 | -7.8e-03 |
+| Continental | sea | Moderate | sea | 1-aminoanthraquinone | 0.0e+00 | 0.0e+00 | 1.4e-13 | 4.5e-06 |
+| Continental | sea | Regional | sea | 1-aminoanthraquinone | 0.0e+00 | 0.0e+00 | -1.3e-13 | -7.8e-03 |
+| Moderate | sea | Continental | sea | 1-aminoanthraquinone | 0.0e+00 | 0.0e+00 | 2.7e-14 | 4.5e-06 |
+| Regional | lake | Regional | river | 1-aminoanthraquinone | 0.0e+00 | 0.0e+00 | -5.8e-10 | -3.2e-01 |
+| Regional | river | Regional | sea | 1-aminoanthraquinone | 1.0e-07 | 1.0e-07 | -5.6e-10 | -7.8e-03 |
+| Regional | sea | Continental | sea | 1-aminoanthraquinone | 1.4e-06 | 1.4e-06 | -1.1e-08 | -7.8e-03 |
+
+From these figures and the table we can see that the flows between
+Continental sea and Moderate sea are slightly higher in the new
+implementation than in the old implementation.
+
+The flows from lake to river on Regional and Continental scale changed
+the most; relatively a fraction of +- -0.3. So the flow is lower in the
+new implementation than in the old implementation.

@@ -353,10 +353,17 @@ changed_kaas <- kaas_comparison |>
 mean_diffs <- kaas_comparison |>
   mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
   mutate(toname = paste0(toSubCompart, "_", toScale)) |>
-  mutate(diff = replace(diff, NaN, 0))
+  mutate(diff = ifelse(diff == 0, NaN, diff))
 
 ggplot(mean_diffs, mapping = aes(x = toname, y = fromname, color = diff)) + 
   geom_point() + 
+  scale_color_gradient2(
+    low = "red",    # Colors for negative values
+    mid = "grey",   # Neutral point at zero
+    high = "blue",  # Colors for positive values
+    midpoint = 0,   # Center the scale at zero
+    limits = c(-max(abs(mean_diffs$diff)), max(abs(mean_diffs$diff)))  # Ensure symmetric scale
+  ) +
   labs(
     title = "Difference between old and new advection k's",
     x = "To",  
@@ -382,10 +389,17 @@ ggplot(mean_diffs, mapping = aes(x = toname, y = fromname, color = rel_diff)) +
     panel.grid.major = element_line(size = 0.2, color = "gray90"),
     panel.background = element_blank()  
   )
+
+table_for_display <- changed_kaas |>
+  select(fromScale, fromSubCompart, toScale, toSubCompart, Substance, k_Old, k_New, diff, rel_diff) |>
+  mutate(diff = format(diff, scientific = TRUE, digits = 2)) |>
+  mutate(rel_diff = format(rel_diff, scientific = TRUE, digits = 2))
+
+knitr::kable(table_for_display)
 ```
 
-From these figures we can see that the flows between Continental sea and Moderate 
-sea are higher in the new implementation than in the old implementation. 
+From these figures and the table we can see that the flows between Continental sea and Moderate 
+sea are slightly higher in the new implementation than in the old implementation. 
 
 The flows from lake to river on Regional and Continental scale changed the most;
 relatively a fraction of +- -0.3. So the flow is lower in the new implementation 
