@@ -1,25 +1,19 @@
----
-title: "Comparison water advection update"
-author: "Anne Hids, Joris Quik"
-date: "2025-05-27"
-output: github_document
-editor_options: 
-  chunk_output_type: console
----
+Comparison water advection update
+================
+Anne Hids, Joris Quik
+2025-05-27
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..","..","..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) 
-```
-
-The advection flow calculations for the water compartments were updated from the Excel version of SimpleBox. Below the changes are outlined, and finally a comparison between the k's of the two version is made.
+The advection flow calculations for the water compartments were updated
+from the Excel version of SimpleBox. Below the changes are outlined, and
+finally a comparison between the k’s of the two version is made.
 
 ## Update RainOnFreshwater function
 
-In the previous version of SimpleBox, RainOnFreshwater was set to 0 for lake compartments. This is resolved by using the same calculation for lake as was already used for the river compartments.
+In the previous version of SimpleBox, RainOnFreshwater was set to 0 for
+lake compartments. This is resolved by using the same calculation for
+lake as was already used for the river compartments.
 
-```{R Old RainOnFreshwater function, include=TRUE}
+``` r
 RainOnFreshwater <- function (RAINrate, Area, SubCompartName) {
   if (SubCompartName %in% c("river", "lake")) {
     #TODO resolve lake issues in waterflow; for now: old formulas
@@ -33,7 +27,7 @@ RainOnFreshwater <- function (RAINrate, Area, SubCompartName) {
 }
 ```
 
-```{R New RainOnFreshwater function, include=TRUE}
+``` r
 RainOnFreshwater <- function (RAINrate, Area, FracROWatComp, SubCompartName) {
   if (SubCompartName %in% c("river", "lake")) {
     # RAINrateToSI is generarted from units !
@@ -43,16 +37,18 @@ RainOnFreshwater <- function (RAINrate, Area, FracROWatComp, SubCompartName) {
 ```
 
 ## Update FracROWatComp
-This function calculates the area fraction of river and lake of the total freshwater
-area at Regional and Continental scales. This is needed to calculate how much runoff 
-goes from soil to the different water compartments. 
 
-The new function calculates the same as the old function with two exceptions: 
--The function is shorter but calculates the same
--If the scale is not Regional or Continental and the SubCompart is not river or 
-lake, the function returns NA instead of 1 as it did before. 
+This function calculates the area fraction of river and lake of the
+total freshwater area at Regional and Continental scales. This is needed
+to calculate how much runoff goes from soil to the different water
+compartments.
 
-```{R Old FracROWatComp function, include=TRUE}
+The new function calculates the same as the old function with two
+exceptions: -The function is shorter but calculates the same -If the
+scale is not Regional or Continental and the SubCompart is not river or
+lake, the function returns NA instead of 1 as it did before.
+
+``` r
 FracROWatComp <- function(all.landFRAC, all.Matrix, Matrix, SubCompartName, ScaleName) {
   compFrac <- all.landFRAC$landFRAC[all.landFRAC$SubCompart == SubCompartName & all.landFRAC$Scale ==  ScaleName]
   all.landFrac <- as_tibble(all.landFRAC)
@@ -75,7 +71,7 @@ FracROWatComp <- function(all.landFRAC, all.Matrix, Matrix, SubCompartName, Scal
 }
 ```
 
-```{R New FracROWatComp function, include=TRUE}
+``` r
 FracROWatComp <- function(all.landFRAC, all.Matrix, Matrix, SubCompartName, ScaleName) {
   if ((Matrix == "water") & (ScaleName %in% c("Regional", "Continental"))) {
     compFrac <- all.landFRAC$landFRAC[all.landFRAC$SubCompart == SubCompartName & all.landFRAC$Scale ==  ScaleName]
@@ -90,13 +86,15 @@ FracROWatComp <- function(all.landFRAC, all.Matrix, Matrix, SubCompartName, Scal
 
 ## Update ContRiver2Reg
 
-For the 'river' SubCompart at 'Continental' Scale, the flow from Continental to Regional river is now calculated as:
+For the ‘river’ SubCompart at ‘Continental’ Scale, the flow from
+Continental to Regional river is now calculated as:
 
-(sum of all runoff + the sum of all rain on freshwater) * dischargefraction between regional and continental scale.
+(sum of all runoff + the sum of all rain on freshwater) \*
+dischargefraction between regional and continental scale.
 
 The previously used function can be seen in the chunk below
 
-```{R Old ContRiver2Reg, include=TRUE}
+``` r
 x_ContRiver2Reg <- function (ScaleName, SubCompartName, 
                              all.Runoff, RainOnFreshwater, 
                              dischargeFRAC, LakeFracRiver){
@@ -117,7 +115,7 @@ x_ContRiver2Reg <- function (ScaleName, SubCompartName,
 }
 ```
 
-```{R New ContRiver2Reg, include=TRUE}
+``` r
 x_ContRiver2Reg <- function (ScaleName, SubCompartName, 
                              all.Runoff, all.RainOnFreshwater, 
                              dischargeFRAC){
@@ -137,14 +135,16 @@ x_ContRiver2Reg <- function (ScaleName, SubCompartName,
           return(NA)
   )
 }
-``` 
+```
 
 ## Update LakeOut function
-The flow from lake to river at Regional and Continental scale is now calculated as: 
 
-RainOnFreshwater + FracROWatComp*SumRunoff
+The flow from lake to river at Regional and Continental scale is now
+calculated as:
 
-```{R Old LakeOut function, include=TRUE}
+RainOnFreshwater + FracROWatComp\*SumRunoff
+
+``` r
 x_LakeOutflow <- function (all.x_RiverDischarge, 
                            all.x_ContRiver2Reg, 
                            LakeFracRiver, 
@@ -161,7 +161,7 @@ x_LakeOutflow <- function (all.x_RiverDischarge,
 }
 ```
 
-```{R New LakeOut function, include=TRUE}
+``` r
 x_LakeOut <- function (RainOnFreshwater,
                            all.Runoff,
                            FracROWatComp,
@@ -180,13 +180,12 @@ x_LakeOut <- function (RainOnFreshwater,
 # Change in k values for advection flows
 
 First remove all functions from the global environment to avoid errors
-```{R Clean environment, include=FALSE}
-rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
-```
 
-TO DO: fetch development at a certain date instead of most recent version. This would ensure consequent outcomes of this comparison, no matter when the script is run.
+TO DO: fetch development at a certain date instead of most recent
+version. This would ensure consequent outcomes of this comparison, no
+matter when the script is run.
 
-```{R Specify directories, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+``` r
 library(tidyverse)
 
 # Define branches to test
@@ -200,42 +199,64 @@ script_dir <-getwd()
 repo_dir <- file.path(getwd(), "..", "SBoo")
 ```
 
-As advection processes do not depend on substance variables, we only need to 
-compare the advection flows for one substance, in this case 1-aminoanthraquinone.
+As advection processes do not depend on substance variables, we only
+need to compare the advection flows for one substance, in this case
+1-aminoanthraquinone.
 
 <!-- # ```{R} -->
+
 <!-- # # Select 20 random substances from substances csv -->
+
 <!-- # substances <- read.csv("data/Substances.csv") -->
+
 <!-- # set.seed(123) -->
+
 <!-- # index_substance <- round(runif(20, min=1, max=nrow(substances))) -->
+
 <!-- #  -->
+
 <!-- # # Get names of substances at the selected indeces -->
+
 <!-- # substances <- substances[index_substance, ]   # Subset the rows -->
+
 <!-- # substance_names <- substances$Substance    # Assuming the column for names is 'SubstanceName' -->
+
 <!-- # ``` -->
 
 <!-- # ```{R} -->
+
 <!-- # substance_names <- c("1-aminoanthraquinone", # no class -->
+
 <!-- #                          "1-HYDROXYANTHRAQUINONE", # acid -->
+
 <!-- #                          "1-Hexadecanamine, N,N-dimethyl-", # base -->
+
 <!-- #                          "1-Chloro-2-nitro-propane", # neutral -->
+
 <!-- #                          "Sb(III)", # metal -->
+
 <!-- #                          "microplastic", # microplastic -->
+
 <!-- #                           "nAg_10nm" # particulate -->
+
 <!-- #                           )  -->
+
 <!-- # substances <- read.csv("data/Substances.csv") -->
+
 <!-- # substances <- substances |> -->
+
 <!-- #   filter(Substance %in% substance_names) -->
+
 <!-- # ``` -->
 
-```{R Specify substance, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+``` r
 substance_names <- "1-aminoanthraquinone" 
 substances <- read.csv("data/Substances.csv")
 substances <- substances |>
   filter(Substance %in% substance_names)
 ```
 
-```{R Switch to SBoo Development branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+``` r
 # Switch to the correct Git directory
 setwd(repo_dir)
 
@@ -255,7 +276,7 @@ FlowIO <- FlowIO |>
 readr::write_excel_csv(FlowIO, file = "data/FlowIO.csv", quote = "needed")
 ```
 
-```{R Run SB and get advection ks for development, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+``` r
 dev_kaas <- data.frame()
   
 for(i in 1:nrow(substances)){
@@ -283,11 +304,7 @@ for(i in 1:nrow(substances)){
 
 Do the same for the new implementation.
 
-```{R Clean environment again, include=FALSE}
-rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
-```
-
-```{R Switch to SBoo Flux_work branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+``` r
 # Switch to the correct Git directory
 setwd(repo_dir)
 
@@ -307,7 +324,7 @@ FlowIO <- FlowIO |>
 readr::write_excel_csv(FlowIO, file = "data/FlowIO.csv", quote = "needed")
 ```
 
-```{R Run SB and get advection ks for FLux_work branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+``` r
 updated_kaas <- data.frame()
   
 for(i in 1:nrow(substances)){
@@ -335,7 +352,7 @@ for(i in 1:nrow(substances)){
 
 ## Compare the k values for each of the substances
 
-```{R Calculate the differences between ks, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+``` r
 common_cols <- setdiff(intersect(colnames(dev_kaas), colnames(updated_kaas)), "k")
 
 kaas_comparison <- merge(dev_kaas, updated_kaas, by=common_cols, suffixes = c("_Old", "_New"))
@@ -349,11 +366,10 @@ changed_kaas <- kaas_comparison |>
   mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
 ```
 
-```{R Plot the differences between ks, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+``` r
 mean_diffs <- kaas_comparison |>
   mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
-  mutate(toname = paste0(toSubCompart, "_", toScale)) |>
-  mutate(diff = replace(diff, NaN, 0))
+  mutate(toname = paste0(toSubCompart, "_", toScale))
 
 ggplot(mean_diffs, mapping = aes(x = toname, y = fromname, color = diff)) + 
   geom_point() + 
@@ -368,7 +384,11 @@ ggplot(mean_diffs, mapping = aes(x = toname, y = fromname, color = diff)) +
     panel.grid.major = element_line(size = 0.2, color = "gray90"),  
     panel.background = element_blank() 
   )
+```
 
+![](Comparison-water-advection-update_files/figure-gfm/Plot%20the%20differences%20between%20ks-1.png)<!-- -->
+
+``` r
 ggplot(mean_diffs, mapping = aes(x = toname, y = fromname, color = rel_diff)) + 
   geom_point() + 
   labs(
@@ -384,12 +404,4 @@ ggplot(mean_diffs, mapping = aes(x = toname, y = fromname, color = rel_diff)) +
   )
 ```
 
-From these figures we can see that the flows between Continental sea and Moderate 
-sea are higher in the new implementation than in the old implementation. 
-
-The flows from lake to river on Regional and Continental scale changed the most;
-relatively a fraction of +- -0.3. So the flow is lower in the new implementation 
-than in the old implementation.
-
-
-
+![](Comparison-water-advection-update_files/figure-gfm/Plot%20the%20differences%20between%20ks-2.png)<!-- -->

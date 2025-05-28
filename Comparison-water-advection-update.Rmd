@@ -9,8 +9,6 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..","..","..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) 
 ```
 
 The advection flow calculations for the water compartments were updated from the Excel version of SimpleBox. Below the changes are outlined, and finally a comparison between the k's of the two version is made.
@@ -186,7 +184,7 @@ rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 
 TO DO: fetch development at a certain date instead of most recent version. This would ensure consequent outcomes of this comparison, no matter when the script is run.
 
-```{R Specify directories, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+```{R Specify directories, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 library(tidyverse)
 
 # Define branches to test
@@ -228,14 +226,14 @@ compare the advection flows for one substance, in this case 1-aminoanthraquinone
 <!-- #   filter(Substance %in% substance_names) -->
 <!-- # ``` -->
 
-```{R Specify substance, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+```{R Specify substance, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 substance_names <- "1-aminoanthraquinone" 
 substances <- read.csv("data/Substances.csv")
 substances <- substances |>
   filter(Substance %in% substance_names)
 ```
 
-```{R Switch to SBoo Development branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+```{R Switch to SBoo Development branch, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 # Switch to the correct Git directory
 setwd(repo_dir)
 
@@ -255,7 +253,7 @@ FlowIO <- FlowIO |>
 readr::write_excel_csv(FlowIO, file = "data/FlowIO.csv", quote = "needed")
 ```
 
-```{R Run SB and get advection ks for development, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+```{R Run SB and get advection ks for development, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 dev_kaas <- data.frame()
   
 for(i in 1:nrow(substances)){
@@ -287,7 +285,7 @@ Do the same for the new implementation.
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 ```
 
-```{R Switch to SBoo Flux_work branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+```{R Switch to SBoo Flux_work branch, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 # Switch to the correct Git directory
 setwd(repo_dir)
 
@@ -307,7 +305,7 @@ FlowIO <- FlowIO |>
 readr::write_excel_csv(FlowIO, file = "data/FlowIO.csv", quote = "needed")
 ```
 
-```{R Run SB and get advection ks for FLux_work branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+```{R Run SB and get advection ks for FLux_work branch, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 updated_kaas <- data.frame()
   
 for(i in 1:nrow(substances)){
@@ -335,7 +333,7 @@ for(i in 1:nrow(substances)){
 
 ## Compare the k values for each of the substances
 
-```{R Calculate the differences between ks, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+```{R Calculate the differences between ks, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 common_cols <- setdiff(intersect(colnames(dev_kaas), colnames(updated_kaas)), "k")
 
 kaas_comparison <- merge(dev_kaas, updated_kaas, by=common_cols, suffixes = c("_Old", "_New"))
@@ -352,8 +350,7 @@ changed_kaas <- kaas_comparison |>
 ```{R Plot the differences between ks, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 mean_diffs <- kaas_comparison |>
   mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
-  mutate(toname = paste0(toSubCompart, "_", toScale)) |>
-  mutate(diff = replace(diff, NaN, 0))
+  mutate(toname = paste0(toSubCompart, "_", toScale))
 
 ggplot(mean_diffs, mapping = aes(x = toname, y = fromname, color = diff)) + 
   geom_point() + 
@@ -383,13 +380,3 @@ ggplot(mean_diffs, mapping = aes(x = toname, y = fromname, color = rel_diff)) +
     panel.background = element_blank()  
   )
 ```
-
-From these figures we can see that the flows between Continental sea and Moderate 
-sea are higher in the new implementation than in the old implementation. 
-
-The flows from lake to river on Regional and Continental scale changed the most;
-relatively a fraction of +- -0.3. So the flow is lower in the new implementation 
-than in the old implementation.
-
-
-
