@@ -50,8 +50,40 @@ Material_Parameters <- Material_Parameters |>
     TRUE ~ d
   ))
 
+#### Prepare the correlations
+materials <- c(materials, "NR", "SBR")
+
+Correlations <- readxl::read_xlsx(path_parameters_file, sheet = "Correlation")
+Correlations <- Correlations |>
+  mutate(correlation = as.numeric(str_replace(correlation, ",", ".")))
+
+polymer_specific_correlations <- Correlations |>
+  filter(Polymer != "any")
+
+any_polymer_correlations <- Correlations |>
+  filter(Polymer == "any")
+
+suppressWarnings({
+  correlations <- explodeF(any_polymer_correlations, target_col = "Polymer", explode_value = "any", new_values = materials) # move this after and save unique values (n=same as in xlsx)
+})
+
+correlations <- correlations |>
+  anti_join(polymer_specific_correlations, by = c("varName_1", "varName_2", "Polymer"))
+
+correlations <- bind_rows(correlations, polymer_specific_correlations)
+
+correlation_list <- list()
+
+for(i in unique(correlations$Polymer)){
+  correlation <- correlations |>
+    filter(Polymer == i) |>
+    select(-Polymer)
+  
+  correlation_list[[i]] <- correlation
+}
+
 ##### Create the batch files for running SimpleBox
-load(paste0(data_folder, "DPMFA_SBinput_20250526.RData"))
+load(paste0(data_folder, "DPMFA_SBinput_20250602.RData"))
 
 emis_list <- list()
 
@@ -76,8 +108,7 @@ for(i in unique(Material_Parameters$Polymer)){
 # Save the variables and the emissions to the Data folder
 save(emis_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/emis_list.RData")
 save(variable_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/variable_list.RData")
-
-polymer <- "PET"
+save(correlation_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/correlation_list.RData")
 
 #### Create the batch files
 

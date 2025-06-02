@@ -13,6 +13,7 @@ output_folder <- "vignettes/CaseStudies/MOMENTUM2/Output/"
 
 load(paste0(input_folder, "emis_list.RData"))
 load(paste0(input_folder, "variable_list.RData"))
+load(paste0(input_folder, "correlation_list.RData"))
 
 polymer <- "Acryl"
 
@@ -42,6 +43,7 @@ emissions <- emis_list[[polymer]] |>
   filter(RUN %in% 1:2)
 variable_df <- variable_list[[polymer]]
 variable_distributions <- World$makeInvFuns(variable_df)
+Correlations <- correlation_list[[polymer]]
 
 nRUNs = length(unique(emissions$RUN))
 tmin = min(emissions$Time)
@@ -50,7 +52,7 @@ nTIMES = length(unique(emissions$Time))
 
 # Solve
 World$NewSolver("DynamicSolver")
-World$Solve(emissions = emissions, var_box_df = variable_df, var_invFun = variable_distributions, nRUNs = nRUNs, tmin = tmin, tmax = tmax, nTIMES = nTIMES)
+World$Solve(emissions = emissions, var_box_df = variable_df, var_invFun = variable_distributions, nRUNs = nRUNs, tmin = tmin, tmax = tmax, nTIMES = nTIMES, correlations = Correlations)
 
 output_masses <- World$Masses() |>
   mutate(year = as.numeric(time)/(365.25*24*60*60)) |>
