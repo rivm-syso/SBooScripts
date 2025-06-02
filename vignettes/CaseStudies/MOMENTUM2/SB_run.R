@@ -11,6 +11,14 @@ path_parameters_file <- paste0(data_folder, "Microplastic_variables_MOMENTUM2.xl
 input_folder <- "vignettes/CaseStudies/MOMENTUM2/Data/"
 output_folder <- "vignettes/CaseStudies/MOMENTUM2/Output/"
 
+# Check if the folder exists, and create it if it doesn't
+if (!dir.exists(output_folder)) {
+  dir.create(output_folder, recursive = TRUE)  # `recursive = TRUE` ensures that parent directories are created if needed
+  message("Output folder created: ", output_folder)
+} else {
+  message("Output folder already exists: ", output_folder)
+}
+
 load(paste0(input_folder, "emis_list.RData"))
 load(paste0(input_folder, "variable_list.RData"))
 load(paste0(input_folder, "correlation_list.RData"))
@@ -39,8 +47,7 @@ World$mutateVars(Regional_Parameters)
 World$UpdateDirty(unique(Regional_Parameters$varName))
 
 # Get variable values, emissions and variable functions for the polymer
-emissions <- emis_list[[polymer]] |>
-  filter(RUN %in% 1:2)
+emissions <- emis_list[[polymer]] 
 variable_df <- variable_list[[polymer]]
 variable_distributions <- World$makeInvFuns(variable_df)
 Correlations <- correlation_list[[polymer]]
