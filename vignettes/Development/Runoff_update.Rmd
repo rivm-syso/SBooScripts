@@ -1,0 +1,212 @@
+---
+title: "Comparison runoff update"
+author: "Anne Hids, Nadim Saadi"
+date: "2025-05-27"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Explanation of update
+The previous function for calculating the runoff rate for microplastics was taken 
+from SimpleBox4Plastics in MS Excel. It was noted that the runoff rate was relatively 
+high. Therefore, an interception rate was added to the runoff rate, which 
+represents the particles being held back by vegetation on soil. This lowers the 
+runoff rate. Source: Louvet et al. 
+
+# Change in k values for advection flows
+
+<!-- First remove all functions from the global environment to avoid errors -->
+<!-- ```{R Clean environment, include=FALSE} -->
+<!-- rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))]) -->
+<!-- ``` -->
+
+TO DO: fetch development at a certain date instead of most recent version. This would ensure consequent outcomes of this comparison, no matter when the script is run.
+
+```{R Specify directories, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+
+# Define branches to test
+branches <- c("development", "Runoff_update")
+
+# Specify file paths for saving results
+result_files <- paste0("results_", branches, ".rds")
+
+# Directory of your Git repository (modify this path to the correct repository location)
+script_dir <-getwd()
+repo_dir <- file.path(getwd(), "..", "SBoo")
+```
+
+As this update was only implemented for microplastics and tyre road wear particles, 
+we will test for these substances. To be sure nothing changed for the other 
+substances, we will also test one other substance. 
+
+<!-- # ```{R} -->
+<!-- # # Select 20 random substances from substances csv -->
+<!-- # substances <- read.csv("data/Substances.csv") -->
+<!-- # set.seed(123) -->
+<!-- # index_substance <- round(runif(20, min=1, max=nrow(substances))) -->
+<!-- #  -->
+<!-- # # Get names of substances at the selected indeces -->
+<!-- # substances <- substances[index_substance, ]   # Subset the rows -->
+<!-- # substance_names <- substances$Substance    # Assuming the column for names is 'SubstanceName' -->
+<!-- # ``` -->
+
+<!-- # ```{R} -->
+<!-- # substance_names <- c("1-aminoanthraquinone", # no class -->
+<!-- #                          "1-HYDROXYANTHRAQUINONE", # acid -->
+<!-- #                          "1-Hexadecanamine, N,N-dimethyl-", # base -->
+<!-- #                          "1-Chloro-2-nitro-propane", # neutral -->
+<!-- #                          "Sb(III)", # metal -->
+<!-- #                          "microplastic", # microplastic -->
+<!-- #                           "nAg_10nm" # particulate -->
+<!-- #                           )  -->
+<!-- # substances <- read.csv("data/Substances.csv") -->
+<!-- # substances <- substances |> -->
+<!-- #   filter(Substance %in% substance_names) -->
+<!-- # ``` -->
+
+```{R Specify substance, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+substance_names <- c("microplastic", "TRWP", "1-aminoanthraquinone") 
+substances <- read.csv("data/Substances.csv")
+substances <- substances |>
+  filter(Substance %in% substance_names)
+```
+
+```{R Switch to SBoo Development branch, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+# Switch to the correct Git directory
+setwd(repo_dir)
+
+# Checkout the branch
+branch <- branches[1]
+message("Switching to branch: ", branch)
+system(paste("git checkout -f ", branch))
+system("git pull", intern = TRUE)  # Ensure the branch is up-to-date
+  
+setwd(script_dir)
+```
+
+```{R Run SB and get advection ks for development, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+dev_kaas <- data.frame()
+  
+for(i in 1:nrow(substances)){
+  # Get the substance type
+  subst_row <- substances[i, ]
+  
+  substance <- subst_row$Substance
+  cc <- subst_row$ChemClass
+  
+  if(substance == 'microplastic' | substance == "TRWP"){
+    source("baseScripts/initWorld_onlyPlastics.R")
+  } else if(cc == "particle"){
+    source("baseScripts/initWorld_onlyParticulate.R")
+  } else{
+    source("baseScripts/initWorld_onlyMolec.R")
+  }
+  
+  kaas <- World$kaas |>
+    filter(process == "k_Runoff") |>
+    mutate(Substance = substance)
+  
+  dev_kaas <- rbind(dev_kaas, kaas)
+}
+```
+
+Do the same for the new implementation.
+
+```{R Clean environment again, include=FALSE}
+rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
+```
+
+```{R Switch to SBoo Flux_work branch, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+# Switch to the correct Git directory
+setwd(repo_dir)
+
+# Checkout the branch
+branch <- branches[2]
+message("Switching to branch: ", branch)
+system(paste("git checkout -f ", branch))
+system("git pull", intern = TRUE)  # Ensure the branch is up-to-date
+  
+setwd(script_dir)
+```
+
+```{R Run SB and get advection ks for FLux_work branch, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+updated_kaas <- data.frame()
+  
+for(i in 1:nrow(substances)){
+  # Get the substance type
+  subst_row <- substances[i, ]
+  
+  substance <- subst_row$Substance
+  cc <- subst_row$ChemClass
+  
+  if(substance == 'microplastic' | substance == "TRWP"){
+    source("baseScripts/initWorld_onlyPlastics.R")
+  } else if(cc == "particle"){
+    source("baseScripts/initWorld_onlyParticulate.R")
+  } else{
+    source("baseScripts/initWorld_onlyMolec.R")
+  }
+  
+  kaas <- World$kaas |>
+    filter(process == "k_Runoff") |>
+    mutate(Substance = substance)
+  
+  updated_kaas <- rbind(updated_kaas, kaas)
+}
+```
+
+## Compare the k values for each of the substances
+
+```{R Calculate the differences between ks, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+common_cols <- setdiff(intersect(colnames(dev_kaas), colnames(updated_kaas)), "k")
+
+kaas_comparison <- merge(dev_kaas, updated_kaas, by=common_cols, suffixes = c("_Old", "_New"))
+
+kaas_comparison <- kaas_comparison |>
+  mutate(diff = k_New-k_Old) |> # If this number is positive, the New_k is higher than the Old_k (higher advection rate with new method)
+  mutate(rel_diff = diff/k_New)
+
+changed_kaas <- kaas_comparison |>
+  filter(diff != 0) |>
+  mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
+```
+
+```{R Plot the differences between ks, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+mean_diffs <- kaas_comparison |>
+  mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
+  mutate(toname = paste0(toSubCompart, "_", toScale))
+
+ggplot(mean_diffs, mapping = aes(x = toname, y = fromname, color = diff)) + 
+  geom_point() + 
+  labs(
+    title = "Difference between old and new runoff k's",
+    x = "To",  
+    y = "From",  
+    color = "Difference"  
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1), 
+    panel.grid.major = element_line(size = 0.2, color = "gray90"),  
+    panel.background = element_blank() 
+  )
+
+ggplot(mean_diffs, mapping = aes(x = toname, y = fromname, color = rel_diff)) + 
+  geom_point() + 
+  labs(
+    title = "Relative difference between old and new runoff k's",
+    x = "To",  
+    y = "From",  
+    color = "Relative difference"  
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1), 
+    panel.grid.major = element_line(size = 0.2, color = "gray90"),
+    panel.background = element_blank()  
+  )
+```
