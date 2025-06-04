@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Explanation of update
 The previous function for calculating the runoff rate for microplastics was taken 
 from SimpleBox4Plastics in MS Excel. It was noted that the runoff rate was relatively 
-high. Therefore, an interception rate was added to the runoff rate, which 
+high. Therefore, an interception rate (kinterception) was added to the runoff rate, which 
 represents the particles being held back by vegetation on soil. This lowers the 
 runoff rate (Louvet et al. (in prep)).
 

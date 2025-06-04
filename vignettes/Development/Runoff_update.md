@@ -7,72 +7,18 @@ Anne Hids, Nadim Saadi
 
 The previous function for calculating the runoff rate for microplastics
 was taken from SimpleBox4Plastics in MS Excel. It was noted that the
-runoff rate was relatively high. Therefore, an interception rate was
-added to the runoff rate, which represents the particles being held back
-by vegetation on soil. This lowers the runoff rate (Louvet et al. (in
-prep)).
+runoff rate was relatively high. Therefore, an interception rate
+(kinterception) was added to the runoff rate, which represents the
+particles being held back by vegetation on soil. This lowers the runoff
+rate (Louvet et al. (in prep)).
 
 # Change in k values for advection flows
-
-<!-- First remove all functions from the global environment to avoid errors -->
-
-<!-- ```{R Clean environment, include=FALSE} -->
-
-<!-- rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))]) -->
-
-<!-- ``` -->
 
 <!-- TO DO: fetch development at a certain date instead of most recent version. This would ensure consequent outcomes of this comparison, no matter when the script is run. -->
 
 As this update was only implemented for microplastics and tyre road wear
 particles, we will test for these substances. To be sure nothing changed
 for the other substances, we will also test one other substance.
-
-<!-- # ```{R} -->
-
-<!-- # # Select 20 random substances from substances csv -->
-
-<!-- # substances <- read.csv("data/Substances.csv") -->
-
-<!-- # set.seed(123) -->
-
-<!-- # index_substance <- round(runif(20, min=1, max=nrow(substances))) -->
-
-<!-- #  -->
-
-<!-- # # Get names of substances at the selected indeces -->
-
-<!-- # substances <- substances[index_substance, ]   # Subset the rows -->
-
-<!-- # substance_names <- substances$Substance    # Assuming the column for names is 'SubstanceName' -->
-
-<!-- # ``` -->
-
-<!-- # ```{R} -->
-
-<!-- # substance_names <- c("1-aminoanthraquinone", # no class -->
-
-<!-- #                          "1-HYDROXYANTHRAQUINONE", # acid -->
-
-<!-- #                          "1-Hexadecanamine, N,N-dimethyl-", # base -->
-
-<!-- #                          "1-Chloro-2-nitro-propane", # neutral -->
-
-<!-- #                          "Sb(III)", # metal -->
-
-<!-- #                          "microplastic", # microplastic -->
-
-<!-- #                           "nAg_10nm" # particulate -->
-
-<!-- #                           )  -->
-
-<!-- # substances <- read.csv("data/Substances.csv") -->
-
-<!-- # substances <- substances |> -->
-
-<!-- #   filter(Substance %in% substance_names) -->
-
-<!-- # ``` -->
 
     ## [1] "Already up to date."
 
