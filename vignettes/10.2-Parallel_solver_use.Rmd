@@ -1,5 +1,5 @@
 ---
-title: "Parallel solver use"
+title: "10.2 Parallel solver use"
 author: "Anne Hids"
 date: "`r Sys.Date()`"
 output: github_document
