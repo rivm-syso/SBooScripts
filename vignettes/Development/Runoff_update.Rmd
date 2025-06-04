@@ -13,10 +13,25 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Explanation of update
 The previous function for calculating the runoff rate for microplastics was taken 
-from SimpleBox4Plastics in MS Excel. It was noted that the runoff rate was relatively 
-high. Therefore, an interception rate (kinterception) was added to the runoff rate, which 
-represents the particles being held back by vegetation on soil. This lowers the 
-runoff rate (Louvet et al. (in prep)).
+from SimpleBox4Plastics in MS Excel. This function included runoff and erosion. 
+In this calculation it is assumed that all microplastics are transported from soil
+compartments to water compartments by runoff. In reality however, some of the 
+microplastics are trapped or slowed down by vegetation present on the soil. 
+
+To avoid overestimation of the runoff rate, an interception rate was added. This 
+rate represents the fraction of microplastics intercepted by the vegetation on soil.
+The default value of kinterception is 0.9715, which is the average between the 
+interception at high, medium and low density vegetation as found by Han et al. (2022)
+
+This function is based on Louvet et al. (in prep).
+
+Old function:
+
+$(Runoff * f_CORRsoil(VertDistance, relevant_depth_s, penetration_depth_s)) / Volume * to.FracROWatComp$
+
+New function:
+
+$(Runoff * f_CORRsoil(VertDistance, relevant_depth_s, penetration_depth_s)) / Volume * to.FracROWatComp * (1-kinterception)$
 
 # Change in k values for advection flows
 <!-- TO DO: fetch development at a certain date instead of most recent version. This would ensure consequent outcomes of this comparison, no matter when the script is run. -->
