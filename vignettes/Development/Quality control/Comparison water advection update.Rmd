@@ -5,6 +5,8 @@ date: "2025-05-27"
 output: github_document
 editor_options: 
   chunk_output_type: console
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
@@ -13,11 +15,20 @@ projectRoot <- paste(getwd(), "..","..","..", sep = "/")
 knitr::opts_knit$set(root.dir = projectRoot) 
 ```
 
-The advection flow calculations for the water compartments were updated from the Excel version of SimpleBox. Below the changes are outlined, and finally a comparison between the k's of the two version is made.
+The advection flow calculations for the freshwater compartments are
+revised using a different implementation of advective flows related to
+the lake compartment and some other changes (from v2025.4.0 and the
+Excel implementation). Below the changes are outlined, and finally a
+comparison between the rate constants (k's) of the new and old version
+is made.
 
 ## Update RainOnFreshwater function
 
-In the previous version of SimpleBox, RainOnFreshwater was set to 0 for lake compartments. This is resolved by using the same calculation for lake as was already used for the river compartments.
+In the previous version of SimpleBox, RainOnFreshwater was set to 0 for
+lake compartments. This is resolved by using the same calculation for
+lake as was already used for the river compartments.
+
+This was the previous function:
 
 ```{R Old RainOnFreshwater function, include=TRUE}
 RainOnFreshwater <- function (RAINrate, Area, SubCompartName) {
@@ -33,6 +44,8 @@ RainOnFreshwater <- function (RAINrate, Area, SubCompartName) {
 }
 ```
 
+This the new:
+
 ```{R New RainOnFreshwater function, include=TRUE}
 RainOnFreshwater <- function (RAINrate, Area, FracROWatComp, SubCompartName) {
   if (SubCompartName %in% c("river", "lake")) {
@@ -42,15 +55,17 @@ RainOnFreshwater <- function (RAINrate, Area, FracROWatComp, SubCompartName) {
 }
 ```
 
-## Update FracROWatComp
-This function calculates the area fraction of river and lake of the total freshwater
-area at Regional and Continental scales. This is needed to calculate how much runoff 
-goes from soil to the different water compartments. 
+## Small optimisaiton FracROWatComp
 
-The new function calculates the same as the old function with two exceptions: 
--The function is shorter but calculates the same
--If the scale is not Regional or Continental and the SubCompart is not river or 
-lake, the function returns NA instead of 1 as it did before. 
+This function calculates the area fraction of river and lake of the
+total freshwater area at Regional and Continental scales. This is needed
+to calculate how much runoff goes from soil to the different water
+compartments.
+
+The new function calculates the same as the old function with two
+exceptions: -The function is shorter but calculates the same -If the
+scale is not Regional or Continental and the SubCompart is not river or
+lake, the function returns NA instead of 1 as it did before.
 
 ```{R Old FracROWatComp function, include=TRUE}
 FracROWatComp <- function(all.landFRAC, all.Matrix, Matrix, SubCompartName, ScaleName) {
@@ -90,9 +105,11 @@ FracROWatComp <- function(all.landFRAC, all.Matrix, Matrix, SubCompartName, Scal
 
 ## Update ContRiver2Reg
 
-For the 'river' SubCompart at 'Continental' Scale, the flow from Continental to Regional river is now calculated as:
+For the 'river' SubCompart at 'Continental' Scale, the flow from
+Continental to Regional river is now calculated as:
 
-(sum of all runoff + the sum of all rain on freshwater) * dischargefraction between regional and continental scale.
+(sum of all runoff + the sum of all rain on freshwater) \*
+dischargefraction between regional and continental scale.
 
 The previously used function can be seen in the chunk below
 
@@ -103,7 +120,8 @@ x_ContRiver2Reg <- function (ScaleName, SubCompartName,
   switch (ScaleName,
           "Continental" = {
             switch (SubCompartName,
-                    "river" = {            SumRainRunoff <- sum(all.Runoff$Runoff[all.Runoff$Scale == "Continental"])
+                    "river" = { 
+                    SumRainRunoff <- sum(all.Runoff$Runoff[all.Runoff$Scale == "Continental"])
                     River2sea  <- RainOnFreshwater + SumRainRunoff * (1-dischargeFRAC)
                     Lake2River <- LakeFracRiver * River2sea
 
@@ -116,6 +134,8 @@ x_ContRiver2Reg <- function (ScaleName, SubCompartName,
             )
 }
 ```
+
+The updated function:
 
 ```{R New ContRiver2Reg, include=TRUE}
 x_ContRiver2Reg <- function (ScaleName, SubCompartName, 
@@ -137,12 +157,17 @@ x_ContRiver2Reg <- function (ScaleName, SubCompartName,
           return(NA)
   )
 }
-``` 
+```
 
 ## Update LakeOut function
-The flow from lake to river at Regional and Continental scale is now calculated as: 
 
-RainOnFreshwater + FracROWatComp*SumRunoff
+The Lake compartment (w0) is an upstream compartment within a Scale that
+has outflow to fresh water (w1). The outflow is dependent on the
+fraction runoff going to lake (FracROWatComp) and the direct Rain on
+lake fresh water (RainOnFreshwater). The flow from lake to river at
+Regional and Continental scale is now calculated as:
+
+RainOnFreshwater + FracROWatComp\*SumRunoff
 
 ```{R Old LakeOut function, include=TRUE}
 x_LakeOutflow <- function (all.x_RiverDischarge, 
@@ -179,18 +204,23 @@ x_LakeOut <- function (RainOnFreshwater,
 
 # Change in k values for advection flows
 
+The below scripts should be run to compare two versions of SBoo.
+
 First remove all functions from the global environment to avoid errors
+
 ```{R Clean environment, include=FALSE}
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 ```
 
-TO DO: fetch development at a certain date instead of most recent version. This would ensure consequent outcomes of this comparison, no matter when the script is run.
+TO DO: fetch development at a certain date/commit hash instead of most
+recent version. This would ensure consequent outcomes of this
+comparison, no matter when the script is run.
 
 ```{R Specify directories, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
 library(tidyverse)
 
 # Define branches to test
-branches <- c("development", "FLux_work")
+branches <- c("main", "FLux_work")
 
 # Specify file paths for saving results
 result_files <- paste0("results_", branches, ".rds")
@@ -200,32 +230,54 @@ script_dir <-getwd()
 repo_dir <- file.path(getwd(), "..", "SBoo")
 ```
 
-As advection processes do not depend on substance variables, we only need to 
-compare the advection flows for one substance, in this case 1-aminoanthraquinone.
+As advection processes do not depend on substance variables, we only
+need to compare the advection flows for one substance, in this case
+1-aminoanthraquinone.
 
 <!-- # ```{R} -->
+
 <!-- # # Select 20 random substances from substances csv -->
+
 <!-- # substances <- read.csv("data/Substances.csv") -->
+
 <!-- # set.seed(123) -->
+
 <!-- # index_substance <- round(runif(20, min=1, max=nrow(substances))) -->
+
 <!-- #  -->
+
 <!-- # # Get names of substances at the selected indeces -->
+
 <!-- # substances <- substances[index_substance, ]   # Subset the rows -->
+
 <!-- # substance_names <- substances$Substance    # Assuming the column for names is 'SubstanceName' -->
+
 <!-- # ``` -->
 
 <!-- # ```{R} -->
+
 <!-- # substance_names <- c("1-aminoanthraquinone", # no class -->
+
 <!-- #                          "1-HYDROXYANTHRAQUINONE", # acid -->
+
 <!-- #                          "1-Hexadecanamine, N,N-dimethyl-", # base -->
+
 <!-- #                          "1-Chloro-2-nitro-propane", # neutral -->
+
 <!-- #                          "Sb(III)", # metal -->
+
 <!-- #                          "microplastic", # microplastic -->
+
 <!-- #                           "nAg_10nm" # particulate -->
+
 <!-- #                           )  -->
+
 <!-- # substances <- read.csv("data/Substances.csv") -->
+
 <!-- # substances <- substances |> -->
+
 <!-- #   filter(Substance %in% substance_names) -->
+
 <!-- # ``` -->
 
 ```{R Specify substance, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
@@ -239,11 +291,76 @@ substances <- substances |>
 # Switch to the correct Git directory
 setwd(repo_dir)
 
+# SBooscripts
+SBScriptsLink_test <- "https://github.com/rivm-syso/SBooScripts/archive/refs/heads/Fluxwork.zip"
+SBScriptsLink_Release <- "https://github.com/rivm-syso/SBooScripts/archive/refs/tags/2025.04.0.zip"
+
+SBooLink_test <- "https://github.com/rivm-syso/SBoo/archive/refs/heads/FLuxwork.zip"
+SBooLink_Release <- "https://github.com/rivm-syso/SBoo/archive/refs/tags/2025.04.0.zip"
+
+dest_file_SBScripts_test <- "C:/Temp/SBtest/SBooScripts.zip"
+dest_file_SBScripts_Release <- "C:/Temp/SBmain/SBooScripts.zip"
+dest_file_SBoo_test <- "C:/Temp/SBtest/SBoo.zip"
+dest_file_SBoo_Release <- "C:/Temp/SBmain/SBoo.zip"
+
+if(!dir.exists(str_sub(dest_file_SBScripts_test,1,-17))){
+  dir.create(str_sub(dest_file_SBScripts_test,1,-17))
+}
+if(!dir.exists(str_sub(dest_file_SBScripts_Release,1,-17))){
+  dir.create(str_sub(dest_file_SBScripts_Release,1,-17))
+}
+if(!dir.exists(dest_folder)){
+  dir.create(dest_folder)
+}
+zips_folder <- "C:/Temp/SBzips"
+if(!dir.exists(zips_folder)){
+  dir.create(zips_folder)
+}
+download.file(SBScriptsLink_test,paste0(zips_folder,"/zip1.zip"))
+download.file(SBScriptsLink_Release,paste0(zips_folder,"/zip2.zip"))
+download.file(SBooLink_test,paste0(zips_folder,"/zip3.zip"))
+download.file(SBooLink_Release,paste0(zips_folder,"/zip4.zip"))
+
+
+CompareFilesPrep <- function(Release_SB = "2025.04.0",
+                             Test = "Fluxwork",
+                             Temp_Folder = "C:/Temp" # an existing folder
+){
+  SBScriptsLink_test <- 
+    paste0("https://github.com/rivm-syso/SBooScripts/archive/refs/heads/",Test,".zip")
+  SBScriptsLink_Release <- 
+    paste0("https://github.com/rivm-syso/SBooScripts/archive/refs/tags/",Release,".zip")
+  
+  SBooLink_test <- 
+    paste0("https://github.com/rivm-syso/SBoo/archive/refs/heads/",Test,".zip")
+  SBooLink_Release <- 
+    paste0("https://github.com/rivm-syso/SBoo/archive/refs/tags/",Release,".zip")
+  
+  if(dir.exists(paste0(Temp_Folder,"/SBzips"))){
+      oldfiles <- list.files(paste0(Temp_Folder,"/SBzips"), full.names = TRUE)
+      file.remove(oldfiles)
+      print("Old SBoo zipfiles deleted")
+  }
+  
+   if(!dir.exists(paste0(Temp_Folder,"/SBzips"))){
+  dir.create(paste0(Temp_Folder,"/SBzips"))
+     print(paste0("Directory: ", Temp_Folder,"/SBzips", " created."))
+   } else print("SBzips directory already exists")
+
+  download.file(SBScriptsLink_test,paste0(Temp_Folder,"/SBzips/SBooScripts_",Test,".zip"))
+  download.file(SBooLink_test,paste0(Temp_Folder,"/SBzips/SBoo_",Test,".zip"))
+  download.file(SBScriptsLink_Release,paste0(Temp_Folder,"/SBzips/SBooScripts_",Release,".zip"))
+  download.file(SBooLink_Release,paste0(Temp_Folder,"/SBzips/SBoo_",Release,".zip"))
+  
+ 
+}
+
 # Checkout the branch
 branch <- branches[1]
 message("Switching to branch: ", branch)
 system(paste("git checkout -f ", branch))
 system("git pull", intern = TRUE)  # Ensure the branch is up-to-date
+system("git remote get-url origin")  # Ensure the branch is up-to-date
   
 setwd(script_dir)
 
@@ -398,12 +515,10 @@ table_for_display <- changed_kaas |>
 knitr::kable(table_for_display)
 ```
 
-From these figures and the table we can see that the flows between Continental sea and Moderate 
-sea are slightly higher in the new implementation than in the old implementation. 
+From these figures and the table we can see that the flows between
+Continental sea and Moderate sea are slightly higher in the new
+implementation than in the old implementation.
 
-The flows from lake to river on Regional and Continental scale changed the most;
-relatively a fraction of +- -0.3. So the flow is lower in the new implementation 
-than in the old implementation.
-
-
-
+The flows from lake to river on Regional and Continental scale changed
+the most; relatively a fraction of +- -0.3. So the flow is lower in the
+new implementation than in the old implementation.
