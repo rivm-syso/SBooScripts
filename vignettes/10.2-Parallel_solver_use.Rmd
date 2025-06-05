@@ -126,7 +126,8 @@ var_invFun <- World$makeInvFuns(var_box_df)
 
 load("data/Examples/example_uncertain_data.RData")
 
-emissions <- example_data |>
+example_data <- 
+  example_data |>
   select(To_Compartment, `2020`, `2021`,`2022`, `2023`, RUN) |>
   pivot_longer(!c(To_Compartment, RUN), names_to = "year", values_to = "Emis") |>
   mutate(Abbr = case_when(
@@ -135,13 +136,24 @@ emissions <- example_data |>
     To_Compartment == "Surface water (micro)" ~ "w1RS"
   )) |>
   select(-To_Compartment) |>
-  mutate(Time = ((as.numeric(year)-2019)*365.25*24*3600)) |>
-  mutate(Emis = (Emis*1000)/(365.25*24*3600)) |> # Convert t/year to kg/s
+  mutate(Time = ((as.numeric(year))*365.25*24*3600)) |>
+  mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> # Convert kt/year to kg/s
   select(-year)
 
-tmax <- 365.25*24*60*60*length(unique(emissions$Time))
+# The raw emission data from 2020 to 2023 will not solve due to instability in the intital state starting at 0. This can be solved by starting at t=0 and mass=0 see below:
 
-nTIMES <- length(seq(0, tmax, length.out = 10))
+emissions <-
+  example_data |> 
+  mutate(Time = Time - 2019*365.25*24*3600) |> # converting to 0 being one year before 2020
+  full_join(expand.grid(Abbr = unique(example_data$Abbr), 
+                        RUN = c(1:20)) |> 
+              mutate(Time = 0,
+                     Emis = 0))
+
+tmin <- min(emissions$Time)
+tmax <- max(emissions$Time)
+
+nTIMES <- 10
 ```
 
 Now call World$Solve() as below: with emissions = NULL and ParallelPreparation = T. 
