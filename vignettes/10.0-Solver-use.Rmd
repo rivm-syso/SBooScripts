@@ -452,7 +452,7 @@ example_data <-
   mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> # Convert kt/year to kg/s
   select(-year)
 
-# The raw emission data from 2020 to 2023 will not solve due to unstability in the intital state starting at 0. This can be solved by starting at t=0 and mass=0 see below:
+# The raw emission data from 2020 to 2023 will not solve due to instability in the intital state starting at 0. This can be solved by starting at t=0 and mass=0 see below:
 
 example_data <-
   example_data |> 
@@ -506,7 +506,8 @@ nTIMES <- length(seq(0, tmax, length.out = 10))
 World$Solve(emissions = example_data, 
             var_box_df = Example_vars, 
             var_invFun = varFuns, 
-            nRUNs = length(unique(example_data$RUN)), tmin = tmin,
+            nRUNs = length(unique(example_data$RUN)), 
+            tmin = tmin,
             tmax = tmax, 
             nTIMES = nTIMES)
 
