@@ -1,5 +1,4 @@
 ###################### Step 1: load the scaled samples
-
 LHSsamples <- readRDS("data/scaledLHSsamples.RDS")
 
 ###################### Step 2: Prepare emissions and LHS samples for parallel solving
@@ -45,7 +44,6 @@ for (run in runs_distribution) {
 }
 
 ###################### Step 3: Solve in parallel
-
 nSlices <- length(emis_slices)
 
 cl <- makeCluster(nCores)
