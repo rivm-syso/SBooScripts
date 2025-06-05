@@ -83,7 +83,7 @@ for(i in unique(correlations$Polymer)){
 }
 
 ##### Create the batch files for running SimpleBox
-load(paste0(data_folder, "DPMFA_SBinput_20250602.RData"))
+load(paste0(data_folder, "DPMFA_SBinput_20250519.RData"))
 
 emis_list <- list()
 
@@ -96,6 +96,7 @@ for(i in unique(DPMFA_sink_micro$Polymer)){
 }
 
 variable_list <- list()
+lhs_list <- list()
 
 # Split the variable values per polymer
 for(i in unique(Material_Parameters$Polymer)){
@@ -103,9 +104,33 @@ for(i in unique(Material_Parameters$Polymer)){
     filter(Polymer == i)
   
   variable_list[[i]] <- variable_df
+  
+  Correlations <- correlation_list[[i]]
+  
+  # Prepare the LHS samples
+  source("baseScripts/initWorld_onlyPlastics.R")
+  if(i %in% c("NR", "SBR")){
+    World$substance <- "TRWP"
+  } else {
+    World$substance <- "microplastic"  
+  }
+  
+  variable_distributions <- World$makeInvFuns(variable_df)
+  
+  World$NewSolver("DynamicSolver")
+  World$Solve(emissions = NULL, 
+              var_box_df = variable_df, 
+              var_invFun = variable_distributions, 
+              nRUNs = length(unique(emis_list[[i]]$RUN)), 
+              correlations = Correlations, 
+              ParallelPreparation = T)
+  
+  LHSsamples <- readRDS("data/scaledLHSsamples.RDS")
+  lhs_list[[i]] <- LHSsamples
 }
 
 # Save the variables and the emissions to the Data folder
+save(lhs_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/lhs_list.RData")
 save(emis_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/emis_list.RData")
 save(variable_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/variable_list.RData")
 save(correlation_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/correlation_list.RData")
@@ -114,7 +139,40 @@ save(correlation_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/correlation_
 
 # Define the folder path
 folder_path <- "vignettes/CaseStudies/MOMENTUM2/BatchFiles"
+
+if (!dir.exists(folder_path)) {
+  # The folder does not exist, so create it
+  dir.create(folder_path, recursive = TRUE)
+  cat("Folder created:", folder_path, "\n")
+} else {
+  # The folder already exists, so empty it
+  files <- list.files(folder_path, full.names = TRUE) # List all files in the folder
+  if (length(files) > 0) {
+    file.remove(files) # Remove all files
+    cat(length(files), "files removed from folder:", folder_path, "\n")
+  } else {
+    cat("Folder already exists and is already empty:", folder_path, "\n")
+  }
+}
+
 filepaths <- c()
+
+# Define runs per batch and total runs
+runs_per_batch <- 10
+total_runs <- length(unique(emissions$RUN))
+
+# Calculate the max batch number
+batch_max <- ceiling(total_runs / runs_per_batch)
+
+# Create the pars dataframe
+pars <- expand.grid(
+  MaxRun = seq(runs_per_batch, runs_per_batch * batch_max, runs_per_batch)
+) |>
+  mutate(
+    MinRun = MaxRun - (runs_per_batch - 1),
+    # Ensure MaxRun doesn't exceed total_runs
+    MaxRun = ifelse(MaxRun > total_runs, total_runs, MaxRun)
+  )
 
 # Check if the folder exists
 if (dir.exists(folder_path)) {
@@ -128,32 +186,64 @@ if (dir.exists(folder_path)) {
   dir.create(folder_path)
 }
 
-for(polymer in unique(Material_Parameters$Polymer)){
-  file <- readLines("vignettes/CaseStudies/MOMENTUM2/SB_run.R")
-  
-  target_string_runs <- "polymer <- "
-  replacement_string_runs <- paste0("polymer <- ", '"', polymer, '"')
-  
-  line_index <- grep(paste0("^", target_string_runs), file)
-  
-  if (length(line_index) > 0) {
-    file[line_index] <- replacement_string_runs
-  } else {
-    message("String not found in file.")
+pathname <- "vignettes/CaseStudies/MOMENTUM2/BatchFiles/"
+filepaths <- list()
+
+for(i in 1:nrow(pars)){
+  for(polymer in unique(Material_Parameters$Polymer)){
+    # Read in the file
+    file <- readLines("vignettes/CaseStudies/MOMENTUM2/SB_run.R")
+    
+    # Change the polymer to the current polymer
+    target_string_polymer <- "polymer <- "
+    replacement_string_polymer <- paste0("polymer <- ", '"', polymer, '"')
+    
+    line_index <- grep(paste0("^", target_string_polymer), file)
+    
+    if (length(line_index) > 0) {
+      file[line_index] <- replacement_string_polymer
+    } else {
+      message("String not found in file.")
+    }
+    
+    # Change minrun and maxrun to current runs
+    minrun <- pars[i,]$MinRun
+    maxrun <- pars[i,]$MaxRun
+    
+    target_string_minrun <- "minrun <- "
+    replacement_string_minrun <- paste0("minrun <- ", minrun)
+    
+    line_index <- grep(paste0("^", target_string_minrun), file)
+    
+    if (length(line_index) > 0) {
+      file[line_index] <- replacement_string_minrun
+    } else {
+      message("String not found in file.")
+    }
+    
+    target_string_maxrun <- "maxrun <- "
+    replacement_string_maxrun <- paste0("maxrun <- ", maxrun)
+    
+    line_index <- grep(paste0("^", target_string_maxrun), file)
+    
+    if (length(line_index) > 0) {
+      file[line_index] <- replacement_string_maxrun
+    } else {
+      message("String not found in file.")
+    }
+    
+    filename <- paste0("SB_run_", polymer, "_", as.character(minrun), "_", as.character(maxrun), ".R")
+    
+    filepath <- paste0(pathname, filename)
+    filepaths <- c(filepaths, filepath)
+    
+    writeLines(file, filepath)
   }
- 
-  pathname <- "vignettes/CaseStudies/MOMENTUM2/BatchFiles/"
-  filename <- paste0("SB_run_", polymer, ".R")
-  
-  filepath <- paste0(pathname, filename)
-  filepaths <- c(filepaths, filepath)
-  
-  writeLines(file, filepath)
 }
 
 # Now write HPC commands into a txt file
 mb <- 30
-time <- 5000
+time <- 10*batch_max
 
 # Make a string with the needed information for the cluster
 LSF_string <- paste0("bsub -n 1 -e err.txt -o out.txt -W ", time, " -M ", mb, " Rscript")

@@ -22,8 +22,13 @@ if (!dir.exists(output_folder)) {
 load(paste0(input_folder, "emis_list.RData"))
 load(paste0(input_folder, "variable_list.RData"))
 load(paste0(input_folder, "correlation_list.RData"))
+load(paste0(input_folder, "lhs_list.RData"))
 
 polymer <- "Acryl"
+minrun <- 5
+maxrun <- 6
+
+runs <- minrun:maxrun
 
 source("baseScripts/initWorld_onlyPlastics.R")
 if(polymer %in% c("NR", "SBR")){
@@ -48,34 +53,58 @@ World$UpdateDirty(unique(Regional_Parameters$varName))
 
 # Get variable values, emissions and variable functions for the polymer
 emissions <- emis_list[[polymer]] 
+
+start_year <- (min(emissions$Time)/(365.25*24*60*60))-1
+
+emissions <- emissions |> 
+  filter(RUN %in% runs) |>
+  mutate(Time = Time - start_year*365.25*24*60*60) |> # converting to 0 being one year before the year the data starts
+  full_join(expand.grid(Abbr = unique(emissions$Abbr), 
+                        RUN = runs) |> 
+              mutate(Time = 0,
+                     Emis = 0)) |>
+  select(-Polymer)
+
 variable_df <- variable_list[[polymer]]
+
 variable_distributions <- World$makeInvFuns(variable_df)
 Correlations <- correlation_list[[polymer]]
 
-nRUNs = length(unique(emissions$RUN))
+lhs_samples <- lhs_list[[polymer]]
+lhs_samples <- lhs_samples[,runs]
+
+nRUNs = length(runs)
 tmin = min(emissions$Time)
 tmax = max(emissions$Time)
 nTIMES = length(unique(emissions$Time))
 
 # Solve
 World$NewSolver("DynamicSolver")
-World$Solve(emissions = emissions, var_box_df = variable_df, var_invFun = variable_distributions, nRUNs = nRUNs, tmin = tmin, tmax = tmax, nTIMES = nTIMES, correlations = Correlations)
+World$Solve(emissions = emissions, 
+            LHSmatrix = lhs_samples, 
+            var_box_df = variable_df, 
+            var_invFun = variable_distributions, 
+            nRUNs = nRUNs, 
+            tmin = tmin, 
+            tmax = tmax, 
+            nTIMES = nTIMES, 
+            correlations = Correlations)
 
 output_masses <- World$Masses() |>
-  mutate(year = as.numeric(time)/(365.25*24*60*60)) |>
+  mutate(year = (as.numeric(time)/(365.25*24*60*60)) + as.numeric(start_year)) |>
   select(-time)
 output_emissions <- World$Emissions() |>
-  mutate(year = as.numeric(time)/(365.25*24*60*60)) |>
+  mutate(year = (as.numeric(time)/(365.25*24*60*60)) + as.numeric(start_year)) |>
   select(-time)
 output_concentrations <- World$Concentration() |>
-  mutate(year = as.numeric(time)/(365.25*24*60*60)) |>
+  mutate(year = (as.numeric(time)/(365.25*24*60*60)) + as.numeric(start_year)) |>
   select(-time)
 output_variables <- World$VariableValues() 
 
-save(output_masses, file = paste0(output_folder, "Masses_", polymer))
-save(output_emissions, file = paste0(output_folder, "Emissions_", polymer))
-save(output_concentrations, file = paste0(output_folder, "Concentrations_", polymer))
-save(output_variables, file = paste0(output_folder, "Variables_", polymer))
+save(output_masses, file = paste0(output_folder, "Masses_", polymer, "_", as.character(minrun), "_", as.character(maxrun)))
+save(output_emissions, file = paste0(output_folder, "Emissions_", polymer, "_", as.character(minrun), "_", as.character(maxrun)))
+save(output_concentrations, file = paste0(output_folder, "Concentrations_", polymer, "_", as.character(minrun), "_", as.character(maxrun)))
+save(output_variables, file = paste0(output_folder, "Variables_", polymer, "_", as.character(minrun), "_", as.character(maxrun)))
 
 endtime <- Sys.time()
 elapsed_time <- endtime-starttime

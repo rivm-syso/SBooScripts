@@ -24,7 +24,8 @@ concentration_files <- files[startsWith(files, "Concentrations")]
 for(file in concentration_files){
   load(paste0(data_folder, "/", file))
   
-  polymer <- gsub("Concentrations_", "", file)
+  # Extract polymer
+  polymer <- gsub("Concentrations_(.*?)_\\d+_\\d+", "\\1", file)
   
   all_conc <- output_concentrations |>
     left_join(states, by = "Abbr", relationship = "many-to-many") |> # join the states to the df
@@ -49,8 +50,9 @@ emission_files <- files[startsWith(files, "Emissions")]
 
 for(file in emission_files){
   load(paste0(data_folder, "/", file))
-  
-  polymer <- gsub("Emissions_", "", file)
+
+  # Extract polymer
+  polymer <- gsub("Emissions_(.*?)_\\d+_\\d+", "\\1", file)
   
   all_emis <- output_emissions |>
     left_join(states, by = "Abbr", relationship = "many-to-many") |> # join the states to the df
@@ -76,8 +78,9 @@ mass_files <- files[startsWith(files, "Masses")]
 for(file in mass_files){
   load(paste0(data_folder, "/", file))
   
-  polymer <- gsub("Masses_", "", file)
-  
+  # Extract polymer
+  polymer <- gsub("Masses_(.*?)_\\d+_\\d+", "\\1", file)
+
   all_mass <- output_masses |>
     left_join(states, by = "Abbr", relationship = "many-to-many") |> # join the states to the df
     filter(Scale %in% c("Regional", "Continental")) |> # select only the regional and continental scales
@@ -105,6 +108,14 @@ for(file in var_files){
 
 #### Save the outcomes
 data_folder <- "vignettes/CaseStudies/MOMENTUM2/Bound_data/"
+
+# Check if the folder exists, and create it if it doesn't
+if (!dir.exists(data_folder)) {
+  dir.create(data_folder, recursive = TRUE)  # `recursive = TRUE` ensures that parent directories are created if needed
+  message("Bound_data folder created: ", data_folder)
+} else {
+  message("Bound_data folder already exists: ", data_folder)
+}
 
 save(all_concentrations, file = paste0(data_folder, "All_concentrations_", 
                                      format(Sys.Date(),"%Y%m%d"),".RData"))
