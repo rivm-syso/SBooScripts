@@ -21,6 +21,7 @@ if(extra_runs != 0){
   # Overwrite the last batch with the number in extra_runs
   runs_distribution[length(runs_distribution)] <- extra_runs
 }
+
 # Split emissions data into chunks based on computed runs_distribution
 emis_slices <- list()
 start_index <- 1
@@ -49,20 +50,23 @@ cl <- makeCluster(nCores)
 registerDoParallel(cl)
 
 processSlice <- function(i) {
-  # Source fakeLib inside each parallel job to ensure full functionality of World
+  # Source required scripts
   source("baseScripts/fakeLib.R")
   
-  # Load a fresh instance of World to avoid mutability issues
+  # Load World object
   localWorld <- readRDS("data/World.RDS")
+
+  # Perform computations
+  localWorld$Solve(
+    emissions = emis_slices[[i]], 
+    LHSmatrix = LHS_slices[[i]], 
+    nRUNs = length(unique(emis_slices[[i]]$RUN)),
+    tmin = tmin,
+    tmax = tmax,
+    nTIMES = nTIMES
+  )
   
-  # Perform computations using localWorld and functions from fakeLib
-  localWorld$Solve(emissions = emis_slices[[i]], 
-                   LHSmatrix = LHS_slices[[i]], 
-                   nRUNs = length(unique(emis_slices[[i]]$RUN)),
-                   tmax = tmax,
-                   nTIMES = nTIMES)
-  
-  # Create a result list to return
+  # Return results
   result_list <- list(
     SliceID = i,
     Masses = localWorld$Masses(),
@@ -70,7 +74,6 @@ processSlice <- function(i) {
     Emissions = localWorld$Emissions(),
     Variables = localWorld$VariableValues()
   )
-  
   return(result_list)
 }
 
@@ -93,3 +96,4 @@ Solution <- list(
   Concentrations = concentrationsCombined,
   Emissions = emissionsCombined,
   Variables = variablesCombined)
+
