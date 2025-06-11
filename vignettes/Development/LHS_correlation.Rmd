@@ -10,10 +10,10 @@ editor_options:
 ---
 
 ```{R setup}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+# knitr::knit_meta()
+# knitr::opts_chunk$set(echo = TRUE)
+# projectRoot <- paste(getwd(), "..", "..", sep = "/")
+# knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
 ```
 
 ## Initialize World
@@ -78,7 +78,7 @@ corresponding subcompartments. For example, if Water is entered, the
 correlation is used for river, lake, sea and deepocean.
 
 | Compartment | SubCompartments |
-|----|----|
+|------------------------------------|------------------------------------|
 | Soil | agriculturalsoil, naturalsoil, othersoil |
 | Water | river, lake, sea, deepocean |
 | Sediment | freshwatersediment, lakesediment, marinesediment |
@@ -95,8 +95,7 @@ World$NewSolver("SteadyStateSolver")
 # Solve 
 World$Solve(emissions = example_data, var_box_df = Example_vars, var_invFun = varFuns, nRUNs = length(unique(example_data$RUN)), correlations = Correlations)
 
-variable_values <- World$VariableValues()
-print(head(vars))
+print(head(World$VariableValues()))
 ```
 
 ## Plot the correlations
@@ -109,17 +108,18 @@ each other.
 # Plot correlation matrix to check
 library(corrplot)
 
-variable_values <- variable_values |>
+transformed_lhs <- World$VariableValues() |>
   #filter(is.na(SubCompart) | SubCompart == "naturalsoil" | SubCompart == "sea" | SubCompart == "freshwatersediment") |>
-  filter(is.na(Species) | Species == "Solid") |>
+  # filter(is.na(Species) | Species == "Solid") |>
   mutate(varname = paste0(varName, "_", Scale, "_", SubCompart, "_", Species)) |>
   select(varname, Waarde,RUNs) |>
-  pivot_wider(names_from = varname, values_from = Waarde) |>
-  select(-RUNs)
+  pivot_wider(names_from = varname, values_from = Waarde)
+  # select(-RUNs)
 
-transformed_lhs <- as.matrix(variable_values)
+# transformed_lhs <- as.matrix(variable_values)
 
-result_corr_matrix <- cor(transformed_lhs) # correlation matrix
+result_corr_matrix <- cor(transformed_lhs[,-1], 
+                          method = "pearson") # correlation matrix
 
 # Compare actual vs. desired correlations
 Correlations$actual_correlation <- NA
