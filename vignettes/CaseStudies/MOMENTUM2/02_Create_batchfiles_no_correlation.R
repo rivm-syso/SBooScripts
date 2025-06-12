@@ -242,7 +242,7 @@ for(i in 1:nrow(pars)){
 }
 
 # Now write HPC commands into a txt file
-mb <- 30
+mb <- 300*batch_max
 time <- 10*batch_max
 
 # Make a string with the needed information for the cluster
