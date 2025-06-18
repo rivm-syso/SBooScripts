@@ -110,4 +110,4 @@ save(output_variables, file = paste0(output_folder, "Variables_", polymer, "_", 
 endtime <- Sys.time()
 elapsed_time <- endtime-starttime
 
-print(paste0("Elapses time is ", elapsed_time))
+print(paste0("Elapsed time is ", elapsed_time))
