@@ -9,7 +9,7 @@ editor_options:
     wrap: 72
 ---
 
-```{R setup}
+```{R setup, include=FALSE, warning=FALSE, message=FALSE}
 # knitr::knit_meta()
 # knitr::opts_chunk$set(echo = TRUE)
 # projectRoot <- paste(getwd(), "..", "..", sep = "/")
@@ -18,13 +18,13 @@ editor_options:
 
 ## Initialize World
 
-```{R initialize the World}
+```{R initialize the World, message = FALSE, warning=FALSE}
 source('baseScripts/initWorld_onlyPlastics.R')
 ```
 
 ## Load data
 
-```{R Load data}
+```{R Load data, message = FALSE, warning=FALSE}
 # Load the Excel file containing example distributions for variables
 Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables_correlation.xlsx", sheet = "Variable_data")
 Correlations <- readxl::read_xlsx("data/Examples/Example_uncertain_variables_correlation.xlsx", sheet = "Correlation")
@@ -52,8 +52,8 @@ Important for using the LHS correlations is providing a correlation
 table. This table specifies which variables are correlated, and how
 strong the correlation is. The table should have this structure:
 
-```{R Show correlation table}
-print(Correlations)
+```{R Show correlation table, message = FALSE, warning=FALSE}
+knitr::kable(Correlations)
 ```
 
 When entries in a column are NA, the same correlation is used for all
@@ -88,14 +88,12 @@ correlation is used for river, lake, sea and deepocean.
 
 ## Solve using correlations
 
-```{R Solve}
+```{R Solve, message = FALSE, warning=FALSE}
 # Call the steady state solver
 World$NewSolver("SteadyStateSolver")
 
 # Solve 
 World$Solve(emissions = example_data, var_box_df = Example_vars, var_invFun = varFuns, nRUNs = length(unique(example_data$RUN)), correlations = Correlations)
-
-print(head(World$VariableValues()))
 ```
 
 ## Plot the correlations
@@ -104,50 +102,57 @@ The heatmap below shows that the correlation worked! The variables we
 specified in the correlation table are indeed strongly correlated to
 each other.
 
-```{R Plot}
+```{R Plot, message = FALSE, warning=FALSE}
 # Plot correlation matrix to check
 library(corrplot)
 
-transformed_lhs <- World$VariableValues() |>
-  #filter(is.na(SubCompart) | SubCompart == "naturalsoil" | SubCompart == "sea" | SubCompart == "freshwatersediment") |>
-  # filter(is.na(Species) | Species == "Solid") |>
+variable_values <- World$VariableValues() |>
   mutate(varname = paste0(varName, "_", Scale, "_", SubCompart, "_", Species)) |>
   select(varname, Waarde,RUNs) |>
   pivot_wider(names_from = varname, values_from = Waarde)
-  # select(-RUNs)
 
-# transformed_lhs <- as.matrix(variable_values)
+transformed_lhs <- as.matrix(variable_values)
 
 result_corr_matrix <- cor(transformed_lhs[,-1], 
                           method = "pearson") # correlation matrix
 
-# Compare actual vs. desired correlations
-Correlations$actual_correlation <- NA
-for (i in seq_len(nrow(Correlations))) {
-  var_1 <- Correlations$varName_1[i]
-  var_2 <- Correlations$varName_2[i]
-  
-  # Get corresponding columns
-  col_1 <- which(colnames(transformed_lhs) == var_1)
-  col_2 <- which(colnames(transformed_lhs) == var_2)
-  
-  if (length(col_1) > 0 & length(col_2) > 0) {
-    Correlations$actual_correlation[i] <- result_corr_matrix[col_1, col_2]
-  }
-}
-
-# Print the desired vs. actual correlations
-print(Correlations)
-
-### Step 6: Visualize Results
-# Scatter plots of selected pairs for visual inspection
-pairs(transformed_lhs, main = "Scatter Plots of Variables")
+# Visualize Results
 
 # Full correlation matrix heatmap
 library(reshape2)
 library(ggplot2)
 
 melted_corr_matrix <- melt(result_corr_matrix)
+
+# Calculate and print the mean correlations 
+mean_correlations <- melted_corr_matrix |>
+  separate(
+    Var1, 
+    into = c("VarName1", "Scale1", "SubCompart1", "Species1"), 
+    sep = "_") |>
+    separate(
+    Var2, 
+    into = c("VarName2", "Scale2", "SubCompart2", "Species2"), 
+    sep = "_") |>
+  mutate(Compartment1 = case_when(
+    str_detect(SubCompart1, "soil") ~ "Soil",
+    str_detect(SubCompart1, "sediment") ~ "Sediment",
+    SubCompart1 %in% c("air", "cloudwater") ~ "Air", 
+    str_detect(SubCompart1, "NA") ~ "NA",
+    TRUE ~ "Water"
+  )) |>
+    mutate(Compartment2 = case_when(
+    str_detect(SubCompart2, "soil") ~ "Soil",
+    str_detect(SubCompart2, "sediment") ~ "Sediment",
+    SubCompart2 %in% c("air", "cloudwater") ~ "Air", 
+    str_detect(SubCompart2, "NA") ~ "NA",
+    TRUE ~ "Water"
+  )) |>
+  group_by(VarName1, VarName2, Compartment1, Compartment2, Species1, Species2) |>
+  summarise(Mean_correlation = mean(value))
+
+knitr::kable(mean_correlations)
+
 ggplot(melted_corr_matrix, aes(x = Var1, y = Var2, fill = value)) +
   geom_tile() +
   scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0,
@@ -155,5 +160,4 @@ ggplot(melted_corr_matrix, aes(x = Var1, y = Var2, fill = value)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
   ggtitle("Correlation Matrix Heatmap")
-
 ```
