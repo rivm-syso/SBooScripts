@@ -6,6 +6,7 @@
 ################################################################################
 
 library(tidyverse)
+library(triangle)
 
 # Define file paths
 data_folder <- "vignettes/CaseStudies/MOMENTUM2/Data/"
