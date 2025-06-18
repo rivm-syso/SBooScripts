@@ -17,6 +17,9 @@ Load packages
 library(tidyverse)
 library(readxl)
 library(scales)
+
+figurefolder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/Figures/" # Define figure folder path
+
 ```
 
 ```{R Load measurement data}
@@ -56,10 +59,52 @@ measurements_per_subcompart <- all_measurements |>
   group_by(SubCompart, Scale) |>
   summarise(observations = n())
 
-ggplot(measurements_per_subcompart, aes(x = SubCompart, y = observations, fill = Scale)) +
+Figure = ggplot(measurements_per_subcompart, aes(x = SubCompart, y = observations, fill = Scale)) +
   geom_col(position = "dodge") +
-  labs(x = "Sub-Compartment", y = "Number of Observations", fill = "Scale") +
+  labs(x = "Sub-Compartment", y = "Number of observations", fill = "Scale") +
   theme(legend.title = element_blank())+
   plot_theme
 
+Figure 
+
+ggsave(paste0(figurefolder, "Observations_per_subcompart_per_scale.png"), plot = Figure, width = 20, height = 23, dpi = 1000)
+
+```
+
+Figure countries and number of datapoints
+```{R}
+measurements_per_country <- all_measurements |>
+  group_by(country) |>
+  summarise(observations = n())
+
+Figure = ggplot(measurements_per_country, aes(x = reorder(country, -observations), y = observations, fill = country)) +
+  geom_col(position = "dodge") +
+  labs(x = "Country", y = "Number of observations") +
+  theme(legend.position = "none") +  # This removes the legend
+  plot_theme
+
+Figure 
+
+ggsave(paste0(figurefolder, "Observations_per_country.png"), plot = Figure, width = 20, height = 23, dpi = 1000)
+```
+
+Figure mass vs particle datapoints
+```{R}
+measurements_per_type <- all_measurements |>
+  mutate(measurement_type = case_when(
+         str_detect(concentration_unit, "#") ~ "Number of particles",
+         TRUE ~ "Mass")) |> 
+  group_by(measurement_type) |>
+  summarise(observations = n())
+
+Figure <- ggplot(measurements_per_type, 
+       aes(x = reorder(measurement_type, -observations), y = observations)) +
+  geom_col(position = "dodge", fill = "#00C0AF") +  # Set fill color directly here
+  labs(x = "Measurement Unit", y = "Number of Observations") +
+  theme(legend.position = "none") +  # Removes the legend
+  plot_theme
+
+Figure 
+
+ggsave(paste0(figurefolder, "Observations_per_unit.png"), plot = Figure, width = 20, height = 23, dpi = 1000)
 ```
