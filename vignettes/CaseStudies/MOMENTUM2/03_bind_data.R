@@ -96,14 +96,28 @@ for(file in mass_files){
 }
 
 #### Bind variable data
+load("vignettes/CaseStudies/MOMENTUM2/Data/lhs_list.RData")
+
 all_variables <- data.frame()
 
-files <- list.files(data_folder)
-var_files <- files[startsWith(files, "Variable")]
-
-for(file in var_files){
-  load(paste0(data_folder, "/", file))
-  all_variables <- rbind(all_variables, output_variables)
+for(i in names(lhs_list)){
+  variable_matrix <- lhs_list[[i]]
+  variable_df <- as.data.frame(variable_matrix) |>
+    mutate(variable = rownames(variable_matrix)) |>  # Ensure rownames are assigned correctly
+    pivot_longer(
+      cols = -variable,               # Exclude the `variable` column from pivoting
+      names_to = "RUN",               # Column names of the matrix go into "RUN"
+      values_to = "value"             # Corresponding values go into "value"
+    ) |>
+    mutate(RUN = as.numeric(str_remove(RUN, "V"))) |>
+    mutate(Polymer = i) |>
+    mutate(VarName = str_split_i(variable, " ", 1),
+           Scale = str_split_i(variable, " ", 2),
+           SubCompart = str_split_i(variable, " ", 3),
+           Species = str_split_i(variable, " ", 4)) |>
+    select(-variable)
+  
+  all_variables <- rbind(all_variables, variable_df)
 }
 
 #### Save the outcomes
