@@ -1,0 +1,107 @@
+################################################################################
+# Standard script for running SB for one polymer for Momentum2 
+# Task 6.2.2
+# 19-5-2025
+# Anne Hids and Joris Quik
+################################################################################
+starttime <- Sys.time()
+data_folder <- "vignettes/CaseStudies/MOMENTUM2/Data/"
+
+path_parameters_file <- paste0(data_folder, "Microplastic_variables_MOMENTUM2_one_polymer.xlsx")
+input_folder <- "vignettes/CaseStudies/MOMENTUM2/Data/"
+output_folder <- "vignettes/CaseStudies/MOMENTUM2/Output_general/"
+
+# Check if the folder exists, and create it if it doesn't
+if (!dir.exists(output_folder)) {
+  dir.create(output_folder, recursive = TRUE)  # `recursive = TRUE` ensures that parent directories are created if needed
+  message("Output folder created: ", output_folder)
+} else {
+  message("Output folder already exists: ", output_folder)
+}
+
+load(paste0(input_folder, "emis_list_general.RData"))
+load(paste0(input_folder, "variable_list_general.RData"))
+load(paste0(input_folder, "correlation_list_general.RData"))
+load(paste0(input_folder, "lhs_list_general.RData"))
+
+polymer <- "General"
+minrun <- 5
+maxrun <- 6
+
+runs <- minrun:maxrun
+
+source("baseScripts/initWorld_onlyPlastics.R")
+
+# Alter landscape parameters
+# Read in data to change Regional scale to fit NL scale DPMFA data
+Regional_Parameters <- readxl::read_excel(path_parameters_file, sheet = "Netherlands_data") |>
+  rename(varName = Variable) |>
+  rename(Waarde = Value) |>
+  select(-Unit) 
+
+Regional_Parameters <- Regional_Parameters |>
+  select(!starts_with("."))
+
+# Recalculate the area's
+World$mutateVars(Regional_Parameters)
+World$UpdateDirty(unique(Regional_Parameters$varName))
+
+# Get variable values, emissions and variable functions for the polymer
+emissions <- emis_list[[polymer]] 
+
+start_year <- (min(emissions$Time)/(365.25*24*60*60))-1
+
+emissions <- emissions |> 
+  filter(RUN %in% runs) |>
+  mutate(Time = Time - start_year*365.25*24*60*60) |> # converting to 0 being one year before the year the data starts
+  full_join(expand.grid(Abbr = unique(emissions$Abbr), 
+                        RUN = runs) |> 
+              mutate(Time = 0,
+                     Emis = 0)) |>
+  select(-Polymer)
+
+variable_df <- variable_list[[polymer]]
+
+variable_distributions <- World$makeInvFuns(variable_df)
+Correlations <- correlation_list[[polymer]]
+
+lhs_samples <- lhs_list[[polymer]]
+lhs_samples <- lhs_samples[,runs]
+
+nRUNs = length(runs)
+tmin = min(emissions$Time)
+tmax = max(emissions$Time)
+nTIMES = length(unique(emissions$Time))
+
+# Solve
+World$NewSolver("DynamicSolver")
+World$Solve(emissions = emissions, 
+            LHSmatrix = lhs_samples, 
+            var_box_df = variable_df, 
+            var_invFun = variable_distributions, 
+            nRUNs = nRUNs, 
+            tmin = tmin, 
+            tmax = tmax, 
+            nTIMES = nTIMES, 
+            correlations = Correlations)
+
+output_masses <- World$Masses() |>
+  mutate(year = (as.numeric(time)/(365.25*24*60*60)) + as.numeric(start_year)) |>
+  select(-time)
+output_emissions <- World$Emissions() |>
+  mutate(year = (as.numeric(time)/(365.25*24*60*60)) + as.numeric(start_year)) |>
+  select(-time)
+output_concentrations <- World$Concentration() |>
+  mutate(year = (as.numeric(time)/(365.25*24*60*60)) + as.numeric(start_year)) |>
+  select(-time)
+output_variables <- World$VariableValues() 
+
+save(output_masses, file = paste0(output_folder, "Masses_", polymer, "_", as.character(minrun), "_", as.character(maxrun)))
+save(output_emissions, file = paste0(output_folder, "Emissions_", polymer, "_", as.character(minrun), "_", as.character(maxrun)))
+save(output_concentrations, file = paste0(output_folder, "Concentrations_", polymer, "_", as.character(minrun), "_", as.character(maxrun)))
+save(output_variables, file = paste0(output_folder, "Variables_", polymer, "_", as.character(minrun), "_", as.character(maxrun)))
+
+endtime <- Sys.time()
+elapsed_time <- endtime-starttime
+
+print(paste0("Elapses time is ", elapsed_time))

@@ -9,7 +9,7 @@ library(tidyverse)
 
 data_folder <- "vignettes/CaseStudies/MOMENTUM2/Data/"
 
-path_parameters_file <- paste0(data_folder, "Microplastic_variables_MOMENTUM2.xlsx")
+path_parameters_file <- paste0(data_folder, "Microplastic_variables_MOMENTUM2_one_polymer.xlsx")
   
 ##### Prepare variable data
 Material_Parameters <- readxl::read_excel(path_parameters_file, sheet = "Polymer_data") |> 
@@ -26,51 +26,53 @@ Material_Parameters <- readxl::read_excel(path_parameters_file, sheet = "Polymer
 
 # Select the needed columns
 Material_Parameters <- Material_Parameters |>
-  select(!starts_with("."))
+  select(!starts_with(".")) |>
+  mutate(Polymer = "General")
+# 
+# # Define the name of 'other' polymers
+# materials <- c("ABS", "Acryl", "EPS", "HDPE", "LDPE", "OTHER", "PA", "PC", "PET", "PMMA", "PP", "PS", "PUR", "PVC", "RUBBER")
+# 
+# explodeF <- function(df, target_col, explode_value, new_values) {
+#   df |>
+#     # Use mutate to create a new column if the target column equals explode_value
+#     mutate(!!sym(target_col) := ifelse(!!sym(target_col) == explode_value, list(new_values), !!sym(target_col))) %>%
+#     # Unnest the target column to duplicate rows
+#     unnest(!!sym(target_col))
+# }
+# 
+# suppressWarnings({
+#   Material_Parameters <- explodeF(Material_Parameters, target_col = "Polymer", explode_value = "any", new_values = materials) # move this after and save unique values (n=same as in xlsx)
+# })
 
-# Define the name of 'other' polymers
-materials <- c("ABS", "Acryl", "EPS", "HDPE", "LDPE", "OTHER", "PA", "PC", "PET", "PMMA", "PP", "PS", "PUR", "PVC", "RUBBER")
-
-explodeF <- function(df, target_col, explode_value, new_values) {
-  df |>
-    # Use mutate to create a new column if the target column equals explode_value
-    mutate(!!sym(target_col) := ifelse(!!sym(target_col) == explode_value, list(new_values), !!sym(target_col))) %>%
-    # Unnest the target column to duplicate rows
-    unnest(!!sym(target_col))
-}
-
-suppressWarnings({
-  Material_Parameters <- explodeF(Material_Parameters, target_col = "Polymer", explode_value = "any", new_values = materials) # move this after and save unique values (n=same as in xlsx)
-})
-
-Material_Parameters <- Material_Parameters |>
-  mutate(d = as.character(d)) |>
-  mutate(d = case_when(
-    Distribution == "TRWP_size" ~ path_parameters_file,
-    TRUE ~ d
-  ))
+# Material_Parameters <- Material_Parameters |>
+#   mutate(d = as.character(d)) |>
+#   mutate(d = case_when(
+#     Distribution == "TRWP_size" ~ path_parameters_file,
+#     TRUE ~ d
+#   ))
 
 #### Prepare the correlations
-materials <- c(materials, "NR", "SBR")
+#materials <- c(materials, "NR", "SBR")
 
 Correlations <- readxl::read_xlsx(path_parameters_file, sheet = "Correlation")
-Correlations <- Correlations |>
-  mutate(correlation = as.numeric(str_replace(correlation, ",", ".")))
+correlations <- Correlations |>
+  mutate(correlation = as.numeric(str_replace(correlation, ",", "."))) |>
+  mutate(Polymer = "General")
 
-polymer_specific_correlations <- Correlations |>
-  filter(Polymer != "any")
+# polymer_specific_correlations <- Correlations |>
+#   filter(Polymer != "any")
+# 
+# any_polymer_correlations <- Correlations |>
+#   filter(Polymer == "any")
+# 
+# suppressWarnings({
+#   correlations <- explodeF(any_polymer_correlations, target_col = "Polymer", explode_value = "any", new_values = materials) # move this after and save unique values (n=same as in xlsx)
+# })
 
-any_polymer_correlations <- Correlations |>
-  filter(Polymer == "any")
-
-suppressWarnings({
-  correlations <- explodeF(any_polymer_correlations, target_col = "Polymer", explode_value = "any", new_values = materials) # move this after and save unique values (n=same as in xlsx)
-})
-
-correlations <- correlations |>
-  anti_join(polymer_specific_correlations, by = c("varName_1", "varName_2", "Polymer"))
-
-correlations <- bind_rows(correlations, polymer_specific_correlations)
+# correlations <- correlations |>
+#   anti_join(polymer_specific_correlations, by = c("varName_1", "varName_2", "Polymer"))
+# 
+# correlations <- bind_rows(correlations, polymer_specific_correlations)
 
 correlation_list <- list()
 
@@ -87,11 +89,16 @@ load(paste0(data_folder, "DPMFA_SBinput_20250618.RData"))
 
 emis_list <- list()
 
+DPMFA_sink_micro <- DPMFA_sink_micro |>
+  group_by(Abbr, Time, RUN) |>
+  summarise(Emis = sum(Emis)) |>
+  mutate(Polymer = "General")
+
 # Split the emissions per polymer
 for(i in unique(DPMFA_sink_micro$Polymer)){
   emissions <- DPMFA_sink_micro |>
     filter(Polymer == i)
-  
+
   emis_list[[i]] <- emissions
 }
 
@@ -109,11 +116,6 @@ for(i in unique(Material_Parameters$Polymer)){
   
   # Prepare the LHS samples
   source("baseScripts/initWorld_onlyPlastics.R")
-  if(i %in% c("NR", "SBR")){
-    World$substance <- "TRWP"
-  } else {
-    World$substance <- "microplastic"  
-  }
   
   variable_distributions <- World$makeInvFuns(variable_df)
   
@@ -130,10 +132,10 @@ for(i in unique(Material_Parameters$Polymer)){
 }
 
 # Save the variables and the emissions to the Data folder
-save(lhs_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/lhs_list.RData")
-save(emis_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/emis_list.RData")
-save(variable_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/variable_list.RData")
-save(correlation_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/correlation_list.RData")
+save(lhs_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/lhs_list_general.RData")
+save(emis_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/emis_list_general.RData")
+save(variable_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/variable_list_general.RData")
+save(correlation_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/correlation_list_general.RData")
 
 #### Create the batch files
 
@@ -192,7 +194,7 @@ filepaths <- list()
 for(i in 1:nrow(pars)){
   for(polymer in unique(Material_Parameters$Polymer)){
     # Read in the file
-    file <- readLines("vignettes/CaseStudies/MOMENTUM2/SB_run.R")
+    file <- readLines("vignettes/CaseStudies/MOMENTUM2/SB_run_one_polymer.R")
     
     # Change the polymer to the current polymer
     target_string_polymer <- "polymer <- "
@@ -252,5 +254,5 @@ LSF_string <- paste0("bsub -n 1 -e err.txt -o out.txt -W ", time, " -M ", mb, " 
 LSF_vector <- paste(LSF_string, filepaths)
 
 # Write to txt file to make copying easy
-writeLines(LSF_vector, "vignettes/CaseStudies/MOMENTUM2/HPC_commands.txt")
+writeLines(LSF_vector, "vignettes/CaseStudies/MOMENTUM2/HPC_commands_one_polymer.txt")
 
