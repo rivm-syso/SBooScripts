@@ -49,8 +49,134 @@ plot_theme <-  theme(
   title = element_text(size=30),
   panel.background = element_rect(fill = "white"),  # White background
   panel.grid.major = element_line(color = "lightgrey", size = 1),  # Major grid lines in light grey
-  panel.grid.minor = element_line(color = "lightgrey", size = 1)
+  panel.grid.minor = element_line(color = "lightgrey", size = 1),
+  strip.text = element_text(size = 30),  # Customize subplot titles
 )
+
+```
+
+Figure with concentration (particles) per subcompart
+```{R}
+measurements_particles <- measurements_particles |>
+  mutate(SubCompartName = paste0(SubCompart, " (", concentration_unit, ")"))
+
+Figure <- ggplot(measurements_particles, aes(x = concentration)) + 
+  geom_histogram(bins = 30, color = "black", fill = "blue") +  # Adjust `bins` as needed
+  facet_wrap(~ SubCompartName, scales = "free_y") +     # Separate panels for each SubCompart
+  scale_x_log10() +  # Logarithmic scale for the x-axis
+  scale_y_continuous(
+    breaks = seq(0, 20, by = 4),  # Replace 10 with the maximum count expected
+    limits = c(0, 20)             # Use the same limits for all facets
+  ) +
+  labs(
+    title = "Concentrations by Sub-Compartments in Europe (incl. NL)",
+    x = "Concentration (log10 scale)",
+    y = "Count"
+  ) +
+  plot_theme
+
+Figure
+ggsave(paste0(figurefolder, "Concentration_per_SubCompart_particles_Europe.png"), plot = Figure, width = 24, height = 20, dpi = 600)
+
+# Only for NL
+measurements_particles_NL <- measurements_particles |>
+  filter(Scale == "Regional")
+
+Figure <- ggplot(measurements_particles_NL, aes(x = concentration)) + 
+  geom_histogram(bins = 30, color = "black", fill = "blue") +  # Adjust `bins` as needed
+  facet_wrap(~ SubCompartName, scales = "free_y") +     # Separate panels for each SubCompart
+  scale_x_log10() +  # Logarithmic scale for the x-axis
+  scale_y_continuous(
+    breaks = seq(0, 10, by = 2),  # Replace 10 with the maximum count expected
+    limits = c(0, 10)             # Use the same limits for all facets
+  ) +
+  labs(
+    title = "Concentrations by Sub-Compartments in the Netherlands",
+    x = "Concentration (log10 scale)",
+    y = "Count"
+  ) +
+  plot_theme
+
+Figure
+
+ggsave(paste0(figurefolder, "Concentration_per_SubCompart_particles_NL.png"), plot = Figure, width = 24, height = 20, dpi = 600)
+
+```
+
+Figure with concentration (mass) per subcompart
+```{R}
+measurements_mass <- measurements_mass |>
+  mutate(SubCompartName = paste0(SubCompart, " (", concentration_unit, ")"))
+
+Figure <- ggplot(measurements_mass, aes(x = concentration)) + 
+  geom_histogram(bins = 30, color = "black", fill = "blue") +  # Adjust `bins` as needed
+  facet_wrap(~ SubCompartName, scales = "free_y") +     # Separate panels for each SubCompart
+  scale_x_log10() +  # Logarithmic scale for the x-axis
+  scale_y_continuous(
+    breaks = seq(0, 10, by = 2),  # Replace 10 with the maximum count expected
+    limits = c(0, 10)             # Use the same limits for all facets
+  ) +
+  labs(
+    title = "Concentrations by Sub-Compartments in Europe (incl. NL)",
+    x = "Concentration (log10 scale)",
+    y = "Count"
+  ) +
+  plot_theme
+
+Figure
+
+ggsave(paste0(figurefolder, "Concentration_per_SubCompart_mass_Europe.png"), plot = Figure, width = 24, height = 20, dpi = 600)
+
+# Only for NL
+measurements_mass_NL <- measurements_mass|>
+  filter(Scale == "Regional")
+
+Figure <- ggplot(measurements_mass_NL, aes(x = concentration)) + 
+  geom_histogram(bins = 30, color = "black", fill = "blue") +  # Adjust `bins` as needed
+  facet_wrap(~ SubCompartName, scales = "free_y") +     # Separate panels for each SubCompart
+  scale_x_log10() +  # Logarithmic scale for the x-axis
+  scale_y_continuous(
+    breaks = seq(0, 10, by = 2),  # Replace 10 with the maximum count expected
+    limits = c(0, 10)             # Use the same limits for all facets
+  ) +
+  labs(
+    title = "Concentrations by Sub-Compartments in the Netherlands",
+    x = "Concentration (log10 scale)",
+    y = "Count"
+  ) +
+  plot_theme
+
+Figure
+
+ggsave(paste0(figurefolder, "Concentration_per_SubCompart_mass_NL.png"), plot = Figure, width = 24, height = 20, dpi = 600)
+
+```
+
+Figure year and number of datapoints
+```{R}
+measurements_per_year <- all_measurements |>
+  mutate(year = sub("\\).*", "", sub(".*\\(", "", source))) |>
+  mutate(year = case_when(
+    year == "LEON-T measurement" ~ "2021",
+    TRUE ~ year)) |>
+  mutate(year = as.numeric(year))
+
+measurements_per_year <- measurements_per_year  |>
+  group_by(year) |>
+  summarise(observations = n())
+
+Figure = ggplot(measurements_per_year, aes(x = year, y = observations)) +
+  geom_col(position = "dodge", fill = "black", color = "white") +
+  labs(x = "Year", y = "Number of measurements") +
+  scale_x_continuous(
+    breaks = seq(2015, 2023, by = 1),  # Replace 10 with the maximum count expected
+    limits = c(2015, 2023)             # Use the same limits for all facets
+  ) +  theme(legend.position = "none") +  # This removes the legend
+  plot_theme
+
+Figure 
+
+ggsave(paste0(figurefolder, "Observations_per_year.png"), plot = Figure, width = 15, height = 10, dpi = 600)
 ```
 
 Figure subcomparts and number of datapoints
@@ -67,7 +193,7 @@ Figure = ggplot(measurements_per_subcompart, aes(x = SubCompart, y = observation
 
 Figure 
 
-ggsave(paste0(figurefolder, "Observations_per_subcompart_per_scale.png"), plot = Figure, width = 20, height = 23, dpi = 1000)
+ggsave(paste0(figurefolder, "Observations_per_subcompart_per_scale.png"), plot = Figure, width = 20, height = 23, dpi = 600)
 
 ```
 
@@ -85,7 +211,7 @@ Figure = ggplot(measurements_per_country, aes(x = reorder(country, -observations
 
 Figure 
 
-ggsave(paste0(figurefolder, "Observations_per_country.png"), plot = Figure, width = 20, height = 23, dpi = 1000)
+ggsave(paste0(figurefolder, "Observations_per_country.png"), plot = Figure, width = 20, height = 23, dpi = 600)
 ```
 
 Figure mass vs particle datapoints
@@ -106,5 +232,5 @@ Figure <- ggplot(measurements_per_type,
 
 Figure 
 
-ggsave(paste0(figurefolder, "Observations_per_unit.png"), plot = Figure, width = 20, height = 23, dpi = 1000)
+ggsave(paste0(figurefolder, "Observations_per_unit.png"), plot = Figure, width = 20, height = 23, dpi = 600)
 ```
