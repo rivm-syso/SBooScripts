@@ -132,7 +132,7 @@ mass_conc_C_R_2019_per_polymer_SI <- concentrations_2019 |>
   mutate(Concentration = case_when(
     Unit == "g/kg w" ~ Concentration/1000,
     Unit == "g/m3" ~ Concentration/1000,
-    Unit == "g/L" ~ Concentration/1000
+    Unit == "g/L" ~ Concentration
   )) |>
   mutate(Unit = case_when(
     Unit == "g/kg w" ~ "kg/kg dw",
