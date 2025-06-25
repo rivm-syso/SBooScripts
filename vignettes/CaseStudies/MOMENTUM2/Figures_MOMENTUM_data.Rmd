@@ -22,16 +22,41 @@ library(scales)
 ```{R Load data}
 path <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/PlotData/NewSBoo/"
 
-data_date <- "20250619" # The data of the data for which to make the figures
+data_date <- "20250625" # The data of the data for which to make the figures
 
-file_names <- c(
+if(exists(paste0("Concentrations_2019_", data_date, ".RData"))){
+  file_names <- c(
   paste0("Concentrations_2019_", data_date, ".RData"),
   paste0("All_variables_", data_date, ".RData")
-)
+  )
+  # Load all files in a loop
+  for (file in file_names) {
+    load(file = paste0(path, file))
+  }
+} else {
+  per_polymer_path <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/Output_per_polymer"
+  
+  Concentrations_2019 <- data.frame()
+  All_variables <- data.frame()
+  
+  files <- list.files(per_polymer_path)
+  files_date <- grep(data_date, files)
+  files <- files[files_date]
+  concentration_files <- grep("Concentrations_2019_", files)
+  concentration_files <- files[concentration_files]
+  
+  variable_files <- grep("All_variables_", files)
+  variable_files <- files[variable_files]
+  
+  for(i in variable_files){
+    load(paste0(per_polymer_path, "/", i))
+    All_variables <- rbind(All_variables, all_variables)
+  }
 
-# Load all files in a loop
-for (file in file_names) {
-  load(file = paste0(path, file))
+  for(j in concentration_files){
+    load(paste0(per_polymer_path, "/", j))
+    Concentrations_2019 <- rbind(Concentrations_2019, concentrations_2019)
+  }
 }
 ```
 
@@ -39,12 +64,8 @@ Load and prepare SimpleBox outcome data
 
 ```{R load SimpleBox data}
 ## Define paths 
-#data_path <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/PlotData/" # Define path to plot data
 figurefolder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/Figures/" # Define figure folder path
 abs_path_Measurements <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/LEONT_TNO_measurements_clean.xlsx" # Define path to LEON-T measurement data
-
-#load(paste0(data_path, "LEON-T_concentrations.RData"))
-#load(paste0(data_path, "LEON-T_SB_Material_parameters.RData"))
 ```
 
 ```{R set plot parameters}
@@ -71,40 +92,26 @@ Measurement_type_colors = c("Measurement_NL" = "#481567FF",
 select_year <- 2019
 ```
 
-# Continental scale comparisons
-
+# Prepare data for plotting
 Convert mass to particles for comparison to measurements. 
 
 Also filter out any RUN/Polymer combinations that have a RadS outside the detection limits of the measurements.
 
+## All polymers
 ```{R convert mass to particles concentration}
-# This is temporary
-load(paste0(path, "lhs_list.RData"))
 
-all_variables <- data.frame()
-
-for(i in names(lhs_list)){
-  variable_matrix <- lhs_list[[i]]
-  variable_df <- as.data.frame(variable_matrix) |>
-    mutate(variable = rownames(variable_matrix)) |>  # Ensure rownames are assigned correctly
-    pivot_longer(
-      cols = -variable,               # Exclude the `variable` column from pivoting
-      names_to = "RUN",               # Column names of the matrix go into "RUN"
-      values_to = "value"             # Corresponding values go into "value"
-    ) |>
-    mutate(RUN = as.numeric(str_remove(RUN, "V"))) |>
-    mutate(Polymer = i) |>
-    mutate(VarName = str_split_i(variable, " ", 1),
-           Scale = str_split_i(variable, " ", 2),
-           SubCompart = str_split_i(variable, " ", 3),
-           Species = str_split_i(variable, " ", 4)) |>
-    select(-variable)
-  
-  all_variables <- rbind(all_variables, variable_df)
-}
+concentrations_2019 <- Concentrations_2019 |>
+  rename(RUN = RUNs)
 
 concentrations_2019 <- concentrations_2019 |>
-  rename(RUN = RUNs)
+  filter(Polymer != "General")
+
+concentrations_2019_general <- Concentrations_2019 |>
+  filter(Polymer == "General")
+
+all_variables <- All_variables |>
+  filter(Polymer != "General") |>
+  distinct()
 
 measurements_particles <- read_xlsx("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/MOMENTUM2_measurements.xlsx", sheet = "Particle Data") |>
   mutate(Scale = str_replace(Scale, "Regional", "NL"),
@@ -158,6 +165,67 @@ particle_conc_C_R_2019_summed_over_polymer_filtered <- particle_conc_C_R_2019_pe
   summarise(Concentration = sum(Concentration)) |>
   ungroup()
 ```
+
+## Microplastics in general
+```{R convert mass to particles concentration}
+
+concentrations_2019_general <- Concentrations_2019 |>
+  rename(RUN = RUNs) |>
+  filter(Polymer == "General")
+
+all_variables_general <- All_variables |>
+  filter(Polymer == "General") |>
+  distinct()
+
+# Get run numbers between the lower and upper limit
+limit_runs_general <- all_variables_general |>
+  filter(VarName == "RadS" | VarName == "RhoS") |>
+  select(VarName, Polymer, RUN, value) |>
+  pivot_wider(names_from = "VarName", values_from = "value") |>
+  filter(RadS >= lower_limit) |>
+  filter(RadS <= upper_limit) 
+
+rad_rho_filtered_general <- limit_runs_general |>
+  rename(rad_nm = RadS) |>
+  rename(rho_kg_m3 = RhoS) |>
+  mutate(rad_m = rad_nm*10^-9) |>
+  mutate(volume_m3 = (4/3)*pi*rad_m^3) |>
+  mutate(mass_per_particle_kg = volume_m3*rho_kg_m3)
+
+mass_conc_C_R_2019_per_polymer_SI_general <- concentrations_2019_general |>
+  mutate(Concentration = case_when(
+    Unit == "g/kg w" ~ Concentration/1000,
+    Unit == "g/m3" ~ Concentration/1000,
+    Unit == "g/L" ~ Concentration
+  )) |>
+  mutate(Unit = case_when(
+    Unit == "g/kg w" ~ "kg/kg dw",
+    Unit == "g/m3" ~ "kg/m3",
+    Unit == "g/L" ~ "kg/m3"
+  )) |>
+  mutate(SubCompartName = paste0(SubCompart, " (", Unit, ")"))
+
+particle_conc_C_R_2019_per_polymer_filtered_general <- mass_conc_C_R_2019_per_polymer_SI_general |>
+  filter(year == select_year) |>
+  left_join(rad_rho_filtered, by = c("RUN", "Polymer")) |>
+  filter(!is.na(rad_nm)) |>
+  mutate(Concentration = Concentration/mass_per_particle_kg) |>
+  mutate(Unit = case_when(
+    Unit == "kg/kg dw" ~ "#/kg dw",
+    Unit == "kg/m3" ~ "#/m3")) |>
+  mutate(SubCompartName = paste0(SubCompart, " (", Unit, ")")) |>
+  select(RUN, year, Scale, SubCompart, Polymer, Concentration, Unit, SubCompartName) |>
+  mutate(source = "SimpleBox") 
+
+particle_conc_C_R_2019_summed_over_polymer_filtered_general <- particle_conc_C_R_2019_per_polymer_filtered_general |>
+  group_by(RUN, SubCompart, SubCompartName, source, year, Unit, Scale) |>
+  summarise(Concentration = sum(Concentration)) |>
+  ungroup()
+```
+
+# Summed over polymers
+
+## Continental scale comparisons
 
 ```{R Make figure comparing SB outcomes to particle measurements for all polymers}
 # Get measured concentrations
@@ -293,7 +361,7 @@ Figure
 ggsave(paste0(figurefolder, "All_polymers_continental_particle_unfiltered_", data_date, ".png"), plot = Figure, width = 20, height = 23, dpi = 1000)
 ```
 
-# Regional scale comparisons
+## Regional scale comparisons
 
 Convert mass to particles for comparison to measurements. 
 
@@ -511,6 +579,8 @@ Figure
 ggsave(paste0(figurefolder, "All_polymers_regional_mass_size_unfiltered_", data_date, ".png"), plot = Figure, width = 20, height = 23, dpi = 1000)
 ```
 
+# Tyre wear
+
 Compare modeled TW concentrations with measured concentrations. 
 
 ```{R Figure comparing TW concentrations with measurements}
@@ -586,7 +656,6 @@ ggsave(paste0(figurefolder, "Tyre_wear_mass_regional_unfiltered_", data_date, ".
 Read in the measurements
 ```{R}
 ftir_data <- read_xlsx("/rivm/n/hidsa/Documents/GitLab/exposuredata/Exposure_data.xlsx")
-
 concentration_per_polymer <- ftir_data |>
   group_by(location, Identification, MP_m3) |>
   summarise(
@@ -621,7 +690,6 @@ concentration_sums <- concentration_per_polymer_identified |>
   ungroup() |>
   select(location, MP_m3_new, Polymer) |>
   rename(Concentration = MP_m3_new)
-
 ```
 
 Make plot per polymer for regional scale
@@ -837,3 +905,8 @@ Figure
 
 ggsave(paste0(figurefolder, "Conc_measurement_continental_comparison_polymer_size_unfiltered_", data_date, ".png"), plot = Figure, width = 20, height = 23, dpi = 1000)
 ```
+
+# Microplastics in general
+
+
+
