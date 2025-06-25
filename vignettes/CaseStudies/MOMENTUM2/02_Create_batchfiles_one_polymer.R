@@ -131,6 +131,34 @@ for(i in unique(Material_Parameters$Polymer)){
   lhs_list[[i]] <- LHSsamples
 }
 
+# # Check the power law
+# variable_matrix <- lhs_list[["General"]]
+# 
+# variable_df <- as.data.frame(variable_matrix) |>
+#   mutate(variable = rownames(variable_matrix)) |>  # Ensure rownames are assigned correctly
+#   pivot_longer(
+#     cols = -variable,               # Exclude the `variable` column from pivoting
+#     names_to = "RUN",               # Column names of the matrix go into "RUN"
+#     values_to = "value"             # Corresponding values go into "value"
+#   ) |>
+#   mutate(RUN = as.numeric(str_remove(RUN, "V"))) |>
+#   mutate(Polymer = "General") |>
+#   mutate(VarName = str_split_i(variable, " ", 1),
+#          Scale = str_split_i(variable, " ", 2),
+#          SubCompart = str_split_i(variable, " ", 3),
+#          Species = str_split_i(variable, " ", 4)) |>
+#   select(-variable)
+# 
+# all_variables <- variable_df
+
+# rads <- all_variables |>
+#   filter(VarName == "RadS")
+# 
+# plot(density(rads$value), 
+#      main = "Density Plot of RadS Values", 
+#      xlab = "Value", 
+#      ylab = "Density")
+
 # Save the variables and the emissions to the Data folder
 save(lhs_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/lhs_list_general.RData")
 save(emis_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/emis_list_general.RData")
