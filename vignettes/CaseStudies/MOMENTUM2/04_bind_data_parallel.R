@@ -9,12 +9,9 @@ if (!dir.exists(folder_path)) {
 
 filepaths <- c()
 
-#filepaths <- list()
-
 pathname <- "vignettes/CaseStudies/MOMENTUM2/BatchFiles/"
 
-
-materials <- c("ABS", "Acryl", "EPS", "HDPE", "LDPE", "OTHER", "PA", "PC", "PET", "PMMA", "PP", "PS", "PUR", "PVC", "RUBBER")
+materials <- c("ABS", "Acryl", "EPS", "HDPE", "LDPE", "OTHER", "PA", "PC", "PET", "PMMA", "PP", "PS", "PUR", "PVC", "RUBBER", "NR", "SBR")
 
 for(polymer in materials){
   # Read in the file
