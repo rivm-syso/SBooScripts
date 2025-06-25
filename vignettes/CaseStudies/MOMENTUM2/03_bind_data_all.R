@@ -15,8 +15,6 @@ states <- World$states$asDataFrame
 
 #### Bind concentration data
 
-pol <- "Acryl"
-
 all_concentrations <- data.frame()
 concentrations_2019 <- data.frame()
 
@@ -28,10 +26,6 @@ for(file in concentration_files){
   
   # Extract polymer
   polymer <- gsub("Concentrations_(.*?)_\\d+_\\d+", "\\1", file)
-  
-  if(polymer != pol){
-    next
-  }
   
   all_conc <- output_concentrations |>
     left_join(states, by = "Abbr", relationship = "many-to-many") |> # join the states to the df
@@ -60,10 +54,6 @@ for(file in emission_files){
   # Extract polymer
   polymer <- gsub("Emissions_(.*?)_\\d+_\\d+", "\\1", file)
   
-  if(polymer != pol){
-    next
-  }
-  
   all_emis <- output_emissions |>
     left_join(states, by = "Abbr", relationship = "many-to-many") |> # join the states to the df
     filter(Scale %in% c("Regional", "Continental")) |> # select only the regional and continental scales
@@ -90,10 +80,6 @@ for(file in mass_files){
   
   # Extract polymer
   polymer <- gsub("Masses_(.*?)_\\d+_\\d+", "\\1", file)
-  
-  if(polymer != pol){
-    next
-  }
 
   all_mass <- output_masses |>
     left_join(states, by = "Abbr", relationship = "many-to-many") |> # join the states to the df
@@ -112,23 +98,27 @@ for(file in mass_files){
 #### Bind variable data
 load("vignettes/CaseStudies/MOMENTUM2/Data/lhs_list.RData")
 
-variable_matrix <- lhs_list[[pol]]
-variable_df <- as.data.frame(variable_matrix) |>
-  mutate(variable = rownames(variable_matrix)) |>  # Ensure rownames are assigned correctly
-  pivot_longer(
-    cols = -variable,               # Exclude the `variable` column from pivoting
-    names_to = "RUN",               # Column names of the matrix go into "RUN"
-    values_to = "value"             # Corresponding values go into "value"
-  ) |>
-  mutate(RUN = as.numeric(str_remove(RUN, "V"))) |>
-  mutate(Polymer = pol) |>
-  mutate(VarName = str_split_i(variable, " ", 1),
-         Scale = str_split_i(variable, " ", 2),
-         SubCompart = str_split_i(variable, " ", 3),
-         Species = str_split_i(variable, " ", 4)) |>
-  select(-variable)
+all_variables <- data.frame()
 
-all_variables <- variable_df
+for(i in names(lhs_list)){
+  variable_matrix <- lhs_list[[i]]
+  variable_df <- as.data.frame(variable_matrix) |>
+    mutate(variable = rownames(variable_matrix)) |>  # Ensure rownames are assigned correctly
+    pivot_longer(
+      cols = -variable,               # Exclude the `variable` column from pivoting
+      names_to = "RUN",               # Column names of the matrix go into "RUN"
+      values_to = "value"             # Corresponding values go into "value"
+    ) |>
+    mutate(RUN = as.numeric(str_remove(RUN, "V"))) |>
+    mutate(Polymer = i) |>
+    mutate(VarName = str_split_i(variable, " ", 1),
+           Scale = str_split_i(variable, " ", 2),
+           SubCompart = str_split_i(variable, " ", 3),
+           Species = str_split_i(variable, " ", 4)) |>
+    select(-variable)
+  
+  all_variables <- rbind(all_variables, variable_df)
+}
 
 #### Save the outcomes
 data_folder <- "vignettes/CaseStudies/MOMENTUM2/Bound_data/"
@@ -141,18 +131,20 @@ if (!dir.exists(data_folder)) {
   message("Bound_data folder already exists: ", data_folder)
 }
 
-save(all_concentrations, file = paste0(data_folder, "All_concentrations_", pol, "_", 
+save(all_concentrations, file = paste0(data_folder, "All_concentrations_", 
                                      format(Sys.Date(),"%Y%m%d"),".RData"))
-save(all_masses, file = paste0(data_folder, "All_masses_",pol, "_", 
+save(all_masses, file = paste0(data_folder, "All_masses_", 
                                        format(Sys.Date(),"%Y%m%d"),".RData"))
-save(all_emissions, file = paste0(data_folder, "All_emissions_", pol, "_",
+save(all_emissions, file = paste0(data_folder, "All_emissions_", 
                                        format(Sys.Date(),"%Y%m%d"),".RData"))
-save(all_variables, file = paste0(data_folder, "All_variables_", pol, "_",
+save(all_variables, file = paste0(data_folder, "All_variables_", 
                                        format(Sys.Date(),"%Y%m%d"),".RData"))
 
-save(concentrations_2019, file = paste0(data_folder, "Concentrations_2019_", pol, "_",
+save(concentrations_2019, file = paste0(data_folder, "Concentrations_2019_", 
                                        format(Sys.Date(),"%Y%m%d"),".RData"))
-save(masses_2019, file = paste0(data_folder, "Masses_2019_", pol, "_",
+save(masses_2019, file = paste0(data_folder, "Masses_2019", 
                                format(Sys.Date(),"%Y%m%d"),".RData"))
-save(emissions_2019, file = paste0(data_folder, "Emissions_2019_", pol, "_",
+save(emissions_2019, file = paste0(data_folder, "Emissions_2019_", 
                                   format(Sys.Date(),"%Y%m%d"),".RData"))
+
+
