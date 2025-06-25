@@ -714,7 +714,7 @@ particle_conc_regional_per_polymer_filtered <- particle_conc_C_R_2019_per_polyme
   filter(Scale == "Regional") |>
   filter(SubCompart == "river") |>
   mutate(source = "SimpleBox") |>
-  filter(Polymer %in% polymers) |>
+  #filter(Polymer %in% polymers) |>
   mutate(Polymer = case_when(
     Polymer == "LDPE" ~ "PE",
     Polymer == "HDPE" ~ "PE",
@@ -911,6 +911,18 @@ ggsave(paste0(figurefolder, "Conc_measurement_continental_comparison_polymer_siz
 ## Continental scale comparisons
 
 ```{R Make figure comparing SB outcomes to particle measurements for all polymers}
+measurements_particles <- read_xlsx("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/MOMENTUM2_measurements.xlsx", sheet = "Particle Data") |>
+  mutate(Scale = str_replace(Scale, "Regional", "NL"),
+         Scale = str_replace(Scale, "Continental", "Europe"))
+
+# Get measured concentrations
+measurements_formatted <- measurements_particles |> 
+  mutate(source = paste0("Measurement_", Scale)) |>
+  rename(Concentration = concentration,
+         Unit = concentration_unit) |>
+  mutate(SubCompartName = paste0(SubCompart, " (", Unit, ")")) |>
+  select(Concentration, SubCompartName, source) 
+
 particle_conc_C_2019_summed_over_polymer_filtered_general <- particle_conc_C_R_2019_summed_over_polymer_filtered_general |>
   filter(Scale == "Continental")
 
@@ -1140,10 +1152,23 @@ ggsave(paste0(figurefolder, "All_polymers_regional_particle_unfiltered_general_"
 Comparison mass data to SB data at regional scale
 
 ```{R Make figure comparing SB outcomes to mass measurements for all polymers}
+measurements_mass <- read_xlsx("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/MOMENTUM2_measurements.xlsx", sheet = "Mass Data") |>
+  filter(source != "LEON-T measurement") |>
+  mutate(Scale = str_replace(Scale, "Regional", "NL"),
+         Scale = str_replace(Scale, "Continental", "Europe"))
+
+# Get measured concentrations
+measurements_formatted <- measurements_mass |> 
+  mutate(source = paste0("Measurement_", Scale)) |>
+  rename(Concentration = concentration,
+         Unit = concentration_unit) |>
+  mutate(SubCompartName = paste0(SubCompart, " (", Unit, ")")) |>
+  select(Concentration, SubCompartName, source) 
+
 mass_conc_regional_size_filtered_general <- mass_conc_C_R_2019_per_polymer_SI_general |>
   filter(year == select_year) |>
   filter(Scale == "Regional") |>
-  left_join(rad_rho_filtered, by = c("RUN", "Polymer")) |>
+  left_join(rad_rho_filtered_general, by = c("RUN", "Polymer")) |>
   filter(!is.na(rad_nm)) |>
   select(RUN, year, Scale, SubCompart, Polymer, Concentration, Unit, SubCompartName) |>
   mutate(source = "SimpleBox") |>
@@ -1162,7 +1187,7 @@ mass_plot_data_filtered_general <- bind_rows(mass_conc_regional_size_filtered_ge
 mass_conc_regional_size_unfiltered_general <- mass_conc_C_R_2019_per_polymer_SI_general |>
   filter(year == select_year) |>
   filter(Scale == "Regional") |>
-  left_join(rad_rho_unfiltered, by = c("RUN", "Polymer")) |>
+  left_join(rad_rho_unfiltered_general, by = c("RUN", "Polymer")) |>
   filter(!is.na(rad_nm)) |>
   select(RUN, year, Scale, SubCompart, Polymer, Concentration, Unit, SubCompartName) |>
   mutate(source = "SimpleBox") |>
@@ -1264,7 +1289,30 @@ Concentration_summed_mass_table <- Concentrations_2019 |>
             mean = mean(Concentration),
             q75 = quantile(Concentration, 0.75),
             q95 = quantile(Concentration, 0.95)) |>
-  mutate(Polymer = "All")
+  mutate(Polymer = "All summed")
+
+concentration_per_polymer_particles_table <- particles_conc_C_R_2019_per_polymer_unfiltered |>
+  mutate(Year = 2019) |>
+  group_by(Polymer, Year, Scale, SubCompart, Unit) |>
+  summarise(q5 = quantile(Concentration, 0.05),
+            q25 = quantile(Concentration, 0.25),
+            median = median(Concentration),
+            mean = mean(Concentration),
+            q75 = quantile(Concentration, 0.75),
+            q95 = quantile(Concentration, 0.95)) 
+
+Concentration_summed_particles_table <- particles_conc_C_R_2019_summed_over_polymer_unfiltered |>
+  mutate(Year = 2019) |>
+  group_by(Year, Scale, SubCompart, Unit) |>
+  summarise(Concentration = sum(Concentration)) |>
+  group_by(Year, Scale, SubCompart, Unit) |>
+  summarise(q5 = quantile(Concentration, 0.05),
+            q25 = quantile(Concentration, 0.25),
+            median = median(Concentration),
+            mean = mean(Concentration),
+            q75 = quantile(Concentration, 0.75),
+            q95 = quantile(Concentration, 0.95)) |>
+  mutate(Polymer = "All summed")
 
 data_folder <- "vignettes/CaseStudies/MOMENTUM2/Data/"
 load(paste0(data_folder, "DPMFA_SBinput_20250618.RData"))
@@ -1299,6 +1347,38 @@ emissions_summed <- DPMFA_sink_micro |>
             q75 = quantile(Emis, 0.75),
             q95 = quantile(Emis, 0.95)) |>
   mutate(Polymer = "All")
+```
+
+Save the tables in an excel file
+```{R}
+# Load the openxlsx package
+library(openxlsx)
+
+# Construct the Excel file path
+excel_path <- paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/MOMENTUM2/SummaryStatistics", data_date, ".xlsx")
+
+# Create a new workbook
+wb <- createWorkbook()
+
+# List of sheet names and corresponding data frames
+tables <- list(
+  "Concentration_per_polymer_mass"     = Concentration_per_polymer_mass_table,
+  "Concentration_summed_mass"          = Concentration_summed_mass_table,
+  "Concentration_per_pol_particles"    = concentration_per_polymer_particles_table,
+  "Concentration_summed_particles"     = Concentration_summed_particles_table,
+  "Emissions_per_polymer"              = emissions_per_polymer,
+  "Emissions_summed"                   = emissions_summed
+)
+
+# Add each data frame to its own sheet
+for (sheet_name in names(tables)) {
+  addWorksheet(wb, sheet_name)
+  writeData(wb, sheet_name, tables[[sheet_name]])
+}
+
+
+# Save the workbook
+saveWorkbook(wb, file = excel_path, overwrite = TRUE)
 
 
 ```
