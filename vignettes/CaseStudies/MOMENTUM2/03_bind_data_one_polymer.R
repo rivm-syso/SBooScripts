@@ -96,7 +96,7 @@ for(file in mass_files){
 }
 
 #### Bind variable data
-load("vignettes/CaseStudies/MOMENTUM2/Data/lhs_list.RData")
+load("vignettes/CaseStudies/MOMENTUM2/Data/lhs_list_general.RData")
 
 all_variables <- data.frame()
 
