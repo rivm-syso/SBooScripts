@@ -58,6 +58,15 @@ if(exists(paste0("Concentrations_2019_", data_date, ".RData"))){
     Concentrations_2019 <- rbind(Concentrations_2019, concentrations_2019)
   }
 }
+
+# sum air and cloudwater 
+Concentrations_2019 <- Concentrations_2019 |>
+  mutate(SubCompart = case_when(
+    SubCompart == "cloudwater" ~ "air",
+    TRUE ~ SubCompart
+  )) |>
+  group_by(RUNs, Unit, year, Scale, SubCompart, Polymer) |>
+  summarise(Concentration = sum(Concentration))
 ```
 
 Load and prepare SimpleBox outcome data
@@ -1376,9 +1385,6 @@ for (sheet_name in names(tables)) {
   writeData(wb, sheet_name, tables[[sheet_name]])
 }
 
-
 # Save the workbook
 saveWorkbook(wb, file = excel_path, overwrite = TRUE)
-
-
 ```
