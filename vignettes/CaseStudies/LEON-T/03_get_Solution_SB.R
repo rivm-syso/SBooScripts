@@ -13,7 +13,7 @@ library(tidyverse)
 env <- "OOD"
 
 # Specify the source
-source_of_interest <- NA
+source_of_interest <- "Tyre wear"
 
 if(env == "OOD" | env == "local"){
   path_parameters_file = "vignettes/CaseStudies/LEON-T/Microplastic_variables_v1.1c.xlsx"
