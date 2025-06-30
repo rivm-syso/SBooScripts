@@ -59,14 +59,9 @@ if(exists(paste0("Concentrations_2019_", data_date, ".RData"))){
   }
 }
 
-# sum air and cloudwater 
+# sum air and cloudwater
 Concentrations_2019 <- Concentrations_2019 |>
-  mutate(SubCompart = case_when(
-    SubCompart == "cloudwater" ~ "air",
-    TRUE ~ SubCompart
-  )) |>
-  group_by(RUNs, Unit, year, Scale, SubCompart, Polymer) |>
-  summarise(Concentration = sum(Concentration))
+  filter(SubCompart != "cloudwater")
 ```
 
 Load and prepare SimpleBox outcome data
@@ -430,6 +425,16 @@ Particle figure with all polymers but not filtered for size
 particles_conc_regional_polymer_unfiltered <- particles_conc_C_R_2019_summed_over_polymer_unfiltered |>
   filter(Scale == "Regional")
 
+particles_conc_regional_polymer_unfiltered_table <- particles_conc_regional_polymer_unfiltered |>
+  group_by(SubCompart, Unit, year, source, Scale) |>
+  summarise(q5 = quantile(Concentration, 0.05),
+            q25 = quantile(Concentration, 0.25),
+            median = median(Concentration),
+            mean = mean(Concentration),
+            q75 = quantile(Concentration, 0.75),
+            q95 = quantile(Concentration, 0.95)) |>
+  mutate(Polymer = "All summed")
+
 # Get measured concentrations
 measurements_formatted <- measurements_particles |> 
   mutate(source = paste0("Measurement_", Scale)) |>
@@ -439,6 +444,17 @@ measurements_formatted <- measurements_particles |>
   select(Concentration, SubCompartName, source) 
 
 particle_plot_data <- bind_rows(particles_conc_regional_polymer_unfiltered, measurements_formatted)
+
+particle_plot_data_table <- particle_plot_data |>
+  group_by(SubCompartName, year, source, Scale) |>
+  summarise(q5 = quantile(Concentration, 0.05),
+            q25 = quantile(Concentration, 0.25),
+            median = median(Concentration),
+            mean = mean(Concentration),
+            q75 = quantile(Concentration, 0.75),
+            q95 = quantile(Concentration, 0.95)) |>
+  mutate(Polymer = "All summed")
+
 Figure <- ggplot(particle_plot_data, aes(x = SubCompartName, y = Concentration, col=source)) +  
   geom_violin(data = particle_plot_data %>% filter(source == "SimpleBox"), 
               aes(fill = source), alpha = 0.5) + 
@@ -506,6 +522,16 @@ mass_conc_regional_size_filtered <- mass_conc_C_R_2019_per_polymer_SI |>
 
 mass_plot_data_filtered <- bind_rows(mass_conc_regional_size_filtered, measurements_formatted)
 
+mass_plot_data_filtered_table <- mass_plot_data_filtered |>
+  group_by(SubCompartName, year, source, Scale) |>
+  summarise(q5 = quantile(Concentration, 0.05),
+            q25 = quantile(Concentration, 0.25),
+            median = median(Concentration),
+            mean = mean(Concentration),
+            q75 = quantile(Concentration, 0.75),
+            q95 = quantile(Concentration, 0.95)) |>
+  mutate(Polymer = "All summed")
+
 mass_conc_regional_size_unfiltered <- mass_conc_C_R_2019_per_polymer_SI |>
   filter(year == select_year) |>
   filter(Scale == "Regional") |>
@@ -524,6 +550,16 @@ mass_conc_regional_size_unfiltered <- mass_conc_C_R_2019_per_polymer_SI |>
   ungroup()
 
 mass_plot_data_unfiltered <- bind_rows(mass_conc_regional_size_unfiltered, measurements_formatted)
+
+mass_plot_data_unfiltered_table <- mass_plot_data_unfiltered |>
+  group_by(SubCompartName, year, source, Scale) |>
+  summarise(q5 = quantile(Concentration, 0.05),
+            q25 = quantile(Concentration, 0.25),
+            median = median(Concentration),
+            mean = mean(Concentration),
+            q75 = quantile(Concentration, 0.75),
+            q95 = quantile(Concentration, 0.95)) |>
+  mutate(Polymer = "All summed")
 
 Figure <- ggplot(mass_plot_data_filtered, aes(x = SubCompartName, y = Concentration, col=source)) +  
   geom_violin(data = mass_plot_data_filtered %>% filter(source == "SimpleBox"), 
@@ -594,7 +630,8 @@ Compare modeled TW concentrations with measured concentrations.
 
 ```{R Figure comparing TW concentrations with measurements}
 source("vignettes/CaseStudies/LEON-T/f_plot_functions.R")
-LEONT_TWP_data <- prep_LEONT_data(abs_path_Measurements) 
+LEONT_TWP_data <- prep_LEONT_data(abs_path_Measurements) |>
+  mutate(source = "Measurement_NL")
 
 subcomparts <- unique(LEONT_TWP_data$SubCompart)
 
@@ -607,7 +644,7 @@ mass_conc_SB_data_TW <- concentrations_2019 |>
 # Prepare SimpleBox data for plotting
 mass_conc_SB_data_TW2 <- mass_conc_SB_data_TW |>
   mutate(Concentration = case_when(
-    Unit == "g/kg w" ~ Concentration*1000,
+    Unit == "g/kg w" ~ Concentration*1000000,
     Unit == "g/m3" ~ Concentration*1000000,
     Unit == "g/L" ~ Concentration*1000000,
     TRUE ~ Concentration
@@ -632,11 +669,11 @@ LEONT_SB_SBR_NR <- bind_rows(LEONT_TWP_data, mass_conc_SB_data_TW2) |>
 Figure <- ggplot(LEONT_SB_SBR_NR, aes(x = SubCompartName, y = Concentration, col=source)) +  
   geom_violin(data = LEONT_SB_SBR_NR %>% filter(source == "SimpleBox"), 
               aes(fill = source), alpha = 0.5) + 
-  geom_jitter(data = LEONT_SB_SBR_NR %>% filter(source == "LEON-T measurement"), 
+  geom_jitter(data = LEONT_SB_SBR_NR %>% filter(source == "Measurement_NL"), 
               aes(col = source), 
               position = position_jitter(width = 0.2), alpha = 1, size = 3) +
-  scale_fill_manual(values = c("SimpleBox" = "#00c0AF", "LEON-T measurement" = "#F8766D")) +
-  scale_color_manual(values = c("LEON-T measurement" = "#F8766D")) +
+  scale_fill_manual(values = c("SimpleBox" = "#00c0AF", "Measurement_NL" = "#F8766D")) +
+  scale_color_manual(values = c("Measurement_NL" = "#F8766D")) +
   labs(
     title = paste0("SBR + NR concentrations at Regional scale, ", as.character(select_year)),
     x = "",
@@ -1126,6 +1163,17 @@ measurements_formatted <- measurements_particles |>
   select(Concentration, SubCompartName, source) 
 
 particle_plot_data_general <- bind_rows(particles_conc_regional_polymer_unfiltered_general, measurements_formatted)
+
+particle_plot_general_unfiltered_table <-  particle_plot_data_general |>
+  group_by(SubCompartName, year, source, Scale) |>
+  summarise(q5 = quantile(Concentration, 0.05),
+            q25 = quantile(Concentration, 0.25),
+            median = median(Concentration),
+            mean = mean(Concentration),
+            q75 = quantile(Concentration, 0.75),
+            q95 = quantile(Concentration, 0.95)) |>
+  mutate(Polymer = "All summed")
+
 Figure <- ggplot(particle_plot_data_general, aes(x = SubCompartName, y = Concentration, col=source)) +  
   geom_violin(data = particle_plot_data_general %>% filter(source == "SimpleBox"), 
               aes(fill = source), alpha = 0.5) + 
@@ -1212,6 +1260,16 @@ mass_conc_regional_size_unfiltered_general <- mass_conc_C_R_2019_per_polymer_SI_
 
 mass_plot_data_unfiltered_general <- bind_rows(mass_conc_regional_size_unfiltered_general, measurements_formatted)
 
+mass_plot_data_unfiltered_general_table <- mass_plot_data_unfiltered_general |>
+  group_by(SubCompartName, year, source, Scale) |>
+  summarise(q5 = quantile(Concentration, 0.05),
+            q25 = quantile(Concentration, 0.25),
+            median = median(Concentration),
+            mean = mean(Concentration),
+            q75 = quantile(Concentration, 0.75),
+            q95 = quantile(Concentration, 0.95)) |>
+  mutate(Polymer = "All summed")
+
 Figure <- ggplot(mass_plot_data_filtered_general, aes(x = SubCompartName, y = Concentration, col=source)) +  
   geom_violin(data = mass_plot_data_filtered_general %>% filter(source == "SimpleBox"), 
               aes(fill = source), alpha = 0.5) + 
@@ -1289,9 +1347,8 @@ Concentration_per_polymer_mass_table <- Concentrations_2019 |>
 
 Concentration_summed_mass_table <- Concentrations_2019 |>
   mutate(Year = 2019) |>
-  group_by(Year, Scale, SubCompart, Unit) |>
+  group_by(Year, Scale, SubCompart, Unit, RUNs) |>
   summarise(Concentration = sum(Concentration)) |>
-  group_by(Year, Scale, SubCompart, Unit) |>
   summarise(q5 = quantile(Concentration, 0.05),
             q25 = quantile(Concentration, 0.25),
             median = median(Concentration),
@@ -1312,7 +1369,7 @@ concentration_per_polymer_particles_table <- particles_conc_C_R_2019_per_polymer
 
 Concentration_summed_particles_table <- particles_conc_C_R_2019_summed_over_polymer_unfiltered |>
   mutate(Year = 2019) |>
-  group_by(Year, Scale, SubCompart, Unit) |>
+  group_by(Year, Scale, SubCompart, Unit, RUN) |>
   summarise(Concentration = sum(Concentration)) |>
   group_by(Year, Scale, SubCompart, Unit) |>
   summarise(q5 = quantile(Concentration, 0.05),
