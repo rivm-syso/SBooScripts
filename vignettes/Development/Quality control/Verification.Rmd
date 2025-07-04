@@ -26,8 +26,9 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
 ) 
 
 substance <- Potential_substances[2]
-
-source("baseScripts/initWorld_onlyMolec.R")
+substance <- Potential_substances[6]
+# source("baseScripts/initWorld_onlyMolec.R")
+source("baseScripts/initWorld_onlyPlastics.R")
 
 ```
 
@@ -36,7 +37,9 @@ source("baseScripts/initWorld_onlyMolec.R")
 
 World$NewSolver("SteadyStateSolver")
 
-emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU","s1AU"), Emis = c(10000, 10000, 10000,100)) # convert 1 t/y to si units: kg/s
+# emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU","s1AU"), Emis = c(10000, 10000, 10000,100)) # convert 1 t/y to si units: kg/s
+# emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: kg/s
+emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS","s1AS"), Emis = c(10000, 10000, 10000,100)) # convert 1 t/y to si units: kg/s
 
 emissions <- emissions |>
   mutate(Emis = Emis * 1000 / (365 * 24 * 60 * 60))
@@ -50,23 +53,99 @@ World$Solve(emissions)
 
 RateConstants <- f_AddAbbreviationsSBxlsx()
 World$Masses()
+World$Emissions()
+as_tibble(World$kaas)
+
+setdiff(RateConstants$from,RateConstants$to) # For this test, we need to pad the data with some 0's
+setdiff(RateConstants$to,RateConstants$from)
+
 
 MassBalanceTest <- 
   RateConstants |> 
   full_join(World$Masses(), by = join_by(from == Abbr)) |> 
   rename(fromMass_kg = Mass_kg) |> 
-  full_join(World$Masses(), by = join_by(to == Abbr)) |> 
-  rename(toMass_kg = Mass_kg) |> 
-  mutate(toMassFlow_kg_s = toMass_kg * k,
-         fromMassFlow_kg_s = fromMass_kg * k)
+  mutate(ProcessMassFlow_kg_s = fromMass_kg * k)
 
-MassBalanceTest |> 
-  group_by(process) |> 
-  summarise(toMassFlow_kg_s = sum(toMassFlow_kg_s ),
-            fromMassFlow_kg_s = sum(fromMassFlow_kg_s),
-            fromMass_kg  = sum(fromMass_kg  ),
-            toMass_kg  = sum(toMass_kg ))
+test <- World$exportEngineR()
 
+Removal <- 
+  MassBalanceTest |> 
+  mutate(Type = case_when(
+    process == "k_Degradation" ~ "Removal",
+    process == "k_Adsorption" ~ "InterMedia",
+    process == "k_Advection" ~ "InterMedia",
+    process == "k_Deposition" ~ "InterMedia",
+    process == "k_Desorption" ~ "InterMedia",
+    process == "k_Erosion" ~ "InterMedia",
+    process == "k_Escape" ~ "Removal",
+    process == "k_Resuspension" ~ "InterMedia",
+    process == "k_Leaching" ~ "Removal",
+    process == "k_Runoff" ~ "InterMedia",
+    process == "k_Sedimentation" ~ "InterMedia",
+    process == "k_Volatilisation" ~ "InterMedia",
+    process == "k_Burial" ~ "Removal",
+    TRUE ~ NA
+  )) |> filter(Type == "Removal") |> 
+  group_by(from) |> 
+  summarise(Removal_kg_s = sum(ProcessMassFlow_kg_s ))
+
+
+MassBalanceTest |> filter(from == to)
+
+MassBalanceTest2 <-
+  MassBalanceTest |> pivot_wider(id_cols = to, names_from = from, values_from = ProcessMassFlow_kg_s,
+                                 values_fn = sum,
+                                 values_fill = 0) 
+
+
+
+Trans_from <-
+  MassBalanceTest2 |> select(-to) |>  ungroup() |> 
+  summarise(across(everything(),sum)) |> t()
+
+Trans_to <- 
+  MassBalanceTest2 |> select(-to) |>  rowwise() |>
+  mutate(Trans_to = sum(c_across(everything()))) |> select(Trans_to) 
+
+MassBalanceCheck <- 
+  cbind(Trans_to,Trans_from)
+MassBalanceCheck$Compartment <- row.names(MassBalanceCheck)
+MassBalanceCheck <- merge(MassBalanceCheck,World$Emissions(),by.x = "Compartment",by.y = "Abbr")
+MassBalanceCheck <- merge(MassBalanceCheck,Removal,by.x = "Compartment",by.y = "from")
+
+sum(MassBalanceCheck$Emission_kg_s) - sum(MassBalanceCheck$Removal_kg_s)
+
+sum(MassBalanceCheck$Trans_to) - sum( MassBalanceCheck$Trans_from)
+
+
+(MassBalanceCheck$Emission_kg_s+MassBalanceCheck$Trans_to) - (MassBalanceCheck$Removal_kg_s + MassBalanceCheck$Trans_from)
+
+sum((MassBalanceCheck$Emission_kg_s+MassBalanceCheck$Trans_to) - (MassBalanceCheck$Removal_kg_s + MassBalanceCheck$Trans_from))
+
+
+```
+
+```{r}
+
+# further replication of xlsx mass balance check sb4
+# 
+# MassBalanceTest3 <- as.matrix(MassBalanceTest2[,-1])
+# 
+# diag(MassBalanceTest3) <- diag(MassBalanceTest3) * -1
+# 
+# Trans_from <-
+#   MassBalanceTest3 |>  as_tibble() |> 
+#   summarise(across(everything(),sum)) |> t()
+# 
+# Trans_to <- 
+#   MassBalanceTest3  |>  as_tibble() |>  rowwise() |>
+#   mutate(Trans_to = sum(c_across(everything()))) |> select(Trans_to) 
+# 
+# MassBalanceCheck <- 
+#   cbind(Trans_to,Trans_from)
+# MassBalanceCheck$Compartment <- row.names(MassBalanceCheck)
+# MassBalanceCheck <- merge(MassBalanceCheck,World$Emissions(),by.x = "Compartment",by.y = "Abbr")
+# MassBalanceCheck <- merge(MassBalanceCheck,Removal,by.x = "Compartment",by.y = "from")
 
 ```
 
