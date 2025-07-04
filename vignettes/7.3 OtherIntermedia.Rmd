@@ -68,14 +68,26 @@ test1$execute()
 #### Runoff
 
 Runoff is implemented in a similar way.
-Here the formula is: RAINrate \* FRACrun / Ksw \* CORRrunoff / VertDistance.
-So we need Ksw, which can be in the data, or you can apply a formulas depending on the type of substance.
-See the vignette partitioning.Rmd for a detailed explanation of Ksw
+Here the formula is: RunoffFlow / Kscompw \* CORRrunoff / Volume \* FracROWatComp.
+For organic compounds we need Kscompw (Ksw), which is described in section [4.0 partitioning](#0).
+The correction factor is explained above.
+The RunoffFlow from soil is needed, which is dependant on the Area, FRACrun and the RAINrate.
+Then a fraction of Runoff (FracROWatComp) can go to either the upstream (w0) or downstream (w1) freshwater compartment.
 
 ```{r message=FALSE, warning=FALSE}
+
+RunoffFlow
+World$fetchData("RunoffFlow")
+FracROWatComp
+World$fetchData("FracROWatComp")
+Kscompw
 World$fetchData("Kscompw")
-World$NewCalcVariable("Runoff")
-World$CalcVar("Runoff" )
+
+f_CORRsoil
+# with:
+World$fetchData("relevant_depth_s")
+World$fetchData("penetration_depth_s")
+World$fetchData("VertDistance")
 
 World$FromDataAndTo("k_Runoff")
 
