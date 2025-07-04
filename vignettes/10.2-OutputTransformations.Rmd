@@ -18,7 +18,7 @@ These are calculation of:
 
 1.  Concentrations
 
-OVERALL WORK IN PROGRESS.
+OVERALL WORK IN PROGRESS [documentation needs to be updated!].
 
 ```{r Initialize World, message=FALSE, warning=FALSE, include=FALSE}
 source("baseScripts/initWorld_onlyMolec.R")
