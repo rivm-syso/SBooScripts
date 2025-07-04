@@ -1,35 +1,18 @@
 ---
 title: "Verification"
-author: "Valerie de Rijk, Anne Hids, Joris Quik"
 date: "`r Sys.Date()`"
 output: github_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(
-	eval = FALSE,
-	fig.height = 8,
-	fig.width = 14,
-	include = FALSE
-)
-projectRoot <- paste(getwd(), "..", "..", "..", "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-options(dplyr.summarise.inform=FALSE)
-knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 8)
-
 library(openxlsx)
 library(tidyverse)
 library (ggplot2)
 library(plotly)
 ```
 
-## Define the comparison type
-```{r}
-compare_to <- "Excel"
-# compare_to <- "Previous_R_version"
-
-```
 
 ## Define substances
 ```{r, warning=FALSE, message=FALSE}
@@ -40,17 +23,51 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
                           "Sb(III)", # metal
                           "microplastic", # microplastic
                           "nAg_10nm" # particulate
-                          ) 
+) 
+
+substance <- Potential_substances[2]
+
+source("baseScripts/initWorld_onlyMolec.R")
+
 ```
 
 ## 
-```{r, warning=FALSE, message=FALSE}
+```{r test mass balance, warning=FALSE, message=FALSE}
 
+World$NewSolver("SteadyStateSolver")
 
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU","s1AU"), Emis = c(10000, 10000, 10000,100)) # convert 1 t/y to si units: kg/s
 
+emissions <- emissions |>
+  mutate(Emis = Emis * 1000 / (365 * 24 * 60 * 60))
+
+World$Solve(emissions)
 ```
 
 
 
+```{r}
+
+RateConstants <- f_AddAbbreviationsSBxlsx()
+World$Masses()
+
+MassBalanceTest <- 
+  RateConstants |> 
+  full_join(World$Masses(), by = join_by(from == Abbr)) |> 
+  rename(fromMass_kg = Mass_kg) |> 
+  full_join(World$Masses(), by = join_by(to == Abbr)) |> 
+  rename(toMass_kg = Mass_kg) |> 
+  mutate(toMassFlow_kg_s = toMass_kg * k,
+         fromMassFlow_kg_s = fromMass_kg * k)
+
+MassBalanceTest |> 
+  group_by(process) |> 
+  summarise(toMassFlow_kg_s = sum(toMassFlow_kg_s ),
+            fromMassFlow_kg_s = sum(fromMassFlow_kg_s),
+            fromMass_kg  = sum(fromMass_kg  ),
+            toMass_kg  = sum(toMass_kg ))
+
+
+```
 
 

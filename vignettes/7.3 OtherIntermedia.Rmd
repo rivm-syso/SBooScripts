@@ -69,17 +69,19 @@ test1$execute()
 
 Runoff is implemented in a similar way.
 Here the formula is: RunoffFlow / Kscompw \* CORRrunoff / Volume \* FracROWatComp.
-For organic compounds we need Kscompw (Ksw), which is described in section [4.0 partitioning](#0).
+For organic compounds we need Kscompw (Ksw), which is described in section [4.0 partitioning](#0), as only the fraction in water can move with Runoff.
 The correction factor is explained above.
 The RunoffFlow from soil is needed, which is dependant on the Area, FRACrun and the RAINrate.
-Then a fraction of Runoff (FracROWatComp) can go to either the upstream (w0) or downstream (w1) freshwater compartment.
+And at last the fraction of Runoff can go to either the upstream (w0) or downstream (w1) freshwater compartment as calculated by v_FracROWatComp.
+FracROWatComp is now calculated based on the surface fraction (landFRAC) of w0 versus w1.
+This can or should be adjusted when more specific data is available on the land surface area contributing to the upstream (w0) versus downstream (w1) Runoff <!--# No link with data layer implemented yet, e.g. introducing a data variable (e.g. RunoffFrac) from data and if NA calculated from compFrac and waterFrac -->.
 
 ```{r message=FALSE, warning=FALSE}
 
 RunoffFlow
 World$fetchData("RunoffFlow")
 FracROWatComp
-World$fetchData("FracROWatComp")
+  World$fetchData("FracROWatComp")
 Kscompw
 World$fetchData("Kscompw")
 

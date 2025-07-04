@@ -118,14 +118,16 @@ calculation matters (for regional and continental scale function x 1-5).
 x_ContRiver2Reg calculates based on the fraction of discharge of fresh
 water to the regional scale the amount of fresh water flowing from
 continental to regional scale. This function also depends on the
-different contributors to continental discharge. These are: Runoff and
-RainOnFreshwater for both freshwater compartments (w0 and w1). In the
-default scenario where the regional scale coincides with a watershed
-this is 0, but when e.g. country boundaries are taken this becomes
-relevant as there could be inflow of freshwater across the border. The
-main driving variable is 'dischargeFRAC' which indicates the fraction of
-freshwater outflow at continental scale flowing to regional scale (set
-for Cont. Scale).
+different contributors to continental discharge. These are: Runoff (see
+description in section [7.3
+OtherIntermedia](vigenttes/7.3 OtherIntermedia.md)) and RainOnFreshwater
+for both freshwater compartments (w0 and w1). In the default scenario
+where the regional scale coincides with a watershed this is 0, but when
+e.g. country boundaries are taken this becomes relevant as there could
+be inflow of freshwater across the border. The main driving variable is
+'dischargeFRAC' which indicates the fraction of freshwater outflow at
+continental scale flowing to regional scale (set for Cont. Scale). The
+rest of the freshwater is discharged to continental sea.
 
 ```{r}
 x_ContRiver2Reg
