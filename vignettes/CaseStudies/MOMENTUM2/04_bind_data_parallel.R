@@ -1,5 +1,5 @@
 # Define the folder path
-folder_path <- "vignettes/CaseStudies/MOMENTUM2/BatchFiles"
+folder_path <- "vignettes/CaseStudies/CaseData/MOMENTUM2/BatchFiles"
 
 if (!dir.exists(folder_path)) {
   # The folder does not exist, so create it
@@ -9,7 +9,7 @@ if (!dir.exists(folder_path)) {
 
 filepaths <- c()
 
-pathname <- "vignettes/CaseStudies/MOMENTUM2/BatchFiles/"
+pathname <- "vignettes/CaseStudies/CaseData/MOMENTUM2/BatchFiles/"
 
 materials <- c("ABS", "Acryl", "EPS", "HDPE", "LDPE", "OTHER", "PA", "PC", "PET", "PMMA", "PP", "PS", "PUR", "PVC", "RUBBER", "NR", "SBR")
 
@@ -49,5 +49,5 @@ LSF_string <- paste0("bsub -n 1 -e err.txt -o out.txt -W ", time, " -M ", mb, " 
 LSF_vector <- paste(LSF_string, filepaths)
 
 # Write to txt file to make copying easy
-writeLines(LSF_vector, "vignettes/CaseStudies/MOMENTUM2/HPC_commands_bind_data.txt")
+writeLines(LSF_vector, "vignettes/CaseStudies/CaseData/MOMENTUM2/HPC_commands_bind_data.txt")
 

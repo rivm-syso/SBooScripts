@@ -7,9 +7,10 @@
 
 library(tidyverse)
 
-data_folder <- "vignettes/CaseStudies/MOMENTUM2/Data/"
+input_data_folder <- "/data/BioGrid/hidsa/MOMENTUM2_input/"
+data_folder <- "vignettes/CaseStudies/CaseData/MOMENTUM2/Data"
 
-path_parameters_file <- paste0(data_folder, "Microplastic_variables_MOMENTUM2.xlsx")
+path_parameters_file <- paste0(input_data_folder, "Microplastic_variables_MOMENTUM2.xlsx")
   
 ##### Prepare variable data
 Material_Parameters <- readxl::read_excel(path_parameters_file, sheet = "Polymer_data") |> 
@@ -83,7 +84,11 @@ for(i in unique(correlations$Polymer)){
 }
 
 ##### Create the batch files for running SimpleBox
-load(paste0(data_folder, "DPMFA_SBinput_20250618.RData"))
+files <- list.files(data_folder)
+dpmfa_data_fp <- grep("DPMFA", files)
+dpmfa_data_fp <- files[[dpmfa_data_fp]]
+
+load(paste0(data_folder, "/", dpmfa_data_fp))
 
 emis_list <- list()
 
@@ -130,15 +135,15 @@ for(i in unique(Material_Parameters$Polymer)){
 }
 
 # Save the variables and the emissions to the Data folder
-save(lhs_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/lhs_list.RData")
-save(emis_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/emis_list.RData")
-save(variable_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/variable_list.RData")
-save(correlation_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/correlation_list.RData")
+save(lhs_list, file = paste0(data_folder, "/lhs_list.RData"))
+save(emis_list, file = paste0(data_folder, "/emis_list.RData"))
+save(variable_list, file = paste0(data_folder, "/Variable_list.RData"))
+save(correlation_list, file = paste0(data_folder, "/correlation_list.RData"))
 
 #### Create the batch files
 
 # Define the folder path
-folder_path <- "vignettes/CaseStudies/MOMENTUM2/BatchFiles"
+folder_path <- "vignettes/CaseStudies/CaseData/MOMENTUM2/BatchFiles"
 
 if (!dir.exists(folder_path)) {
   # The folder does not exist, so create it
@@ -186,13 +191,13 @@ if (dir.exists(folder_path)) {
   dir.create(folder_path)
 }
 
-pathname <- "vignettes/CaseStudies/MOMENTUM2/BatchFiles/"
+pathname <- "vignettes/CaseStudies/CaseData/MOMENTUM2/BatchFiles/"
 filepaths <- list()
 
 for(i in 1:nrow(pars)){
   for(polymer in unique(Material_Parameters$Polymer)){
     # Read in the file
-    file <- readLines("vignettes/CaseStudies/MOMENTUM2/SB_run.R")
+    file <- readLines("vignettes/CaseStudies/CaseData/MOMENTUM2/SB_run.R")
     
     # Change the polymer to the current polymer
     target_string_polymer <- "polymer <- "
@@ -252,5 +257,5 @@ LSF_string <- paste0("bsub -n 1 -e err.txt -o out.txt -W ", time, " -M ", mb, " 
 LSF_vector <- paste(LSF_string, filepaths)
 
 # Write to txt file to make copying easy
-writeLines(LSF_vector, "vignettes/CaseStudies/MOMENTUM2/HPC_commands.txt")
+writeLines(LSF_vector, "vignettes/CaseStudies/CaseData/MOMENTUM2/HPC_commands.txt")
 

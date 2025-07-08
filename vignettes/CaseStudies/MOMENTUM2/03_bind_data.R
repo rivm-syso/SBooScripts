@@ -8,7 +8,7 @@
 library(stringr)
 library(tidyverse)
 
-data_folder <- "vignettes/CaseStudies/MOMENTUM2/Output"
+data_folder <- "vignettes/CaseStudies/CaseData/MOMENTUM2/Output"
 
 source("baseScripts/initWorld_onlyPlastics.R")
 states <- World$states$asDataFrame
@@ -110,7 +110,7 @@ for(file in mass_files){
 }
 
 #### Bind variable data
-load("vignettes/CaseStudies/MOMENTUM2/Data/lhs_list.RData")
+load("vignettes/CaseStudies/CaseData/MOMENTUM2/Data/lhs_list.RData")
 
 variable_matrix <- lhs_list[[pol]]
 variable_df <- as.data.frame(variable_matrix) |>
@@ -131,7 +131,7 @@ variable_df <- as.data.frame(variable_matrix) |>
 all_variables <- variable_df
 
 #### Save the outcomes
-data_folder <- "vignettes/CaseStudies/MOMENTUM2/Bound_data/"
+data_folder <- "vignettes/CaseStudies/CaseData/MOMENTUM2/Bound_data/"
 
 # Check if the folder exists, and create it if it doesn't
 if (!dir.exists(data_folder)) {

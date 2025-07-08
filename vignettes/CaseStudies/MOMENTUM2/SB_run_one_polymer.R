@@ -5,11 +5,11 @@
 # Anne Hids and Joris Quik
 ################################################################################
 starttime <- Sys.time()
-data_folder <- "vignettes/CaseStudies/MOMENTUM2/Data/"
+input_data_folder <- "/data/BioGrid/hidsa/MOMENTUM2_input/"
+path_parameters_file <- paste0(input_data_folder, "Microplastic_variables_MOMENTUM2_one_polymer.xlsx")
 
-path_parameters_file <- paste0(data_folder, "Microplastic_variables_MOMENTUM2_one_polymer.xlsx")
-input_folder <- "vignettes/CaseStudies/MOMENTUM2/Data/"
-output_folder <- "vignettes/CaseStudies/MOMENTUM2/Output_general/"
+data_folder <- "vignettes/CaseStudies/CaseData/MOMENTUM2/Data/"
+output_folder <- "vignettes/CaseStudies/CaseData/MOMENTUM2/Output_general/"
 
 # Check if the folder exists, and create it if it doesn't
 if (!dir.exists(output_folder)) {

@@ -701,7 +701,7 @@ ggsave(paste0(figurefolder, "Tyre_wear_mass_regional_unfiltered_", data_date, ".
 
 Read in the measurements
 ```{R}
-ftir_data <- read_xlsx("/rivm/n/hidsa/Documents/GitLab/exposuredata/Exposure_data.xlsx")
+ftir_data <- read_xlsx("/data/BioGrid/hidsa/MOMENTUM2_input/Exposure_data.xlsx")
 concentration_per_polymer <- ftir_data |>
   group_by(location, Identification, MP_m3) |>
   summarise(

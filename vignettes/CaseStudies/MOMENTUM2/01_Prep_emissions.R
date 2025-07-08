@@ -8,12 +8,22 @@
 library(tidyverse)
 library(triangle)
 
-# Define file paths
-data_folder <- "vignettes/CaseStudies/MOMENTUM2/Data/"
+input_data_folder <- "/data/BioGrid/hidsa/MOMENTUM2_input/"
 
-abspath_NL <- paste0(data_folder, "DPMFA_sink_NL.RData")
-abspath_EU <- paste0(data_folder, "DPMFA_sink_EU.RData")
-path_parameters_file <- paste0(data_folder, "Microplastic_variables_MOMENTUM2.xlsx")
+# Define file paths
+data_folder <- "vignettes/CaseStudies/CaseData/MOMENTUM2/Data/"
+
+# Check if the folder exists, and create it if it doesn't
+if (!dir.exists(data_folder)) {
+  dir.create(data_folder, recursive = TRUE)  # `recursive = TRUE` ensures that parent directories are created if needed
+  message("Output folder created: ", data_folder)
+} else {
+  message("Output folder already exists: ", data_folder)
+}
+
+abspath_NL <- paste0(input_data_folder, "DPMFA_sink_NL.RData")
+abspath_EU <- paste0(input_data_folder, "DPMFA_sink_EU.RData")
+path_parameters_file <- paste0(input_data_folder, "Microplastic_variables_MOMENTUM2.xlsx")
 
 ##### Prepare emission data
 

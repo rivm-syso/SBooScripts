@@ -7,9 +7,10 @@
 
 library(tidyverse)
 
-data_folder <- "vignettes/CaseStudies/MOMENTUM2/Data/"
+input_data_folder <- "/data/BioGrid/hidsa/MOMENTUM2_input/"
+data_folder <- "vignettes/CaseStudies/CaseData/MOMENTUM2/Data"
 
-path_parameters_file <- paste0(data_folder, "Microplastic_variables_MOMENTUM2_one_polymer.xlsx")
+path_parameters_file <- paste0(input_data_folder, "Microplastic_variables_MOMENTUM2_one_polymer.xlsx")
   
 ##### Prepare variable data
 Material_Parameters <- readxl::read_excel(path_parameters_file, sheet = "Polymer_data") |> 
@@ -28,51 +29,11 @@ Material_Parameters <- readxl::read_excel(path_parameters_file, sheet = "Polymer
 Material_Parameters <- Material_Parameters |>
   select(!starts_with(".")) |>
   mutate(Polymer = "General")
-# 
-# # Define the name of 'other' polymers
-# materials <- c("ABS", "Acryl", "EPS", "HDPE", "LDPE", "OTHER", "PA", "PC", "PET", "PMMA", "PP", "PS", "PUR", "PVC", "RUBBER")
-# 
-# explodeF <- function(df, target_col, explode_value, new_values) {
-#   df |>
-#     # Use mutate to create a new column if the target column equals explode_value
-#     mutate(!!sym(target_col) := ifelse(!!sym(target_col) == explode_value, list(new_values), !!sym(target_col))) %>%
-#     # Unnest the target column to duplicate rows
-#     unnest(!!sym(target_col))
-# }
-# 
-# suppressWarnings({
-#   Material_Parameters <- explodeF(Material_Parameters, target_col = "Polymer", explode_value = "any", new_values = materials) # move this after and save unique values (n=same as in xlsx)
-# })
-
-# Material_Parameters <- Material_Parameters |>
-#   mutate(d = as.character(d)) |>
-#   mutate(d = case_when(
-#     Distribution == "TRWP_size" ~ path_parameters_file,
-#     TRUE ~ d
-#   ))
-
-#### Prepare the correlations
-#materials <- c(materials, "NR", "SBR")
 
 Correlations <- readxl::read_xlsx(path_parameters_file, sheet = "Correlation")
 correlations <- Correlations |>
   mutate(correlation = as.numeric(str_replace(correlation, ",", "."))) |>
   mutate(Polymer = "General")
-
-# polymer_specific_correlations <- Correlations |>
-#   filter(Polymer != "any")
-# 
-# any_polymer_correlations <- Correlations |>
-#   filter(Polymer == "any")
-# 
-# suppressWarnings({
-#   correlations <- explodeF(any_polymer_correlations, target_col = "Polymer", explode_value = "any", new_values = materials) # move this after and save unique values (n=same as in xlsx)
-# })
-
-# correlations <- correlations |>
-#   anti_join(polymer_specific_correlations, by = c("varName_1", "varName_2", "Polymer"))
-# 
-# correlations <- bind_rows(correlations, polymer_specific_correlations)
 
 correlation_list <- list()
 
@@ -85,7 +46,11 @@ for(i in unique(correlations$Polymer)){
 }
 
 ##### Create the batch files for running SimpleBox
-load(paste0(data_folder, "DPMFA_SBinput_20250618.RData"))
+files <- list.files(data_folder)
+dpmfa_data_fp <- grep("DPMFA", files)
+dpmfa_data_fp <- files[[dpmfa_data_fp]]
+
+load(paste0(data_folder, "/", dpmfa_data_fp))
 
 emis_list <- list()
 
@@ -160,15 +125,15 @@ for(i in unique(Material_Parameters$Polymer)){
 #      ylab = "Density")
 
 # Save the variables and the emissions to the Data folder
-save(lhs_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/lhs_list_general.RData")
-save(emis_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/emis_list_general.RData")
-save(variable_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/variable_list_general.RData")
-save(correlation_list, file = "vignettes/CaseStudies/MOMENTUM2/Data/correlation_list_general.RData")
+save(lhs_list, file = paste0(data_folder, "/lhs_list_general.RData"))
+save(emis_list, file = paste0(data_folder, "/emis_list_general.RData"))
+save(variable_list, file = paste0(data_folder, "/Variable_list_general.RData"))
+save(correlation_list, file = paste0(data_folder, "/correlation_list_general.RData"))
 
 #### Create the batch files
 
 # Define the folder path
-folder_path <- "vignettes/CaseStudies/MOMENTUM2/BatchFiles"
+folder_path <- "vignettes/CaseStudies/CaseData/MOMENTUM2/BatchFiles"
 
 if (!dir.exists(folder_path)) {
   # The folder does not exist, so create it
@@ -216,7 +181,7 @@ if (dir.exists(folder_path)) {
   dir.create(folder_path)
 }
 
-pathname <- "vignettes/CaseStudies/MOMENTUM2/BatchFiles/"
+pathname <- "vignettes/CaseStudies/CaseData/MOMENTUM2/BatchFiles/"
 filepaths <- list()
 
 for(i in 1:nrow(pars)){
@@ -282,5 +247,5 @@ LSF_string <- paste0("bsub -n 1 -e err.txt -o out.txt -W ", time, " -M ", mb, " 
 LSF_vector <- paste(LSF_string, filepaths)
 
 # Write to txt file to make copying easy
-writeLines(LSF_vector, "vignettes/CaseStudies/MOMENTUM2/HPC_commands_one_polymer.txt")
+writeLines(LSF_vector, "vignettes/CaseStudies/CaseData/MOMENTUM2/HPC_commands_one_polymer.txt")
 
