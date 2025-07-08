@@ -1,0 +1,19 @@
+---
+title: "SBoo Solver output"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+The SteadyState and Dynamic Solver both are capable of using LHS, correlation for different distributions. Here the currently implemented distributions are briefly described.
+
+OVERALL WORK IN PROGRESS [documentation needs to be updated!].
+
+```{r Initialize World, message=FALSE, warning=FALSE, include=FALSE}
+source("baseScripts/initWorld_onlyMolec.R")
+
+```
+

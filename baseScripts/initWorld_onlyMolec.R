@@ -3,6 +3,12 @@
 #script to faking the future library(SBoo)
 source("baseScripts/fakeLib.R")
 
+#to run the script with another selection of substance / excel reference, #
+#set the variables substance and excelReference before sourcing this script
+if (!exists("substance")) {
+  substance <- "default substance"
+}
+
 #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
 ClassicStateModule <- ClassicNanoWorld$new(MlikeFile = "data", Substance = substance) #by default Substance = "default substance"
 

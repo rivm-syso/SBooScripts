@@ -116,13 +116,13 @@ SBooScripts.Rproj
 err.txt
 out.txt
 
+data/World.RData
+data/scaledLHSsamples.RData
+data/Solution.RData
+data/World.RDS
+data/scaledLHSsamples.RDS
+
 Measurements_MP_surface_water.xlsx
 
-vignettes/CaseStudies/MOMENTUM2/HPC_commands.txt
-vignettes/CaseStudies/MOMENTUM2/HPC_commands_bind_data.txt
-/vignettes/CaseStudies/MOMENTUM2/Output/
-/vignettes/CaseStudies/MOMENTUM2/Data/
-/vignettes/CaseStudies/MOMENTUM2/Bound_data
 data/scaledLHSsamples.RDS
 data/World.RDS
-
