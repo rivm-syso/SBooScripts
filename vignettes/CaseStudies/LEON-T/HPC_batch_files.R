@@ -3,8 +3,8 @@ library(tidyverse)
 # Initialize variables
 
 ## Define batch parameters
-#batch_n <- 2
-#batch_max <- 10  # Should be a multiple of batch_n for the loop logic to work
+batch_n <- 2
+batch_max <- 10  # Should be a multiple of batch_n for the loop logic to work
 
 #Source <- NA
 #Source <- '"Tyre wear"'
