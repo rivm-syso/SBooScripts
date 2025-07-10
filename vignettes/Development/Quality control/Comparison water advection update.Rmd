@@ -357,9 +357,9 @@ mean_diffs <- kaas_comparison |>
 ggplot(mean_diffs, mapping = aes(x = toname, y = fromname, color = diff)) + 
   geom_point() + 
   scale_color_gradient2(
-    low = "red",    # Colors for negative values
+    low = "blue",    # Colors for negative values
     mid = "grey",   # Neutral point at zero
-    high = "blue",  # Colors for positive values
+    high = "red",  # Colors for positive values
     midpoint = 0,   # Center the scale at zero
     limits = c(-max(abs(mean_diffs$diff)), max(abs(mean_diffs$diff)))  # Ensure symmetric scale
   ) +
