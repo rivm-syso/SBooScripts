@@ -1,0 +1,314 @@
+---
+title: "General script comparing two model versions"
+author: "Anne Hids, Joris Quik"
+date: "2025-05-27"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..","..","..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) 
+
+library(tidyverse)
+```
+
+# Setup for comparison
+
+The below scripts should be run to compare two versions of SBoo.
+
+```{R Specify temporary directory, include = FALSE}
+# Specify where the downloaded versions of sboo and sbooscripts should be saved to
+dest_folder <- "/rivm/n/hidsa/Documents/Temp"
+```
+
+```{R Specify which tag and branch to compare}
+tag <- "2025.04.0"
+branch_sboo <- "FLux_work"
+branch_sbooscripts <- "Fluxwork"
+```
+
+# Define function for downloading and ordering the folders needed to compare
+
+```{R Switch to SBoo Development branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+CompareFilesPrep <- function(Release = "2025.04.0",
+                             Test_SBoo = "FLux_work",
+                             Test_SBooScripts = "Fluxwork",
+                             Temp_Folder = "C:/Temp" # an existing folder
+){
+  SBScriptsLink_test <- 
+    paste0("https://github.com/rivm-syso/SBooScripts/archive/refs/heads/",Test_SBooScripts,".zip")
+  SBScriptsLink_Release <- 
+    paste0("https://github.com/rivm-syso/SBooScripts/archive/refs/tags/",Release,".zip")
+  
+  SBooLink_test <- 
+    paste0("https://github.com/rivm-syso/SBoo/archive/refs/heads/",Test_SBoo,".zip")
+  SBooLink_Release <- 
+    paste0("https://github.com/rivm-syso/SBoo/archive/refs/tags/",Release,".zip")
+  
+  if(dir.exists(paste0(Temp_Folder,"/SBzips"))){
+      oldfiles <- list.files(paste0(Temp_Folder,"/SBzips"), full.names = TRUE)
+      file.remove(oldfiles)
+      print("Old SBoo zipfiles deleted")
+  }
+  
+   if(!dir.exists(paste0(Temp_Folder,"/SBzips"))){
+  dir.create(paste0(Temp_Folder,"/SBzips"))
+     print(paste0("Directory: ", Temp_Folder,"/SBzips", " created."))
+   } else print("SBzips directory already exists")
+
+  download.file(SBScriptsLink_test,paste0(Temp_Folder,"/SBzips/SBooScripts_",Test_SBooScripts,".zip"))
+  download.file(SBooLink_test,paste0(Temp_Folder,"/SBzips/SBoo_",Test_SBoo,".zip"))
+  download.file(SBScriptsLink_Release,paste0(Temp_Folder,"/SBzips/SBooScripts_",Release,".zip"))
+  download.file(SBooLink_Release,paste0(Temp_Folder,"/SBzips/SBoo_",Release,".zip"))
+
+  empty_folder <- function(target_folder){
+      if (dir.exists(target_folder)) {
+      items <- list.files(target_folder, full.names = TRUE, recursive = FALSE)
+      if (length(items) > 0) {
+        unlink(items, recursive = TRUE, force = TRUE)
+      }
+    }
+  }
+  
+  target_folder <- paste0(Temp_Folder, "/SBtest")
+  empty_folder(target_folder = target_folder)
+    
+  target_folder <- paste0(Temp_Folder, "/SBmain")
+  empty_folder(target_folder = target_folder)
+  
+  # Unzip the Test folders 
+  zipfile <- paste0(Temp_Folder,"/SBzips/SBooScripts_",Test_SBooScripts,".zip")
+  file.exists(zipfile)
+  destination <- paste0(Temp_Folder, "/SBtest")
+  unzip(zipfile, exdir = destination)
+  
+  file.rename(file.path(destination, paste0("SBooScripts-", Test_SBooScripts)), 
+            file.path(destination, "SBooScripts"))
+  
+  zipfile <- paste0(Temp_Folder,"/SBzips/SBoo_",Test_SBoo,".zip")
+  file.exists(zipfile)
+  destination <- paste0(Temp_Folder, "/SBtest")
+  unzip(zipfile, exdir = destination)
+  
+  file.rename(file.path(destination, paste0("SBoo-", Test_SBoo)), 
+            file.path(destination, "SBoo"))
+  
+  # Unzip the main folders
+  zipfile <- paste0(Temp_Folder,"/SBzips/SBooScripts_", Release,".zip")
+  file.exists(zipfile)
+  destination <- paste0(Temp_Folder, "/SBmain")
+  unzip(zipfile, exdir = destination)
+  
+  file.rename(file.path(destination, paste0("SBooScripts-", Release)), 
+            file.path(destination, "SBooScripts"))
+  
+  zipfile <- paste0(Temp_Folder,"/SBzips/SBoo_",Release,".zip")
+  file.exists(zipfile)
+  destination <- paste0(Temp_Folder, "/SBmain")
+  unzip(zipfile, exdir = destination)
+  
+  file.rename(file.path(destination, paste0("SBoo-", Release)), 
+            file.path(destination, "SBoo"))
+  
+  # Return the file paths needed 
+  main_path <- paste0(Temp_Folder, "/SBmain")
+  test_path <- paste0(Temp_Folder, "/SBtest")
+  
+  return(c(main_path, test_path))
+}
+
+folderpaths <- CompareFilesPrep(Release = tag,
+                             Test_SBoo = branch_sboo,
+                             Test_SBooScripts = branch_sbooscripts,
+                             Temp_Folder = dest_folder)
+```
+
+Select 20 random substances for testing
+```{R select substances, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+excluded_substances <- c("Graphene Oxide", "Chitosan", "nTiO2_P25_CaLIBRAte_D6_3", "nAg_NanoFase", "nanoparticle", "GO-Chitosan")
+
+# Select 5 random substances for each class from substances csv
+substances <- read.csv("data/Substances.csv") |>
+  filter(!Substance %in% excluded_substances)
+
+mp <- substances |>
+  filter(Substance == "microplastic")
+
+set.seed(123)
+
+substances <- substances |>
+  group_by(ChemClass) |>
+  slice_sample(n = 5, replace = FALSE) |>
+  ungroup()
+
+substances <- rbind(substances, mp) |>
+  distinct()
+
+substance_names <- substances$Substance    # Assuming the column for names is 'SubstanceName'
+
+cc_substances <- substances |>
+  select(Substance, ChemClass)
+```
+
+# Calculate first order rate constants for the main
+```{R}
+# Save the original working directory for later
+original_wd <- getwd()
+
+# Change the wd to the wd of the main branches
+setwd(paste0(folderpaths[1], "/SBooScripts"))
+
+# Calculate the kaas 
+main_kaas <- data.frame()
+  
+for(i in 1:nrow(substances)){
+  # Get the substance type
+  subst_row <- substances[i, ]
+  
+  substance <- subst_row$Substance
+  cc <- subst_row$ChemClass
+  
+  if(substance == 'microplastic' | substance == "TRWP"){
+    source("baseScripts/initWorld_onlyPlastics.R")
+  } else if(cc == "particle"){
+    source("baseScripts/initWorld_onlyParticulate.R")
+  } else{
+    source("baseScripts/initWorld_onlyMolec.R")
+  }
+  
+  kaas <- World$kaas |>
+    mutate(Substance = substance)
+  
+  main_kaas <- rbind(main_kaas, kaas)
+}
+```
+
+# Calculate the first order rate constants for the test branches
+
+```{R Clean environment again, include=FALSE}
+rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
+```
+
+```{R Run SB and get advection ks for FLux_work branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+
+# Change the wd to the wd of the main branches
+setwd(paste0(folderpaths[2], "/SBooScripts"))
+
+test_kaas <- data.frame()
+  
+for(i in 1:nrow(substances)){
+  # Get the substance type
+  subst_row <- substances[i, ]
+  
+  substance <- subst_row$Substance
+  cc <- subst_row$ChemClass
+  
+  if(substance == 'microplastic' | substance == "TRWP"){
+    source("baseScripts/initWorld_onlyPlastics.R")
+  } else if(cc == "particle"){
+    source("baseScripts/initWorld_onlyParticulate.R")
+  } else{
+    source("baseScripts/initWorld_onlyMolec.R")
+  }
+  
+  kaas <- World$kaas |>
+    mutate(Substance = substance)
+  
+  test_kaas <- rbind(test_kaas, kaas)
+}
+```
+
+## Compare the k values for each of the substances
+
+```{R Calculate the differences between ks, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+common_cols <- setdiff(intersect(colnames(main_kaas), colnames(test_kaas)), "k")
+
+kaas_comparison <- merge(main_kaas, test_kaas, by=common_cols, suffixes = c("_Old", "_New"))
+
+kaas_comparison <- kaas_comparison |>
+  mutate(diff = k_New-k_Old) |> # If this number is positive, the New_k is higher than the Old_k (higher advection rate with new method)
+  mutate(rel_diff = diff/k_New)
+
+changed_kaas <- kaas_comparison |>
+  filter(diff != 0) |>
+  mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
+```
+
+```{R Plot the differences between ks, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+diffs <- kaas_comparison |>
+  mutate(fromname = paste0(process, "_", fromSubCompart, "_", fromScale)) |>
+  mutate(toname = paste0(process, "_", toSubCompart, "_", toScale)) |>
+  mutate(diff = ifelse(diff == 0, NaN, diff)) |>
+  left_join(cc_substances, by = "Substance")
+
+for(chemclass in unique(diffs$ChemClass)){
+  changed <- diffs |>
+    filter(rel_diff != 0) |>
+    filter(ChemClass == chemclass)
+  
+  mean_changed <- changed |>
+  group_by(fromname, toname) |>
+  summarise(diff = mean(diff),
+            rel_diff = mean(rel_diff))
+  
+  diff_plot <- ggplot(mean_changed, mapping = aes(x = toname, y = fromname, color = diff)) + 
+  geom_point() + 
+  scale_color_gradient2(
+    low = "blue",    # Colors for negative values
+    mid = "grey",   # Neutral point at zero
+    high = "red",  # Colors for positive values
+    midpoint = 0,   # Center the scale at zero
+    limits = c(-max(abs(changed$diff)), max(abs(changed$diff)))  # Ensure symmetric scale
+  ) +
+  labs(
+    title = paste0("Mean difference between old and new k's for ", chemclass, " substances"),
+    subtitle = "Only k's with a difference above or below zero are shown",
+    x = "To",  
+    y = "From",  
+    color = "Difference"  
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1), 
+    panel.grid.major = element_line(size = 0.2, color = "gray90"),  
+    panel.background = element_blank() 
+  ) 
+  
+  print(diff_plot)
+  
+  rel_diff_plot <- ggplot(mean_changed, mapping = aes(x = toname, y = fromname, color = rel_diff)) + 
+  geom_point() + 
+  scale_color_gradient2(
+    low = "blue",    # Colors for negative values
+    mid = "grey",   # Neutral point at zero
+    high = "red",  # Colors for positive values
+    midpoint = 0,   # Center the scale at zero
+    limits = c(-max(abs(changed$rel_diff)), max(abs(changed$rel_diff)))  # Ensure symmetric scale
+  ) +
+  labs(
+    title = paste0("Mean relative difference between old and new k's for ", chemclass, " substances"),
+    subtitle = "Only k's with a difference above or below zero are shown",
+    x = "To",  
+    y = "From",  
+    color = "Difference"  
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1), 
+    panel.grid.major = element_line(size = 0.2, color = "gray90"),  
+    panel.background = element_blank() 
+  ) 
+  
+  print(rel_diff_plot)
+  
+  table_for_display <- changed |>
+  select(fromScale, fromSubCompart, toScale, toSubCompart, Substance, k_Old, k_New, diff, rel_diff) |>
+  mutate(diff = format(diff, scientific = TRUE, digits = 2)) |>
+  mutate(rel_diff = format(rel_diff, scientific = TRUE, digits = 2))
+
+  print(knitr::kable(table_for_display))
+}
+```
