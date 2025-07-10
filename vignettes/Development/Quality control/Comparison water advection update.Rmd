@@ -234,52 +234,6 @@ As advection processes do not depend on substance variables, we only
 need to compare the advection flows for one substance, in this case
 1-aminoanthraquinone.
 
-<!-- # ```{R} -->
-
-<!-- # # Select 20 random substances from substances csv -->
-
-<!-- # substances <- read.csv("data/Substances.csv") -->
-
-<!-- # set.seed(123) -->
-
-<!-- # index_substance <- round(runif(20, min=1, max=nrow(substances))) -->
-
-<!-- #  -->
-
-<!-- # # Get names of substances at the selected indeces -->
-
-<!-- # substances <- substances[index_substance, ]   # Subset the rows -->
-
-<!-- # substance_names <- substances$Substance    # Assuming the column for names is 'SubstanceName' -->
-
-<!-- # ``` -->
-
-<!-- # ```{R} -->
-
-<!-- # substance_names <- c("1-aminoanthraquinone", # no class -->
-
-<!-- #                          "1-HYDROXYANTHRAQUINONE", # acid -->
-
-<!-- #                          "1-Hexadecanamine, N,N-dimethyl-", # base -->
-
-<!-- #                          "1-Chloro-2-nitro-propane", # neutral -->
-
-<!-- #                          "Sb(III)", # metal -->
-
-<!-- #                          "microplastic", # microplastic -->
-
-<!-- #                           "nAg_10nm" # particulate -->
-
-<!-- #                           )  -->
-
-<!-- # substances <- read.csv("data/Substances.csv") -->
-
-<!-- # substances <- substances |> -->
-
-<!-- #   filter(Substance %in% substance_names) -->
-
-<!-- # ``` -->
-
 ```{R Specify substance, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
 substance_names <- "1-aminoanthraquinone" 
 substances <- read.csv("data/Substances.csv")
@@ -287,93 +241,38 @@ substances <- substances |>
   filter(Substance %in% substance_names)
 ```
 
+
+```{R Specify temporary directory, include = FALSE}
+# Specify where the downloaded versions of sboo and sbooscripts should be saved to
+dest_folder <- "/rivm/n/hidsa/Documents/Temp"
+```
+
+```{R Specify which tag and branch to compare}
+tag <- "2025.04.0"
+branch_sboo <- "FLux_work"
+branch_sbooscripts <- "Fluxwork"
+```
+
+# Define function for downloading and ordering the folders needed to compare
+
 ```{R Switch to SBoo Development branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
-# Switch to the correct Git directory
-setwd(repo_dir)
+source("vignettes/Development/Quality control/ComparisonFunctions.R")
 
-# SBooscripts
-SBScriptsLink_test <- "https://github.com/rivm-syso/SBooScripts/archive/refs/heads/Fluxwork.zip"
-SBScriptsLink_Release <- "https://github.com/rivm-syso/SBooScripts/archive/refs/tags/2025.04.0.zip"
-
-SBooLink_test <- "https://github.com/rivm-syso/SBoo/archive/refs/heads/FLuxwork.zip"
-SBooLink_Release <- "https://github.com/rivm-syso/SBoo/archive/refs/tags/2025.04.0.zip"
-
-dest_file_SBScripts_test <- "C:/Temp/SBtest/SBooScripts.zip"
-dest_file_SBScripts_Release <- "C:/Temp/SBmain/SBooScripts.zip"
-dest_file_SBoo_test <- "C:/Temp/SBtest/SBoo.zip"
-dest_file_SBoo_Release <- "C:/Temp/SBmain/SBoo.zip"
-
-if(!dir.exists(str_sub(dest_file_SBScripts_test,1,-17))){
-  dir.create(str_sub(dest_file_SBScripts_test,1,-17))
-}
-if(!dir.exists(str_sub(dest_file_SBScripts_Release,1,-17))){
-  dir.create(str_sub(dest_file_SBScripts_Release,1,-17))
-}
-if(!dir.exists(dest_folder)){
-  dir.create(dest_folder)
-}
-zips_folder <- "C:/Temp/SBzips"
-if(!dir.exists(zips_folder)){
-  dir.create(zips_folder)
-}
-download.file(SBScriptsLink_test,paste0(zips_folder,"/zip1.zip"))
-download.file(SBScriptsLink_Release,paste0(zips_folder,"/zip2.zip"))
-download.file(SBooLink_test,paste0(zips_folder,"/zip3.zip"))
-download.file(SBooLink_Release,paste0(zips_folder,"/zip4.zip"))
-
-
-CompareFilesPrep <- function(Release_SB = "2025.04.0",
-                             Test = "Fluxwork",
-                             Temp_Folder = "C:/Temp" # an existing folder
-){
-  SBScriptsLink_test <- 
-    paste0("https://github.com/rivm-syso/SBooScripts/archive/refs/heads/",Test,".zip")
-  SBScriptsLink_Release <- 
-    paste0("https://github.com/rivm-syso/SBooScripts/archive/refs/tags/",Release,".zip")
-  
-  SBooLink_test <- 
-    paste0("https://github.com/rivm-syso/SBoo/archive/refs/heads/",Test,".zip")
-  SBooLink_Release <- 
-    paste0("https://github.com/rivm-syso/SBoo/archive/refs/tags/",Release,".zip")
-  
-  if(dir.exists(paste0(Temp_Folder,"/SBzips"))){
-      oldfiles <- list.files(paste0(Temp_Folder,"/SBzips"), full.names = TRUE)
-      file.remove(oldfiles)
-      print("Old SBoo zipfiles deleted")
-  }
-  
-   if(!dir.exists(paste0(Temp_Folder,"/SBzips"))){
-  dir.create(paste0(Temp_Folder,"/SBzips"))
-     print(paste0("Directory: ", Temp_Folder,"/SBzips", " created."))
-   } else print("SBzips directory already exists")
-
-  download.file(SBScriptsLink_test,paste0(Temp_Folder,"/SBzips/SBooScripts_",Test,".zip"))
-  download.file(SBooLink_test,paste0(Temp_Folder,"/SBzips/SBoo_",Test,".zip"))
-  download.file(SBScriptsLink_Release,paste0(Temp_Folder,"/SBzips/SBooScripts_",Release,".zip"))
-  download.file(SBooLink_Release,paste0(Temp_Folder,"/SBzips/SBoo_",Release,".zip"))
-  
- 
-}
-
-# Checkout the branch
-branch <- branches[1]
-message("Switching to branch: ", branch)
-system(paste("git checkout -f ", branch))
-system("git pull", intern = TRUE)  # Ensure the branch is up-to-date
-system("git remote get-url origin")  # Ensure the branch is up-to-date
-  
-setwd(script_dir)
-
-# Overwrite a LakeOut with LakeOutFlow and save
-FlowIO <- read.csv("data/FlowIO.csv")
-FlowIO <- FlowIO |>
-  mutate(FlowName = if_else(FlowName == "x_LakeOut", "x_LakeOutflow", FlowName))
-
-readr::write_excel_csv(FlowIO, file = "data/FlowIO.csv", quote = "needed")
+folderpaths <- CompareFilesPrep(Release = tag,
+                             Test_SBoo = branch_sboo,
+                             Test_SBooScripts = branch_sbooscripts,
+                             Temp_Folder = dest_folder)
 ```
 
 ```{R Run SB and get advection ks for development, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
-dev_kaas <- data.frame()
+# Save the original working directory for later
+original_wd <- getwd()
+
+# Change the wd to the wd of the main branches
+setwd(paste0(folderpaths[1], "/SBooScripts"))
+
+# Calculate the kaas 
+main_kaas <- data.frame()
   
 for(i in 1:nrow(substances)){
   # Get the substance type
@@ -394,7 +293,7 @@ for(i in 1:nrow(substances)){
     filter(process == "k_Advection") |>
     mutate(Substance = substance)
   
-  dev_kaas <- rbind(dev_kaas, kaas)
+  main_kaas <- rbind(main_kaas, kaas)
 }
 ```
 
@@ -404,28 +303,11 @@ Do the same for the new implementation.
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 ```
 
-```{R Switch to SBoo Flux_work branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
-# Switch to the correct Git directory
-setwd(repo_dir)
-
-# Checkout the branch
-branch <- branches[2]
-message("Switching to branch: ", branch)
-system(paste("git checkout -f ", branch))
-system("git pull", intern = TRUE)  # Ensure the branch is up-to-date
-  
-setwd(script_dir)
-
-# Overwrite a LakeOut with LakeOutFlow and save
-FlowIO <- read.csv("data/FlowIO.csv")
-FlowIO <- FlowIO |>
-  mutate(FlowName = if_else(FlowName == "x_LakeOutflow", "x_LakeOut", FlowName))
-
-readr::write_excel_csv(FlowIO, file = "data/FlowIO.csv", quote = "needed")
-```
-
 ```{R Run SB and get advection ks for FLux_work branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
-updated_kaas <- data.frame()
+# Change the wd to the wd of the main branches
+setwd(paste0(folderpaths[2], "/SBooScripts"))
+
+test_kaas <- data.frame()
   
 for(i in 1:nrow(substances)){
   # Get the substance type
@@ -446,16 +328,16 @@ for(i in 1:nrow(substances)){
     filter(process == "k_Advection") |>
     mutate(Substance = substance)
   
-  updated_kaas <- rbind(updated_kaas, kaas)
+  test_kaas <- rbind(test_kaas, kaas)
 }
 ```
 
 ## Compare the k values for each of the substances
 
 ```{R Calculate the differences between ks, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
-common_cols <- setdiff(intersect(colnames(dev_kaas), colnames(updated_kaas)), "k")
+common_cols <- setdiff(intersect(colnames(main_kaas), colnames(test_kaas)), "k")
 
-kaas_comparison <- merge(dev_kaas, updated_kaas, by=common_cols, suffixes = c("_Old", "_New"))
+kaas_comparison <- merge(main_kaas, test_kaas, by=common_cols, suffixes = c("_Old", "_New"))
 
 kaas_comparison <- kaas_comparison |>
   mutate(diff = k_New-k_Old) |> # If this number is positive, the New_k is higher than the Old_k (higher advection rate with new method)
