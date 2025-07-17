@@ -9,26 +9,26 @@ editor_options:
     wrap: 72
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..","..","..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) 
+```{r init, message=FALSE, warning=FALSE, include=FALSE}
+
+library(tidyverse)
+
 ```
 
-The advection flow calculations for the freshwater compartments are
+*The advection flow calculations for the freshwater compartments are
 revised using a different implementation of advective flows related to
 the lake compartment and some other changes (from v2025.4.0 and the
 Excel implementation). Below the changes are outlined, and finally a
 comparison between the rate constants (k's) of the new and old version
-is made.
+is made.*
 
-## Update RainOnFreshwater function
+## *Update RainOnFreshwater function*
 
-In the previous version of SimpleBox, RainOnFreshwater was set to 0 for
+*In the previous version of SimpleBox, RainOnFreshwater was set to 0 for
 lake compartments. This is resolved by using the same calculation for
-lake as was already used for the river compartments.
+lake as was already used for the river compartments.*
 
-This was the previous function:
+*This was the previous function:*
 
 ```{R Old RainOnFreshwater function, include=TRUE}
 RainOnFreshwater <- function (RAINrate, Area, SubCompartName) {
@@ -44,7 +44,7 @@ RainOnFreshwater <- function (RAINrate, Area, SubCompartName) {
 }
 ```
 
-This the new:
+*This the new:*
 
 ```{R New RainOnFreshwater function, include=TRUE}
 RainOnFreshwater <- function (RAINrate, Area, FracROWatComp, SubCompartName) {
@@ -55,17 +55,17 @@ RainOnFreshwater <- function (RAINrate, Area, FracROWatComp, SubCompartName) {
 }
 ```
 
-## Small optimisaiton FracROWatComp
+## *Small optimisation FracROWatComp*
 
-This function calculates the area fraction of river and lake of the
+*This function calculates the area fraction of river and lake of the
 total freshwater area at Regional and Continental scales. This is needed
 to calculate how much runoff goes from soil to the different water
-compartments.
+compartments.*
 
-The new function calculates the same as the old function with two
+*The new function calculates the same as the old function with two
 exceptions: -The function is shorter but calculates the same -If the
 scale is not Regional or Continental and the SubCompart is not river or
-lake, the function returns NA instead of 1 as it did before.
+lake, the function returns NA instead of 1 as it did before.*
 
 ```{R Old FracROWatComp function, include=TRUE}
 FracROWatComp <- function(all.landFRAC, all.Matrix, Matrix, SubCompartName, ScaleName) {
@@ -103,15 +103,15 @@ FracROWatComp <- function(all.landFRAC, all.Matrix, Matrix, SubCompartName, Scal
 }
 ```
 
-## Update ContRiver2Reg
+## *Update ContRiver2Reg*
 
-For the 'river' SubCompart at 'Continental' Scale, the flow from
-Continental to Regional river is now calculated as:
+*For the 'river' SubCompart at 'Continental' Scale, the flow from
+Continental to Regional river is now calculated as:*
 
-(sum of all runoff + the sum of all rain on freshwater) \*
-dischargefraction between regional and continental scale.
+*(sum of all runoff + the sum of all rain on freshwater) \*
+dischargefraction between regional and continental scale.*
 
-The previously used function can be seen in the chunk below
+*The previously used function can be seen in the chunk below*
 
 ```{R Old ContRiver2Reg, include=TRUE}
 x_ContRiver2Reg <- function (ScaleName, SubCompartName, 
@@ -135,7 +135,7 @@ x_ContRiver2Reg <- function (ScaleName, SubCompartName,
 }
 ```
 
-The updated function:
+*The updated function:*
 
 ```{R New ContRiver2Reg, include=TRUE}
 x_ContRiver2Reg <- function (ScaleName, SubCompartName, 
@@ -159,15 +159,15 @@ x_ContRiver2Reg <- function (ScaleName, SubCompartName,
 }
 ```
 
-## Update LakeOut function
+## *Update LakeOut function*
 
-The Lake compartment (w0) is an upstream compartment within a Scale that
-has outflow to fresh water (w1). The outflow is dependent on the
+*The Lake compartment (w0) is an upstream compartment within a Scale
+that has outflow to fresh water (w1). The outflow is dependent on the
 fraction runoff going to lake (FracROWatComp) and the direct Rain on
 lake fresh water (RainOnFreshwater). The flow from lake to river at
-Regional and Continental scale is now calculated as:
+Regional and Continental scale is now calculated as:*
 
-RainOnFreshwater + FracROWatComp\*SumRunoff
+*RainOnFreshwater + FracROWatComp\*SumRunoff*
 
 ```{R Old LakeOut function, include=TRUE}
 x_LakeOutflow <- function (all.x_RiverDischarge, 
@@ -202,37 +202,46 @@ x_LakeOut <- function (RainOnFreshwater,
 }
 ```
 
-# Change in k values for advection flows
+# *Change in k values for advection flows*
 
-The below scripts should be run to compare two versions of SBoo.
+*The below scripts should be run to compare two versions of SBoo.*
 
-First remove all functions from the global environment to avoid errors
+*First remove all functions from the global environment to avoid errors*
 
 ```{R Clean environment, include=FALSE}
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 ```
 
-TO DO: fetch development at a certain date/commit hash instead of most
+*TO DO: fetch development at a certain date/commit hash instead of most
 recent version. This would ensure consequent outcomes of this
-comparison, no matter when the script is run.
+comparison, no matter when the script is run.*
 
 ```{R Specify directories, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
-library(tidyverse)
+source("vignettes/Development/Quality control/ComparisonFunctions.R")
+
+# tag <- "2025.04.0"
+# branch_sboo <- "FLux_work"
+# branch_sbooscripts <- "Fluxwork"
+# dest_folder <- "/rivm/n/hidsa/Documents/Temp"
+folderpaths <- CompareFilesPrep(Release = "2025.04.0", # specify the tag to compare to
+                             Test_SBoo = "FLux_work", # the branch name
+                             Test_SBooScripts = "Fluxwork", # the branch name
+                             Temp_Folder = "C:/Temp") # test folder
 
 # Define branches to test
-branches <- c("main", "FLux_work")
+# branches <- c("main", "FLux_work")
 
 # Specify file paths for saving results
-result_files <- paste0("results_", branches, ".rds")
+# result_files <- paste0("results_", branches, ".rds")
 
 # Directory of your Git repository (modify this path to the correct repository location)
-script_dir <-getwd()
-repo_dir <- file.path(getwd(), "..", "SBoo")
+# script_dir <-getwd()
+# repo_dir <- file.path(getwd(), "..", "SBoo")
 ```
 
-As advection processes do not depend on substance variables, we only
+*As advection processes do not depend on substance variables, we only
 need to compare the advection flows for one substance, in this case
-1-aminoanthraquinone.
+1-aminoanthraquinone.*
 
 ```{R Specify substance, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
 substance_names <- "1-aminoanthraquinone" 
@@ -241,27 +250,26 @@ substances <- substances |>
   filter(Substance %in% substance_names)
 ```
 
-
 ```{R Specify temporary directory, include = FALSE}
 # Specify where the downloaded versions of sboo and sbooscripts should be saved to
-dest_folder <- "/rivm/n/hidsa/Documents/Temp"
+# dest_folder <- "/rivm/n/hidsa/Documents/Temp"
 ```
 
 ```{R Specify which tag and branch to compare}
-tag <- "2025.04.0"
-branch_sboo <- "FLux_work"
-branch_sbooscripts <- "Fluxwork"
+# tag <- "2025.04.0"
+# branch_sboo <- "FLux_work"
+# branch_sbooscripts <- "Fluxwork"
 ```
 
-# Define function for downloading and ordering the folders needed to compare
+# *Define function for downloading and ordering the folders needed to compare*
 
 ```{R Switch to SBoo Development branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
-source("vignettes/Development/Quality control/ComparisonFunctions.R")
+# source("vignettes/Development/Quality control/ComparisonFunctions.R")
 
-folderpaths <- CompareFilesPrep(Release = tag,
-                             Test_SBoo = branch_sboo,
-                             Test_SBooScripts = branch_sbooscripts,
-                             Temp_Folder = dest_folder)
+# folderpaths <- CompareFilesPrep(Release = tag,
+                             # Test_SBoo = branch_sboo,
+                             # Test_SBooScripts = branch_sbooscripts,
+                             # Temp_Folder = dest_folder)
 ```
 
 ```{R Run SB and get advection ks for development, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
@@ -273,6 +281,7 @@ setwd(paste0(folderpaths[1], "/SBooScripts"))
 
 # Calculate the kaas 
 main_kaas <- data.frame()
+main_solution <- NA
   
 for(i in 1:nrow(substances)){
   # Get the substance type
@@ -294,10 +303,35 @@ for(i in 1:nrow(substances)){
     mutate(Substance = substance)
   
   main_kaas <- rbind(main_kaas, kaas)
+  
+  
+    if(World$fetchData("ChemClass") == "particle"){
+  emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), 
+                          Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: kg/s
+  emissions <- emissions |>
+    mutate(Emis = Emis * 1000 / (365 * 24 * 60 * 60))
+} else {
+  emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), 
+                          Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: mol/s
+  emissions <- emissions |>
+    mutate(Emis = Emis * 1000 / (World$fetchData("MW")*365 * 24 * 60 * 60))
 }
+  
+  World$NewSolver("SteadyStateSolver")
+  World$Solve(emissions)
+
+  solution <- World$Masses()
+  names(solution)[names(solution) == "Mass_kg"] <- "main_Mass_kg"
+  solution$Substance <- substances$Substance[i]
+  
+  if(is.na(main_solution)) main_solution <- solution else {
+    merge(main_solution,solution)}
+
+}
+
 ```
 
-Do the same for the new implementation.
+*Do the same for the new implementation.*
 
 ```{R Clean environment again, include=FALSE}
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
@@ -308,6 +342,7 @@ rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 setwd(paste0(folderpaths[2], "/SBooScripts"))
 
 test_kaas <- data.frame()
+test_solution <- NA
   
 for(i in 1:nrow(substances)){
   # Get the substance type
@@ -329,23 +364,60 @@ for(i in 1:nrow(substances)){
     mutate(Substance = substance)
   
   test_kaas <- rbind(test_kaas, kaas)
+  
+    if(World$fetchData("ChemClass") == "particle"){
+  emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), 
+                          Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: kg/s
+  emissions <- emissions |>
+  mutate(Emis = Emis * 1000 / (365 * 24 * 60 * 60))
+} else {
+  emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), 
+                          Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: mol/s
+  emissions <- emissions |>
+    mutate(Emis = Emis * 1000 / (World$fetchData("MW")*365 * 24 * 60 * 60))
 }
+  
+  World$NewSolver("SteadyStateSolver")
+  World$Solve(emissions)
+
+  solution <- World$Masses()
+  names(solution)[names(solution) == "Mass_kg"] <- "test_Mass_kg"
+  solution$Substance <- substances$Substance[i]
+  
+  if(is.na(test_solution)) test_solution <- solution else {
+    merge(test_solution,solution)}
+  
+}
+
+setwd(original_wd)
+
 ```
 
-## Compare the k values for each of the substances
+## *Compare the k values for each of the substances*
 
 ```{R Calculate the differences between ks, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+
 common_cols <- setdiff(intersect(colnames(main_kaas), colnames(test_kaas)), "k")
 
-kaas_comparison <- merge(main_kaas, test_kaas, by=common_cols, suffixes = c("_Old", "_New"))
-
-kaas_comparison <- kaas_comparison |>
+kaas_comparison <- 
+  merge(main_kaas, test_kaas, by=common_cols, suffixes = c("_Old", "_New")) |>
   mutate(diff = k_New-k_Old) |> # If this number is positive, the New_k is higher than the Old_k (higher advection rate with new method)
-  mutate(rel_diff = diff/k_New)
+  mutate(rel_diff = diff/k_Old)
 
 changed_kaas <- kaas_comparison |>
   filter(diff != 0) |>
   mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
+
+# solutions
+
+solution_comparison <- 
+  merge(main_solution,test_solution) |> 
+  mutate(diff = test_Mass_kg-main_Mass_kg) |> 
+  mutate(rel_diff = diff/main_Mass_kg)
+
+changed_mass <- solution_comparison |>
+  filter(diff != 0) 
+
 ```
 
 ```{R Plot the differences between ks, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
@@ -395,12 +467,42 @@ table_for_display <- changed_kaas |>
   mutate(rel_diff = format(rel_diff, scientific = TRUE, digits = 2))
 
 knitr::kable(table_for_display)
+
+
+ggplot(solution_comparison, mapping = aes(x = Abbr, y = diff)) + 
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(
+    title = "Difference between old and new steadystate mass",
+    x = "Compartment",  
+    y = "(Mass_new - Mass_old)"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1), 
+    panel.grid.major = element_line(size = 0.2, color = "gray90"),
+    panel.background = element_blank()  
+  )
+
+ggplot(solution_comparison, mapping = aes(x = Abbr, y = rel_diff)) + 
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(
+    title = "Relative difference between old and new steadystate mass",
+    x = "Compartment",  
+    y = "(Mass_new-Mass_old)/Mass_old"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1), 
+    panel.grid.major = element_line(size = 0.2, color = "gray90"),
+    panel.background = element_blank()  
+  )
+
+
+
 ```
 
-From these figures and the table we can see that the flows between
+*From these figures and the table we can see that the flows between
 Continental sea and Moderate sea are slightly higher in the new
-implementation than in the old implementation.
+implementation than in the old implementation.*
 
-The flows from lake to river on Regional and Continental scale changed
+*The flows from lake to river on Regional and Continental scale changed
 the most; relatively a fraction of +- -0.3. So the flow is lower in the
-new implementation than in the old implementation.
+new implementation than in the old implementation.*
