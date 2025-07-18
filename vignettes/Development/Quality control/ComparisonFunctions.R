@@ -1,17 +1,36 @@
-CompareFilesPrep <- function(Release = "2025.04.0",
-                             Test_SBoo = "FLux_work",
-                             Test_SBooScripts = "Fluxwork",
+
+
+
+CompareFilesPrep <- function(Release = "2025.04.0", # tag for release
+                             devBranch = "development",
+                             Test_SBoo = "FLux_work", # branch name
+                             Test_SBooScripts = "Fluxwork", # branch name
                              Temp_Folder = "C:/Temp" # an existing folder
 ){
   SBScriptsLink_test <- 
     paste0("https://github.com/rivm-syso/SBooScripts/archive/refs/heads/",Test_SBooScripts,".zip")
-  SBScriptsLink_Release <- 
-    paste0("https://github.com/rivm-syso/SBooScripts/archive/refs/tags/",Release,".zip")
+  
+  if(is.na(Release)){
+    SBScriptsLink_Release <- 
+      paste0("https://github.com/rivm-syso/SBooScripts/archive/refs/heads/",devBranch,".zip")
+  } else{
+    SBScriptsLink_Release <- 
+      paste0("https://github.com/rivm-syso/SBooScripts/archive/refs/tags/",Release,".zip")
+  }
+  
+
   
   SBooLink_test <- 
     paste0("https://github.com/rivm-syso/SBoo/archive/refs/heads/",Test_SBoo,".zip")
-  SBooLink_Release <- 
-    paste0("https://github.com/rivm-syso/SBoo/archive/refs/tags/",Release,".zip")
+  if(is.na(Release)){
+    SBooLink_Release <- 
+      paste0("https://github.com/rivm-syso/SBoo/archive/refs/heads/",devBranch,".zip")
+  } else{
+    SBooLink_Release <- 
+      paste0("https://github.com/rivm-syso/SBoo/archive/refs/tags/",Release,".zip")
+  }
+  
+  Release <- devBranch
   
   if(dir.exists(paste0(Temp_Folder,"/SBzips"))){
     oldfiles <- list.files(paste0(Temp_Folder,"/SBzips"), full.names = TRUE)
