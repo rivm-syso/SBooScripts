@@ -76,7 +76,7 @@ FracROWatComp <- function(all.landFRAC, all.Matrix, Matrix, SubCompartName, Scal
     x = all.landFRAC,
     y = all.Matrix,
     by = join_by(SubCompart))
-
+  
   if ((Matrix == "water") & (ScaleName %in% c("Regional", "Continental"))) {
     # total landfrac of (fresh) water compartments
     waterFrac <- mergeddata |>
@@ -121,17 +121,17 @@ x_ContRiver2Reg <- function (ScaleName, SubCompartName,
           "Continental" = {
             switch (SubCompartName,
                     "river" = { 
-                    SumRainRunoff <- sum(all.Runoff$Runoff[all.Runoff$Scale == "Continental"])
-                    River2sea  <- RainOnFreshwater + SumRainRunoff * (1-dischargeFRAC)
-                    Lake2River <- LakeFracRiver * River2sea
-
-                    return((RainOnFreshwater + SumRainRunoff + Lake2River) * dischargeFRAC)
+                      SumRainRunoff <- sum(all.Runoff$Runoff[all.Runoff$Scale == "Continental"])
+                      River2sea  <- RainOnFreshwater + SumRainRunoff * (1-dischargeFRAC)
+                      Lake2River <- LakeFracRiver * River2sea
+                      
+                      return((RainOnFreshwater + SumRainRunoff + Lake2River) * dischargeFRAC)
                     },
                     return(NA)
             )
           },
           return(NA)
-            )
+  )
 }
 ```
 
@@ -141,14 +141,14 @@ x_ContRiver2Reg <- function (ScaleName, SubCompartName,
 x_ContRiver2Reg <- function (ScaleName, SubCompartName, 
                              all.Runoff, all.RainOnFreshwater, 
                              dischargeFRAC){
-
+  
   switch (ScaleName,
           "Continental" = {
             switch (SubCompartName,
                     "river" = {
                       SumRainRunoff <- sum(all.Runoff$Runoff[all.Runoff$Scale == ScaleName])+
                         sum(all.RainOnFreshwater$RainOnFreshwater[all.RainOnFreshwater$Scale == ScaleName])
-
+                      
                       return((SumRainRunoff) * dischargeFRAC)
                     },
                     return(NA)
@@ -188,10 +188,10 @@ x_LakeOutflow <- function (all.x_RiverDischarge,
 
 ```{R New LakeOut function, include=TRUE}
 x_LakeOut <- function (RainOnFreshwater,
-                           all.Runoff,
-                           FracROWatComp,
+                       all.Runoff,
+                       FracROWatComp,
                        SubCompartName,
-                           ScaleName){
+                       ScaleName){
   switch (SubCompartName, # if this is coded with if statement it fails as SubCompartName for Arctic is NA
           "lake" = {
             SumRunoff <- sum(all.Runoff$Runoff[all.Runoff$Scale == ScaleName])
@@ -202,19 +202,16 @@ x_LakeOut <- function (RainOnFreshwater,
 }
 ```
 
-# *Change in k values for advection flows*
+# *Compare new with previous implementation*
 
-*The below scripts should be run to compare two versions of SBoo.*
-
-*First remove all functions from the global environment to avoid errors*
-
-```{R Clean environment, include=FALSE}
-rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
-```
+*The below scripts should be run to compare two versions of SBoo. This
+uses a function for downloading and ordering the folders needed to
+compare.*
 
 *TO DO: fetch development at a certain date/commit hash instead of most
-recent version. This would ensure consequent outcomes of this
-comparison, no matter when the script is run.*
+recent version in a branch. This would ensure consequent outcomes of
+this comparison, no matter when the script is run or if a branch is
+deleted.*
 
 ```{R Specify directories, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
 source("vignettes/Development/Quality control/ComparisonFunctions.R")
@@ -224,9 +221,9 @@ source("vignettes/Development/Quality control/ComparisonFunctions.R")
 # branch_sbooscripts <- "Fluxwork"
 # dest_folder <- "/rivm/n/hidsa/Documents/Temp"
 folderpaths <- CompareFilesPrep(Release = "2025.04.0", # specify the tag to compare to
-                             Test_SBoo = "FLux_work", # the branch name
-                             Test_SBooScripts = "Fluxwork", # the branch name
-                             Temp_Folder = "C:/Temp") # test folder
+                                Test_SBoo = "FLux_work", # the branch name
+                                Test_SBooScripts = "Fluxwork", # the branch name
+                                Temp_Folder = "C:/Temp") # test folder
 
 # Define branches to test
 # branches <- c("main", "FLux_work")
@@ -247,7 +244,9 @@ need to compare the advection flows for one substance, in this case
 substance_names <- "1-aminoanthraquinone" 
 substances <- read.csv("data/Substances.csv")
 substances <- substances |>
-  filter(Substance %in% substance_names)
+  filter(ChemClass == "")
+
+substances <- substances[c(1,2),]
 ```
 
 ```{R Specify temporary directory, include = FALSE}
@@ -261,15 +260,19 @@ substances <- substances |>
 # branch_sbooscripts <- "Fluxwork"
 ```
 
-# *Define function for downloading and ordering the folders needed to compare*
-
 ```{R Switch to SBoo Development branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
 # source("vignettes/Development/Quality control/ComparisonFunctions.R")
 
 # folderpaths <- CompareFilesPrep(Release = tag,
-                             # Test_SBoo = branch_sboo,
-                             # Test_SBooScripts = branch_sbooscripts,
-                             # Temp_Folder = dest_folder)
+# Test_SBoo = branch_sboo,
+# Test_SBooScripts = branch_sbooscripts,
+# Temp_Folder = dest_folder)
+```
+
+*First remove all functions from the global environment to avoid errors*
+
+```{R Clean environment, include=FALSE}
+rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 ```
 
 ```{R Run SB and get advection ks for development, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
@@ -281,8 +284,8 @@ setwd(paste0(folderpaths[1], "/SBooScripts"))
 
 # Calculate the kaas 
 main_kaas <- data.frame()
-main_solution <- NA
-  
+# main_solution <- "start"
+
 for(i in 1:nrow(substances)){
   # Get the substance type
   subst_row <- substances[i, ]
@@ -299,34 +302,40 @@ for(i in 1:nrow(substances)){
   }
   
   kaas <- World$kaas |>
-    filter(process == "k_Advection") |>
+    # filter(process == "k_Advection") |>
     mutate(Substance = substance)
   
   main_kaas <- rbind(main_kaas, kaas)
   
   
-    if(World$fetchData("ChemClass") == "particle"){
-  emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), 
-                          Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: kg/s
-  emissions <- emissions |>
-    mutate(Emis = Emis * 1000 / (365 * 24 * 60 * 60))
-} else {
-  emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), 
-                          Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: mol/s
-  emissions <- emissions |>
-    mutate(Emis = Emis * 1000 / (World$fetchData("MW")*365 * 24 * 60 * 60))
-}
+  if(World$fetchData("ChemClass") == "particle"){
+    emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), 
+                            Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: kg/s
+    emissions <- emissions |>
+      mutate(Emis = Emis * 1000 / (365 * 24 * 60 * 60))
+  } else {
+    emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), 
+                            Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: mol/s
+    emissions <- emissions |>
+      mutate(Emis = Emis * 1000 / (World$fetchData("MW")*365 * 24 * 60 * 60))
+  }
   
   World$NewSolver("SteadyStateSolver")
   World$Solve(emissions)
-
+  
   solution <- World$Masses()
   names(solution)[names(solution) == "Mass_kg"] <- "main_Mass_kg"
   solution$Substance <- substances$Substance[i]
   
-  if(is.na(main_solution)) main_solution <- solution else {
-    merge(main_solution,solution)}
-
+  if(i == 1) main_solution <- solution else {
+    main_solution <- merge(main_solution,solution,all = TRUE)}
+  
+    solution_conc <- World$Concentration()
+  names(solution_conc)[names(solution_conc) == "Concentration"] <- "main_Conc."
+  solution_conc$Substance <- substances$Substance[i]
+  if(i == 1) main_solution_conc <- solution_conc else {
+    main_solution_conc <- merge(main_solution_conc,solution_conc,all = TRUE)}
+  
 }
 
 ```
@@ -343,7 +352,7 @@ setwd(paste0(folderpaths[2], "/SBooScripts"))
 
 test_kaas <- data.frame()
 test_solution <- NA
-  
+
 for(i in 1:nrow(substances)){
   # Get the substance type
   subst_row <- substances[i, ]
@@ -360,33 +369,38 @@ for(i in 1:nrow(substances)){
   }
   
   kaas <- World$kaas |>
-    filter(process == "k_Advection") |>
+    # filter(process == "k_Advection") |>
     mutate(Substance = substance)
   
   test_kaas <- rbind(test_kaas, kaas)
   
-    if(World$fetchData("ChemClass") == "particle"){
-  emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), 
-                          Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: kg/s
-  emissions <- emissions |>
-  mutate(Emis = Emis * 1000 / (365 * 24 * 60 * 60))
-} else {
-  emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), 
-                          Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: mol/s
-  emissions <- emissions |>
-    mutate(Emis = Emis * 1000 / (World$fetchData("MW")*365 * 24 * 60 * 60))
-}
+  if(World$fetchData("ChemClass") == "particle"){
+    emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS"), 
+                            Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: kg/s
+    emissions <- emissions |>
+      mutate(Emis = Emis * 1000 / (365 * 24 * 60 * 60))
+  } else {
+    emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), 
+                            Emis = c(10000, 10000, 10000)) # convert 1 t/y to si units: mol/s
+    emissions <- emissions |>
+      mutate(Emis = Emis * 1000 / (World$fetchData("MW")*365 * 24 * 60 * 60))
+  }
   
   World$NewSolver("SteadyStateSolver")
   World$Solve(emissions)
-
+  
   solution <- World$Masses()
   names(solution)[names(solution) == "Mass_kg"] <- "test_Mass_kg"
   solution$Substance <- substances$Substance[i]
+  if(i == 1) test_solution <- solution else {
+    test_solution <- merge(test_solution,solution,all = TRUE)}
   
-  if(is.na(test_solution)) test_solution <- solution else {
-    merge(test_solution,solution)}
-  
+  solution_conc <- World$Concentration()
+  names(solution_conc)[names(solution_conc) == "Concentration"] <- "test_Conc."
+  solution_conc$Substance <- substances$Substance[i]
+  if(i == 1) test_solution_conc <- solution_conc else {
+    test_solution_conc <- merge(test_solution_conc,solution_conc,all = TRUE)}
+
 }
 
 setwd(original_wd)
@@ -404,9 +418,11 @@ kaas_comparison <-
   mutate(diff = k_New-k_Old) |> # If this number is positive, the New_k is higher than the Old_k (higher advection rate with new method)
   mutate(rel_diff = diff/k_Old)
 
-changed_kaas <- kaas_comparison |>
-  filter(diff != 0) |>
-  mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
+kaas_comparison |>
+  # filter(diff != 0) |>
+  mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale)) |> 
+  filter(fromScale == "Tropic" & fromSubCompart == "deepocean")
+
 
 # solutions
 
@@ -415,25 +431,38 @@ solution_comparison <-
   mutate(diff = test_Mass_kg-main_Mass_kg) |> 
   mutate(rel_diff = diff/main_Mass_kg)
 
+con_solution_comparison <- 
+  merge(main_solution_conc,test_solution_conc) |> 
+  mutate(diff = test_Conc.-main_Conc.) |> 
+  mutate(rel_diff = diff/main_Conc.)
+
 changed_mass <- solution_comparison |>
   filter(diff != 0) 
 
 ```
 
 ```{R Plot the differences between ks, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
-mean_diffs <- kaas_comparison |>
-  mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
-  mutate(toname = paste0(toSubCompart, "_", toScale)) |>
-  mutate(diff = ifelse(diff == 0, NaN, diff))
+# mean_diffs <- kaas_comparison |>
+#   mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
+#   mutate(toname = paste0(toSubCompart, "_", toScale)) |>
+#   # mutate(diff = ifelse(diff == 0, NaN, diff)) |>
+#   filter(diff != 0)
 
-ggplot(mean_diffs, mapping = aes(x = toname, y = fromname, color = diff)) + 
+
+changed_kaas <- kaas_comparison |>
+  filter(diff != 0) |>
+  mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale)) |> 
+  mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
+  mutate(toname = paste0(toSubCompart, "_", toScale))
+
+ggplot(changed_kaas, mapping = aes(x = toname, y = fromname, color = diff)) + 
   geom_point() + 
   scale_color_gradient2(
     low = "blue",    # Colors for negative values
     mid = "grey",   # Neutral point at zero
     high = "red",  # Colors for positive values
     midpoint = 0,   # Center the scale at zero
-    limits = c(-max(abs(mean_diffs$diff)), max(abs(mean_diffs$diff)))  # Ensure symmetric scale
+    limits = c(-max(abs(changed_kaas$diff)), max(abs(changed_kaas$diff)))  # Ensure symmetric scale
   ) +
   labs(
     title = "Difference between old and new advection k's",
@@ -447,8 +476,8 @@ ggplot(mean_diffs, mapping = aes(x = toname, y = fromname, color = diff)) +
     panel.background = element_blank() 
   )
 
-ggplot(mean_diffs, mapping = aes(x = toname, y = fromname, color = rel_diff)) + 
-  geom_point() + 
+ggplot(changed_kaas, mapping = aes(x = toname, y = fromname, color = rel_diff)) + 
+  geom_point(aes(shape = Substance)) + 
   labs(
     title = "Relative difference between old and new advection k's",
     x = "To",  
@@ -469,8 +498,8 @@ table_for_display <- changed_kaas |>
 knitr::kable(table_for_display)
 
 
-ggplot(solution_comparison, mapping = aes(x = Abbr, y = diff)) + 
-  geom_bar(stat = "identity", fill = "skyblue") +
+ggplot(solution_comparison, mapping = aes(x = Abbr, y = diff, fill = Substance)) + 
+  geom_bar(stat = "identity", position = "dodge") +
   labs(
     title = "Difference between old and new steadystate mass",
     x = "Compartment",  
@@ -482,8 +511,8 @@ ggplot(solution_comparison, mapping = aes(x = Abbr, y = diff)) +
     panel.background = element_blank()  
   )
 
-ggplot(solution_comparison, mapping = aes(x = Abbr, y = rel_diff)) + 
-  geom_bar(stat = "identity", fill = "skyblue") +
+ggplot(solution_comparison, mapping = aes(x = Abbr, y = rel_diff, fill = Substance)) + 
+  geom_bar(stat = "identity", position = "dodge") +
   labs(
     title = "Relative difference between old and new steadystate mass",
     x = "Compartment",  
@@ -494,6 +523,20 @@ ggplot(solution_comparison, mapping = aes(x = Abbr, y = rel_diff)) +
     panel.grid.major = element_line(size = 0.2, color = "gray90"),
     panel.background = element_blank()  
   )
+
+ggplot(con_solution_comparison, mapping = aes(x = Abbr, y = rel_diff, fill = Substance)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Relative difference between old and new steadystate concentrations",
+    x = "Compartment",  
+    y = "(New-Previous)/Previous"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1), 
+    panel.grid.major = element_line(size = 0.2, color = "gray90"),
+    panel.background = element_blank()  
+  )
+
 
 
 
