@@ -113,7 +113,7 @@ calculation matters (for regional and continental scale function x 1-5).
 ![Overview of water flows at Global scale.
 <!--# origin: SBcoreModules.pptx -->](Figures_Custom/x_GlobalScale.png)
 
-#### *1.* x_ContRiver2Reg: *Continental to Regional Fresh water (w1)*
+#### 1. x_ContRiver2Reg: Continental to Regional Fresh water (w1)
 
 x_ContRiver2Reg calculates based on the fraction of discharge of fresh
 water to the regional scale the amount of fresh water flowing from
@@ -144,7 +144,7 @@ World$fetchData("LakeFracRiver") # needs to be cleanup after basing on area frac
 World$fetchData("x_ContRiver2Reg")
 ```
 
-#### *2. x_RiverDischarge: Freshwater (w1) to sea water (w2).*
+#### 2. x_RiverDischarge: Freshwater (w1) to sea water (w2).
 
 ```{r}
 x_RiverDischarge
@@ -160,17 +160,29 @@ World$fetchData("x_RiverDischarge")
 # World$CalcVar("x_RiverDischarge")
 ```
 
-#### *3. x_LakeOutflow: isolated freshwater/lake (w0) to fresh water (w1)*
+#### 3. x_LakeOutflow: isolated freshwater/lake (w0) to fresh water (w1)
 
 The Lake compartment (w0) is an upstream compartment within a Scale that
 has outflow to fresh water (w1). The outflow is dependent on the
 fraction runoff going to lake and the direct Rain on lake fresh water.
 
 ```{r}
+
 x_LakeOut
 
 World$fetchData("RainOnFreshwater")
-World$fetchData("Runoff")
+World$fetchData("RunoffFlow")
+
+mutLandFrac <- World$fetchData("landFRAC")
+mutLandFrac$landFRAC <- c(0.6000, 0.0050, 0.2700, 0.1000, 0.0250, 0.6000, 0.0050, 0.2700, 0.1000, 0.0250)
+mutLandFrac <-
+  mutLandFrac |> pivot_longer(cols = "landFRAC",
+                            names_to = "varName",
+                            values_to = "Waarde")
+World$mutateVars(mutLandFrac)
+
+World$fetchData("landFRAC")
+FracROWatComp
 World$fetchData("FracROWatComp")
 World$fetchData("ScaleName")
 World$fetchData("x_LakeOut")
@@ -181,7 +193,7 @@ World$fetchData("x_LakeOut")
 
 ```
 
-#### *4. x_ContSea2Reg: Continental sea water (w2) to Regional sea water (w2)*
+#### 4. x_ContSea2Reg: Continental sea water (w2) to Regional sea water (w2)
 
 x_ContSea2Reg calculates the flow from the sea at continental scale to
 the sea at regional scale. It is now the default approach which is a
@@ -206,7 +218,7 @@ World$fetchData("x_ContSea2Reg")
 
 ```
 
-#### *5. x_RegSea2Cont: Regional sea water (w2) to Continental sea water (w2)*
+#### 5. x_RegSea2Cont: Regional sea water (w2) to Continental sea water (w2)
 
 x_RegSea2Cont is the sea water flow from regional to continental scale.
 It is assumed to be 10 times the discharge flow from the river.
@@ -225,7 +237,7 @@ World$fetchData("x_RegSea2Cont")
 
 ```
 
-#### *6. x_ToModerateWater: Ocean currents flowing to Moderate scale (w2 and w3)*
+#### 6. x_ToModerateWater: Ocean currents flowing to Moderate scale (w2 and w3)
 
 Advection of continental sea, Tropic and Arctic sea compartments to sea
 and deepocean at Moderate scale.
@@ -245,7 +257,7 @@ World$fetchData("x_ToModerateWater")
 
 ```
 
-#### *7. x_FromModerate2TropWater: flow from Moderate to Tropic deep ocean (w3)*
+#### 7. x_FromModerate2TropWater: flow from Moderate to Tropic deep ocean (w3)
 
 Moderate scale waters flow into Tropical scale through deep ocean
 currents based on a set ocean current of
@@ -265,7 +277,7 @@ World$fetchData("x_FromModerate2TropWater")
 
 ```
 
-#### *8. x_FromModerate2ArctWater: flow from Moderate to Arctic sea water (w2)*
+#### 8. x_FromModerate2ArctWater: flow from Moderate to Arctic sea water (w2)
 
 Moderate scale waters flow into Arctic scale through surface ocean
 currents based on a set ocean current of
@@ -284,7 +296,7 @@ World$fetchData("x_FromModerate2ArctWater")
 # World$CalcVar("x_FromModerate2ArctWater")
 ```
 
-#### *9. x_FromModerate2ContWater: from from Continental to Moderate sea water (w2)*
+#### 9. x_FromModerate2ContWater: from from Continental to Moderate sea water (w2)
 
 Moderate scale waters flow into Contentental scale through surface ocean
 currents based on the residence time of sea water at the continental
@@ -308,7 +320,7 @@ World$fetchData("x_FromModerate2ContWater")
 
 ```
 
-#### *10. x_OceanMixing2Deep: mixing of surface sea to deep ocean (w2 to w3)*
+#### 10. x_OceanMixing2Deep: mixing of surface sea to deep ocean (w2 to w3)
 
 As illustrated in the figures above there are not only currents
 affecting the advection of sea water between scales, but also mixing of
@@ -332,7 +344,7 @@ World$fetchData("x_OceanMixing2Deep")
 
 ```
 
-#### *11. x_OceanMixing2Sea: mixing of deep ocean surface sea (w3 to w2)*
+#### 11. x_OceanMixing2Sea: mixing of deep ocean surface sea (w3 to w2)
 
 ```{r}
 x_OceanMixing2Sea
