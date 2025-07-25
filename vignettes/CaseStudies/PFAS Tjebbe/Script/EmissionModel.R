@@ -2,15 +2,19 @@
 print("Emissie PFOA berekenen a.h.v. POPE model....")
 library(ggplot2)
 library(reshape2)
+library(readxl)
 Rhine <- st_read("vignettes/CaseStudies/PFAS Tjebbe/GIS/Rhine.shp")
 Meuse <- st_read("vignettes/CaseStudies/PFAS Tjebbe/GIS/Meuse.shp")
+Europe <- st_read("vignettes/CaseStudies/PFAS Tjebbe/GIS/europa_bereik_2.shp")
 nc <- nc_open("vignettes/CaseStudies/PFAS Tjebbe/Emissions/POPE_Glb_0.5x0.5_anthro_PFOA_v1_yearly.nc")
+emissies_jm <- read_excel("vignettes/CaseStudies/PFAS Tjebbe/Emissions/A_emission_phase_out_2003_scenario_20240321.xlsx", sheet = 'total emission_plat')
+Europe <- st_set_crs(Europe, 3035)
+Europe <- st_transform(Europe, 4326)
 
 #sink('POPE_emission_PFOA_metadata.txt')
 #print(nc)
 #sink()
 
-names(nc$var)
 lat <- ncvar_get(nc, 'latitude')
 lon <- ncvar_get(nc, 'longitude')
 
@@ -23,8 +27,10 @@ print("Door tijdsdimensie loopen en emissie dataframe maken....")
 
 if (catchment == "Rhine") {
   shape = Rhine
-} else {
+} else if (catchment == "Meuse") {
   shape = Meuse
+} else if (catchment == "Europe") {
+  shape = Europe
 }
 
 #loopen door variablen en masken op 'catchment'
@@ -50,34 +56,95 @@ emission$sum_air <- rowSums(emission[, -1][, grepl("air", names(emission)[-1]) &
 emission$sum_wat_global <- rowSums(emission[, -1][, grepl("wat", names(emission)[-1]) & grepl("global", names(emission)[-1])], na.rm = TRUE)
 emission$sum_air_global <- rowSums(emission[, -1][, grepl("air", names(emission)[-1]) & grepl("global", names(emission)[-1])], na.rm = TRUE)
 
-"plot line graph Rhine"
-ggplot(emission)+
-  geom_line(aes(x=year, y =sum_wat, color="water emission")) +
-  geom_line(aes(x=year, y=sum_air, color="Air emission")) +
-  labs(title= "PFOA emission Rhine catchment (1951-2020)",
-       x="Years", y="Emission T/yr")
 
-"Global"
-ggplot(emission)+
-  geom_line(aes(x=year, y =sum_wat_global, color="water emission")) +
-  geom_line(aes(x=year, y=sum_air_global, color="Air emission")) +
-  labs(title= "PFOA emission Global (1951-2020)",
-       x="Years", y="Emission T/yr")
+#Plotting
 
+# "plot line graph Chosen shape/range e.g. (rhine, meuse or europe)"
+# ggplot(emission)+
+#   geom_line(aes(x=year, y =sum_wat, color="water emission")) +
+#   geom_line(aes(x=year, y=sum_air, color="Air emission")) +
+#   labs(title= "PFOA emission Rhine catchment (1951-2020)",
+#        x="Years", y="Emission T/yr")
+# 
+# "Global"
+# ggplot(emission)+
+#   geom_line(aes(x=year, y =sum_wat_global, color="water emission")) +
+#   geom_line(aes(x=year, y=sum_air_global, color="Air emission")) +
+#   labs(title= "PFOA emission Global (1951-2020)",
+#        x="Years", y="Emission T/yr")
 
-"making dataframe fit for SB"
-emissions <- data.frame(
-  Emis = emission$sum_air,
-  Time = 1:nrow(emission),
-  Abbr = rep(c("aRU", "aRU", "aRU", "aRU", "aRU"), times = nrow(emission) / 5)
-  ) 
+"Dataframes maken obv scenario en schaal"
+"Globale emissie moet geemitteerd worden op elke schaal obv formaat schaal"
+"ook is SB ongeveer helft van werkelijke aarde... Hoe hier mee omgaan"
+make_emission_df <- function(emis, time_steps, location, scale) {
+  areas = World$fetchData("TotalArea")
+  areas <- areas %>%
+    mutate(TotalArea = TotalArea/sum(areas$TotalArea)) %>%
+    filter(Scale == scale)
+  
+  emission <- data.frame(
+    Emis = rep(emis*areas$TotalArea, times= length(unique(location))),
+    Time = rep(1:time_steps, times= length(unique(location))),
+    Abbr = rep(location, each=time_steps)
+  )
+  empty_emission <- data.frame(
+    Emis = 0,
+    Time = seq(from = time_steps + 1, to = runtime),
+    Abbr = rep(location, each=time_steps)
+  )
+  emission <- bind_rows(emission, empty_emission)
+  return(emission)
+}  
 
-# rows <- data.frame(
-#   Emis = 0,
-#   Time = seq(from = nrow(emission) + 1, to = runtime),
-#   Abbr = rep(c("aRU", "aRU", "aRU", "aRU", "aRU"), times = (runtime-nrow(emission))/5)
-#   )
-# emissions <- bind_rows(emissions, rows)
+if (Wereldwijd == TRUE) {
+  "making dataframe fit for SB"
+  emissions_air_continental <- make_emission_df(emission$sum_air_global, 70, c("aCU"), "Continental")
+  emissions_water_continental <- make_emission_df(emission$sum_wat_global, 70, c("w0CU", "w1CU", "w2CU"), "Continental")
+  
+  emissions_air_regional <- make_emission_df(emission$sum_air_global, 70, c("aRU"), "Regional")
+  emissions_water_regional <- make_emission_df(emission$sum_wat_global, 70, c("w0RU", "w1RU", "w2RU"), "Regional")
+    
+  emissions_air_tropic <- make_emission_df(emission$sum_air_global, 70, c("aTU"), "Tropic")
+  emissions_water_tropic <- make_emission_df(emission$sum_wat_global, 70, c("w0TU", "w1TU", "w2TU"), "Tropic")
+    
+  emissions_air_moderate <- make_emission_df(emission$sum_air_global, 70, c("aMU"), "Moderate")
+  emissions_water_moderate <- make_emission_df(emission$sum_wat_global, 70, c("w0MU", "w1MU", "w2MU"), "Moderate")
+    
+  emissions_air_arctic <- make_emission_df(emission$sum_air_global, 70, c("aAU"), "Arctic")
+  emissions_water_arctic <- make_emission_df(emission$sum_wat_global, 70, c("w0AU", "w1AU", "w2AU"), "Arctic")
+  
+  emissions <- bind_rows(emissions_air_continental, emissions_water_continental,
+                         emissions_air_regional, emissions_water_regional,
+                         emissions_air_tropic, emissions_water_tropic,
+                         emissions_air_moderate, emissions_water_moderate,
+                         emissions_air_arctic, emissions_water_arctic)
+  
+  } else if (Wereldwijd == FALSE) {
+    emissions <- data.frame(
+      Emis = emission$sum_air, ##Tonnes/year 
+      Time = 1:nrow(emission),
+      Abbr = rep(c("aRU", "aRU", "aRU", "aRU", "aRU"), times = nrow(emission) / 5)
+    ) 
+    
+    rows <- data.frame(
+      Emis = 0,
+      Time = seq(from = nrow(emission) + 1, to = runtime),
+      Abbr = rep(c("aRU", "aRU", "aRU", "aRU", "aRU"), times = nrow(emission) / 5)
+    )
+}
+
+"Emissies Joris Meester Simplebox validation PFOA"
+"Vergelijken met POPE"
+# emission$Year <- seq(from=1951, to=1951+nrow(emission)-1)
+# merge = left_join(emissies_jm, emission, by = "Year")
+# ggplot()+
+#   geom_line(data = merge, aes(x=Year, y =`High Air (t/y)`, color="JM high air")) +
+#   geom_line(data = merge, aes(x=Year, y = `High Water (t/y)`, color="JM high water")) +
+#   geom_line(data = merge, aes(x=Year, y = sum_wat, color="Pope water")) +
+#   geom_line(data = merge, aes(x=Year, y = sum_air, color="Pope air")) +
+#   labs(title= "Emissies in europa - ValidationSB5 (JM) / POPE model (1951-2020)",
+#        x="Years", y="Emission T/yr")
+'Conclusie POPE model en ValidationSB emissies zijn aardig vergelijkbaar met elkaar'
 
 #Converting times and emis:
 MW = World$fetchData('MW')
@@ -89,7 +156,7 @@ emissions <- emissions |>
 
 "close down vars..."
 print("closing NC file and Vars....")
-remove(emission, mask, nc, r, var_data.slice, values, var_data.array, lat, lon, name)
+remove(mask, nc, r, var_data.slice, values, var_data.array, lat, lon, name)
 
 
 

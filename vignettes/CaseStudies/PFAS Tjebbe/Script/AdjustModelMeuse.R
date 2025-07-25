@@ -93,27 +93,41 @@ landfrac <- read_delim("vignettes/CaseStudies/PFAS Tjebbe/GIS/landuse.csv", deli
 "-----------------------------------------------------------------------------------------------------------"
 "Adjusting Model: aanpassingen aan het model maken"
 "AREA"
+source("vignettes/CaseStudies/PFAS Tjebbe/Script/Area.R")
+#script berekent area van catchments, dit moet nog een factor groter omdat er wordt gewerkt met fractionSea (0.5)
+area_meuse_nl <- area_meuse_nl * 1.00435597
+area_meuse_eu <- area_meuse_eu * 1.50000000
+
 TotalArea <- data.frame(
   Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"),
-  Waarde = c(4.25E+13, 7.43E+12, 8.50E+13, area, 1.27e+14),
+  Waarde = c(4.25E+13, area_rhine_eu, 8.50E+13, area_rhine_nl, 1.27e+14),
   varName = "TotalArea")
 World$mutateVars(TotalArea)
 World$UpdateDirty("TotalArea")
 
-"LANDFRAC"
+#Landfrac
 landFRAC <- data.frame(
   Scale = c("Continental", "Continental", "Continental", "Continental", "Continental",
             "Regional", "Regional", "Regional", "Regional", "Regional"),
   SubCompart = c("agriculturalsoil", "lake", "naturalsoil", "othersoil", "river",
                  "agriculturalsoil", "lake", "naturalsoil", "othersoil", "river"),
-  Waarde = c(0.6, 0.0025, 0.27, 0.1, 0.0275,
+  Waarde = c(landfrac$agricultural, 0.0025, landfrac$naturalsoil-0.00816116, landfrac$othersoil, 0.0275,
              landfrac$agricultural, 0.0025, landfrac$naturalsoil-0.00816116, landfrac$othersoil, 0.0275),
   varName = "landFRAC"
 )
 World$mutateVars(landFRAC)
 World$UpdateDirty("landFRAC")
 
-"NEERSLAG"
+#Continental river to reg river
+dischargeFRAC <- data.frame(
+  Scale = c("Continental", "Regional"),
+  Waarde = c(1, 0),
+  varName = "dischargeFRAC")
+
+World$mutateVars(dischargeFRAC)
+World$UpdateDirty("dischargeFRAC")
+
+#neerslag
 World$fetchData("RAINrate")
 Rainrate = data.frame(
   Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"),
@@ -124,7 +138,7 @@ World$mutateVars(Rainrate)
 World$fetchData("RAINrate")
 World$UpdateDirty("RAINrate")
 
-"RUNOFF"
+#Runoff
 #Runoff bekijken en aanpassen
 World$fetchData("FRACrun")
 FRACrun = data.frame(
@@ -135,8 +149,7 @@ World$mutateVars(FRACrun)
 World$fetchData("FRACrun")
 World$UpdateDirty("FRACrun")
 
-
-"INFILTRATIE"
+#INfiltratie
 World$fetchData("FRACinf")
 FRACinf = data.frame(
   Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"),
@@ -146,9 +159,6 @@ FRACinf = data.frame(
 World$mutateVars(FRACinf)
 World$fetchData("FRACinf")
 World$UpdateDirty("FRACinf")
-
-"PARTIONING"
-
 
 "---------------------------------------------------------------------------------------------------------------"
 "---------------------------------------------------------------------------------------------------------------"

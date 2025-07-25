@@ -95,39 +95,62 @@ landfrac <- read_delim("vignettes/CaseStudies/PFAS Tjebbe/GIS/landuse.csv", deli
 "-----------------------------------------------------------------------------------------------------------"
 "-----------------------------------------------------------------------------------------------------------"
 "Adjusting Model: aanpassingen aan het model maken"
-"AREA"
+#Area
+"Nieuwe situatie: regional is NL stroomgebied, continental is EU deel stroomgebied"
+source("vignettes/CaseStudies/PFAS Tjebbe/Script/Area.R")
+#script berekent area van catchments, dit moet nog een factor groter omdat er wordt gewerkt met fractionSea (0.5)
+area_rhine_nl <- area_rhine_nl * 1.00435597
+area_rhine_eu <- area_rhine_eu * 1.50000000
+
 TotalArea <- data.frame(
   Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"),
-  Waarde = c(4.25E+13, 7.43E+12, 8.50E+13, area, 1.27e+14),
+  Waarde = c(4.25E+13, area_rhine_eu, 8.50E+13, area_rhine_nl, 1.27e+14),
   varName = "TotalArea")
 World$mutateVars(TotalArea)
 World$UpdateDirty("TotalArea")
 
-"LANDFRAC"
+#LANDFRAC
 landFRAC <- data.frame(
   Scale = c("Continental", "Continental", "Continental", "Continental", "Continental",
             "Regional", "Regional", "Regional", "Regional", "Regional"),
   SubCompart = c("agriculturalsoil", "lake", "naturalsoil", "othersoil", "river",
                  "agriculturalsoil", "lake", "naturalsoil", "othersoil", "river"),
-  Waarde = c(0.6, 0.0025, 0.27, 0.1, 0.0275,
+  Waarde = c(landfrac$agricultural, 0.0025, landfrac$naturalsoil-0.02097403, landfrac$othersoil, 0.0275,
              landfrac$agricultural, 0.0025, landfrac$naturalsoil-0.02097403, landfrac$othersoil, 0.0275),
   varName = "landFRAC"
 )
 World$mutateVars(landFRAC)
 World$UpdateDirty("landFRAC")
 
-"NEERSLAG"
+#Continental river to reg river, hier moet ook fractie van meer naar rivier naar 100%
+dischargeFRAC <- data.frame(
+  Scale = c("Continental", "Regional"),
+  Waarde = c(1, 0),
+  varName = "dischargeFRAC")
+
+World$mutateVars(dischargeFRAC)
+World$UpdateDirty("dischargeFRAC")
+
+# LakeFracRiver <- data.frame(
+#   Waarde = 0.1,
+#   varName = ("LakeFracRiver")
+# )
+# World$mutateVars(LakeFracRiver)
+# World$UpdateDirty("LakeFracRiver")
+
+
+#NEERSLAG
 World$fetchData("RAINrate")
 Rainrate = data.frame(
   Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"),
-  Waarde = c(250, 700, 700, rainrate_mod, 1300),
+  Waarde = c(250, rainrate_mod, 700, rainrate_mod, 1300),
   varName = ("RAINrate")
 )
 World$mutateVars(Rainrate)
 World$fetchData("RAINrate")
 World$UpdateDirty("RAINrate")
 
-"RUNOFF"
+#RUNOFF
 #Rhine 70% rain - 30% Meltwater composition based on mean annual flow 
 #Runoff bekijken en aanpassen
 World$fetchData("FRACrun")
@@ -151,7 +174,6 @@ World$mutateVars(FRACinf)
 World$fetchData("FRACinf")
 World$UpdateDirty("FRACinf")
 
-"PARTIONING"
 
 
 "---------------------------------------------------------------------------------------------------------------"

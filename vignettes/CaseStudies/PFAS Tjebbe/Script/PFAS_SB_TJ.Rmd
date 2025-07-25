@@ -34,6 +34,7 @@ check_and_install <- function(package) {
 }
 
 # Install the required packages
+check_and_install("patchwork")
 check_and_install("ggplot2")
 check_and_install("tidyverse")
 check_and_install("constants")
@@ -60,16 +61,16 @@ library(treemapify)
 library(gridExtra)
 ```
 
-##Wereld aanpassen, emissies dataframe maken en tijd instellen
+##Stof kiezen, Wereld aanpassen
 ```{r Substance list, warning=FALSE, include=TRUE}
 #Stof instellingen, handmatig 
 substances <- read.csv(here("data", "Substances.csv"))
 gekozen_stoffen = c("Perfluorobutane_sulfonic", "Perfluorobutanoic", 
                     "Perfluoropentanoic", "Perfluoroheptanoic", 
                     "Perfluorooctanoic", "Trifluoroacetic")
+#substances <- filter(substances, Substance %in% gekozen_stoffen)
 
-
-substance <- "Perfluorobutane_sulfonic"
+substance <- "Trifluoroacetic"
 
 chemclass <- substances |>
   filter(Substance == substance) |>
@@ -99,12 +100,25 @@ runtime <- 140 #years
 tmax <- runtime*365.25*24*60*60 #in seconds
 nTIMES <- runtime+1 #Number of timesteps, e.g. yearly, 2-year
 
-#Emissie Dataframe
-source("vignettes/CaseStudies/PFAS Tjebbe/Script/EmissionModel.R")
+
 
 ```
 
-``` {r Scales}
+##Emissie dataframe maken met EmissionModel.R
+```{r}
+#Emissies
+Wereldwijd = TRUE
+catchment = 'Rhine'
+scenario = 1
+source("vignettes/CaseStudies/PFAS Tjebbe/Script/EmissionModel.R")
+
+#Variabelen:RAINrate, degradation, Runoff??, Infiltratie?? tdry/twet??
+
+
+```
+
+##Informatie over afkortingen, scales en oppervlaktes
+```{r Scales}
 scales <- data.frame(Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"), Abbreviation = c("A", "C", "M", "R", "T"))
 
 subcompartments <- read.csv("data/SubCompartSheet.csv") |>
@@ -116,26 +130,194 @@ species <- read.csv("data/SpeciesSheet.csv") |>
   dplyr::select(Species, AbbrP) |>
   rename(Abbreviation = AbbrP)
 
+substancesubcompartments <- read.csv("data/SubstanceCompartments.csv")
+
 kable(scales)
 kable(subcompartments)
 kable(species)
+
+# Area simplebox is ongeveer 51% van aarde
+Area_simplebox <- World$fetchData("TotalArea") %>%
+  dplyr::select(TotalArea) %>%
+  summarize(sum = sum(TotalArea, na.rm=TRUE)) %>%
+  pull(sum)
+print(Area_simplebox * 100 /5.1e+14)
+
+# Area continental
+print(World$fetchData("Area"))
+
+# Area regional
+
 ```
 
-#Solven
+##Eventueel stof eigenschappen aanpassen
+```{r}
+# pas_stofeigenschap_aan <- function(value, variable){
+#   #print var
+#   print(paste("adjusting var: ", variable, "...."))
+#   print(paste("Old var:", World$fetchData(variable)))
+#   #Make df
+#   df = data.frame(
+#   Waarde = value,
+#   varName = (variable)
+#   )
+#   #Mutating
+#   World$mutateVars(df)
+#   #print new var and updatedirty
+#   print(paste("Updated var: ", World$fetchData(variable)))
+#   World$UpdateDirty(variable) 
+# }
+# 
+# # Stof eigenschappen uit 'Data pilot study stock assessments_QSAR estimates' - Joris Meesters?
+# #MolecularWeight <- pas_stofeigenschap_aan()
+# MeltingPoint <- pas_stofeigenschap_aan(136.16, "Tm")
+# WaterSolubility <- pas_stofeigenschap_aan(253.8, "Sol25")  #0.4813
+# DissociationConstant <- pas_stofeigenschap_aan(-4.2, "pKa") #-4.2
+# VapourPressure <- pas_stofeigenschap_aan(0.0000475, "Pvap25")    #19.3
+# Kaw <- pas_stofeigenschap_aan(0.57, "Kaw25") #0.57                
+# Kow <- pas_stofeigenschap_aan(1, "Kow") #4.81                  
+# Ksw <- pas_stofeigenschap_aan(1.03, "Ksw") #1.03 obv kow          
+
+
+# World$fetchData("kdeg")
+# degradation = data.frame(
+#   SubCompart = c("air", "cloudwater", "agriculturalsoil", 
+#                  "naturalsoil", "othersoil", "deepocean", 
+#                  "river", "sea", "lake"),
+#   Waarde = c(2.2e-08, 2.2e-08, 1.1e-10, 1.1e-10, 1.1e-10, 2.2e-10, 2.2e-10, 2.2e-10, 2.2e-10),
+#   varName = ("kdeg")
+# )
+# 
+# degradation_test = data.frame(
+#   SubCompart = c("air", "cloudwater", "agriculturalsoil", 
+#                  "naturalsoil", "othersoil", "deepocean", 
+#                  "river", "sea", "lake"),
+#   Waarde = c(2.2e-4, 2.2e-4, 1.1e-5, 1.1e-5, 1.1e-5, 2.2e-5, 2.2e-5, 2.2e-5, 2.2e-5),
+#   varName = ("kdeg")
+# )
+# 
+# World$mutateVars(degradation)
+# World$fetchData("kdeg")
+# World$UpdateDirty("kdeg")
+
+#kdeg lager = snellere degradatie
+```
+
+##Solven
 ``` {r Solve}
-#Mutating:
-# df <- data.frame(varName = "kfrag",
-#                     Waarde = 0.000000027)
-# World$mutateVars(df)
-# World$UpdateDirty("kfrag")
-# World$fetchData("RadS")
+#steadystate
+#T/y
+#Simpel scenario met de continentale emissies relatief tot oppervlakte verschillen
+emissions_simple <- data.frame(Abbr = c("aRU", "s2RU", "s1RU", "s3RU", "w0RU", "w1RU", "w2RU",
+                                        "aCU", "s2CU", "s1CU", "s3CU", "w0CU", "w1CU", "w2CU"), 
+                               Emis = c(2, 0.5, 0.5, 0.5, 0.1, 0.1, 0.10, 
+                                        124.5, 15.38271, 15.38271, 15.38271, 95, 95, 95))
+emissions_simple <- emissions_simple |>
+  mutate(Emis = Emis*1000/(365*24*60*60))
+
+World$NewSolver("SteadyStateSolver")
+World$Solve(emissions = emissions_simple)
 
 #New solver
-World$NewSolver("DynamicSolver")
-World$Solve(emissions = emissions, tmax = tmax, nTIMES = nTIMES)
-solution <- World$Masses()
-emission <- World$Emissions()
-concentration <- World$Concentration()
+#World$NewSolver("DynamicSolver")
+#World$Solve(emissions = emissions, tmax = tmax, nTIMES = nTIMES)
+
+
+solution_tfa <- World$Masses()
+emission_tfa <- World$Emissions()
+concentration_tfa <- World$Concentration()
+```
+
+``` {r Plot staafdiagram}
+##Staaf diagram maken 
+
+#SteadyStates omzetten naar percentages totale massa
+#regionaal
+solutions_pfoa <- solution_pfoa %>%
+  filter(grepl("R", Abbr)) %>%
+  mutate(percentage_pfoa = 100 * Mass_kg /sum(Mass_kg)) 
+solutions_tfa <- solution_tfa %>%
+  filter(grepl("R", Abbr)) %>%
+  mutate(percentage_tfa = 100 * Mass_kg /sum(Mass_kg))
+solutions_reg <- left_join(solutions_pfoa, solutions_tfa, by = "Abbr", suffix = c("_pfoa", "_tfa"))
+#Continentaal
+solutions_pfoa <- solution_pfoa %>%
+  filter(grepl("C", Abbr)) %>%
+  mutate(percentage_pfoa = 100 * Mass_kg /sum(Mass_kg)) 
+solutions_tfa <- solution_tfa %>%
+  filter(grepl("C", Abbr)) %>%
+  mutate(percentage_tfa = 100 * Mass_kg /sum(Mass_kg))
+solutions_con <- left_join(solutions_pfoa, solutions_tfa, by = "Abbr", suffix = c("_pfoa", "_tfa"))
+
+#Pivot
+solutions_regional <- solutions_reg %>%
+  dplyr::select(Abbr, percentage_pfoa, percentage_tfa) %>%
+  pivot_longer(
+    cols = c(percentage_pfoa, percentage_tfa),
+    names_to = "stof",
+    values_to = "waarde"
+  )
+solutions_continental <- solutions_con %>%
+  dplyr::select(Abbr, percentage_pfoa, percentage_tfa) %>%
+  pivot_longer(
+    cols = c(percentage_pfoa, percentage_tfa),
+    names_to = "stof",
+    values_to = "waarde"
+  )
+
+#concentratie dataframes 
+concentrations_reg <- concentration_pfoa %>%
+  filter(grepl("R", Abbr)) %>%
+  filter(grepl("s", Abbr)) %>%
+  left_join(concentration_tfa, by='Abbr', suffix = c('_PFOA', '_TFA')) %>%
+  pivot_longer(
+    cols = c(Concentration_PFOA, Concentration_TFA),
+    names_to = "stof",
+    values_to = "waarde"
+  ) %>%
+  mutate(log_waarde = log10(waarde)) %>%
+  mutate(large_waarde = 1 * waarde)
+  
+
+concentrations_con <- concentration_pfoa %>%
+  filter(grepl("C", Abbr)) %>%
+  filter(grepl("s", Abbr)) %>%
+  left_join(concentration_tfa, by='Abbr', suffix = c('_PFOA', '_TFA')) %>%
+  pivot_longer(
+    cols = c(Concentration_PFOA, Concentration_TFA),
+    names_to = "stof",
+    values_to = "waarde"
+  ) %>%
+  mutate(log_waarde = log10(waarde)) %>%
+  mutate(large_waarde = 1 * waarde)
+
+
+kable(subcompartments)
+#staaf diagram maken van verdeling per compartiment en Stof
+Kolom = 'waarde'
+
+p1 <- ggplot(concentrations_reg, aes(x = Abbr, y = large_waarde, fill = stof)) +
+                geom_bar(stat = "identity", position = "dodge") +
+                scale_y_log10() +
+                labs(
+                  title = "Concentration PFOA en TFA (steady state - regional)",
+                  x = "Compartment",
+                  y = "LOG(Concentration * 1e9)"
+                ) +
+                theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p2 <- ggplot(concentrations_con, aes(x = Abbr, y = large_waarde, fill = stof)) +
+                geom_bar(stat = "identity", position = "dodge") +
+                scale_y_log10() + 
+                labs(
+                  title = "Concentration PFOA en TFA (steady state - continental)",
+                  x = "",
+                  y = "LOG(Concentration * 1e9)"
+                ) +
+                theme(axis.text.x = element_text(angle = 45, hjust = 1))
+p1 / p2
+
+kable(subcompartments)
 ```
 
 ``` {r Plotten nieuwe solver}
@@ -143,12 +325,60 @@ concentration <- World$Concentration()
 World$PlotMasses(scale = "Regional", subcompart = "agriculturalsoil")
 
 # Or just a scale and all subcompartments are plotted:
-World$PlotMasses(scale = "Regional")
+World$PlotMasses(scale = "Continental", subcompart=c("agriculturalsoil", "naturalsoil", "othersoil"))
 
 # Plot all concentrations at regional scale
+#Waters
+World$PlotMasses(scale = "Regional", subcompart=c("sea", "river", "lake", "deepocean"))
+World$PlotConcentration(scale = "Regional", subcompart=c("sea", "river", "lake", "deepocean"))
+#Sediments 
+World$PlotMasses(scale = "Regional", subcompart=c("freshwatersediment", "lakesediment", "marinesediment"))
+World$PlotConcentration(scale = "Regional", subcompart=c("freshwatersediment", "lakesediment", "marinesediment"))
+#Soils
+World$PlotMasses(scale = "Regional", subcompart=c("agriculturalsoil", "naturalsoil", "othersoil"))
+World$PlotConcentration(scale = "Regional", subcompart=c("agriculturalsoil", "naturalsoil", "othersoil"))
+
 World$PlotConcentration(scale = "Regional")
+World$PlotMasses(scale = "Regional")
+
+# Continental
+#Sediments 
+World$PlotMasses(scale = "Continental", subcompart=c("freshwatersediment", "lakesediment", "marinesediment"))
+World$PlotConcentration(scale = "Continental", subcompart=c("freshwatersediment", "lakesediment", "marinesediment"))
+#Soils
+World$PlotMasses(scale = "Continental", subcompart=c("agriculturalsoil", "naturalsoil", "othersoil"))
+World$PlotConcentration(scale = "Continental", subcompart=c("agriculturalsoil", "naturalsoil", "othersoil"))
+#Waters
+World$PlotMasses(scale = "Continental", subcompart=c("sea", "river", "lake", "deepocean"))
+World$PlotConcentration(scale = "Continental", subcompart=c("sea", "river", "lake", "deepocean"))
+
+World$PlotConcentration(scale = "Continental")
+World$PlotMasses(scale = "Continental")
+
+
+#All 
+World$PlotConcentration(scale = "Continental")
+World$PlotConcentration(scale = "Continental", subcompart=c("sea"))
+World$PlotConcentration(scale = "Arctic")
+World$PlotConcentration(scale = "Tropic", subcompart=c("sea", "deepocean", "air", "naturalsoil"))
+World$PlotConcentration(scale = "Tropic")
+World$PlotConcentration(scale = "Moderate")
+World$PlotConcentration(scale = "Moderate", subcompart=c("air", "deepocean", "marinesediment", "sea"))
+World$PlotMasses(scale = "Tropic")
+World$PlotMasses(scale = "Moderate")
+World$PlotMasses(scale = "Arctic")
+
+World$PlotMassDistribution(scale = 'Continental')
 
 ```
+
+
+
+
+############################################
+###----------Overige Code----------------###
+############################################
+
 
 #Plotten
 ``` {r Plotten Resultaat:}
@@ -359,11 +589,12 @@ flow3$execute()
 World$CalcVar("x_LakeOutflow")
 
 flows = World$fetchData("Flows") %>%
-  filter(fromScale == "Regional") %>%
-  filter(toScale == "Regional")
+  filter(toSubCompart == "sea" | toSubCompart == "river") %>%
+  filter(toScale == "Regional" | toScale == "Continental")
+  
 
 
-``
+
 
 
 
