@@ -25,12 +25,11 @@ CompareFilesPrep <- function(Release = "2025.04.0", # tag for release
   if(is.na(Release)){
     SBooLink_Release <- 
       paste0("https://github.com/rivm-syso/SBoo/archive/refs/heads/",devBranch,".zip")
+    Release <- devBranch
   } else{
     SBooLink_Release <- 
       paste0("https://github.com/rivm-syso/SBoo/archive/refs/tags/",Release,".zip")
   }
-  
-  Release <- devBranch
   
   if(dir.exists(paste0(Temp_Folder,"/SBzips"))){
     oldfiles <- list.files(paste0(Temp_Folder,"/SBzips"), full.names = TRUE)
@@ -103,3 +102,7 @@ CompareFilesPrep <- function(Release = "2025.04.0", # tag for release
   
   return(c(main_path, test_path))
 }
+
+
+
+
