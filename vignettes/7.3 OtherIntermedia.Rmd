@@ -36,22 +36,37 @@ source("baseScripts/initWorld_onlyMolec.R")
 
 #### Erosion
 
-The processes of erosion and runoff are combined into one flow in the Excel version.
-n the R version, if multiple processes are defined for the same transfer, the k's are automatically added.
-This makes it easier to define and possibly re-define each process.
-In this case the factor CORRrunoff / DEPTH will be executed twice.
-We believe the loss in calculation speed is negligible.
-And this approach is in favor because of the clearly defined process functions.
+In R processes across the same dimension, such as Runoff and Erosion are defined seperately.
+The engine adds the rate constants (k's) automatically for the K matrix.
+This approach is in favor because of the clearly defined process functions.
 
 The factor CORRrunoff (Correction factor depth dependent soil concentration) however is calculated as EXP((-1/0.1) \* 0) \* (1/0.1) \* DEPTH / (1-EXP((-1/0.1) \* DEPTH)) for the assumed pentration depth of 0.1 m.
 To make sure this remains the same for both Runoff and erosion, we define a variable to calculate it.
 The only parameter, so far, is DEPTH, which has been renamed to vertDistance in the R version (combined with height).
 
+At Regional and Continental scale Erossion and Runoff all goes to freshwater (w0 an w1), whereas at global scales (Tropic, Moderate and Arctic) all Erosion and Runoff goes to sea (w2).
+
+At Regional and Continental scale the fraction of Erossion and Runoff going to either w0 or w1 is calculated using a variable: FracROWatComp.
+
 ```{r message=FALSE, warning=FALSE}
 # data needed for k_Erosion:
+FracROWatComp
+
+
+
+World$fetchData("FracROWatComp")
+
+
+k_Erosion
+relevant_depth_s,penetration_depth_s, EROSIONsoil, VertDistance,
+                      to.FracROWatComp,
+                      ScaleName, to.SubCompartName,  Matrix, all.landFRAC, all.Matrix 
 World$fetchData("relevant_depth_s")
 World$fetchData("penetration_depth_s")
 World$fetchData("EROSIONsoil")
+
+World$fetchData("FracROWatComp")
+
 World$fetchData("VertDistance")
 World$fetchData("ScaleName")
 
@@ -74,12 +89,12 @@ The correction factor is explained above.
 The RunoffFlow from soil is needed, which is dependant on the Area, FRACrun and the RAINrate.
 And at last the fraction of Runoff can go to either the upstream (w0) or downstream (w1) freshwater compartment as calculated by v_FracROWatComp.
 FracROWatComp is now calculated based on the surface fraction (landFRAC) of w0 versus w1.
-This can or should be adjusted when more specific data is available on the land surface area contributing to the upstream (w0) versus downstream (w1) Runoff <!--# No link with data layer implemented yet, e.g. introducing a data variable (e.g. RunoffFrac) from data and if NA calculated from compFrac and waterFrac -->.
+This can or should be adjusted when more specific data is available on the land surface area contributing to the upstream (w0) versus downstream (w1) Runoff.
 
 ```{r message=FALSE, warning=FALSE}
 
-RunoffFlow
-World$fetchData("RunoffFlow")
+Runoff
+World$fetchData("Runoff")
 FracROWatComp
   World$fetchData("FracROWatComp")
 Kscompw
