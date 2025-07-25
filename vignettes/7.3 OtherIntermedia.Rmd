@@ -7,13 +7,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
-
 ### Other intermedia transfer processes
 
 Intermedia processes discussed here are:
@@ -58,9 +51,7 @@ World$fetchData("FracROWatComp")
 
 
 k_Erosion
-relevant_depth_s,penetration_depth_s, EROSIONsoil, VertDistance,
-                      to.FracROWatComp,
-                      ScaleName, to.SubCompartName,  Matrix, all.landFRAC, all.Matrix 
+
 World$fetchData("relevant_depth_s")
 World$fetchData("penetration_depth_s")
 World$fetchData("EROSIONsoil")
@@ -93,8 +84,8 @@ This can or should be adjusted when more specific data is available on the land 
 
 ```{r message=FALSE, warning=FALSE}
 
-Runoff
-World$fetchData("Runoff")
+RunoffFlow
+World$fetchData("RunoffFlow")
 FracROWatComp
   World$fetchData("FracROWatComp")
 Kscompw
@@ -132,16 +123,18 @@ World$NewCalcVariable("MTC_2sd")
 World$CalcVar("MTC_2sd")
 
 testvar <- World$NewCalcVariable("Kacompw")
-testvar$execute(debugAt = list())
+# testvar$execute(debugAt = list())
 World$CalcVar("Kacompw")
 
-CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
+# CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
 
-debugonce(k_Volatilisation)
+# debugonce(k_Volatilisation)
 
 
 testProc <- World$NewProcess("k_Volatilisation")
-testProc$execute(debugAt = list())
+# testProc$execute(debugAt = list())
+testProc$execute()
+
 ```
 
 #### Desorption
@@ -155,7 +148,7 @@ World$NewCalcVariable("Ksdcompw")
 World$CalcVar("Ksdcompw")
 
 testProc <- World$NewProcess("k_Desorption")
-testProc$execute(debugAt = list())
+testProc$execute()
 
 
 ```

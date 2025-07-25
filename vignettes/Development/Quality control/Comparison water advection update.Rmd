@@ -465,36 +465,35 @@ for(i in 1:nrow(substances)){
 
 ```
 
+| To | From | Substance | Flow_kg/s_main | Flow_kg/s_test | diff | reldiff |
+|:--------|:--------|:-----------------|:--------|:--------|:--------|--------:|
+| s1AU | aAU | (4-chloro-2-methylphenoxy)acetic acid | 1.2e-01 | 3.6e-01 | 2.4e-01 | 0.4982982 |
+| s1AU | aAU | 1-aminoanthraquinone | 3.9e-02 | 1.1e+00 | 1.1e+00 | 0.9334502 |
+| s1MU | aMU | (4-chloro-2-methylphenoxy)acetic acid | 1.2e+00 | 2.7e+00 | 1.5e+00 | 0.3777706 |
+| s1MU | aMU | 1-aminoanthraquinone | 4.5e-01 | 8.8e+00 | 8.3e+00 | 0.9021398 |
+| s1TU | aTU | (4-chloro-2-methylphenoxy)acetic acid | 1.7e-02 | 3.2e-02 | 1.5e-02 | 0.3144034 |
+| s1TU | aTU | 1-aminoanthraquinone | 5.2e-03 | 8.0e-02 | 7.4e-02 | 0.8775798 |
+| w2AU | s1AU | (4-chloro-2-methylphenoxy)acetic acid | 1.3e-01 | 0.0e+00 | -1.3e-01 | -1.0000000 |
+| w2AU | s1AU | 1-aminoanthraquinone | 4.9e-01 | 0.0e+00 | -4.9e-01 | -1.0000000 |
+| w2MU | s1MU | (4-chloro-2-methylphenoxy)acetic acid | 4.7e-01 | 0.0e+00 | -4.7e-01 | -1.0000000 |
+| w2MU | s1MU | 1-aminoanthraquinone | 1.8e+00 | 0.0e+00 | -1.8e+00 | -1.0000000 |
+| w2TU | s1TU | (4-chloro-2-methylphenoxy)acetic acid | 9.5e-01 | 0.0e+00 | -9.5e-01 | -1.0000000 |
+| w2TU | s1TU | 1-aminoanthraquinone | 3.6e+00 | 0.0e+00 | -3.6e+00 | -1.0000000 |
 
-|To   |From |Substance                             |Flow_kg/s_main |Flow_kg/s_test |diff     |    reldiff|
-|:----|:----|:-------------------------------------|:--------------|:--------------|:--------|----------:|
-|s1AU |aAU  |(4-chloro-2-methylphenoxy)acetic acid |1.2e-01        |3.6e-01        |2.4e-01  |  0.4982982|
-|s1AU |aAU  |1-aminoanthraquinone                  |3.9e-02        |1.1e+00        |1.1e+00  |  0.9334502|
-|s1MU |aMU  |(4-chloro-2-methylphenoxy)acetic acid |1.2e+00        |2.7e+00        |1.5e+00  |  0.3777706|
-|s1MU |aMU  |1-aminoanthraquinone                  |4.5e-01        |8.8e+00        |8.3e+00  |  0.9021398|
-|s1TU |aTU  |(4-chloro-2-methylphenoxy)acetic acid |1.7e-02        |3.2e-02        |1.5e-02  |  0.3144034|
-|s1TU |aTU  |1-aminoanthraquinone                  |5.2e-03        |8.0e-02        |7.4e-02  |  0.8775798|
-|w2AU |s1AU |(4-chloro-2-methylphenoxy)acetic acid |1.3e-01        |0.0e+00        |-1.3e-01 | -1.0000000|
-|w2AU |s1AU |1-aminoanthraquinone                  |4.9e-01        |0.0e+00        |-4.9e-01 | -1.0000000|
-|w2MU |s1MU |(4-chloro-2-methylphenoxy)acetic acid |4.7e-01        |0.0e+00        |-4.7e-01 | -1.0000000|
-|w2MU |s1MU |1-aminoanthraquinone                  |1.8e+00        |0.0e+00        |-1.8e+00 | -1.0000000|
-|w2TU |s1TU |(4-chloro-2-methylphenoxy)acetic acid |9.5e-01        |0.0e+00        |-9.5e-01 | -1.0000000|
-|w2TU |s1TU |1-aminoanthraquinone                  |3.6e+00        |0.0e+00        |-3.6e+00 | -1.0000000|
-
-|To   |From |Substance                             |Flow_kg/s_main |Flow_kg/s_test |diff     |    reldiff|
-|:----|:----|:-------------------------------------|:--------------|:--------------|:--------|----------:|
-|aAU  |s1AU |(4-chloro-2-methylphenoxy)acetic acid |1.3e-10        |3.8e-10        |2.5e-10  |  0.4982982|
-|aAU  |s1AU |1-aminoanthraquinone                  |2.9e-10        |8.4e-09        |8.1e-09  |  0.9334502|
-|aMU  |s1MU |(4-chloro-2-methylphenoxy)acetic acid |1.9e-08        |4.1e-08        |2.3e-08  |  0.3777706|
-|aMU  |s1MU |1-aminoanthraquinone                  |9.4e-08        |1.8e-06        |1.7e-06  |  0.9021398|
-|aTU  |s1TU |(4-chloro-2-methylphenoxy)acetic acid |1.8e-09        |3.5e-09        |1.7e-09  |  0.3144034|
-|aTU  |s1TU |1-aminoanthraquinone                  |1.1e-08        |1.7e-07        |1.6e-07  |  0.8775798|
-|w2AU |s1AU |(4-chloro-2-methylphenoxy)acetic acid |2.7e-04        |0.0e+00        |-2.7e-04 | -1.0000000|
-|w2AU |s1AU |1-aminoanthraquinone                  |2.5e-04        |0.0e+00        |-2.5e-04 | -1.0000000|
-|w2MU |s1MU |(4-chloro-2-methylphenoxy)acetic acid |6.4e-03        |0.0e+00        |-6.4e-03 | -1.0000000|
-|w2MU |s1MU |1-aminoanthraquinone                  |6.8e-03        |0.0e+00        |-6.8e-03 | -1.0000000|
-|w2TU |s1TU |(4-chloro-2-methylphenoxy)acetic acid |2.6e-04        |0.0e+00        |-2.6e-04 | -1.0000000|
-|w2TU |s1TU |1-aminoanthraquinone                  |2.4e-04        |0.0e+00        |-2.4e-04 | -1.0000000|
+| To | From | Substance | Flow_kg/s_main | Flow_kg/s_test | diff | reldiff |
+|:--------|:--------|:-----------------|:--------|:--------|:--------|--------:|
+| aAU | s1AU | (4-chloro-2-methylphenoxy)acetic acid | 1.3e-10 | 3.8e-10 | 2.5e-10 | 0.4982982 |
+| aAU | s1AU | 1-aminoanthraquinone | 2.9e-10 | 8.4e-09 | 8.1e-09 | 0.9334502 |
+| aMU | s1MU | (4-chloro-2-methylphenoxy)acetic acid | 1.9e-08 | 4.1e-08 | 2.3e-08 | 0.3777706 |
+| aMU | s1MU | 1-aminoanthraquinone | 9.4e-08 | 1.8e-06 | 1.7e-06 | 0.9021398 |
+| aTU | s1TU | (4-chloro-2-methylphenoxy)acetic acid | 1.8e-09 | 3.5e-09 | 1.7e-09 | 0.3144034 |
+| aTU | s1TU | 1-aminoanthraquinone | 1.1e-08 | 1.7e-07 | 1.6e-07 | 0.8775798 |
+| w2AU | s1AU | (4-chloro-2-methylphenoxy)acetic acid | 2.7e-04 | 0.0e+00 | -2.7e-04 | -1.0000000 |
+| w2AU | s1AU | 1-aminoanthraquinone | 2.5e-04 | 0.0e+00 | -2.5e-04 | -1.0000000 |
+| w2MU | s1MU | (4-chloro-2-methylphenoxy)acetic acid | 6.4e-03 | 0.0e+00 | -6.4e-03 | -1.0000000 |
+| w2MU | s1MU | 1-aminoanthraquinone | 6.8e-03 | 0.0e+00 | -6.8e-03 | -1.0000000 |
+| w2TU | s1TU | (4-chloro-2-methylphenoxy)acetic acid | 2.6e-04 | 0.0e+00 | -2.6e-04 | -1.0000000 |
+| w2TU | s1TU | 1-aminoanthraquinone | 2.4e-04 | 0.0e+00 | -2.4e-04 | -1.0000000 |
 
 ## New implementation.
 
@@ -505,7 +504,7 @@ source(paste0(folderpaths[2], "/SBooScripts/vignettes/Development/Quality contro
 
 ```
 
-```{R Run SB and get output data, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+```{R Run SB and get output data, echo=TRUE, message=FALSE, warning=FALSE}
 # Change the wd to the wd of the main branches
 setwd(paste0(folderpaths[2], "/SBooScripts"))
 
@@ -614,11 +613,15 @@ setwd(original_wd)
 ```
 
 ## Compare the two versions
-The comparison is done for different outcomes. Starting the the rate constrations, followed by the relative difference in mass in each compartment and the flows to and from compartments to further understand the differences in mass.
+
+The comparison is done for different outcomes. Starting the the rate
+constants, followed by the relative difference in mass/concentration in
+each compartment and the flows to and from compartments to further
+understand the differences in mass.
 
 ### rate constants
 
-```{R Comparison of rate constants k's, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+```{R Comparison of rate constants, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
 
 kaas_comparison <- 
   merge(main_kaas |> 
@@ -661,6 +664,9 @@ table_for_display <- changed_kaas |>
 knitr::kable(table_for_display)
 
 ```
+
+It is clear that the rate constants related to flow from lake to river
+water are changed the most, up to about 15%.
 
 ### mass
 
@@ -714,6 +720,8 @@ con_solution_comparison <-
   mutate(diff = test_Conc.-main_Conc.) |> 
   mutate(rel_diff = diff/main_Conc.)
 
+
+
 ggplot(con_solution_comparison, mapping = aes(x = Abbr, y = rel_diff, fill = Substance)) + 
   geom_bar(stat = "identity", position = "dodge") +
   labs(
@@ -729,32 +737,36 @@ ggplot(con_solution_comparison, mapping = aes(x = Abbr, y = rel_diff, fill = Sub
 
 ```
 
+The longer residence time in lake water (w0), means higher
+concentrations in lake sediment and lake water, up to
+`r max(con_solution_comparison$rel_diff)*100` %.
+
 ### Flows
-```{r}
+
+```{r Flows}
 
 test_MassBalance$version <- "new"
 main_MassBalance$version <- "2025.04.0"
 
 MB_test_main <- rbind(test_MassBalance,main_MassBalance)
 
-
-
-ggplot(MB_test_main |> 
-         mutate(Trans_from = -1*Trans_from,
-                Removal_kg_s = -1*Removal_kg_s) |> 
-         pivot_longer(!c(Compartment,Substance,version),
-                      names_to = "Flow",
-                      values_to = "Mass flow (kg/s)") , 
-       aes(x = Compartment, y = `Mass flow (kg/s)`, fill = Flow)) +
-  geom_bar(stat = "identity", position = "stack") +
-  facet_wrap(~Substance*version) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 90, vjust = 0.5),
-    panel.grid.major.y = element_line(color = "grey80", size = 0.7),
-    panel.grid.minor.y = element_line(color = "grey90", size = 0.5)
-  ) +
-  scale_y_continuous(breaks = scales::extended_breaks(20))
+# flow overview figure
+# ggplot(MB_test_main |> 
+#          mutate(Trans_from = -1*Trans_from,
+#                 Removal_kg_s = -1*Removal_kg_s) |> 
+#          pivot_longer(!c(Compartment,Substance,version),
+#                       names_to = "Flow",
+#                       values_to = "Mass flow (kg/s)") , 
+#        aes(x = Compartment, y = `Mass flow (kg/s)`, fill = Flow)) +
+#   geom_bar(stat = "identity", position = "stack") +
+#   facet_wrap(~Substance*version) +
+#   theme_minimal() +
+#   theme(
+#     axis.text.x = element_text(angle = 90, vjust = 0.5),
+#     panel.grid.major.y = element_line(color = "grey80", size = 0.7),
+#     panel.grid.minor.y = element_line(color = "grey90", size = 0.5)
+#   ) +
+#   scale_y_continuous(breaks = scales::extended_breaks(20))
 
 MB_test_main_wide <-
   MB_test_main |> pivot_wider(names_from = version, values_from =  c(Trans_to,   Trans_from, Emission_kg_s, Removal_kg_s,Diff_Flows)) |> 
@@ -768,7 +780,7 @@ ggplot(MB_test_main_wide |>
                       values_to = "RelDiffFlow") |> 
          select(Compartment, Substance, `Flow type`, RelDiffFlow), 
        aes(x = Compartment, y = RelDiffFlow, fill = `Flow type`)) +
-  geom_bar(stat = "identity", position = "stack") +
+  geom_bar(stat = "identity", position = "dodge") +
   facet_wrap(~Substance) +
   theme_minimal() +
   theme(
@@ -781,23 +793,32 @@ ggplot(MB_test_main_wide |>
 
 # test_CompFlows$version <- "new"
 # main_CompFlows$version <- "2025.04.0"
-main_CompFlows <- main_CompFlows |> 
-  rename(`Flow_kg/s_main` = `Flow_kg/s`)
-test_CompFlows <- test_CompFlows |> 
-  rename(`Flow_kg/s_test` = `Flow_kg/s`)
-
 # sum(main_CompFlows$`Flow_kg/s_main`) - sum(test_CompFlows$`Flow_kg/s_test`)
 
 
 CompFlowsDiff <- 
-  merge(main_CompFlows, test_CompFlows) |> 
+  merge(main_CompFlows |> 
+  rename(`Flow_kg/s_main` = `Flow_kg/s`), 
+         test_CompFlows |> 
+  rename(`Flow_kg/s_test` = `Flow_kg/s`)) |> 
   mutate(diff = `Flow_kg/s_test`-`Flow_kg/s_main`,
          reldiff = (`Flow_kg/s_test`-`Flow_kg/s_main`)/abs(`Flow_kg/s_main`+`Flow_kg/s_test`)) |> 
   filter(diff != 0,
          `Flow_kg/s_main` > 0,
-         abs(reldiff)>0.001)
+         abs(reldiff)>0.0001)
 
-
+ggplot(CompFlowsDiff |> 
+         mutate(FlowName = paste0(From,"->",To)), mapping = aes(x = FlowName, y = reldiff, color = Substance)) + 
+  geom_jitter() + 
+  labs(
+    title = "Relative difference between old and new flow's",
+    x = "To",  
+    y = "From",  
+    color = "Relative difference"  
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1)
+  )
 
 ggplot(CompFlowsDiff, mapping = aes(x = To, y = From, color = reldiff)) + 
   geom_point(aes(shape = Substance)) + 
@@ -825,8 +846,6 @@ knitr::kable(table_for_display)
 
 ```
 
-
-
 ### Mass balance
 
 ```{r Mass balance check}
@@ -845,4 +864,9 @@ ggplot(rbind(main_MassBalance,test_MassBalance),
 
 ```
 
-From the mass balance test (flows into and out of a compartment should be in balance (sum = 0)) it can be seen that there are some much larger differences in the mass balance of the previous release "2025.04.0". This is mainly due to small tweaks in the solver by lowering stol variable in rootSolve::runsteady. In next release we might also change to rootSolve::steady. See SteadyStateSolver2.
+From the mass balance test (flows into and out of a compartment should
+be in balance (sum = 0)) it can be seen that there are some much larger
+differences in the mass balance of the previous release "2025.04.0".
+This is mainly due to small tweaks in the solver by lowering stol
+variable in rootSolve::runsteady. In next release we might also change
+to rootSolve::steady. See SteadyStateSolver2.
