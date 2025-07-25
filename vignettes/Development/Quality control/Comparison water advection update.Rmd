@@ -27,80 +27,24 @@ f_MutateHelper <- function(varName = "landFRAC",
   return(World$fetchData(varName))
 }
 
-f_AddAbbreviationsSBxlsx <- function(kaas = as_tibble(World$kaas), # table with columns to... and from...
-                                     SubcompartmentsMap = # all subcompartments defined for SBoo
-                                       c("marinesediment" = "sd2",
-                                         "freshwatersediment" = "sd1",
-                                         "lakesediment" = "sd0",
-                                         "agriculturalsoil" = "s2",
-                                         "naturalsoil" = "s1",
-                                         "othersoil" = "s3",
-                                         "air" = "a",
-                                         "deepocean" = "w3",
-                                         "sea" = "w2",
-                                         "river" = "w1",
-                                         "lake" = "w0",
-                                         "cloudwater" = "cw"), 
-                                     ScalesMap = # all scales defined for SBoo
-                                       c("Arctic" = "A",
-                                         "Moderate" = "M",
-                                         "Tropic" = "T",
-                                         "Continental" = "C",
-                                         "Regional" = "R"), 
-                                     SpeciesMap = # all species defined for SBoo
-                                       c("Dissolved" = "D",
-                                         "Gas" = "G",
-                                         "Large" = "P",
-                                         "Small" = "A",
-                                         "Solid" = "S",
-                                         "Unbound" = "U")
-) {
-  
-  kaas <- kaas |> mutate(
-    from = paste0(
-      SubcompartmentsMap[fromSubCompart],
-      ScalesMap[fromScale],
-      SpeciesMap[fromSpecies]
-    ),
-    to = paste0(
-      SubcompartmentsMap[toSubCompart],
-      ScalesMap[toScale],
-      SpeciesMap[toSpecies]
-    )
-  )
-  
-  # kaas <-
-  #   kaas |>
-  #   mutate(
-  #     from =
-  #       ifelse((fromScale == "Tropic" | fromScale == "Arctic" | fromScale == "Moderate") &
-  #                (fromSubCompart == "marinesediment" | fromSubCompart == "naturalsoil"),
-  #              str_replace_all(from, c("sd2" = "sd", "s1" = "s")),
-  #              from
-  #       )
-  #   ) |>
-  #   mutate(to = ifelse((toScale == "Tropic" | toScale == "Arctic" | toScale == "Moderate") &
-  #                        (toSubCompart == "marinesediment" | toSubCompart == "naturalsoil"), str_replace_all(to, c("sd2" = "sd", "s1" = "s")), to))
-  # 
-  return(kaas)
-}
+
 
 ```
 
-*The advection flow calculations for the freshwater compartments are
+The advection flow calculations for the freshwater compartments are
 revised using a different implementation of advective flows related to
 the lake compartment and some other changes (from v2025.4.0 and the
 Excel implementation). Below the changes are outlined, and finally a
 comparison between the rate constants (k's) of the new and old version
-is made.*
+is made.
 
-## *Update RainOnFreshwater function*
+## Update RainOnFreshwater function
 
-*In the previous version of SimpleBox, RainOnFreshwater was set to 0 for
+In the previous version of SimpleBox, RainOnFreshwater was set to 0 for
 lake compartments. This is resolved by using the same calculation for
-lake as was already used for the river compartments.*
+lake as was already used for the river compartments.
 
-*This was the previous function:*
+This was the previous function:
 
 ```{R Old RainOnFreshwater function, include=TRUE}
 # RainOnFreshwater
@@ -191,12 +135,19 @@ old <- World$CalcVar("FracROWatComp")
 
 ```{R New FracROWatComp function, include=TRUE}
 FracROWatComp <- function(all.landFRAC, all.Matrix, Matrix, SubCompartName, ScaleName) {
+  # browser()
+  
   if ((Matrix == "water") & (ScaleName %in% c("Regional", "Continental"))) {
-    compFrac <- all.landFRAC$landFRAC[all.landFRAC$SubCompart == SubCompartName & all.landFRAC$Scale ==  ScaleName]
-    mergeddata <- merge(all.landFRAC,all.Matrix)
-    waterFrac = sum(mergeddata$landFRAC[mergeddata$Matrix == "water" & mergeddata$Scale ==  ScaleName])
+    
+    compFrac <- all.landFRAC$landFRAC[all.landFRAC$SubCompart == SubCompartName & all.landFRAC$Scale == ScaleName]
+    mergeddata <- merge(all.landFRAC, all.Matrix)
+    waterFrac <- sum(mergeddata$landFRAC[mergeddata$Matrix == "water" & mergeddata$Scale == ScaleName])
     return(compFrac / waterFrac)
-  } else {
+    
+  } else if ((SubCompartName == "sea") & (ScaleName %in% c("Tropic", "Moderate", "Arctic"))){ 
+    return(1)
+  }  else
+  {
     return(NA)
   }
 }
@@ -209,7 +160,7 @@ World$CalcVar("FracROWatComp")
 
 ```
 
-## *Update ContRiver2Reg*
+## Update ContRiver2Reg
 
 For the 'river' SubCompart at 'Continental' Scale, the flow from
 Continental to Regional river is now calculated as:
@@ -217,7 +168,7 @@ Continental to Regional river is now calculated as:
 (sum of all runoff + the sum of all rain on freshwater) \*
 dischargefraction between regional and continental scale.
 
-*The previously used function can be seen in the chunk below*
+The previously used function can be seen in the chunk below
 
 ```{R Old ContRiver2Reg, include=TRUE}
 
@@ -309,13 +260,13 @@ fraction runoff going to lake (FracROWatComp) and the direct Rain on
 lake fresh water (RainOnFreshwater). The flow from lake to river at
 Regional and Continental scale is now calculated as:
 
-*RainOnFreshwater + FracROWatComp\*SumRunoff*
+RainOnFreshwater + FracROWatComp\*SumRunoff
 
 ```{R Old LakeOut function, include=TRUE}
 x_LakeOutflow <- function(all.x_RiverDischarge, 
-                           all.x_ContRiver2Reg, 
-                           LakeFracRiver, 
-                           ScaleName){
+                          all.x_ContRiver2Reg, 
+                          LakeFracRiver, 
+                          ScaleName){
   x_RiverDischarge <- all.x_RiverDischarge$flow[all.x_RiverDischarge$fromScale==ScaleName]
   if(ScaleName == "Continental") {
     return(LakeFracRiver * x_RiverDischarge)
@@ -335,16 +286,16 @@ old <- World$CalcVar("x_LakeOutflow")
 
 ```{R New LakeOut function, include=TRUE}
 x_LakeOutflow <- function(RainOnFreshwater,
-                           all.RunoffFlow,
-                           FracROWatComp,
-                       SubCompartName,
-                           ScaleName){
+                          all.RunoffFlow,
+                          FracROWatComp,
+                          SubCompartName,
+                          ScaleName){
   switch(SubCompartName, # if this is coded with if statement it fails as SubCompartName for Arctic is NA
-          "lake" = {
-            SumRunoff <- sum(all.RunoffFlow$RunoffFlow[all.RunoffFlow$Scale == ScaleName])
-            return(RainOnFreshwater + FracROWatComp*SumRunoff)
-          },
-          NA
+         "lake" = {
+           SumRunoff <- sum(all.RunoffFlow$RunoffFlow[all.RunoffFlow$Scale == ScaleName])
+           return(RainOnFreshwater + FracROWatComp*SumRunoff)
+         },
+         NA
   )
 }
 
@@ -363,75 +314,50 @@ of the lake versus surface area of the river fresh water compartment.
 
 # Compare new with previous implementation
 
-*The below scripts should be run to compare two versions of SBoo. This
+The below scripts should be run to compare two versions of SBoo. This
 uses a function for downloading and ordering the folders needed to
-compare.*
+compare.
 
-*TO DO: fetch development at a certain date/commit hash instead of most
+TO DO: fetch development at a certain date/commit hash instead of most
 recent version in a branch. This would ensure consequent outcomes of
 this comparison, no matter when the script is run or if a branch is
-deleted.*
+deleted.
 
 ```{R Specify directories, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
 source("vignettes/Development/Quality control/ComparisonFunctions.R")
-
-# tag <- "2025.04.0"
-# branch_sboo <- "FLux_work"
-# branch_sbooscripts <- "Fluxwork"
-# dest_folder <- "/rivm/n/hidsa/Documents/Temp"
+# Release = "2025.04.0"
 folderpaths <- CompareFilesPrep(Release = "2025.04.0", # specify the tag to compare to
                                 Test_SBoo = "FLux_work", # the branch name
                                 Test_SBooScripts = "Fluxwork", # the branch name
                                 Temp_Folder = "C:/Temp") # test folder
 
-# Define branches to test
-# branches <- c("main", "FLux_work")
 
-# Specify file paths for saving results
-# result_files <- paste0("results_", branches, ".rds")
 
-# Directory of your Git repository (modify this path to the correct repository location)
-# script_dir <-getwd()
-# repo_dir <- file.path(getwd(), "..", "SBoo")
+
 ```
 
-*As advection processes do not depend on substance variables, we only
+As advection processes do not depend on substance variables, we only
 need to compare the advection flows for one substance, in this case
-1-aminoanthraquinone.*
+1-aminoanthraquinone.
 
 ```{R Specify substance, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
-substance_names <- "1-aminoanthraquinone" 
+# substance_names <- "1-aminoanthraquinone" 
 substances <- read.csv("data/Substances.csv")
+# substances <- substances |>
+#   filter(ChemClass != "particle")
+
 substances <- substances |>
   filter(ChemClass == "")
 
 substances <- substances[c(1,2),]
 ```
 
-```{R Specify temporary directory, include = FALSE}
-# Specify where the downloaded versions of sboo and sbooscripts should be saved to
-# dest_folder <- "/rivm/n/hidsa/Documents/Temp"
-```
-
-```{R Specify which tag and branch to compare}
-# tag <- "2025.04.0"
-# branch_sboo <- "FLux_work"
-# branch_sbooscripts <- "Fluxwork"
-```
-
-```{R Switch to SBoo Development branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
-# source("vignettes/Development/Quality control/ComparisonFunctions.R")
-
-# folderpaths <- CompareFilesPrep(Release = tag,
-# Test_SBoo = branch_sboo,
-# Test_SBooScripts = branch_sbooscripts,
-# Temp_Folder = dest_folder)
-```
-
-*First remove all functions from the global environment to avoid errors*
+First remove all functions from the global environment to avoid errors
 
 ```{R Clean environment, include=FALSE}
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
+source(paste0(folderpaths[2], "/SBooScripts/vignettes/Development/Quality control/MassBalanceFunction.R"))
+
 ```
 
 ## Main version / development branch
@@ -497,112 +423,96 @@ for(i in 1:nrow(substances)){
   if(i == 1) main_solution_conc <- solution_conc else {
     main_solution_conc <- merge(main_solution_conc,solution_conc,all = TRUE)}
   
-  ################################################################3
-  # for mass balance
   
-    RateConstants <- f_AddAbbreviationsSBxlsx()  |>
-    filter(!(toScale %in% c("Regional", "Continental") & toSubCompart == "deepocean")) # remove k's for deepocean at continental and regional scale
   
-  # Remove the unbound compartments if the substance is particle/microplastic
-  if(cc == "particle"){
-    RateConstants <- RateConstants |>
-      filter(fromSpecies != "Unbound") |>
-      filter(toSpecies != "Unbound")
+  MB_main <- MB_function1(kaas = as_tibble(World$kaas),
+                          Masses =  World$Masses())
+  
+  if (i == 1) main_MassBalance <- MB_main else {
+    main_MassBalance <- merge(main_MassBalance, MB_main, all = TRUE) 
   }
   
-  Masses <- World$Masses()
+  Kmatrix <- World$exportEngineR()
   
-  # Remove the unbound compartments if the substance is particle/microplastic
-  if(cc == "particle"){
-    Masses <- Masses |>
-      filter(!endsWith(Abbr, "U"))
+  # Strange that there would be a value here
+  # Kmatrix["s1TU","w2TU"]
+  
+  #       to     from
+  Kmatrix["w2TU","s1TU"]
+  
+  # But no value here:
+  kaas |> filter(toScale == "Tropic" & toSubCompart == "sea")
+  # test to see why below we get a flow from soil to sea
+  
+  
+  Masses_Korder <- solution[match(colnames(Kmatrix),solution$Abbr),]
+  CompFlows <-  Kmatrix %*% diag(Masses_Korder$main_Mass_kg)
+  colnames(CompFlows) <- row.names(CompFlows)
+  CompFlows <-  as.data.frame(CompFlows)
+  CompFlows$To <- colnames(CompFlows)
+  CompFlows <-
+    CompFlows |> as_tibble() |> 
+    pivot_longer(-To,
+                 names_to = "From",
+                 values_to = "Flow_kg/s") |> 
+    mutate( Substance = substances$Substance[i] )
+  
+  if (i == 1) main_CompFlows <- CompFlows else {
+    main_CompFlows <- merge(main_CompFlows, CompFlows, all = TRUE) 
   }
-  
-  MassBalanceTest <- 
-    RateConstants |> 
-    full_join(Masses, by = join_by(from == Abbr)) |> 
-    rename(fromMass_kg = Mass_kg) |> 
-    mutate(ProcessMassFlow_kg_s = fromMass_kg * k)
-  
-  # test <- World$exportEngineR()
-  
-  Removal <- 
-    MassBalanceTest |> 
-    mutate(Type = case_when(
-      process == "k_Degradation" ~ "Removal",
-      process == "k_Adsorption" ~ "InterMedia",
-      process == "k_Advection" ~ "InterMedia",
-      process == "k_Deposition" ~ "InterMedia",
-      process == "k_Desorption" ~ "InterMedia",
-      process == "k_Erosion" ~ "InterMedia",
-      process == "k_Escape" ~ "Removal",
-      process == "k_Resuspension" ~ "InterMedia",
-      process == "k_Leaching" ~ "Removal",
-      process == "k_Runoff" ~ "InterMedia",
-      process == "k_Sedimentation" ~ "InterMedia",
-      process == "k_Volatilisation" ~ "InterMedia",
-      process == "k_Burial" ~ "Removal",
-      TRUE ~ NA
-    )) |> filter(Type == "Removal") |> 
-    group_by(from) |> 
-    summarise(Removal_kg_s = sum(ProcessMassFlow_kg_s ))
-  
-  MassBalanceTest2 <-
-    MassBalanceTest |> pivot_wider(id_cols = to, names_from = from, values_from = ProcessMassFlow_kg_s,
-                                   values_fn = sum,
-                                   values_fill = 0) 
-  
-  Trans_from <-
-    MassBalanceTest2 |> select(-to) |>  ungroup() |> 
-    summarise(across(everything(),sum)) |> t()
-  
-  colnames(Trans_from) <- "Trans_from"
-  
-  Trans_to <-
-    MassBalanceTest2 |> select(-to) |>  rowwise() |>
-    mutate(Trans_to = sum(c_across(everything()))) |> select(Trans_to)
-  
-  #Trans_to <- as.matrix(Trans_to)
-  
-  trans_to_rownames <- MassBalanceTest2$to
-  rownames(Trans_to) <- trans_to_rownames
-  
-  Trans_from_aligned <- Trans_from[rownames(Trans_to), , drop = FALSE]
-  MassBalanceCheck <- cbind(Trans_to, Trans_from_aligned)
-  
-  MassBalanceCheck$Compartment <- row.names(MassBalanceCheck)
-  MassBalanceCheck <- merge(MassBalanceCheck,World$Emissions(),by.x = "Compartment",by.y = "Abbr")
-  MassBalanceCheck <- merge(MassBalanceCheck,Removal,by.x = "Compartment",by.y = "from")
-  
-  MassBalanceCheck <- 
-    MassBalanceCheck |> 
-    mutate(
-      Diff_Flows = (Trans_to+Emission_kg_s)-(Trans_from+Removal_kg_s)
-    )
-  
-
   
 }
 
-source("C:/GitProjects/SBooScripts/vignettes/Development/Quality control/MassBalanceFunction.R")
-
-MassBalanca_1 <- f_mbalans(substance_name = substance)  
-
-
 ```
 
-## *New implementation.*
+
+|To   |From |Substance                             |Flow_kg/s_main |Flow_kg/s_test |diff     |    reldiff|
+|:----|:----|:-------------------------------------|:--------------|:--------------|:--------|----------:|
+|s1AU |aAU  |(4-chloro-2-methylphenoxy)acetic acid |1.2e-01        |3.6e-01        |2.4e-01  |  0.4982982|
+|s1AU |aAU  |1-aminoanthraquinone                  |3.9e-02        |1.1e+00        |1.1e+00  |  0.9334502|
+|s1MU |aMU  |(4-chloro-2-methylphenoxy)acetic acid |1.2e+00        |2.7e+00        |1.5e+00  |  0.3777706|
+|s1MU |aMU  |1-aminoanthraquinone                  |4.5e-01        |8.8e+00        |8.3e+00  |  0.9021398|
+|s1TU |aTU  |(4-chloro-2-methylphenoxy)acetic acid |1.7e-02        |3.2e-02        |1.5e-02  |  0.3144034|
+|s1TU |aTU  |1-aminoanthraquinone                  |5.2e-03        |8.0e-02        |7.4e-02  |  0.8775798|
+|w2AU |s1AU |(4-chloro-2-methylphenoxy)acetic acid |1.3e-01        |0.0e+00        |-1.3e-01 | -1.0000000|
+|w2AU |s1AU |1-aminoanthraquinone                  |4.9e-01        |0.0e+00        |-4.9e-01 | -1.0000000|
+|w2MU |s1MU |(4-chloro-2-methylphenoxy)acetic acid |4.7e-01        |0.0e+00        |-4.7e-01 | -1.0000000|
+|w2MU |s1MU |1-aminoanthraquinone                  |1.8e+00        |0.0e+00        |-1.8e+00 | -1.0000000|
+|w2TU |s1TU |(4-chloro-2-methylphenoxy)acetic acid |9.5e-01        |0.0e+00        |-9.5e-01 | -1.0000000|
+|w2TU |s1TU |1-aminoanthraquinone                  |3.6e+00        |0.0e+00        |-3.6e+00 | -1.0000000|
+
+|To   |From |Substance                             |Flow_kg/s_main |Flow_kg/s_test |diff     |    reldiff|
+|:----|:----|:-------------------------------------|:--------------|:--------------|:--------|----------:|
+|aAU  |s1AU |(4-chloro-2-methylphenoxy)acetic acid |1.3e-10        |3.8e-10        |2.5e-10  |  0.4982982|
+|aAU  |s1AU |1-aminoanthraquinone                  |2.9e-10        |8.4e-09        |8.1e-09  |  0.9334502|
+|aMU  |s1MU |(4-chloro-2-methylphenoxy)acetic acid |1.9e-08        |4.1e-08        |2.3e-08  |  0.3777706|
+|aMU  |s1MU |1-aminoanthraquinone                  |9.4e-08        |1.8e-06        |1.7e-06  |  0.9021398|
+|aTU  |s1TU |(4-chloro-2-methylphenoxy)acetic acid |1.8e-09        |3.5e-09        |1.7e-09  |  0.3144034|
+|aTU  |s1TU |1-aminoanthraquinone                  |1.1e-08        |1.7e-07        |1.6e-07  |  0.8775798|
+|w2AU |s1AU |(4-chloro-2-methylphenoxy)acetic acid |2.7e-04        |0.0e+00        |-2.7e-04 | -1.0000000|
+|w2AU |s1AU |1-aminoanthraquinone                  |2.5e-04        |0.0e+00        |-2.5e-04 | -1.0000000|
+|w2MU |s1MU |(4-chloro-2-methylphenoxy)acetic acid |6.4e-03        |0.0e+00        |-6.4e-03 | -1.0000000|
+|w2MU |s1MU |1-aminoanthraquinone                  |6.8e-03        |0.0e+00        |-6.8e-03 | -1.0000000|
+|w2TU |s1TU |(4-chloro-2-methylphenoxy)acetic acid |2.6e-04        |0.0e+00        |-2.6e-04 | -1.0000000|
+|w2TU |s1TU |1-aminoanthraquinone                  |2.4e-04        |0.0e+00        |-2.4e-04 | -1.0000000|
+
+## New implementation.
 
 ```{R Clean environment again, include=FALSE}
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
+
+source(paste0(folderpaths[2], "/SBooScripts/vignettes/Development/Quality control/MassBalanceFunction.R"))
+
 ```
 
-```{R Run SB and get advection ks for FLux_work branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+```{R Run SB and get output data, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
 # Change the wd to the wd of the main branches
 setwd(paste0(folderpaths[2], "/SBooScripts"))
 
 test_kaas <- data.frame()
 test_solution <- NA
+test_MassBalance <- NA
+test_CompFlows <- NA
 
 for(i in 1:nrow(substances)){
   # Get the substance type
@@ -662,82 +572,72 @@ for(i in 1:nrow(substances)){
   if(i == 1) test_solution_conc <- solution_conc else {
     test_solution_conc <- merge(test_solution_conc,solution_conc,all = TRUE)}
   
-MassBalanca_ <- f_mbalans(substance_name = substance)  
-
+  MB_test <- MB_function1(kaas = as_tibble(World$kaas),
+                          Masses =  World$Masses())
+  
+  if (i == 1) test_MassBalance <- MB_test else {
+    test_MassBalance <- merge(test_MassBalance, MB_test, all = TRUE) 
+  }
+  
+  Kmatrix <- World$exportEngineR()
+  Masses_Korder <- solution[match(colnames(Kmatrix),solution$Abbr),]
+  
+  # Masses_Korder$Abbr == colnames(Kmatrix)
+  # Masses_Korder$Abbr == rownames(Kmatrix)
+  
+  
+  
+  Kmatrix["s1TU","w2TU"]
+  
+  Kmatrix["w2TU","s1TU"]
+  
+  CompFlows <-  Kmatrix %*% diag(Masses_Korder$test_Mass_kg)
+  colnames(CompFlows) <- row.names(CompFlows)
+  CompFlows <-  as.data.frame(CompFlows)
+  CompFlows$To <- colnames(CompFlows)
+  CompFlows <-
+    CompFlows |> as_tibble() |> 
+    pivot_longer(-To,
+                 names_to = "From",
+                 values_to = "Flow_kg/s") |> 
+    mutate( Substance = substances$Substance[i] )
+  
+  if (i == 1) test_CompFlows <- CompFlows else {
+    test_CompFlows <- merge(test_CompFlows, CompFlows, all = TRUE) 
+  }
+  
+  
 }
 
 setwd(original_wd)
 
 ```
 
-## *Compare the k values for each of the substances*
+## Compare the two versions
+The comparison is done for different outcomes. Starting the the rate constrations, followed by the relative difference in mass in each compartment and the flows to and from compartments to further understand the differences in mass.
 
-```{R Calculate the differences between ks, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+### rate constants
 
-common_cols <- setdiff(intersect(colnames(main_kaas), colnames(test_kaas)), "k")
+```{R Comparison of rate constants k's, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
 
 kaas_comparison <- 
-  merge(main_kaas, test_kaas, by=common_cols, suffixes = c("_Old", "_New")) |>
+  merge(main_kaas |> 
+          rename(
+            k_Old = k
+          ), 
+        test_kaas |> 
+          rename(
+            k_New = k),
+  all = TRUE) |>
   mutate(diff = k_New-k_Old) |> # If this number is positive, the New_k is higher than the Old_k (higher advection rate with new method)
-  mutate(rel_diff = diff/k_Old)
+  mutate(rel_diff = diff/k_Old) |> as_tibble()
 
-kaas_comparison |>
-  # filter(diff != 0) |>
-  mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale)) |> 
-  filter(fromScale == "Tropic" & fromSubCompart == "deepocean")
-
-
-# solutions
-
-solution_comparison <- 
-  merge(main_solution,test_solution) |> 
-  mutate(diff = test_Mass_kg-main_Mass_kg) |> 
-  mutate(rel_diff = diff/main_Mass_kg)
-
-con_solution_comparison <- 
-  merge(main_solution_conc,test_solution_conc) |> 
-  mutate(diff = test_Conc.-main_Conc.) |> 
-  mutate(rel_diff = diff/main_Conc.)
-
-changed_mass <- solution_comparison |>
-  filter(diff != 0) 
-
-```
-
-```{R Plot the differences between ks, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
-# mean_diffs <- kaas_comparison |>
-#   mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
-#   mutate(toname = paste0(toSubCompart, "_", toScale)) |>
-#   # mutate(diff = ifelse(diff == 0, NaN, diff)) |>
-#   filter(diff != 0)
-
-
-changed_kaas <- kaas_comparison |>
+changed_kaas <- 
+  kaas_comparison |>
   filter(diff != 0) |>
   mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale)) |> 
   mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
   mutate(toname = paste0(toSubCompart, "_", toScale))
-
-# ggplot(changed_kaas, mapping = aes(x = toname, y = fromname, color = diff)) + 
-#   geom_point() + 
-#   scale_color_gradient2(
-#     low = "blue",    # Colors for negative values
-#     mid = "grey",   # Neutral point at zero
-#     high = "red",  # Colors for positive values
-#     midpoint = 0,   # Center the scale at zero
-#     limits = c(-max(abs(changed_kaas$diff)), max(abs(changed_kaas$diff)))  # Ensure symmetric scale
-#   ) +
-#   labs(
-#     title = "Difference between old and new advection k's",
-#     x = "To",  
-#     y = "From",  
-#     color = "Difference"  
-#   ) +
-#   theme(
-#     axis.text.x = element_text(angle = 45, hjust = 1), 
-#     panel.grid.major = element_line(size = 0.2, color = "gray90"),  
-#     panel.background = element_blank() 
-#   )
 
 ggplot(changed_kaas, mapping = aes(x = toname, y = fromname, color = rel_diff)) + 
   geom_point(aes(shape = Substance)) + 
@@ -760,19 +660,33 @@ table_for_display <- changed_kaas |>
 
 knitr::kable(table_for_display)
 
+```
 
-ggplot(solution_comparison, mapping = aes(x = Abbr, y = diff, fill = Substance)) + 
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(
-    title = "Difference between old and new steadystate mass",
-    x = "Compartment",  
-    y = "(Mass_new - Mass_old)"
-  ) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1), 
-    panel.grid.major = element_line(size = 0.2, color = "gray90"),
-    panel.background = element_blank()  
-  )
+### mass
+
+```{R comparison of mass}
+
+solution_comparison <- 
+  merge(main_solution,test_solution) |> 
+  mutate(diff = test_Mass_kg-main_Mass_kg) |> 
+  mutate(rel_diff = diff/main_Mass_kg)
+
+solution_comparison |>
+  filter(rel_diff > 0.001) 
+
+
+# ggplot(solution_comparison, mapping = aes(x = Abbr, y = diff, fill = Substance)) + 
+#   geom_bar(stat = "identity", position = "dodge") +
+#   labs(
+#     title = "Difference between old and new steadystate mass",
+#     x = "Compartment",  
+#     y = "(Mass_new - Mass_old)"
+#   ) +
+#   theme(
+#     axis.text.x = element_text(angle = 45, hjust = 1), 
+#     panel.grid.major = element_line(size = 0.2, color = "gray90"),
+#     panel.background = element_blank()  
+#   )
 
 ggplot(solution_comparison, mapping = aes(x = Abbr, y = rel_diff, fill = Substance)) + 
   geom_bar(stat = "identity", position = "dodge") +
@@ -787,6 +701,19 @@ ggplot(solution_comparison, mapping = aes(x = Abbr, y = rel_diff, fill = Substan
     panel.background = element_blank()  
   )
 
+
+
+```
+
+And concentration.
+
+```{r comparison of concentration (solution_conc)}
+
+con_solution_comparison <- 
+  merge(main_solution_conc,test_solution_conc) |> 
+  mutate(diff = test_Conc.-main_Conc.) |> 
+  mutate(rel_diff = diff/main_Conc.)
+
 ggplot(con_solution_comparison, mapping = aes(x = Abbr, y = rel_diff, fill = Substance)) + 
   geom_bar(stat = "identity", position = "dodge") +
   labs(
@@ -800,15 +727,122 @@ ggplot(con_solution_comparison, mapping = aes(x = Abbr, y = rel_diff, fill = Sub
     panel.background = element_blank()  
   )
 
+```
 
+### Flows
+```{r}
+
+test_MassBalance$version <- "new"
+main_MassBalance$version <- "2025.04.0"
+
+MB_test_main <- rbind(test_MassBalance,main_MassBalance)
+
+
+
+ggplot(MB_test_main |> 
+         mutate(Trans_from = -1*Trans_from,
+                Removal_kg_s = -1*Removal_kg_s) |> 
+         pivot_longer(!c(Compartment,Substance,version),
+                      names_to = "Flow",
+                      values_to = "Mass flow (kg/s)") , 
+       aes(x = Compartment, y = `Mass flow (kg/s)`, fill = Flow)) +
+  geom_bar(stat = "identity", position = "stack") +
+  facet_wrap(~Substance*version) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5),
+    panel.grid.major.y = element_line(color = "grey80", size = 0.7),
+    panel.grid.minor.y = element_line(color = "grey90", size = 0.5)
+  ) +
+  scale_y_continuous(breaks = scales::extended_breaks(20))
+
+MB_test_main_wide <-
+  MB_test_main |> pivot_wider(names_from = version, values_from =  c(Trans_to,   Trans_from, Emission_kg_s, Removal_kg_s,Diff_Flows)) |> 
+  mutate(reldiff_from = (Trans_from_new-Trans_from_2025.04.0)/Trans_from_2025.04.0,
+         reldiff_to = (Trans_to_new-Trans_to_2025.04.0)/Trans_to_2025.04.0,
+         reldiff_removal = (Removal_kg_s_new-Removal_kg_s_2025.04.0)/Removal_kg_s_2025.04.0)
+
+ggplot(MB_test_main_wide |> 
+         pivot_longer(cols = c(reldiff_from, reldiff_to, reldiff_removal),
+                      names_to = "Flow type",
+                      values_to = "RelDiffFlow") |> 
+         select(Compartment, Substance, `Flow type`, RelDiffFlow), 
+       aes(x = Compartment, y = RelDiffFlow, fill = `Flow type`)) +
+  geom_bar(stat = "identity", position = "stack") +
+  facet_wrap(~Substance) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5),
+    panel.grid.major.y = element_line(color = "grey80", size = 0.7),
+    panel.grid.minor.y = element_line(color = "grey90", size = 0.5)
+  ) +
+  scale_y_continuous(breaks = scales::extended_breaks(20))
+
+
+# test_CompFlows$version <- "new"
+# main_CompFlows$version <- "2025.04.0"
+main_CompFlows <- main_CompFlows |> 
+  rename(`Flow_kg/s_main` = `Flow_kg/s`)
+test_CompFlows <- test_CompFlows |> 
+  rename(`Flow_kg/s_test` = `Flow_kg/s`)
+
+# sum(main_CompFlows$`Flow_kg/s_main`) - sum(test_CompFlows$`Flow_kg/s_test`)
+
+
+CompFlowsDiff <- 
+  merge(main_CompFlows, test_CompFlows) |> 
+  mutate(diff = `Flow_kg/s_test`-`Flow_kg/s_main`,
+         reldiff = (`Flow_kg/s_test`-`Flow_kg/s_main`)/abs(`Flow_kg/s_main`+`Flow_kg/s_test`)) |> 
+  filter(diff != 0,
+         `Flow_kg/s_main` > 0,
+         abs(reldiff)>0.001)
+
+
+
+ggplot(CompFlowsDiff, mapping = aes(x = To, y = From, color = reldiff)) + 
+  geom_point(aes(shape = Substance)) + 
+  labs(
+    title = "Relative difference between old and new flow's",
+    x = "To",  
+    y = "From",  
+    color = "Relative difference"  
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1), 
+    panel.grid.major = element_line(size = 0.2, color = "gray90"),
+    panel.background = element_blank()  
+  )
+
+table_for_display <- CompFlowsDiff |>
+  filter(abs(reldiff)>0.001) |>
+  mutate(diff = format(diff, scientific = TRUE, digits = 2),
+         # rel_diff = format(rel_diff, scientific = TRUE, digits = 2),
+         `Flow_kg/s_main` = format(`Flow_kg/s_main`, scientific = TRUE, digits = 2),
+         `Flow_kg/s_test` = format(`Flow_kg/s_test`, scientific = TRUE, digits = 2))
+
+knitr::kable(table_for_display)
 
 
 ```
 
-*From these figures and the table we can see that the flows between
-Continental sea and Moderate sea are slightly higher in the new
-implementation than in the old implementation.*
 
-*The flows from lake to river on Regional and Continental scale changed
-the most; relatively a fraction of +- -0.3. So the flow is lower in the
-new implementation than in the old implementation.*
+
+### Mass balance
+
+```{r Mass balance check}
+
+ggplot(rbind(main_MassBalance,test_MassBalance), 
+       aes(x = Compartment, y = Diff_Flows, fill = Substance)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~version) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5),
+    panel.grid.major.y = element_line(color = "grey80", size = 0.7),
+    panel.grid.minor.y = element_line(color = "grey90", size = 0.5)
+  ) +
+  scale_y_continuous(breaks = scales::extended_breaks(20))
+
+```
+
+From the mass balance test (flows into and out of a compartment should be in balance (sum = 0)) it can be seen that there are some much larger differences in the mass balance of the previous release "2025.04.0". This is mainly due to small tweaks in the solver by lowering stol variable in rootSolve::runsteady. In next release we might also change to rootSolve::steady. See SteadyStateSolver2.
