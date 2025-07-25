@@ -1,4 +1,4 @@
-﻿from,to,FlowName,Dimension,forWhich
+from,to,FlowName,Dimension,forWhich
 Arctic,Moderate,x_Advection_Air,Scale,air
 Arctic,Moderate,x_ToModerateWater,Scale,sea
 Arctic,Moderate,x_ToModerateWater,Scale,deepocean
@@ -10,8 +10,8 @@ Continental,Regional,x_ContSea2Reg,Scale,sea
 deepocean,sea,x_OceanMixing2Sea,SubCompart,Moderate
 deepocean,sea,x_OceanMixing2Sea,SubCompart,Tropic
 deepocean,sea,x_OceanMixing2Sea,SubCompart,Arctic
-lake,river,x_LakeOutflow,SubCompart,Regional
-lake,river,x_LakeOutflow,SubCompart,Continental
+lake,river,x_LakeOut,SubCompart,Regional
+lake,river,x_LakeOut,SubCompart,Continental
 Moderate,Arctic,x_Advection_Air,Scale,air
 Moderate,Arctic,x_FromModerate2ArctWater,Scale,sea
 Moderate,Arctic,x_FromModerate2ArctWater,Scale,deepocean
