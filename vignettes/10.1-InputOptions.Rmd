@@ -1,5 +1,5 @@
 ---
-title: "SBoo Solver output"
+title: "Solver input options"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
@@ -10,10 +10,150 @@ editor_options:
 
 The SteadyState and Dynamic Solver both are capable of using LHS, correlation for different distributions. Here the currently implemented distributions are briefly described.
 
-OVERALL WORK IN PROGRESS [documentation needs to be updated!].
+OVERALL WORK IN PROGRESS [documentation needs to be further updated!].
 
 ```{r Initialize World, message=FALSE, warning=FALSE, include=FALSE}
-source("baseScripts/initWorld_onlyMolec.R")
-
+source('baseScripts/initWorld_onlyPlastics.R')
 ```
 
+## Correlation
+
+### Load data
+
+```{R Load data, message = FALSE, warning=FALSE}
+# Load the Excel file containing example distributions for variables
+Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables_correlation.xlsx", sheet = "Variable_data")
+Correlations <- readxl::read_xlsx("data/Examples/Example_uncertain_variables_correlation.xlsx", sheet = "Correlation")
+
+# Define functions for each row based on the distribution type
+varFuns <- World$makeInvFuns(Example_vars)
+
+load("data/Examples/example_uncertain_data.RData")
+
+example_data <- example_data |>
+  select(To_Compartment, `2023`, RUN) |>
+  rename("Emis" = `2023`) |>
+  mutate(Abbr = case_when(
+    To_Compartment == "Agricultural soil (micro)" ~ "s2RS",
+    To_Compartment == "Residential soil (micro)" ~ "s3RS",
+    To_Compartment == "Surface water (micro)" ~ "w1RS"
+  )) |>
+  mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> # Convert kt/year to kg/s
+  select(-To_Compartment) 
+```
+
+### Explanation correlations
+
+Important for using the LHS correlations is providing a correlation
+table. This table specifies which variables are correlated, and how
+strong the correlation is. The table should have this structure:
+
+```{R Show correlation table, message = FALSE, warning=FALSE}
+knitr::kable(Correlations)
+```
+
+When entries in a column are NA, the same correlation is used for all
+possible values of that column. In this example, Species and Scale is
+NA. This means that the correlation is used for all species (Unbound,
+Solid, Aggregated, Attached) and all scales (Regional, Continental,
+Arctic, Moderate, Tropic).
+
+Another possibility is to give a correlation for a compartment instead
+of a subcompartment. The compartments are:
+
+-   Soil
+
+-   Water
+
+-   Sediment
+
+-   Soil_Sediment.
+
+If any of these compartments is chosen, the correlation is used for all
+corresponding subcompartments. For example, if Water is entered, the
+correlation is used for river, lake, sea and deepocean.
+
+| Compartment | SubCompartments |
+|------------------------------------|------------------------------------|
+| Soil | agriculturalsoil, naturalsoil, othersoil |
+| Water | river, lake, sea, deepocean |
+| Sediment | freshwatersediment, lakesediment, marinesediment |
+| Soil_Sediment | agriculturalsoil, naturalsoil, othersoil, freshwatersediment, lakesediment, marinesediment |
+
+: Compartments and corresponding subcompartments
+
+### Solve using correlations
+
+```{R Solve, message = FALSE, warning=FALSE}
+# Call the steady state solver
+World$NewSolver("SteadyStateSolver")
+
+# Solve 
+World$Solve(emissions = example_data, var_box_df = Example_vars, var_invFun = varFuns, nRUNs = length(unique(example_data$RUN)), correlations = Correlations)
+```
+
+### Plot the correlations
+
+The heatmap below shows that the correlation worked! The variables we
+specified in the correlation table are indeed strongly correlated to
+each other.
+
+```{R Plot, message = FALSE, warning=FALSE}
+# Plot correlation matrix to check
+library(corrplot)
+
+variable_values <- World$VariableValues() |>
+  mutate(varname = paste0(varName, "_", Scale, "_", SubCompart, "_", Species)) |>
+  select(varname, Waarde,RUNs) |>
+  pivot_wider(names_from = varname, values_from = Waarde)
+
+transformed_lhs <- as.matrix(variable_values)
+
+result_corr_matrix <- cor(transformed_lhs[,-1], 
+                          method = "pearson") # correlation matrix
+
+# Visualize Results
+
+# Full correlation matrix heatmap
+library(reshape2)
+library(ggplot2)
+
+melted_corr_matrix <- melt(result_corr_matrix)
+
+# Calculate and print the mean correlations 
+mean_correlations <- melted_corr_matrix |>
+  separate(
+    Var1, 
+    into = c("VarName1", "Scale1", "SubCompart1", "Species1"), 
+    sep = "_") |>
+    separate(
+    Var2, 
+    into = c("VarName2", "Scale2", "SubCompart2", "Species2"), 
+    sep = "_") |>
+  mutate(Compartment1 = case_when(
+    str_detect(SubCompart1, "soil") ~ "Soil",
+    str_detect(SubCompart1, "sediment") ~ "Sediment",
+    SubCompart1 %in% c("air", "cloudwater") ~ "Air", 
+    str_detect(SubCompart1, "NA") ~ "NA",
+    TRUE ~ "Water"
+  )) |>
+    mutate(Compartment2 = case_when(
+    str_detect(SubCompart2, "soil") ~ "Soil",
+    str_detect(SubCompart2, "sediment") ~ "Sediment",
+    SubCompart2 %in% c("air", "cloudwater") ~ "Air", 
+    str_detect(SubCompart2, "NA") ~ "NA",
+    TRUE ~ "Water"
+  )) |>
+  group_by(VarName1, VarName2, Compartment1, Compartment2, Species1, Species2) |>
+  summarise(Mean_correlation = mean(value))
+
+knitr::kable(mean_correlations)
+
+ggplot(melted_corr_matrix, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0,
+                       limit = c(-1, 1), name = "Correlation") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ggtitle("Correlation Matrix Heatmap")
+```
