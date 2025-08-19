@@ -70,7 +70,7 @@ penetration_depth_s,m,,CONSTANTS,penetration soil depth to consider
 pH,-,,SubcompartSheet,pH
 pKa,-,,Substances,Dissociation constant of (conjugated) acid 
 Porosity,-,,SubcompartSheet,Porosity
-Pvap25,-,,Substances,Vapor pressure at 25C
+Pvap25,Pa,,Substances,Vapor pressure at 25C
 Q.10,m.s-1,,CONSTANTS,rate increase factor per 10 oC
 RadCOL,nm,RadCOL/1000000000,SubcompartSheet,Radius of Natural Colloids
 RadCP,um,RadCP/1000000,SubcompartSheet,Radius of coarse Suspended Material and Filtration Particles
