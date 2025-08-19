@@ -106,10 +106,8 @@ vignettes/Development/Quality control/Publication/Combined_table_all.xlsx
 
 # ignore BatchFiles folder
 BatchFiles/
-vignettes/CaseStudies/LEON-T/HPC_commands.txt
+*HPC_commands.txt
 warnings.log
-BatchFilesRecipe/
-HPC_commands_recipe.txt
 
 SBooScripts.Rproj
 
@@ -121,8 +119,3 @@ data/scaledLHSsamples.RData
 data/Solution.RData
 data/World.RDS
 data/scaledLHSsamples.RDS
-
-Measurements_MP_surface_water.xlsx
-
-data/scaledLHSsamples.RDS
-data/World.RDS
