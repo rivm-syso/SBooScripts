@@ -1,9 +1,9 @@
 library(ncdf4)
 library(sf)
-print("Adjusting model for Rhine catchment...")
+message("Adjusting model for Rhine catchment...")
 
-"Afvoer: wordt niet gebruikt enkel voor validatie neerslag"
-data_nl = read_delim("vignettes/CaseStudies/PFAS Tjebbe/data/20250114_009.csv", delim = ";", escape_double = FALSE, trim_ws = TRUE, show_col_types = FALSE)
+message("Afvoer: wordt niet gebruikt enkel voor validatie neerslag")
+data_nl = read_delim("/rivm/biogrid/quikj/PFAS_A2/data/20250114_009.csv", delim = ";", escape_double = FALSE, trim_ws = TRUE, show_col_types = FALSE)
 #message("Meetpunten: ", sort(unique(data_nl$MEETPUNT_IDENTIFICATIE)))
 rijn <- data_nl %>%
   dplyr::select(MEETPUNT_IDENTIFICATIE,WAARNEMINGDATUM, "WAARNEMINGTIJD (MET/CET)", ALFANUMERIEKEWAARDE, EENHEID_CODE) %>%
@@ -25,7 +25,7 @@ message("Gemiddelde gemeten afvoer Rijn 2013-2023: ", rijn_last_10yr)
 
 "Neerslag: neerslag waardes berekenen ahv model data en basin shape file"
 #NC handling
-pre <- nc_open("vignettes/CaseStudies/PFAS Tjebbe/data/ERA5_monthly.nc")
+pre <- nc_open("/rivm/biogrid/quikj/PFAS_A2/data/ERA5_monthly.nc")
 lon <- ncvar_get(pre, "longitude")  
 lat <- ncvar_get(pre, "latitude")
 time <- ncvar_get(pre, "valid_time")
@@ -39,7 +39,7 @@ dim(precipitation.array)
 fillvalue <- ncatt_get(pre, "tp", "_FillValue")
 
 ##Shapefile van Rijn stroomgebied inladen
-shape <- st_read("vignettes/CaseStudies/PFAS Tjebbe/GIS/Rhine.shp")
+shape <- st_read("/rivm/biogrid/quikj/PFAS_A2/GIS/Rhine.shp")
 
 #Loopen door de tijdsdimensie van het NC bestand om een dataframe met neerslag te maken
 #df maken
@@ -85,7 +85,7 @@ rainrate_mod = mean(yearly_summary$TotalPrecipitationMean, na.rm=TRUE)
 area = st_area(shape)
 
 "Landfractions afgeleid van satelliet data geclipt op het stroomgebied"
-landfrac <- read_delim("vignettes/CaseStudies/PFAS Tjebbe/GIS/landuse.csv", delim=',', show_col_types = FALSE) %>%
+landfrac <- read_delim("/rivm/biogrid/quikj/PFAS_A2/GIS/landuse.csv", delim=',', show_col_types = FALSE) %>%
   filter(name == 'Rhine')
 
 "partition coefficients: work in progress"
@@ -97,7 +97,7 @@ landfrac <- read_delim("vignettes/CaseStudies/PFAS Tjebbe/GIS/landuse.csv", deli
 "Adjusting Model: aanpassingen aan het model maken"
 #Area
 "Nieuwe situatie: regional is NL stroomgebied, continental is EU deel stroomgebied"
-source("vignettes/CaseStudies/PFAS Tjebbe/Script/Area.R")
+source("vignettes/CaseStudies/PFAS_A2/Area.R")
 #script berekent area van catchments, dit moet nog een factor groter omdat er wordt gewerkt met fractionSea (0.5)
 area_rhine_nl <- area_rhine_nl * 1.00435597
 area_rhine_eu <- area_rhine_eu * 1.50000000
@@ -119,6 +119,9 @@ landFRAC <- data.frame(
              landfrac$agricultural, 0.0025, landfrac$naturalsoil-0.02097403, landfrac$othersoil, 0.0275),
   varName = "landFRAC"
 )
+
+landFRAC |> group_by(Scale) |> summarise(fracCheck = sum(Waarde))
+World$fetchData("landFRAC")
 World$mutateVars(landFRAC)
 World$UpdateDirty("landFRAC")
 
@@ -140,7 +143,7 @@ World$UpdateDirty("dischargeFRAC")
 
 
 #NEERSLAG
-World$fetchData("RAINrate")
+World$fetchDataUnits("RAINrate")
 Rainrate = data.frame(
   Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"),
   Waarde = c(250, rainrate_mod, 700, rainrate_mod, 1300),
