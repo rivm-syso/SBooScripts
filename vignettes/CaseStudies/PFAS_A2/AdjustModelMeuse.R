@@ -1,7 +1,7 @@
 print("Adjusting model for Meuse catchment...")
 
 #Afvoer: wordt niet gebruikt enkel voor validatie neerslag
-data_nl = read_delim("vignettes/CaseStudies/PFAS Tjebbe/data/20250114_009.csv", delim = ";", escape_double = FALSE, trim_ws = TRUE, show_col_types = FALSE)
+data_nl = read_delim("/rivm/biogrid/quikj/PFAS_A2/data/20250114_009.csv", delim = ";", escape_double = FALSE, trim_ws = TRUE, show_col_types = FALSE)
 #message("Meetpunten: ", sort(unique(data_nl$MEETPUNT_IDENTIFICATIE)))
 maas <- data_nl %>%
   dplyr::select(MEETPUNT_IDENTIFICATIE,WAARNEMINGDATUM, "WAARNEMINGTIJD (MET/CET)", ALFANUMERIEKEWAARDE, EENHEID_CODE) %>%
@@ -22,7 +22,7 @@ message("Gemiddelde gemeten afvoer Maas 2013-2023: ", maas_last_10yr)
 
 #Neerslag: neerslag waardes berekenen ahv model data en basin shape file
 #NC handling
-pre <- nc_open("vignettes/CaseStudies/PFAS Tjebbe/data/ERA5_monthly.nc")
+pre <- nc_open("/rivm/biogrid/quikj/PFAS_A2/data/ERA5_monthly.nc")
 lon <- ncvar_get(pre, "longitude")  
 lat <- ncvar_get(pre, "latitude")
 time <- ncvar_get(pre, "valid_time")
@@ -36,7 +36,7 @@ dim(precipitation.array)
 fillvalue <- ncatt_get(pre, "tp", "_FillValue")
 
 ##Shapefile van Rijn stroomgebied inladen
-shape <- st_read("vignettes/CaseStudies/PFAS Tjebbe/GIS/Meuse.shp")
+shape <- st_read("/rivm/biogrid/quikj/PFAS_A2/GIS/Meuse.shp")
 
 #Loopen door de tijdsdimensie van het NC bestand om een dataframe met neerslag te maken
 #df maken
@@ -82,7 +82,7 @@ rainrate_mod = mean(yearly_summary$TotalPrecipitationMean, na.rm=TRUE)
 area = st_area(shape)
 
 "Landfractions afgeleid van satelliet data geclipt op het stroomgebied"
-landfrac <- read_delim("vignettes/CaseStudies/PFAS Tjebbe/GIS/landuse.csv", delim=',', show_col_types = FALSE) %>%
+landfrac <- read_delim("/rivm/biogrid/quikj/PFAS_A2/GIS/landuse.csv", delim=',', show_col_types = FALSE) %>%
   filter(name == 'Meuse')
 
 "partition coefficients: work in progress"
@@ -93,7 +93,7 @@ landfrac <- read_delim("vignettes/CaseStudies/PFAS Tjebbe/GIS/landuse.csv", deli
 "-----------------------------------------------------------------------------------------------------------"
 "Adjusting Model: aanpassingen aan het model maken"
 "AREA"
-source("vignettes/CaseStudies/PFAS Tjebbe/Script/Area.R")
+source("vignettes/CaseStudies/PFAS_A2/Area.R")
 #script berekent area van catchments, dit moet nog een factor groter omdat er wordt gewerkt met fractionSea (0.5)
 area_meuse_nl <- area_meuse_nl * 1.00435597
 area_meuse_eu <- area_meuse_eu * 1.50000000
