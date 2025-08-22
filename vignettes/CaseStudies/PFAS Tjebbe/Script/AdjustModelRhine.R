@@ -110,6 +110,8 @@ World$mutateVars(TotalArea)
 World$UpdateDirty("TotalArea")
 
 #LANDFRAC
+#Landfractions bij elkaar zijn 0.99, 1% is water. In SB is het aandeel water net iets groter dit wordt hieronder verekent bij natural soil
+#Hierdoor blijft het totaal onder 1
 landFRAC <- data.frame(
   Scale = c("Continental", "Continental", "Continental", "Continental", "Continental",
             "Regional", "Regional", "Regional", "Regional", "Regional"),
@@ -151,8 +153,8 @@ World$fetchData("RAINrate")
 World$UpdateDirty("RAINrate")
 
 #RUNOFF
-#Rhine 70% rain - 30% Meltwater composition based on mean annual flow 
 #Runoff bekijken en aanpassen
+#default is 0.25, 0.30 zorgt voor realistische afvoer
 World$fetchData("FRACrun")
 FRACrun = data.frame(
   Waarde = 0.30,
@@ -164,15 +166,16 @@ World$UpdateDirty("FRACrun")
 
 
 "INFILTRATIE"
-World$fetchData("FRACinf")
-FRACinf = data.frame(
-  Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"),
-  Waarde = c(0.25, 0.25, 0.25, 0.25, 0.25),
-  varName = ("FRACinf")
-)
-World$mutateVars(FRACinf)
-World$fetchData("FRACinf")
-World$UpdateDirty("FRACinf")
+#Ooit aangepast en weer teruggezet, dus overbodig
+# World$fetchData("FRACinf")
+# FRACinf = data.frame(
+#   Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"),
+#   Waarde = c(0.25, 0.25, 0.25, 0.25, 0.25),
+#   varName = ("FRACinf")
+# )
+# World$mutateVars(FRACinf)
+# World$fetchData("FRACinf")
+# World$UpdateDirty("FRACinf")
 
 
 
