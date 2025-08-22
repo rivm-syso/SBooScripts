@@ -83,9 +83,9 @@ World$substance <- substance
 #Model aanpassen met AdjustModel{catchment}.R 
 catchment <- 'Rhine'
 if(catchment == "Rhine"){
-  source("vignettes/CaseStudies/PFAS Tjebbe/Script/AdjustModelRhine.R")
+  source("vignettes/CaseStudies/PFAS_A2/AdjustModelRhine.R")
 } else if (catchment == "Meuse") {
-  source("vignettes/CaseStudies/PFAS Tjebbe/Script/AdjustModelMeuse.R")
+  source("vignettes/CaseStudies/PFAS_A2/AdjustModelMeuse.R")
 }
 
 #Tijds instelling
@@ -219,6 +219,10 @@ World$Solve(emissions = emissions_simple)
 solution_tfa <- World$Masses()
 emission_tfa <- World$Emissions()
 concentration_tfa <- World$Concentration()
+
+World$PlotMassDistribution("Continental")
+World$PlotConcentration()
+
 ```
 
 ``` {r Plot staafdiagram}
