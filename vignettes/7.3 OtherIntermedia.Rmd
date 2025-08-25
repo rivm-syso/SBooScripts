@@ -71,7 +71,7 @@ test1$execute()
 
 ```
 
-#### Runoff
+#### Runoff Molecular
 
 Runoff is implemented in a similar way.
 Here the formula is: RunoffFlow / Kscompw \* CORRrunoff / Volume \* FracROWatComp.
@@ -83,6 +83,8 @@ FracROWatComp is now calculated based on the surface fraction (landFRAC) of w0 v
 This can or should be adjusted when more specific data is available on the land surface area contributing to the upstream (w0) versus downstream (w1) Runoff.
 
 ```{r message=FALSE, warning=FALSE}
+
+
 
 RunoffFlow
 World$fetchData("RunoffFlow")
@@ -103,6 +105,54 @@ test1 <- World$NewProcess("k_Runoff")
 
 test1$execute()
 
+```
+
+#### Runoff Particulate species
+
+For particulate species Runoff is not appliable for very large particles.
+These behave more like other particulates that make up the soil or ar at least intercepted by vegetation reducing the Runoff rate.
+For this reason a SizeRunoff is introduced above which Runoff is either set to 0 or to a value reduced by the VegInterceptFrac as defined in the IntrcptFrac variable.
+See example code below.
+SizeRunoff is set at the scale level, where currently the SizeRunoff is set at 100 micrometer for all scales.
+
+```{r}
+rm(list = ls())
+source("baseScripts/initWorld_onlyParticulate.R")
+
+RunoffFlow
+World$fetchData("RunoffFlow")
+FracROWatComp
+World$fetchData("FracROWatComp")
+
+World$fetchData("IntrcptFrac")
+World$fetchData("VegInterceptFrac")
+World$fetchData("SizeRunoff")
+World$fetchData("rad_species")
+World$fetchData("SizeRunoff")
+
+World$FromDataAndTo("k_Runoff")
+
+test1 <- World$NewProcess("k_Runoff")
+
+test1$execute()
+
+# if you want an Interceptation fraction  of 0.9 to be applied to all species above 100 nm
+World$fetchData("SizeRunoff")
+
+f_MutateHelper("VegInterceptFrac",
+               c(0.9,0.9,0.9))
+
+f_MutateHelper("SizeRunoff",
+               c(0.9,0.9,0.9))
+
+World$UpdateDirty()
+
+
+World$fetchData("IntrcptFrac")
+
+test1 <- World$NewProcess("k_Runoff")
+
+test1$execute()
 ```
 
 #### Volatilisation
