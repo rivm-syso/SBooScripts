@@ -88,6 +88,7 @@ SettlVelocitywater,m.s-1,,ScaleSheet,SETTLING VELOCITY suspended particles as fo
 Shape,-,,Substances,Shape of particle
 Shear,s-1,,ScaleSubCompartData,Shear rate
 Shortest_side,um,Shortest_side/1000000,Substances,Particle sizes
+SizeRunoff,um,SizeRunoff/1000000,ScaleSheet,The size above which Runoff is reduced with IntrcptFRACs
 Sol25,mg.L-1,Sol25/(1000),Substances,solubility of substance at 25C
 subFRACa,-,,ScaleSubCompartData,Fraction of air in a non-air subcompartment
 subFRACs,-,,ScaleSubCompartData,"Fraction solid in a non-soil, non sediment subcompartment"
@@ -103,5 +104,6 @@ Tm_default,K,,CONSTANTS,Default melting point
 TotalArea,m2,,ScaleSheet,"Area of the scale, including possibly nested scales"
 twet,day,twet*3600*24,ScaleSheet,Duration wet episode (6% of time in NL > 0.3mm rain)
 Udarcy,m.s-1,,SubcompartSheet,Darcy velocity of particle
+VegInterceptFrac,-,,SubCompartSheet,Fraction of particles intercepted by vegetation as estimated by Hahn et al. 2022
 VertDistance,m,,ScaleSubCompartData,depth or height of the subcompartment
 WINDspeed,m.s-1,,ScalesSheet,Average windspeed per scale
