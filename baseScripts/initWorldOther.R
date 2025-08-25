@@ -1,8 +1,4 @@
 
-
-InitiateWorld_other <- function(Temp_Folder=NULL, # make sure path ends in /
-                                substance = "1-aminoanthraquinone"){
-  
   library(tidyverse)
   library(ggdag) #for plotting DAG graphs
   library(R6)
@@ -43,7 +39,7 @@ InitiateWorld_other <- function(Temp_Folder=NULL, # make sure path ends in /
   
   ChemClass = World$fetchData("ChemClass")
   
-  if(ChemClass != "Particle") {
+  if(ChemClass != "particle") {
     World$filterStates <- list(SpeciesName = "Molecular")
     # To proceed with testing we set
     if(is.na(World$fetchData("kdis"))) {
@@ -66,7 +62,7 @@ InitiateWorld_other <- function(Temp_Folder=NULL, # make sure path ends in /
   #call the particulate processes 
   Processes4SpeciesTp <- read.csv("data/Processes4SpeciesTp.csv")
   
-  ifelse(ChemClass != "Particle",
+  ifelse(ChemClass != "particle",
          {
            ParProcesses <- Processes4SpeciesTp$Process[grepl("[a-z,A-Z]", Processes4SpeciesTp$Molecular)]
          },
@@ -83,8 +79,7 @@ InitiateWorld_other <- function(Temp_Folder=NULL, # make sure path ends in /
   #derive needed variables
   World$VarsFromprocesses()
   
-  if(ChemClass != "Particle") World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
+  if(ChemClass != "particle") World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
   
   World$UpdateKaas()
   
-}

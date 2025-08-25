@@ -128,7 +128,7 @@ World$fetchData("IntrcptFrac")
 World$fetchData("VegInterceptFrac")
 World$fetchData("SizeRunoff")
 World$fetchData("rad_species")
-World$fetchData("SizeRunoff")
+
 
 World$FromDataAndTo("k_Runoff")
 
@@ -137,16 +137,13 @@ test1 <- World$NewProcess("k_Runoff")
 test1$execute()
 
 # if you want an Interceptation fraction  of 0.9 to be applied to all species above 100 nm
-World$fetchData("SizeRunoff")
-
+World$fetchData("VegInterceptFrac")
 f_MutateHelper("VegInterceptFrac",
                c(0.9,0.9,0.9))
 
+World$fetchData("SizeRunoff")
 f_MutateHelper("SizeRunoff",
-               c(0.9,0.9,0.9))
-
-World$UpdateDirty()
-
+               c(0.1,0.1,0.1,0.1,0.1))
 
 World$fetchData("IntrcptFrac")
 
