@@ -44,15 +44,34 @@ if(ChemClass != "particle") {
   World$filterStates <- list(SpeciesName = "Molecular")
   # To proceed with testing we set
   if(is.na(World$fetchData("kdis"))) {
-    warning("kdis is missing, setting kdis = 0")
+    print("kdis is missing, setting kdis = 0")
     World$SetConst(kdis = 0)
   }
   
-  if (World$fetchData("ChemClass")==("")) {
+  if(World$fetchData("ChemClass")==("")) {
     warning("ChemClass is needed but missing, setting to neutral")
     World$SetConst(ChemClass = "neutral")
   }
   
+} else {
+  if(anyNA(World$fetchData("kdis"))) {
+    warning("kdis is missing, setting kdis = 0")
+    message("Plese set kdis in SubstanceCompartments.csv")
+    World$SetConst(kdis = 0)
+  }
+  if(anyNA(World$fetchData("kfrag"))) {
+    warning("kfrag is missing, setting kfrag = 0")
+    World$SetConst(kfrag = 0)
+  }
+  if(anyNA(World$fetchData("kdeag"))) {
+    warning("kdeag is missing, setting kdeag = 0")
+    World$SetConst(kdeag = 0)
+  }
+  if(anyNA(World$fetchData("kdeg"))) {
+    warning("kdeg is missing, setting kdeg = 1e-20")
+    message("Plese set kdeg in SubstanceCompartments.csv")
+    World$SetConst(kdeg = 1e-20)
+  }
 }
 
 World$SetConst(DragMethod = "Original")
