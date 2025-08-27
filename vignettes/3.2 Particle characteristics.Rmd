@@ -21,6 +21,8 @@ This inheritance is performed in the initialisation; if you look for rhoMatrix a
 #we initialize the test environment with a nano substance
 substance <- "nAg_10nm"
 substance <- "microplastic"
+substance <- "microplastic_sphere"
+substance <- "microplastic_cube"
 #script to initialize test environment, including faking a future 'library(sboo)'
 source("baseScripts/initWorld.R")
 World$fetchData("rhoMatrix")
@@ -49,6 +51,8 @@ Shapes implemented are:
 -   `Cylindric - circular` or `Fiber`
 
 -   `Cylindric - elliptic`
+
+NOTE: it is advised to use RadS only for using the model for nanomaterials!
 
 #### The density and radius of the nanomaterial
 
