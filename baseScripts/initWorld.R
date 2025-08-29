@@ -72,6 +72,14 @@ if(ChemClass != "particle") {
     message("Plese set kdeg in SubstanceCompartments.csv")
     World$SetConst(kdeg = 1e-20)
   }
+  if(anyNA(World$fetchData("alpha"))) {
+    warning("alpha is missing, setting alpha = 0.1")
+    message("Plese set alpha in SubstanceCompartments.csv")
+    World$SetConst(alpha = 0.1)
+  }
+  if(anyNA(World$fetchData("RadS")) && anyNA(World$fetchData("Shortest_side"))){
+    stop("ERROR: RadS or Shortest_side needed for running SimpleBox for particles")
+  }
 }
 
 World$SetConst(DragMethod = "Original")

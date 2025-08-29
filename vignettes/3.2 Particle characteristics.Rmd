@@ -25,6 +25,9 @@ substance <- "microplastic_sphere"
 substance <- "microplastic_cube"
 #script to initialize test environment, including faking a future 'library(sboo)'
 source("baseScripts/initWorld.R")
+# debugonce("k_Sedimentation")
+World$fetchData("SettlingVelocity")
+World$fetchData("rho_species")
 World$fetchData("rhoMatrix")
 ```
 
@@ -32,11 +35,13 @@ World$fetchData("rhoMatrix")
 
 The particle properties of the particle to be assessed can be defined as follows:
 
--   `RadS` (kept for backward compatability for now) and `Longest_side` input
+-   `RadS` (radius of solid sphere)
 
--   `Intermediate_side`
+-   `Shortest_side` for spheres can also replace RadS
 
--   `Shortest_side`
+-   `Intermediate_side`: represents the length of fibres or elipical shapes
+
+-   `Longest_side`: represents the height of a fiber or fragment
 
 These can be acompanied by the `Shape` for any particle that is not a sphere and needs to be described by the Intermediate and shortest side.
 
@@ -44,17 +49,25 @@ Shapes implemented are:
 
 -   `Sphere` or `Default`
 
+    -   Defined by RadS or Shortest_side
+
 -   `Ellipsoid`
+
+    -   Defined by `Shortest_side`, `Intermediate_side` and `Longest_side`
 
 -   `Cube` or `Box` or `Film`
 
+    -   Defined by `Shortest_side`, `Intermediate_side` and `Longest_side`
+
 -   `Cylindric - circular` or `Fiber`
+
+    -   Defined by `Shortest_side` and `Longest_side`
 
 -   `Cylindric - elliptic`
 
-NOTE: it is advised to use RadS only for using the model for nanomaterials!
+NOTE: it is advised at the moment to use RadS only for using the model for nanomaterials!
 
-#### The density and radius of the nanomaterial
+#### Density and size of the heteroaglomerate species
 
 Three different speciation types exist for particulates: Particle (Soild/S), Attached (Large/P) and Aggregated (Small/A).
 
