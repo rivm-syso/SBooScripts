@@ -108,7 +108,7 @@ substances <- substances |>
 
 ```{R Run SB and get advection ks for development, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 this_kaas <- data.frame()
-
+this_variables <- data.frame()
 for(substanceK in substances$Substance){
   # Get the substance type
   substance <- substanceK
@@ -118,6 +118,10 @@ for(substanceK in substances$Substance){
     # filter(process == "k_Runoff") |>
     mutate(Substance = substance)
   
+  # SetVel <- World$fetchData("SettlingVelocity") |> 
+    # mutate(Substance = substance)
+  # this_variables <- rbind(this_variables,SetVel)
+  # this_variables <- cross_join(SetVel)
   this_kaas <- rbind(this_kaas, kaas)
 }
 
@@ -175,15 +179,16 @@ kaas_comparison <- kaas_comparison |>
   mutate(rel_diff = diff/k_New)
 
 changed_kaas <- kaas_comparison |>
-  filter(diff != 0) |>
+ filter(diff != 0) |>
+    # filter(abs(rel_diff) > 0.001) |>
   mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
+changed_kaas
 ```
 
-As can be seen in the figures below, the new runoff rates for
-microplastics and TRWP are about
-`r round(abs(min(unique(changed_kaas$rel_diff))), 0)` times lower than
-in the previous version. For other substances k_Runoff remains
-unchanged.
+As can be seen in the figures below, the new rate constants for the substances,
+`r paste(substances$Substance)`, have a negligible difference of max
+`r max(abs(unique(changed_kaas$rel_diff)))*100` % difference to
+the previous version. The figures below also show this and therefor this verification is complete.
 
 ```{R Plot the differences between ks, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 all_diffs <- kaas_comparison |>
@@ -228,3 +233,4 @@ for(i in unique(all_diffs$Substance)){
   print(reldif_plot)
 }
 ```
+

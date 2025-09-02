@@ -103,7 +103,8 @@ World$fetchData("rad_species")
 An example of a process dependent on these characteristics is the Settling Velocity.
 The Settling Velocity is calculated through the choice of different drag methods of which the original does not include drag.
 
-[PM: more details on the drag methods and approach to calculate the Settling Velocity.
+[PM: more details on the drag methods and approach to calculate the Settling Velocity]
+
 Functions to cover:
 
 -   f_DragCoefficient

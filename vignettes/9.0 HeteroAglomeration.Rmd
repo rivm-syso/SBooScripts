@@ -15,8 +15,8 @@ knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct s
 ```
 
 ```{r message=FALSE, warning=FALSE}
-substance <- "Microplastic"
-source("baseScripts/initWorld_onlyParticulate.R")
+substance <- "microplastic"
+source("baseScripts/initWorld.R")
 
 ```
 
@@ -73,6 +73,8 @@ World$fetchData("rhoMatrix")
 World$fetchData("Matrix")
 World$fetchData("SpeciesName")
 
+World$fetchData("SettlingVelocity")
+
 # Calculate the radius of the heteroagglomerate
 CalcVariable <- World$NewCalcVariable("rad_species")
 World$CalcVar("rad_species")
@@ -90,7 +92,8 @@ World$CalcVar("FRACs")
 ```{r Calculate w.Heteroagglomeration, include=TRUE, warning=FALSE}
 World$FromDataAndTo("k_HeteroAgglomeration.wsd")
 testProc <- World$NewProcess("k_HeteroAgglomeration.wsd")
-testProc$execute()
+debugonce("k_HeteroAgglomeration.wsd")
+testProc$execute(debugAt = "Arctic")
 ```
 
 ### Heteroagglomeration in air
