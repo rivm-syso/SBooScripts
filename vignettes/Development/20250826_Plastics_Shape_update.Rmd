@@ -10,7 +10,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+
 source("baseScripts/initWorld.R")
 ```
 
@@ -25,26 +25,33 @@ method.
 
 The updated functions are:
 
--   f_SetVelWater
+-   f_SetVelWater and v_SettlingVelocity
 
--   f_Grav.R
+    -   For which several functions are introduced or changed to cope
+        with shape:
+
+    -   R/f_DragCoefficient.R
+
+    -   R/f_SetVelSolver.R
+
+    -   R/f_PerimeterParticle.R
+
+    -   R/f_SurfaceAreaParticle.R
+
+    -   R/f_Vol.R
+
+    -   R/v_rad_species.R
+
+    -   R/v_rho_species.R
+
+-   f_Grav.R and R/k_HeteroAgglomeration.wsd.R
 
     -   In future shape could also be included for SPM, now still sphere
         assumed representative
 
--   k_Resuspension
+-   k_Resuspension due to update of f_SetVelWater
 
-Old function:
-
-$(Runoff * f_CORRsoil(VertDistance, relevant_depth_s, penetration_depth_s)) / Volume * to.FracROWatComp$
-
-New function:
-
-$(Runoff * f_CORRsoil(VertDistance, relevant_depth_s, penetration_depth_s)) / Volume * to.FracROWatComp * (1-IntrcptFrac)$
-
-# Change in k values for runoff flows
-
-dddppp
+-   R/k_Sedimentation.R due to update of f_SetVelWater
 
 ```{R Specify directories, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 library(tidyverse)
@@ -58,13 +65,13 @@ library(tidyverse)
 
 InstallSBoo(Release_SBoo = NA, # tag for release use NA for branch
             Release_SBooScripts = NA, # tag for release use NA for branch
-            devBranch_SBoo = "development",
-            devBranch_SBooScripts = "development",
+            devBranch_SBoo = "Runoff_update_clean",
+            devBranch_SBooScripts = "Runoff_MPinterception",
             Temp_Folder = NULL # an existing folder where SimpleBox is to be installed
 )
 
 # Define branches to test
-Comparison <- c("development", "ThisOne")
+Comparison <- c("Previous", "ThisOne")
 
 # Specify file paths for saving results
 result_files <- paste0("results_", Comparison, ".rds")
@@ -80,7 +87,7 @@ particles, we will test for these substances. To be sure nothing changed
 for the other substances, we will also test one other substance.
 
 ```{R Specify substance, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-substance_names <- c("microplastic", "TRWP", "1-aminoanthraquinone") 
+substance_names <- c("microplastic", "TRWP", "1-aminoanthraquinone","nAg_10nm") 
 substances <- read.csv("data/Substances.csv")
 substances <- substances |>
   filter(Substance %in% substance_names)
@@ -108,7 +115,7 @@ for(substanceK in substances$Substance){
       source("baseScripts/initWorld.R")
 
   kaas <- World$kaas |>
-    filter(process == "k_Runoff") |>
+    # filter(process == "k_Runoff") |>
     mutate(Substance = substance)
   
   this_kaas <- rbind(this_kaas, kaas)
@@ -148,7 +155,7 @@ substance = substanceK
 source("baseScripts/initWorldOther.R")
 
   kaas <- World$kaas |>
-    filter(process == "k_Runoff") |>
+    # filter(process == "k_Runoff") |>
     mutate(Substance = substance)
   
   other_kaas <- rbind(other_kaas, kaas)
@@ -190,7 +197,7 @@ for(i in unique(all_diffs$Substance)){
   absdif_plot <- ggplot(diffs_substance, mapping = aes(x = toname, y = fromname, color = diff)) + 
     geom_point() + 
     labs(
-      title = "Difference between old and new runoff k's",
+      title = "Difference between old and new k's",
       subtitle = i,
       x = "To",  
       y = "From",  
@@ -207,7 +214,7 @@ for(i in unique(all_diffs$Substance)){
   reldif_plot <- ggplot(diffs_substance, mapping = aes(x = toname, y = fromname, color = rel_diff)) + 
     geom_point() + 
     labs(
-      title = "Relative difference between old and new runoff k's",
+      title = "Relative difference between old and new k's",
       subtitle = i,
       x = "To",  
       y = "From",  
