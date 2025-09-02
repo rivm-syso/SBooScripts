@@ -105,7 +105,7 @@ for(substanceK in substances$Substance){
       source("baseScripts/initWorld.R")
 
   kaas <- World$kaas |>
-    filter(process == "k_Runoff") |>
+    # filter(process == "k_Runoff") |>
     mutate(Substance = substance)
   
   this_kaas <- rbind(this_kaas, kaas)
@@ -145,7 +145,7 @@ substance = substanceK
 source("baseScripts/initWorldOther.R")
 
   kaas <- World$kaas |>
-    filter(process == "k_Runoff") |>
+    # filter(process == "k_Runoff") |>
     mutate(Substance = substance)
   
   other_kaas <- rbind(other_kaas, kaas)
