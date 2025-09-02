@@ -1,5 +1,5 @@
 ---
-author: "Jaap Slootweg, Joris Quik, Valerie de Rijk "
+author: "Joris Quik, Valerie de Rijk, Nadim Saadi"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
@@ -8,16 +8,7 @@ editor_options:
 
 ### 3.2 Particle Properties
 
-Properties related to the substance directly are all contained in csv files that serve as the input data for SimpleBox.
-These can be accessed after initializing the SimpleBox world.
-Each property is accessed by a key, which is dependent on the amount of detail that is required for the property of the substance (e.g. a property that is dependent on both the SubCompartment and the Scale would need both of these keys to be accessesed).
-First, let's
-
-The key for the density of the matrix is subcompartment.
-But it is "inherited" from the datafile "matrix.csv".
-This inheritance is performed in the initialisation; if you look for rhoMatrix as a parameter for defining function use World\$fetchData()
-
-```{r initiate, echo=TRUE, message=FALSE, warning=TRUE}
+```{r initiate, echo=TRUE, message=FALSE, warning=FALSE}
 #we initialize the test environment with a nano substance
 substance <- "nAg_10nm"
 substance <- "microplastic"
@@ -26,30 +17,26 @@ substance <- "microplastic_cube"
 #script to initialize test environment, including faking a future 'library(sboo)'
 source("baseScripts/initWorld.R")
 # debugonce("k_Sedimentation")
-World$fetchData("SettlingVelocity")
-World$fetchData("rho_species")
-World$fetchData("rhoMatrix")
+
+
+
 ```
 
 #### Size and Shape
 
-The particle properties of the particle to be assessed can be defined as follows:
+The particle properties of the particle to be assessed can be defined by either:
 
--   `RadS` (radius of solid sphere)
+-   `RadS` (radius of solid sphere) or
 
--   `Shortest_side` for spheres can also replace RadS
+-   `Shortest_side`, `Intermediate_side` or `Longest_side`.
 
--   `Intermediate_side`: represents the length of fibres or elipical shapes
-
--   `Longest_side`: represents the height of a fiber or fragment
-
-These can be acompanied by the `Shape` for any particle that is not a sphere and needs to be described by the Intermediate and shortest side.
+These can be accompanied by the `Shape` for any particle that is not a sphere and needs to be described by additional size characteristics: the Intermediate and/or longest side.
 
 Shapes implemented are:
 
 -   `Sphere` or `Default`
 
-    -   Defined by RadS or Shortest_side
+    -   Defined by `RadS` (radius) or `Shortest_side` (diameter)
 
 -   `Ellipsoid`
 
@@ -61,51 +48,72 @@ Shapes implemented are:
 
 -   `Cylindric - circular` or `Fiber`
 
-    -   Defined by `Shortest_side` and `Longest_side`
+    -   Defined by `Shortest_side (diameter)` and `Longest_side`
 
 -   `Cylindric - elliptic`
 
-NOTE: it is advised at the moment to use RadS only for using the model for nanomaterials!
+    -   Defined by `Shortest_side` (minor diameter), `Intermediate_side` (major diameter) and `Longest_side` (height).
 
-#### Density and size of the heteroaglomerate species
+These shapes and sizes are used for calculating:
 
-Three different speciation types exist for particulates: Particle (Soild/S), Attached (Large/P) and Aggregated (Small/A).
+-   Volume (`fVol`)
 
-These are solely dependent on the species.
-The density and radius of the nano material itself is given by the substance properties RhoS and RadS.
+-   Surface Area (`f_SurfaceAreaParticle`)
+
+-   Perimeter (`f_PerimeterParticle`)
+
+#### Species size and density
+
+Three different particle species exist: The nanoparticle or microplastic particle (Soild/S), Aggregated to natural colloids (Small/A) and Attached to coarse natural particulates (Large/P).
+The size and density of these heteroagglomerates (Small/A or Large/P) is dependant on both the size and density of the Solid/S species as well as those of the other particle.
+
+The density and radius of the nanoparticle/microplastic itself is given by the substance properties RhoS and RadS/sides (see above).
 For the aggregated and the properties of the "natural part" of the species; *CoarseParticulate* for the Attached species and *NaturalColloid* for the Aggregated species.
-Those properties are RhoCP and RhoNC for density and RadCP and RadNC for their radius.
+Those properties are RhoCP and RhoCOL for density and RadCP and RadCOL for their radius.
 An overview of excel origins:
 
-```{r}
-read_csv("data/Substances.csv") |> filter(ChemClass == "Particle") # data cleanup needed - not all correct!
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+read_csv("data/Substances.csv") |> filter(ChemClass == "particle") # data cleanup needed - not all correct!
+World$fetchDataUnits("RhoCP")
+World$fetchDataUnits("RhoCOL")
+World$fetchDataUnits("RadCP") |> mutate(RadCP = RadCP*1e6) # input unit (see units.csv)
+World$fetchDataUnits("RadCOL") |> mutate(RadCOL = RadCOL*1e9) # input unit (see units.csv)
 ```
 
-From these, we can derive the values for rho_species.
-As can
+From these, we can derive the values for rho_species:
 
-```{r}
-rp <- World$NewCalcVariable("rho_species")
-rho_species
-World$CalcVar("rho_species")
+```{r echo=FALSE, paged.print=TRUE}
+World$fetchData("rho_species")
+# rp <- World$NewCalcVariable("rho_species")
+# rho_species
+# World$CalcVar("rho_species")
 ```
 
-And the radii
+And the radii:
 
-```{r}
-rad_species
-rs <- World$NewCalcVariable("rad_species")
-World$CalcVar("rad_species")
+```{r echo=FALSE, paged.print=TRUE}
+World$fetchData("rad_species")
+# rs <- World$NewCalcVariable("rad_species")
+# World$CalcVar("rad_species")
 
 ```
 
-#### settling velocity
+#### Settling velocity
 
 An example of a process dependent on these characteristics is the Settling Velocity.
-The Settling Velocity is calculated through the choice of three methods, of which Stokes is the Default.
+The Settling Velocity is calculated through the choice of different drag methods of which the original does not include drag.
+
+[PM: more details on the drag methods and approach to calculate the Settling Velocity.
+Functions to cover:
+
+-   f_DragCoefficient
+
+-   f_SetVelSolver
+
+-   v_SettlingVelocity
 
 ```{r}
-
-World$NewCalcVariable("SettlingVelocity")
-World$CalcVar("SettlingVelocity")
+World$fetchDataUnits("SettlingVelocity")
+# World$NewCalcVariable("SettlingVelocity")
+# World$CalcVar("SettlingVelocity")
 ```
