@@ -1,8 +1,17 @@
+library(maps)
+library(viridis)
+#sum_raster komt uit EmissionModel, en is de som van 70 jaar en verschillende variabelen waarin PFOA zit.
 
-r <- raster(t(var_data.slice), xmn=min(lon), xmx=max(lon), ymn=min(lat), ymx=max(lat), crs=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs+ towgs84=0,0,0"))
+r <- raster(t(sum_raster), xmn=min(lon), xmx=max(lon), ymn=min(lat), ymx=max(lat), crs=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs+ towgs84=0,0,0"))
 mask <- mask(r, Rhine)
 r <- flip(r, direction='y')
-plot(mask)
+r_clipped <- r
+r_clipped[r_clipped[] > 100] <- 100
+plot(r_clipped,
+     col = viridis(100),
+     bg = "white",
+     zlim = c(1,100))
+map('world', add=TRUE)
 
 #Plotting a total emission image
 values_melt <- melt(values_slice)
