@@ -185,7 +185,7 @@ microplastics and TRWP are about
 in the previous version. For other substances k_Runoff remains
 unchanged.
 
-```{R Plot the differences between ks, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+```{R Plot the differences between ks, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
 all_diffs <- kaas_comparison |>
   mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
   mutate(toname = paste0(toSubCompart, "_", toScale))
@@ -233,7 +233,7 @@ Further analysis
 
 Use of Runoff with 200 micrometer sized microplastics
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 
 this_kaas <- data.frame()

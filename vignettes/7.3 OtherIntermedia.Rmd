@@ -116,7 +116,7 @@ See example code below.
 `SizeRunoff` is set at the scale level, where currently the `SizeRunoff` is set at 100 micrometer for all scales.
 This will particularly influence the runoff of microplastics, as the primary particle can already have a diameter larger than 100 micrometers, so this size cutoff for Runoff can affect all species in such a case, where for nanomaterials (\< 100 nm) only the largest species is affected.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 rm(list = ls())
 source("baseScripts/initWorld_onlyParticulate.R")
 
