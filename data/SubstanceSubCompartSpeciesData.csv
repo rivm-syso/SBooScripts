@@ -178,6 +178,204 @@ alpha,sea,Small,nC60_10nm,1,AtefSA.w2,NA
 alpha,sea,Small,nTiO2_10nm,1,NA,NA
 alpha,sea,Small,nZnO,1,NA,NA
 alpha,sea,Small,TRWP,0.01,NA,NA
+kdeag,agriculturalsoil,Large,Chitosan,0,NA,s-1
+kdeag,agriculturalsoil,Large,GO-Chitosan,0,NA,s-1
+kdeag,agriculturalsoil,Large,Graphene Oxide,0,NA,s-1
+kdeag,agriculturalsoil,Large,microplastic,0,NA,s-1
+kdeag,agriculturalsoil,Large,nAg_10nm,0,NA,s-1
+kdeag,agriculturalsoil,Large,nC60_10nm,0,NA,s-1
+kdeag,agriculturalsoil,Large,nTiO2_10nm,0,NA,s-1
+kdeag,agriculturalsoil,Large,nZnO,0,NA,s-1
+kdeag,agriculturalsoil,Large,TRWP,2.7e-8,NA,s-1
+kdeag,agriculturalsoil,Small,Chitosan,0,NA,s-1
+kdeag,agriculturalsoil,Small,GO-Chitosan,0,NA,s-1
+kdeag,agriculturalsoil,Small,Graphene Oxide,0,NA,s-1
+kdeag,agriculturalsoil,Small,microplastic,0,NA,s-1
+kdeag,agriculturalsoil,Small,nAg_10nm,0,NA,s-1
+kdeag,agriculturalsoil,Small,nC60_10nm,0,NA,s-1
+kdeag,agriculturalsoil,Small,nTiO2_10nm,0,NA,s-1
+kdeag,agriculturalsoil,Small,nZnO,0,NA,s-1
+kdeag,agriculturalsoil,Small,TRWP,2.7e-8,NA,s-1
+kdeag,air,Large,Chitosan,0,NA,s-1
+kdeag,air,Large,GO-Chitosan,0,NA,s-1
+kdeag,air,Large,Graphene Oxide,0,NA,s-1
+kdeag,air,Large,microplastic,0,NA,s-1
+kdeag,air,Large,nAg_10nm,0,NA,s-1
+kdeag,air,Large,nC60_10nm,0,NA,s-1
+kdeag,air,Large,nTiO2_10nm,0,NA,s-1
+kdeag,air,Large,nZnO,0,NA,s-1
+kdeag,air,Large,TRWP,0,NA,s-1
+kdeag,air,Small,Chitosan,0,NA,s-1
+kdeag,air,Small,GO-Chitosan,0,NA,s-1
+kdeag,air,Small,Graphene Oxide,0,NA,s-1
+kdeag,air,Small,microplastic,0,NA,s-1
+kdeag,air,Small,nAg_10nm,0,NA,s-1
+kdeag,air,Small,nC60_10nm,0,NA,s-1
+kdeag,air,Small,nTiO2_10nm,0,NA,s-1
+kdeag,air,Small,nZnO,0,NA,s-1
+kdeag,air,Small,TRWP,0,NA,s-1
+kdeag,deepocean,Large,Chitosan,0,NA,s-1
+kdeag,deepocean,Large,GO-Chitosan,0,NA,s-1
+kdeag,deepocean,Large,Graphene Oxide,0,NA,s-1
+kdeag,deepocean,Large,microplastic,0,NA,s-1
+kdeag,deepocean,Large,nAg_10nm,0,NA,s-1
+kdeag,deepocean,Large,nC60_10nm,0,NA,s-1
+kdeag,deepocean,Large,nTiO2_10nm,0,NA,s-1
+kdeag,deepocean,Large,nZnO,0,NA,s-1
+kdeag,deepocean,Large,TRWP,2.7e-8,NA,s-1
+kdeag,deepocean,Small,Chitosan,0,NA,s-1
+kdeag,deepocean,Small,GO-Chitosan,0,NA,s-1
+kdeag,deepocean,Small,Graphene Oxide,0,NA,s-1
+kdeag,deepocean,Small,microplastic,0,NA,s-1
+kdeag,deepocean,Small,nAg_10nm,0,NA,s-1
+kdeag,deepocean,Small,nC60_10nm,0,NA,s-1
+kdeag,deepocean,Small,nTiO2_10nm,0,NA,s-1
+kdeag,deepocean,Small,nZnO,0,NA,s-1
+kdeag,deepocean,Small,TRWP,2.7e-8,NA,s-1
+kdeag,freshwatersediment,Large,Chitosan,0,NA,s-1
+kdeag,freshwatersediment,Large,GO-Chitosan,0,NA,s-1
+kdeag,freshwatersediment,Large,Graphene Oxide,0,NA,s-1
+kdeag,freshwatersediment,Large,microplastic,0,NA,s-1
+kdeag,freshwatersediment,Large,nAg_10nm,0,NA,s-1
+kdeag,freshwatersediment,Large,nC60_10nm,0,NA,s-1
+kdeag,freshwatersediment,Large,nTiO2_10nm,0,NA,s-1
+kdeag,freshwatersediment,Large,nZnO,0,NA,s-1
+kdeag,freshwatersediment,Large,TRWP,2.7e-8,NA,s-1
+kdeag,freshwatersediment,Small,Chitosan,0,NA,s-1
+kdeag,freshwatersediment,Small,GO-Chitosan,0,NA,s-1
+kdeag,freshwatersediment,Small,Graphene Oxide,0,NA,s-1
+kdeag,freshwatersediment,Small,microplastic,0,NA,s-1
+kdeag,freshwatersediment,Small,nAg_10nm,0,NA,s-1
+kdeag,freshwatersediment,Small,nC60_10nm,0,NA,s-1
+kdeag,freshwatersediment,Small,nTiO2_10nm,0,NA,s-1
+kdeag,freshwatersediment,Small,nZnO,0,NA,s-1
+kdeag,freshwatersediment,Small,TRWP,2.7e-8,NA,s-1
+kdeag,lake,Large,Chitosan,0,NA,s-1
+kdeag,lake,Large,GO-Chitosan,0,NA,s-1
+kdeag,lake,Large,Graphene Oxide,0,NA,s-1
+kdeag,lake,Large,microplastic,0,NA,s-1
+kdeag,lake,Large,nAg_10nm,0,NA,s-1
+kdeag,lake,Large,nC60_10nm,0,NA,s-1
+kdeag,lake,Large,nTiO2_10nm,0,NA,s-1
+kdeag,lake,Large,nZnO,0,NA,s-1
+kdeag,lake,Large,TRWP,2.7e-8,NA,s-1
+kdeag,lake,Small,Chitosan,0,NA,s-1
+kdeag,lake,Small,GO-Chitosan,0,NA,s-1
+kdeag,lake,Small,Graphene Oxide,0,NA,s-1
+kdeag,lake,Small,microplastic,0,NA,s-1
+kdeag,lake,Small,nAg_10nm,0,NA,s-1
+kdeag,lake,Small,nC60_10nm,0,NA,s-1
+kdeag,lake,Small,nTiO2_10nm,0,NA,s-1
+kdeag,lake,Small,nZnO,0,NA,s-1
+kdeag,lake,Small,TRWP,2.7e-8,NA,s-1
+kdeag,lakesediment,Large,Chitosan,0,NA,s-1
+kdeag,lakesediment,Large,GO-Chitosan,0,NA,s-1
+kdeag,lakesediment,Large,Graphene Oxide,0,NA,s-1
+kdeag,lakesediment,Large,microplastic,0,NA,s-1
+kdeag,lakesediment,Large,nAg_10nm,0,NA,s-1
+kdeag,lakesediment,Large,nC60_10nm,0,NA,s-1
+kdeag,lakesediment,Large,nTiO2_10nm,0,NA,s-1
+kdeag,lakesediment,Large,nZnO,0,NA,s-1
+kdeag,lakesediment,Large,TRWP,2.7e-8,NA,s-1
+kdeag,lakesediment,Small,Chitosan,0,NA,s-1
+kdeag,lakesediment,Small,GO-Chitosan,0,NA,s-1
+kdeag,lakesediment,Small,Graphene Oxide,0,NA,s-1
+kdeag,lakesediment,Small,microplastic,0,NA,s-1
+kdeag,lakesediment,Small,nAg_10nm,0,NA,s-1
+kdeag,lakesediment,Small,nC60_10nm,0,NA,s-1
+kdeag,lakesediment,Small,nTiO2_10nm,0,NA,s-1
+kdeag,lakesediment,Small,nZnO,0,NA,s-1
+kdeag,lakesediment,Small,TRWP,2.7e-8,NA,s-1
+kdeag,marinesediment,Large,Chitosan,0,NA,s-1
+kdeag,marinesediment,Large,GO-Chitosan,0,NA,s-1
+kdeag,marinesediment,Large,Graphene Oxide,0,NA,s-1
+kdeag,marinesediment,Large,microplastic,0,NA,s-1
+kdeag,marinesediment,Large,nAg_10nm,0,NA,s-1
+kdeag,marinesediment,Large,nC60_10nm,0,NA,s-1
+kdeag,marinesediment,Large,nTiO2_10nm,0,NA,s-1
+kdeag,marinesediment,Large,nZnO,0,NA,s-1
+kdeag,marinesediment,Large,TRWP,2.7e-8,NA,s-1
+kdeag,marinesediment,Small,Chitosan,0,NA,s-1
+kdeag,marinesediment,Small,GO-Chitosan,0,NA,s-1
+kdeag,marinesediment,Small,Graphene Oxide,0,NA,s-1
+kdeag,marinesediment,Small,microplastic,0,NA,s-1
+kdeag,marinesediment,Small,nAg_10nm,0,NA,s-1
+kdeag,marinesediment,Small,nC60_10nm,0,NA,s-1
+kdeag,marinesediment,Small,nTiO2_10nm,0,NA,s-1
+kdeag,marinesediment,Small,nZnO,0,NA,s-1
+kdeag,marinesediment,Small,TRWP,2.7e-8,NA,s-1
+kdeag,naturalsoil,Large,Chitosan,0,NA,s-1
+kdeag,naturalsoil,Large,GO-Chitosan,0,NA,s-1
+kdeag,naturalsoil,Large,Graphene Oxide,0,NA,s-1
+kdeag,naturalsoil,Large,microplastic,0,NA,s-1
+kdeag,naturalsoil,Large,nAg_10nm,0,NA,s-1
+kdeag,naturalsoil,Large,nC60_10nm,0,NA,s-1
+kdeag,naturalsoil,Large,nTiO2_10nm,0,NA,s-1
+kdeag,naturalsoil,Large,nZnO,0,NA,s-1
+kdeag,naturalsoil,Large,TRWP,2.7e-8,NA,s-1
+kdeag,naturalsoil,Small,Chitosan,0,NA,s-1
+kdeag,naturalsoil,Small,GO-Chitosan,0,NA,s-1
+kdeag,naturalsoil,Small,Graphene Oxide,0,NA,s-1
+kdeag,naturalsoil,Small,microplastic,0,NA,s-1
+kdeag,naturalsoil,Small,nAg_10nm,0,NA,s-1
+kdeag,naturalsoil,Small,nC60_10nm,0,NA,s-1
+kdeag,naturalsoil,Small,nTiO2_10nm,0,NA,s-1
+kdeag,naturalsoil,Small,nZnO,0,NA,s-1
+kdeag,naturalsoil,Small,TRWP,2.7e-8,NA,s-1
+kdeag,othersoil,Large,Chitosan,0,NA,s-1
+kdeag,othersoil,Large,GO-Chitosan,0,NA,s-1
+kdeag,othersoil,Large,Graphene Oxide,0,NA,s-1
+kdeag,othersoil,Large,microplastic,0,NA,s-1
+kdeag,othersoil,Large,nAg_10nm,0,NA,s-1
+kdeag,othersoil,Large,nC60_10nm,0,NA,s-1
+kdeag,othersoil,Large,nTiO2_10nm,0,NA,s-1
+kdeag,othersoil,Large,nZnO,0,NA,s-1
+kdeag,othersoil,Large,TRWP,2.7e-8,NA,s-1
+kdeag,othersoil,Small,Chitosan,0,NA,s-1
+kdeag,othersoil,Small,GO-Chitosan,0,NA,s-1
+kdeag,othersoil,Small,Graphene Oxide,0,NA,s-1
+kdeag,othersoil,Small,microplastic,0,NA,s-1
+kdeag,othersoil,Small,nAg_10nm,0,NA,s-1
+kdeag,othersoil,Small,nC60_10nm,0,NA,s-1
+kdeag,othersoil,Small,nTiO2_10nm,0,NA,s-1
+kdeag,othersoil,Small,nZnO,0,NA,s-1
+kdeag,othersoil,Small,TRWP,2.7e-8,NA,s-1
+kdeag,river,Large,Chitosan,0,NA,s-1
+kdeag,river,Large,GO-Chitosan,0,NA,s-1
+kdeag,river,Large,Graphene Oxide,0,NA,s-1
+kdeag,river,Large,microplastic,0,NA,s-1
+kdeag,river,Large,nAg_10nm,0,NA,s-1
+kdeag,river,Large,nC60_10nm,0,NA,s-1
+kdeag,river,Large,nTiO2_10nm,0,NA,s-1
+kdeag,river,Large,nZnO,0,NA,s-1
+kdeag,river,Large,TRWP,2.7e-8,NA,s-1
+kdeag,river,Small,Chitosan,0,NA,s-1
+kdeag,river,Small,GO-Chitosan,0,NA,s-1
+kdeag,river,Small,Graphene Oxide,0,NA,s-1
+kdeag,river,Small,microplastic,0,NA,s-1
+kdeag,river,Small,nAg_10nm,0,NA,s-1
+kdeag,river,Small,nC60_10nm,0,NA,s-1
+kdeag,river,Small,nTiO2_10nm,0,NA,s-1
+kdeag,river,Small,nZnO,0,NA,s-1
+kdeag,river,Small,TRWP,2.7e-8,NA,s-1
+kdeag,sea,Large,Chitosan,0,NA,s-1
+kdeag,sea,Large,GO-Chitosan,0,NA,s-1
+kdeag,sea,Large,Graphene Oxide,0,NA,s-1
+kdeag,sea,Large,microplastic,0,NA,s-1
+kdeag,sea,Large,nAg_10nm,0,NA,s-1
+kdeag,sea,Large,nC60_10nm,0,NA,s-1
+kdeag,sea,Large,nTiO2_10nm,0,NA,s-1
+kdeag,sea,Large,nZnO,0,NA,s-1
+kdeag,sea,Large,TRWP,2.7e-8,NA,s-1
+kdeag,sea,Small,Chitosan,0,NA,s-1
+kdeag,sea,Small,GO-Chitosan,0,NA,s-1
+kdeag,sea,Small,Graphene Oxide,0,NA,s-1
+kdeag,sea,Small,microplastic,0,NA,s-1
+kdeag,sea,Small,nAg_10nm,0,NA,s-1
+kdeag,sea,Small,nC60_10nm,0,NA,s-1
+kdeag,sea,Small,nTiO2_10nm,0,NA,s-1
+kdeag,sea,Small,nZnO,0,NA,s-1
+kdeag,sea,Small,TRWP,2.7e-8,NA,s-1
 kdeg,agriculturalsoil,Large,microplastic,3e-11,NA,s-1
 kdeg,agriculturalsoil,Large,TRWP,3e-11,NA,s-1
 kdeg,agriculturalsoil,Small,microplastic,3e-11,NA,s-1
@@ -424,113 +622,300 @@ kdis,sea,Solid,nC60_10nm,0,NA,s-1
 kdis,sea,Solid,nTiO2_10nm,1e-13,kdis.w2S.w2D,s-1
 kdis,sea,Solid,nZnO,1.65e-6,NA,s-1
 kdis,sea,Solid,TRWP,0,NA,s-1
+kfrag,agriculturalsoil,Large,Chitosan,0,NA,s-1
+kfrag,agriculturalsoil,Large,GO-Chitosan,0,NA,s-1
+kfrag,agriculturalsoil,Large,Graphene Oxide,0,NA,s-1
 kfrag,agriculturalsoil,Large,microplastic,2.7e-8,NA,s-1
+kfrag,agriculturalsoil,Large,nAg_10nm,0,NA,s-1
+kfrag,agriculturalsoil,Large,nC60_10nm,0,NA,s-1
+kfrag,agriculturalsoil,Large,nTiO2_10nm,0,NA,s-1
+kfrag,agriculturalsoil,Large,nZnO,0,NA,s-1
 kfrag,agriculturalsoil,Large,TRWP,0,NA,s-1
+kfrag,agriculturalsoil,Small,Chitosan,0,NA,s-1
+kfrag,agriculturalsoil,Small,GO-Chitosan,0,NA,s-1
+kfrag,agriculturalsoil,Small,Graphene Oxide,0,NA,s-1
 kfrag,agriculturalsoil,Small,microplastic,2.7e-8,NA,s-1
+kfrag,agriculturalsoil,Small,nAg_10nm,0,NA,s-1
+kfrag,agriculturalsoil,Small,nC60_10nm,0,NA,s-1
+kfrag,agriculturalsoil,Small,nTiO2_10nm,0,NA,s-1
+kfrag,agriculturalsoil,Small,nZnO,0,NA,s-1
 kfrag,agriculturalsoil,Small,TRWP,0,NA,s-1
+kfrag,agriculturalsoil,Solid,Chitosan,0,kfragS.s,s-1
+kfrag,agriculturalsoil,Solid,GO-Chitosan,0,kfragS.s,s-1
+kfrag,agriculturalsoil,Solid,Graphene Oxide,0,kfragS.s,s-1
 kfrag,agriculturalsoil,Solid,microplastic,2.7e-8,kfragS.s,s-1
+kfrag,agriculturalsoil,Solid,nAg_10nm,0,kfragS.s,s-1
+kfrag,agriculturalsoil,Solid,nC60_10nm,0,kfragS.s,s-1
+kfrag,agriculturalsoil,Solid,nTiO2_10nm,0,kfragS.s,s-1
+kfrag,agriculturalsoil,Solid,nZnO,0,kfragS.s,s-1
 kfrag,agriculturalsoil,Solid,TRWP,0,kfragS.s,s-1
+kfrag,air,Large,Chitosan,0,NA,s-1
+kfrag,air,Large,GO-Chitosan,0,NA,s-1
+kfrag,air,Large,Graphene Oxide,0,NA,s-1
 kfrag,air,Large,microplastic,0,NA,s-1
+kfrag,air,Large,nAg_10nm,0,NA,s-1
+kfrag,air,Large,nC60_10nm,0,NA,s-1
+kfrag,air,Large,nTiO2_10nm,0,NA,s-1
+kfrag,air,Large,nZnO,0,NA,s-1
 kfrag,air,Large,TRWP,0,NA,s-1
+kfrag,air,Small,Chitosan,0,NA,s-1
+kfrag,air,Small,GO-Chitosan,0,NA,s-1
+kfrag,air,Small,Graphene Oxide,0,NA,s-1
 kfrag,air,Small,microplastic,0,NA,s-1
+kfrag,air,Small,nAg_10nm,0,NA,s-1
+kfrag,air,Small,nC60_10nm,0,NA,s-1
+kfrag,air,Small,nTiO2_10nm,0,NA,s-1
+kfrag,air,Small,nZnO,0,NA,s-1
 kfrag,air,Small,TRWP,0,NA,s-1
+kfrag,air,Solid,Chitosan,0,kfragS.a,s-1
+kfrag,air,Solid,GO-Chitosan,0,kfragS.a,s-1
+kfrag,air,Solid,Graphene Oxide,0,kfragS.a,s-1
 kfrag,air,Solid,microplastic,0,kfragS.a,s-1
+kfrag,air,Solid,nAg_10nm,0,kfragS.a,s-1
+kfrag,air,Solid,nC60_10nm,0,kfragS.a,s-1
+kfrag,air,Solid,nTiO2_10nm,0,kfragS.a,s-1
+kfrag,air,Solid,nZnO,0,kfragS.a,s-1
 kfrag,air,Solid,TRWP,0,kfragS.a,s-1
+kfrag,deepocean,Large,Chitosan,0,NA,s-1
+kfrag,deepocean,Large,GO-Chitosan,0,NA,s-1
+kfrag,deepocean,Large,Graphene Oxide,0,NA,s-1
 kfrag,deepocean,Large,microplastic,2.7e-8,NA,s-1
+kfrag,deepocean,Large,nAg_10nm,0,NA,s-1
+kfrag,deepocean,Large,nC60_10nm,0,NA,s-1
+kfrag,deepocean,Large,nTiO2_10nm,0,NA,s-1
+kfrag,deepocean,Large,nZnO,0,NA,s-1
 kfrag,deepocean,Large,TRWP,0,NA,s-1
+kfrag,deepocean,Small,Chitosan,0,NA,s-1
+kfrag,deepocean,Small,GO-Chitosan,0,NA,s-1
+kfrag,deepocean,Small,Graphene Oxide,0,NA,s-1
 kfrag,deepocean,Small,microplastic,2.7e-8,NA,s-1
+kfrag,deepocean,Small,nAg_10nm,0,NA,s-1
+kfrag,deepocean,Small,nC60_10nm,0,NA,s-1
+kfrag,deepocean,Small,nTiO2_10nm,0,NA,s-1
+kfrag,deepocean,Small,nZnO,0,NA,s-1
 kfrag,deepocean,Small,TRWP,0,NA,s-1
+kfrag,deepocean,Solid,Chitosan,0,kfragS.w3,s-1
+kfrag,deepocean,Solid,GO-Chitosan,0,kfragS.w3,s-1
+kfrag,deepocean,Solid,Graphene Oxide,0,kfragS.w3,s-1
 kfrag,deepocean,Solid,microplastic,2.7e-8,kfragS.w3,s-1
+kfrag,deepocean,Solid,nAg_10nm,0,kfragS.w3,s-1
+kfrag,deepocean,Solid,nC60_10nm,0,kfragS.w3,s-1
+kfrag,deepocean,Solid,nTiO2_10nm,0,kfragS.w3,s-1
+kfrag,deepocean,Solid,nZnO,0,kfragS.w3,s-1
 kfrag,deepocean,Solid,TRWP,0,kfragS.w3,s-1
+kfrag,freshwatersediment,Large,Chitosan,0,NA,s-1
+kfrag,freshwatersediment,Large,GO-Chitosan,0,NA,s-1
+kfrag,freshwatersediment,Large,Graphene Oxide,0,NA,s-1
 kfrag,freshwatersediment,Large,microplastic,2.7e-8,NA,s-1
+kfrag,freshwatersediment,Large,nAg_10nm,0,NA,s-1
+kfrag,freshwatersediment,Large,nC60_10nm,0,NA,s-1
+kfrag,freshwatersediment,Large,nTiO2_10nm,0,NA,s-1
+kfrag,freshwatersediment,Large,nZnO,0,NA,s-1
 kfrag,freshwatersediment,Large,TRWP,0,NA,s-1
+kfrag,freshwatersediment,Small,Chitosan,0,NA,s-1
+kfrag,freshwatersediment,Small,GO-Chitosan,0,NA,s-1
+kfrag,freshwatersediment,Small,Graphene Oxide,0,NA,s-1
 kfrag,freshwatersediment,Small,microplastic,2.7e-8,NA,s-1
+kfrag,freshwatersediment,Small,nAg_10nm,0,NA,s-1
+kfrag,freshwatersediment,Small,nC60_10nm,0,NA,s-1
+kfrag,freshwatersediment,Small,nTiO2_10nm,0,NA,s-1
+kfrag,freshwatersediment,Small,nZnO,0,NA,s-1
 kfrag,freshwatersediment,Small,TRWP,0,NA,s-1
+kfrag,freshwatersediment,Solid,Chitosan,0,kfragS.sd,s-1
+kfrag,freshwatersediment,Solid,GO-Chitosan,0,kfragS.sd,s-1
+kfrag,freshwatersediment,Solid,Graphene Oxide,0,kfragS.sd,s-1
 kfrag,freshwatersediment,Solid,microplastic,2.7e-8,kfragS.sd,s-1
+kfrag,freshwatersediment,Solid,nAg_10nm,0,kfragS.sd,s-1
+kfrag,freshwatersediment,Solid,nC60_10nm,0,kfragS.sd,s-1
+kfrag,freshwatersediment,Solid,nTiO2_10nm,0,kfragS.sd,s-1
+kfrag,freshwatersediment,Solid,nZnO,0,kfragS.sd,s-1
 kfrag,freshwatersediment,Solid,TRWP,0,kfragS.sd,s-1
+kfrag,lake,Large,Chitosan,0,NA,s-1
+kfrag,lake,Large,GO-Chitosan,0,NA,s-1
+kfrag,lake,Large,Graphene Oxide,0,NA,s-1
 kfrag,lake,Large,microplastic,2.7e-8,NA,s-1
+kfrag,lake,Large,nAg_10nm,0,NA,s-1
+kfrag,lake,Large,nC60_10nm,0,NA,s-1
+kfrag,lake,Large,nTiO2_10nm,0,NA,s-1
+kfrag,lake,Large,nZnO,0,NA,s-1
 kfrag,lake,Large,TRWP,0,NA,s-1
+kfrag,lake,Small,Chitosan,0,NA,s-1
+kfrag,lake,Small,GO-Chitosan,0,NA,s-1
+kfrag,lake,Small,Graphene Oxide,0,NA,s-1
 kfrag,lake,Small,microplastic,2.7e-8,NA,s-1
+kfrag,lake,Small,nAg_10nm,0,NA,s-1
+kfrag,lake,Small,nC60_10nm,0,NA,s-1
+kfrag,lake,Small,nTiO2_10nm,0,NA,s-1
+kfrag,lake,Small,nZnO,0,NA,s-1
 kfrag,lake,Small,TRWP,0,NA,s-1
+kfrag,lake,Solid,Chitosan,0,kfragS.w0,s-1
+kfrag,lake,Solid,GO-Chitosan,0,kfragS.w0,s-1
+kfrag,lake,Solid,Graphene Oxide,0,kfragS.w0,s-1
 kfrag,lake,Solid,microplastic,2.7e-8,kfragS.w0,s-1
+kfrag,lake,Solid,nAg_10nm,0,kfragS.w0,s-1
+kfrag,lake,Solid,nC60_10nm,0,kfragS.w0,s-1
+kfrag,lake,Solid,nTiO2_10nm,0,kfragS.w0,s-1
+kfrag,lake,Solid,nZnO,0,kfragS.w0,s-1
 kfrag,lake,Solid,TRWP,0,kfragS.w0,s-1
+kfrag,lakesediment,Large,Chitosan,0,NA,s-1
+kfrag,lakesediment,Large,GO-Chitosan,0,NA,s-1
+kfrag,lakesediment,Large,Graphene Oxide,0,NA,s-1
 kfrag,lakesediment,Large,microplastic,2.7e-8,NA,s-1
+kfrag,lakesediment,Large,nAg_10nm,0,NA,s-1
+kfrag,lakesediment,Large,nC60_10nm,0,NA,s-1
+kfrag,lakesediment,Large,nTiO2_10nm,0,NA,s-1
+kfrag,lakesediment,Large,nZnO,0,NA,s-1
 kfrag,lakesediment,Large,TRWP,0,NA,s-1
+kfrag,lakesediment,Small,Chitosan,0,NA,s-1
+kfrag,lakesediment,Small,GO-Chitosan,0,NA,s-1
+kfrag,lakesediment,Small,Graphene Oxide,0,NA,s-1
 kfrag,lakesediment,Small,microplastic,2.7e-8,NA,s-1
+kfrag,lakesediment,Small,nAg_10nm,0,NA,s-1
+kfrag,lakesediment,Small,nC60_10nm,0,NA,s-1
+kfrag,lakesediment,Small,nTiO2_10nm,0,NA,s-1
+kfrag,lakesediment,Small,nZnO,0,NA,s-1
 kfrag,lakesediment,Small,TRWP,0,NA,s-1
+kfrag,lakesediment,Solid,Chitosan,0,kfragS.sd,s-1
+kfrag,lakesediment,Solid,GO-Chitosan,0,kfragS.sd,s-1
+kfrag,lakesediment,Solid,Graphene Oxide,0,kfragS.sd,s-1
 kfrag,lakesediment,Solid,microplastic,2.7e-8,kfragS.sd,s-1
+kfrag,lakesediment,Solid,nAg_10nm,0,kfragS.sd,s-1
+kfrag,lakesediment,Solid,nC60_10nm,0,kfragS.sd,s-1
+kfrag,lakesediment,Solid,nTiO2_10nm,0,kfragS.sd,s-1
+kfrag,lakesediment,Solid,nZnO,0,kfragS.sd,s-1
 kfrag,lakesediment,Solid,TRWP,0,kfragS.sd,s-1
+kfrag,marinesediment,Large,Chitosan,0,NA,s-1
+kfrag,marinesediment,Large,GO-Chitosan,0,NA,s-1
+kfrag,marinesediment,Large,Graphene Oxide,0,NA,s-1
 kfrag,marinesediment,Large,microplastic,2.7e-8,NA,s-1
+kfrag,marinesediment,Large,nAg_10nm,0,NA,s-1
+kfrag,marinesediment,Large,nC60_10nm,0,NA,s-1
+kfrag,marinesediment,Large,nTiO2_10nm,0,NA,s-1
+kfrag,marinesediment,Large,nZnO,0,NA,s-1
 kfrag,marinesediment,Large,TRWP,0,NA,s-1
+kfrag,marinesediment,Small,Chitosan,0,NA,s-1
+kfrag,marinesediment,Small,GO-Chitosan,0,NA,s-1
+kfrag,marinesediment,Small,Graphene Oxide,0,NA,s-1
 kfrag,marinesediment,Small,microplastic,2.7e-8,NA,s-1
+kfrag,marinesediment,Small,nAg_10nm,0,NA,s-1
+kfrag,marinesediment,Small,nC60_10nm,0,NA,s-1
+kfrag,marinesediment,Small,nTiO2_10nm,0,NA,s-1
+kfrag,marinesediment,Small,nZnO,0,NA,s-1
 kfrag,marinesediment,Small,TRWP,0,NA,s-1
+kfrag,marinesediment,Solid,Chitosan,0,kfragS.sd,s-1
+kfrag,marinesediment,Solid,GO-Chitosan,0,kfragS.sd,s-1
+kfrag,marinesediment,Solid,Graphene Oxide,0,kfragS.sd,s-1
 kfrag,marinesediment,Solid,microplastic,2.7e-8,kfragS.sd,s-1
+kfrag,marinesediment,Solid,nAg_10nm,0,kfragS.sd,s-1
+kfrag,marinesediment,Solid,nC60_10nm,0,kfragS.sd,s-1
+kfrag,marinesediment,Solid,nTiO2_10nm,0,kfragS.sd,s-1
+kfrag,marinesediment,Solid,nZnO,0,kfragS.sd,s-1
 kfrag,marinesediment,Solid,TRWP,0,kfragS.sd,s-1
+kfrag,naturalsoil,Large,Chitosan,0,NA,s-1
+kfrag,naturalsoil,Large,GO-Chitosan,0,NA,s-1
+kfrag,naturalsoil,Large,Graphene Oxide,0,NA,s-1
 kfrag,naturalsoil,Large,microplastic,2.7e-8,NA,s-1
+kfrag,naturalsoil,Large,nAg_10nm,0,NA,s-1
+kfrag,naturalsoil,Large,nC60_10nm,0,NA,s-1
+kfrag,naturalsoil,Large,nTiO2_10nm,0,NA,s-1
+kfrag,naturalsoil,Large,nZnO,0,NA,s-1
 kfrag,naturalsoil,Large,TRWP,0,NA,s-1
+kfrag,naturalsoil,Small,Chitosan,0,NA,s-1
+kfrag,naturalsoil,Small,GO-Chitosan,0,NA,s-1
+kfrag,naturalsoil,Small,Graphene Oxide,0,NA,s-1
 kfrag,naturalsoil,Small,microplastic,2.7e-8,NA,s-1
+kfrag,naturalsoil,Small,nAg_10nm,0,NA,s-1
+kfrag,naturalsoil,Small,nC60_10nm,0,NA,s-1
+kfrag,naturalsoil,Small,nTiO2_10nm,0,NA,s-1
+kfrag,naturalsoil,Small,nZnO,0,NA,s-1
 kfrag,naturalsoil,Small,TRWP,0,NA,s-1
+kfrag,naturalsoil,Solid,Chitosan,0,kfragS.s,s-1
+kfrag,naturalsoil,Solid,GO-Chitosan,0,kfragS.s,s-1
+kfrag,naturalsoil,Solid,Graphene Oxide,0,kfragS.s,s-1
 kfrag,naturalsoil,Solid,microplastic,2.7e-8,kfragS.s,s-1
+kfrag,naturalsoil,Solid,nAg_10nm,0,kfragS.s,s-1
+kfrag,naturalsoil,Solid,nC60_10nm,0,kfragS.s,s-1
+kfrag,naturalsoil,Solid,nTiO2_10nm,0,kfragS.s,s-1
+kfrag,naturalsoil,Solid,nZnO,0,kfragS.s,s-1
 kfrag,naturalsoil,Solid,TRWP,0,kfragS.s,s-1
+kfrag,othersoil,Large,Chitosan,0,NA,s-1
+kfrag,othersoil,Large,GO-Chitosan,0,NA,s-1
+kfrag,othersoil,Large,Graphene Oxide,0,NA,s-1
 kfrag,othersoil,Large,microplastic,2.7e-8,NA,s-1
+kfrag,othersoil,Large,nAg_10nm,0,NA,s-1
+kfrag,othersoil,Large,nC60_10nm,0,NA,s-1
+kfrag,othersoil,Large,nTiO2_10nm,0,NA,s-1
+kfrag,othersoil,Large,nZnO,0,NA,s-1
 kfrag,othersoil,Large,TRWP,0,NA,s-1
+kfrag,othersoil,Small,Chitosan,0,NA,s-1
+kfrag,othersoil,Small,GO-Chitosan,0,NA,s-1
+kfrag,othersoil,Small,Graphene Oxide,0,NA,s-1
 kfrag,othersoil,Small,microplastic,2.7e-8,NA,s-1
+kfrag,othersoil,Small,nAg_10nm,0,NA,s-1
+kfrag,othersoil,Small,nC60_10nm,0,NA,s-1
+kfrag,othersoil,Small,nTiO2_10nm,0,NA,s-1
+kfrag,othersoil,Small,nZnO,0,NA,s-1
 kfrag,othersoil,Small,TRWP,0,NA,s-1
+kfrag,othersoil,Solid,Chitosan,0,kfragS.s,s-1
+kfrag,othersoil,Solid,GO-Chitosan,0,kfragS.s,s-1
+kfrag,othersoil,Solid,Graphene Oxide,0,kfragS.s,s-1
 kfrag,othersoil,Solid,microplastic,2.7e-8,kfragS.s,s-1
+kfrag,othersoil,Solid,nAg_10nm,0,kfragS.s,s-1
+kfrag,othersoil,Solid,nC60_10nm,0,kfragS.s,s-1
+kfrag,othersoil,Solid,nTiO2_10nm,0,kfragS.s,s-1
+kfrag,othersoil,Solid,nZnO,0,kfragS.s,s-1
 kfrag,othersoil,Solid,TRWP,0,kfragS.s,s-1
+kfrag,river,Large,Chitosan,0,NA,s-1
+kfrag,river,Large,GO-Chitosan,0,NA,s-1
+kfrag,river,Large,Graphene Oxide,0,NA,s-1
 kfrag,river,Large,microplastic,2.7e-8,NA,s-1
+kfrag,river,Large,nAg_10nm,0,NA,s-1
+kfrag,river,Large,nC60_10nm,0,NA,s-1
+kfrag,river,Large,nTiO2_10nm,0,NA,s-1
+kfrag,river,Large,nZnO,0,NA,s-1
 kfrag,river,Large,TRWP,0,NA,s-1
+kfrag,river,Small,Chitosan,0,NA,s-1
+kfrag,river,Small,GO-Chitosan,0,NA,s-1
+kfrag,river,Small,Graphene Oxide,0,NA,s-1
 kfrag,river,Small,microplastic,2.7e-8,NA,s-1
+kfrag,river,Small,nAg_10nm,0,NA,s-1
+kfrag,river,Small,nC60_10nm,0,NA,s-1
+kfrag,river,Small,nTiO2_10nm,0,NA,s-1
+kfrag,river,Small,nZnO,0,NA,s-1
 kfrag,river,Small,TRWP,0,NA,s-1
+kfrag,river,Solid,Chitosan,0,kfragS.w1,s-1
+kfrag,river,Solid,GO-Chitosan,0,kfragS.w1,s-1
+kfrag,river,Solid,Graphene Oxide,0,kfragS.w1,s-1
 kfrag,river,Solid,microplastic,2.7e-8,kfragS.w1,s-1
+kfrag,river,Solid,nAg_10nm,0,kfragS.w1,s-1
+kfrag,river,Solid,nC60_10nm,0,kfragS.w1,s-1
+kfrag,river,Solid,nTiO2_10nm,0,kfragS.w1,s-1
+kfrag,river,Solid,nZnO,0,kfragS.w1,s-1
 kfrag,river,Solid,TRWP,0,kfragS.w1,s-1
+kfrag,sea,Large,Chitosan,0,NA,s-1
+kfrag,sea,Large,GO-Chitosan,0,NA,s-1
+kfrag,sea,Large,Graphene Oxide,0,NA,s-1
 kfrag,sea,Large,microplastic,2.7e-8,NA,s-1
+kfrag,sea,Large,nAg_10nm,0,NA,s-1
+kfrag,sea,Large,nC60_10nm,0,NA,s-1
+kfrag,sea,Large,nTiO2_10nm,0,NA,s-1
+kfrag,sea,Large,nZnO,0,NA,s-1
 kfrag,sea,Large,TRWP,0,NA,s-1
+kfrag,sea,Small,Chitosan,0,NA,s-1
+kfrag,sea,Small,GO-Chitosan,0,NA,s-1
+kfrag,sea,Small,Graphene Oxide,0,NA,s-1
 kfrag,sea,Small,microplastic,2.7e-8,NA,s-1
+kfrag,sea,Small,nAg_10nm,0,NA,s-1
+kfrag,sea,Small,nC60_10nm,0,NA,s-1
+kfrag,sea,Small,nTiO2_10nm,0,NA,s-1
+kfrag,sea,Small,nZnO,0,NA,s-1
 kfrag,sea,Small,TRWP,0,NA,s-1
+kfrag,sea,Solid,Chitosan,0,kfragS.w2,s-1
+kfrag,sea,Solid,GO-Chitosan,0,kfragS.w2,s-1
+kfrag,sea,Solid,Graphene Oxide,0,kfragS.w2,s-1
 kfrag,sea,Solid,microplastic,2.7e-8,kfragS.w2,s-1
+kfrag,sea,Solid,nAg_10nm,0,kfragS.w2,s-1
+kfrag,sea,Solid,nC60_10nm,0,kfragS.w2,s-1
+kfrag,sea,Solid,nTiO2_10nm,0,kfragS.w2,s-1
+kfrag,sea,Solid,nZnO,0,kfragS.w2,s-1
 kfrag,sea,Solid,TRWP,0,kfragS.w2,s-1
-kdeag,agriculturalsoil,Large,TRWP,2.7e-8,NA,s-1
-kdeag,agriculturalsoil,Small,TRWP,2.7e-8,NA,s-1
-kdeag,air,Large,TRWP,0,NA,s-1
-kdeag,air,Small,TRWP,0,NA,s-1
-kdeag,deepocean,Large,TRWP,2.7e-8,NA,s-1
-kdeag,deepocean,Small,TRWP,2.7e-8,NA,s-1
-kdeag,freshwatersediment,Large,TRWP,2.7e-8,NA,s-1
-kdeag,freshwatersediment,Small,TRWP,2.7e-8,NA,s-1
-kdeag,lake,Large,TRWP,2.7e-8,NA,s-1
-kdeag,lake,Small,TRWP,2.7e-8,NA,s-1
-kdeag,lakesediment,Large,TRWP,2.7e-8,NA,s-1
-kdeag,lakesediment,Small,TRWP,2.7e-8,NA,s-1
-kdeag,marinesediment,Large,TRWP,2.7e-8,NA,s-1
-kdeag,marinesediment,Small,TRWP,2.7e-8,NA,s-1
-kdeag,naturalsoil,Large,TRWP,2.7e-8,NA,s-1
-kdeag,naturalsoil,Small,TRWP,2.7e-8,NA,s-1
-kdeag,othersoil,Large,TRWP,2.7e-8,NA,s-1
-kdeag,othersoil,Small,TRWP,2.7e-8,NA,s-1
-kdeag,river,Large,TRWP,2.7e-8,NA,s-1
-kdeag,river,Small,TRWP,2.7e-8,NA,s-1
-kdeag,sea,Large,TRWP,2.7e-8,NA,s-1
-kdeag,sea,Small,TRWP,2.7e-8,NA,s-1
-kdeag,agriculturalsoil,Large,microplastic,0,NA,s-1
-kdeag,agriculturalsoil,Small,microplastic,0,NA,s-1
-kdeag,air,Large,microplastic,0,NA,s-1
-kdeag,air,Small,microplastic,0,NA,s-1
-kdeag,deepocean,Large,microplastic,0,NA,s-1
-kdeag,deepocean,Small,microplastic,0,NA,s-1
-kdeag,freshwatersediment,Large,microplastic,0,NA,s-1
-kdeag,freshwatersediment,Small,microplastic,0,NA,s-1
-kdeag,lake,Large,microplastic,0,NA,s-1
-kdeag,lake,Small,microplastic,0,NA,s-1
-kdeag,lakesediment,Large,microplastic,0,NA,s-1
-kdeag,lakesediment,Small,microplastic,0,NA,s-1
-kdeag,marinesediment,Large,microplastic,0,NA,s-1
-kdeag,marinesediment,Small,microplastic,0,NA,s-1
-kdeag,naturalsoil,Large,microplastic,0,NA,s-1
-kdeag,naturalsoil,Small,microplastic,0,NA,s-1
-kdeag,othersoil,Large,microplastic,0,NA,s-1
-kdeag,othersoil,Small,microplastic,0,NA,s-1
-kdeag,river,Large,microplastic,0,NA,s-1
-kdeag,river,Small,microplastic,0,NA,s-1
-kdeag,sea,Large,microplastic,0,NA,s-1
-kdeag,sea,Small,microplastic,0,NA,s-1
