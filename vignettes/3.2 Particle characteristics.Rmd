@@ -54,7 +54,7 @@ Shapes implemented are:
 
     -   Defined by `Shortest_side` (minor diameter), `Intermediate_side` (major diameter) and `Longest_side` (height).
 
-If short, medium or longest side is not defined, it is defined as RadS*2 by default (as for a sphere) in 'v_SettlingVelocity.R'.
+If short, medium or longest side is not defined, it is defined as RadS\*2 by default (as for a sphere) in 'v_SettlingVelocity.R'.
 
 These shapes and sizes are used for calculating:
 
@@ -107,16 +107,18 @@ World$fetchData("rad_species")
 An example of a process dependent on these characteristics is the Settling Velocity.
 The Settling Velocity is calculated through the choice of different drag methods (Dioguardi, Swamee, Stokes, Bagheri) of which the original does not include drag.
 
-Dittmar et al. (2024) (https://doi.org/10.1021/acs.est.3c09602) reviewed multiple drag models (Waldschläger, Khatmullina, Dioguardi, Bagheri, etc.). 
-Bagheri & Bonadonna (2016) (https://www.sciencedirect.com/science/article/pii/S0032591016303539) is generally recommended, as Coyle et al. (2023) (https://doi.org/10.1021/acsestwater.2c00466) have shown that the model was applicable to large microplastics, while Dittmar et al. (2024) have shown its applicability to smaller MPs. 
+Dittmar et al. (2024) (<https://doi.org/10.1021/acs.est.3c09602>) reviewed multiple drag models (Waldschläger, Khatmullina, Dioguardi, Bagheri, etc.).
+Bagheri & Bonadonna (2016) (<https://www.sciencedirect.com/science/article/pii/S0032591016303539>) is generally recommended, as Coyle et al. (2023) (<https://doi.org/10.1021/acsestwater.2c00466>) have shown that the model was applicable to large microplastics, while Dittmar et al. (2024) have shown its applicability to smaller MPs.
 Both articles show that the model performs better than other available models for MPs, although the model was developed for small particles in general, not microplastics.
 
 The settling velocity is computed though the following functions:
 
--   f_DragCoefficient: This function computes the drag coefficient (CD) according to the selected drag method (e.g.: DragMethod == "Dioguardi"). 
-    The equations and inputs for CD depends on the drag method chosen. The inputs (Sphericity, etc.) are calculated in v_SettlingVelocity.R
+-   f_DragCoefficient: This function computes the drag coefficient (CD) according to the selected drag method (e.g.: DragMethod == "Dioguardi").
+    The equations and inputs for CD depends on the drag method chosen.
+    The inputs (Sphericity, etc.) are calculated in v_SettlingVelocity.R
 
--   f_SetVelSolver: The settling velocity (vs) depends on the reynolds number (Re) and the drag coefficient. However, Re itself depends on the settling veloicity, therefore this solver function is needed to solve for the settling velocity, which solves for vs until it converges.
+-   f_SetVelSolver: The settling velocity (vs) depends on the reynolds number (Re) and the drag coefficient.
+    However, Re itself depends on the settling veloicity, therefore this solver function is needed to solve for the settling velocity, which solves for vs until it converges.
 
 -   v_SettlingVelocity: Computes the inputs needed (described above) to solve for the settling velocity in air and water.
 
