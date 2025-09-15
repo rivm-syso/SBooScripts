@@ -1,26 +1,10 @@
----
-title: "Comparison runoff update"
-author: "Anne Hids, Nadim Saadi, Joris Quik"
-date: "2025-05-27"
-output: github_document
-editor_options: 
-  chunk_output_type: console
-  markdown: 
-    wrap: 72
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-
-substance <- "microplastic"
-
-source("baseScripts/initWorld.R")
-```
+Comparison runoff update
+================
+Anne Hids, Nadim Saadi, Joris Quik
+2025-05-27
 
 # Explanation of update
 
-
-=======
 In the previous itteration Runoff was only reduced for the largest
 species of heteroagglomerates (P/attached species). Runoff for the solid
 and aggregate species would be calculated using the runoff rate for
@@ -35,10 +19,9 @@ was added. This fraction represents the fraction of microplastics
 intercepted by the vegetation on soil. The default value of interception
 fraction for microplastics larger than about 100 micrometers is 0.9715,
 which is the average between the interception at high, medium and low
-density vegetation as found by Han et al. (2022). The option to use this
+density vegetation as found by Han et al. (2022). The option to use this
 interception fraction is now added in SimpleBox based on the previous
-implementation by Louvet et al. (in prep).
-
+implementation by Louvet et al. (in prep).
 
 Old function:
 
@@ -48,155 +31,33 @@ New function:
 
 $(Runoff * f_CORRsoil(VertDistance, relevant_depth_s, penetration_depth_s)) / Volume * to.FracROWatComp * (1-IntrcptFrac)$
 
-
 Where IntrcptFrac is calculated based on rad_species being larger than
 SizeRunoff and being set to VegInterceptFrac. Default VegInterceptFrac =
 1, which means no Runoff for those larger particles, but can be adjusted
 to 0.9715 using MutateVars, see also general documentation in [7.3
 OtherIntermedia.md](/vignettes/7.3-OtherIntermedia.md).
 
-
 # Change in k values for runoff flows
 
 <!-- TO DO: fetch development at a certain date instead of most recent version. This would ensure consequent outcomes of this comparison, no matter when the script is run. -->
 
-```{R Specify directories, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-library(tidyverse)
+    ## [1] "Directory: SBzips created."
 
-# InstallSBoo (Release_SBoo = NA, # tag for release use NA for branch
-#              Release_SBooScripts = NA, # tag for release use NA for branch
-#              devBranch_SBoo = "Runoff_update_clean",
-#              devBranch_SBooScripts = "Runoff_MPinterception",
-#              Temp_Folder = "C:/Temp" # an existing folder where SimpleBox is to be installed
-# )
-
-InstallSBoo(Release_SBoo = NA, # tag for release use NA for branch
-            Release_SBooScripts = NA, # tag for release use NA for branch
-            devBranch_SBoo = "development",
-            devBranch_SBooScripts = "development",
-            Temp_Folder = NULL # an existing folder where SimpleBox is to be installed
-)
-
-# Define branches to test
-Comparison <- c("development", "ThisOne")
-
-# Specify file paths for saving results
-result_files <- paste0("results_", Comparison, ".rds")
-
-# Directory of your Git repository (modify this path to the correct repository location)
-#script_dir <-getwd()
-#repo_dir <- file.path(getwd(), "..", "SBoo")
-
-```
+    ## [1] "The SimpleBox model can be found in SimpleBox"
 
 As this update was only implemented for microplastics and tyre road wear
 particles, we will test for these substances. To be sure nothing changed
 for the other substances, we will also test one other substance.
 
-```{R Specify substance, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-substance_names <- c("microplastic", "TRWP", "1-aminoanthraquinone") 
-substances <- read.csv("data/Substances.csv")
-substances <- substances |>
-  filter(Substance %in% substance_names)
-```
-
-```{R Switch to SBoo Development branch, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-# Switch to the correct Git directory
-# setwd(repo_dir)
-
-# Checkout the branch
-# branch <- branches[1]
-# message("Switching to branch: ", branch)
-# system(paste("git checkout -f ", branch))
-# system("git pull", intern = TRUE)  # Ensure the branch is up-to-date
-  
-# setwd(script_dir)
-```
-
-```{R Run SB and get advection ks for development, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-this_kaas <- data.frame()
-
-for(substanceK in substances$Substance){
-  # Get the substance type
-  substance <- substanceK
-      source("baseScripts/initWorld.R")
-
-  kaas <- World$kaas |>
-    # filter(process == "k_Runoff") |>
-    mutate(Substance = substance)
-  
-  this_kaas <- rbind(this_kaas, kaas)
-}
-
-```
-
 Do the same for the other implementation.
-
-```{R Clean environment again, include=FALSE}
-rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
-```
-
-```{R Switch to SBoo Flux_work branch, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-# Switch to the correct Git directory
-# setwd(repo_dir)
-
-# Checkout the branch
-# branch <- branches[2]
-# message("Switching to branch: ", branch)
-# system(paste("git checkout -f ", branch))
-# system("git pull", intern = TRUE)  # Ensure the branch is up-to-date
-  
-# setwd(script_dir)
-
-
-```
-
-```{R Run SB and get advection ks for FLux_work branch, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-
-other_kaas <- data.frame()
-  
-for(substanceK in substances$Substance){
-Temp_Folder=NULL
-substance = substanceK
-
-source("baseScripts/initWorldOther.R")
-
-  kaas <- World$kaas |>
-    # filter(process == "k_Runoff") |>
-    mutate(Substance = substance)
-  
-  other_kaas <- rbind(other_kaas, kaas)
-}
-
-```
 
 ## Compare the k values for each of the substances
 
-```{R Calculate the differences between ks, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-common_cols <- setdiff(intersect(colnames(this_kaas), colnames(other_kaas)), "k")
-
-
-kaas_comparison <- merge(this_kaas, other_kaas, by=common_cols, suffixes = c("_New", "_Old"))
-
-kaas_comparison <- kaas_comparison |>
-  mutate(diff = k_New-k_Old) |> # If this number is positive, the New_k is higher than the Old_k (higher advection rate with new method)
-  mutate(rel_diff = diff/k_Old)
-
-
-changed_kaas <- kaas_comparison |>
-  filter(diff != 0) |>
-  mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
-```
-
 As can be seen in the figures below, the new runoff rates for
-microplastics and TRWP are about
-`r round(abs(min(unique(changed_kaas$rel_diff))), 0)` times lower than
-in the previous version. For other substances k_Runoff remains
-unchanged.
+microplastics and TRWP are about times lower than in the previous
+version. For other substances k_Runoff remains unchanged.
 
-
-```{R Plot the differences between ks, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
-
+``` r
 all_diffs <- kaas_comparison |>
   mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
   mutate(toname = paste0(toSubCompart, "_", toScale))
@@ -240,11 +101,13 @@ for(i in unique(all_diffs$Substance)){
 }
 ```
 
+![](20250825_Plastics_Runoff_update_files/figure-gfm/Plot%20the%20differences%20between%20ks-1.png)<!-- -->![](20250825_Plastics_Runoff_update_files/figure-gfm/Plot%20the%20differences%20between%20ks-2.png)<!-- -->![](20250825_Plastics_Runoff_update_files/figure-gfm/Plot%20the%20differences%20between%20ks-3.png)<!-- -->![](20250825_Plastics_Runoff_update_files/figure-gfm/Plot%20the%20differences%20between%20ks-4.png)<!-- -->![](20250825_Plastics_Runoff_update_files/figure-gfm/Plot%20the%20differences%20between%20ks-5.png)<!-- -->![](20250825_Plastics_Runoff_update_files/figure-gfm/Plot%20the%20differences%20between%20ks-6.png)<!-- -->
+
 Further analysis
 
 Use of Runoff with 200 micrometer sized microplastics
 
-```{r message=FALSE, warning=FALSE}
+``` r
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 
 this_kaas <- data.frame()
@@ -354,11 +217,11 @@ for(i in unique(all_diffs$Substance)){
     )
   print(reldif_plot)
 }
-
 ```
+
+![](20250825_Plastics_Runoff_update_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->![](20250825_Plastics_Runoff_update_files/figure-gfm/unnamed-chunk-1-2.png)<!-- -->![](20250825_Plastics_Runoff_update_files/figure-gfm/unnamed-chunk-1-3.png)<!-- -->![](20250825_Plastics_Runoff_update_files/figure-gfm/unnamed-chunk-1-4.png)<!-- -->
 
 In the above plots for large microplastics and TWRP (250 micrometer),
 you can see that now Runoff in the new situation is switched off, due to
 the interception being set to 1 (100%). The relative differences between
 old and new is thus also 1 ((Old-New)/Old)
-

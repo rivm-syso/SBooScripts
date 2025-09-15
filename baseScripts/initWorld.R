@@ -80,6 +80,7 @@ if(ChemClass != "particle") {
   if(anyNA(World$fetchData("RadS")) && anyNA(World$fetchData("Shortest_side"))){
     stop("ERROR: RadS or Shortest_side needed for running SimpleBox for particles")
   }
+
 }
 
 World$SetConst(DragMethod = "Original")
