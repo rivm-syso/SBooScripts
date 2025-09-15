@@ -167,7 +167,7 @@ source("baseScripts/initWorldOther.R")
 
 ```
 
-## Compare the k values for each of the substances
+## Verification of previous and new implementation
 
 ```{R Calculate the differences between ks, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 common_cols <- setdiff(intersect(colnames(this_kaas), colnames(other_kaas)), "k")
@@ -185,10 +185,12 @@ changed_kaas <- kaas_comparison |>
 changed_kaas
 ```
 
-As can be seen in the figures below, the new rate constants for the substances,
-`r paste(substances$Substance)`, have a negligible difference of max
-`r max(abs(unique(changed_kaas$rel_diff)))*100` % difference to
-the previous version. The figures below also show this and therefor this verification is complete.
+As can be seen in the figures below, the new rate constants for the
+substances, `r paste(substances$Substance)`, have a negligible
+difference of max `r max(abs(unique(changed_kaas$rel_diff)))*100` %
+difference to the previous version. The figures below also show this and
+therefor this verification of replicating the previous version with the
+new code is complete.
 
 ```{R Plot the differences between ks, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 all_diffs <- kaas_comparison |>
@@ -234,3 +236,13 @@ for(i in unique(all_diffs$Substance)){
 }
 ```
 
+## Quantify changes based on shape and drag method chosen
+
+[TODO] script showing the effects of different drag methods and shapes
+on particle settling velicities and rate constants.
+
+```{r}
+
+# to be added, script showing for the effects of different drag methods and shapes on particle settling velicities and rate constants.
+
+```
