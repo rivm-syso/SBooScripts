@@ -61,11 +61,13 @@ source("vignettes/CaseStudies/PFAS_A2/plot.R")
 #Stof instellingen, handmatig 
 initiate <- function(substance_func, catchment, runtime=140) {
   
+  
   substances <- read.csv(here("data", "Substances.csv"))
+  Units <- read.csv(here("data", "Units.csv"))
   Substance_Compartment <- read.csv(here("data", "SubstanceCompartments.csv"))
   gekozen_stoffen = c("Perfluorobutane_sulfonic", "Perfluorobutanoic", 
                       "Perfluoropentanoic", "Perfluoroheptanoic", 
-                      "Perfluorooctanoic", "Trifluoroacetic")
+                      "Perfluorooctanoic", "Trifluoroacetic", "Perfluorohexanoic")
   #substances <- filter(substances, Substance %in% gekozen_stoffen)
   
   substance <- substance_func
@@ -149,7 +151,7 @@ print(World$fetchData("Area"))
 
 stoffen <- c("Perfluorobutane_sulfonic", "Perfluorobutanoic", 
                       "Perfluoropentanoic", "Perfluoroheptanoic", 
-                      "Perfluorooctanoic", "Trifluoroacetic")
+                      "Perfluorooctanoic", "Trifluoroacetic", "Perfluorohexanoic")
 jaren = data.frame(PFAS = stoffen,
                    verwijdering_concentratie_99 = 0,
                    verwijdering_concentratie_95 = 0,
@@ -197,7 +199,7 @@ World$PlotConcentration()
 ```
 
 
-> jaren
+> jaren (oude stofeigenschappen)
                       PFAS verwijdering_concentratie_99 verwijdering_concentratie_95 verwijdering_concentratie_50 verwijdering_concentratie_75
 1 Perfluorobutane_sulfonic                           34                           20                            2                            6
 2        Perfluorobutanoic                           35                           21                            2                            7
@@ -206,6 +208,16 @@ World$PlotConcentration()
 5        Perfluorooctanoic                           35                           21                            2                            7
 6          Trifluoroacetic                           28                           17                            2                            5
 
+
+> jaren (Nieuwe stofeigenschappen)
+                      PFAS verwijdering_concentratie_99 verwijdering_concentratie_95 verwijdering_concentratie_50 verwijdering_concentratie_75
+1 Perfluorobutane_sulfonic                           35                           21                            2                            7
+2        Perfluorobutanoic                           26                           16                            2                            5
+3       Perfluoropentanoic                           33                           20                            2                            7
+4       Perfluoroheptanoic                           35                           21                            2                            7
+5        Perfluorooctanoic                           35                           21                            2                            7
+6          Trifluoroacetic                            6                            3                            1                            1
+7        Perfluorohexanoic                            0                            0                            0                            0
 
 ##Solven
 ``` {r Solve}

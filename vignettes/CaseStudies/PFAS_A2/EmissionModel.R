@@ -2,6 +2,7 @@
 library(ggplot2)
 library(reshape2)
 library(readxl)
+
 emission_fun <- function  (plot=FALSE, runtime=140, Wereldwijd=TRUE, scenario ='simple1') {
   make_emission_df <- function(emis, time_steps, location, scale) {
     areas = World$fetchData("TotalArea")
@@ -71,6 +72,7 @@ emission_fun <- function  (plot=FALSE, runtime=140, Wereldwijd=TRUE, scenario ='
   print("Emissie PFOA berekenen a.h.v. POPE model....")
   Rhine <- st_read("/rivm/biogrid/quikj/PFAS_A2/GIS/Rhine.shp")
   Meuse <- st_read("/rivm/biogrid/quikj/PFAS_A2/GIS/Meuse.shp")
+  Nederland <- st_read("/rivm/biogrid/quikj/PFAS_A2/GIS/landgrenzen.shp")
   Europe <- st_read("/rivm/biogrid/quikj/PFAS_A2/GIS/europa_bereik_2.shp")
   nc <- nc_open("/rivm/biogrid/quikj/PFAS_A2/Emissions/POPE_Glb_0.5x0.5_anthro_PFOA_v1_yearly.nc")
   emissies_jm <- read_excel("/rivm/biogrid/quikj/PFAS_A2/Emissions/A_emission_phase_out_2003_scenario_20240321.xlsx", sheet = 'total emission_plat')
