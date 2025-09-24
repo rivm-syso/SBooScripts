@@ -65,8 +65,8 @@ library(tidyverse)
 
 InstallSBoo(Release_SBoo = NA, # tag for release use NA for branch
             Release_SBooScripts = NA, # tag for release use NA for branch
-            devBranch_SBoo = "Runoff_update_clean",
-            devBranch_SBooScripts = "Runoff_MPinterception",
+            devBranch_SBoo = "development",
+            devBranch_SBooScripts = "development",
             Temp_Folder = NULL # an existing folder where SimpleBox is to be installed
 )
 
@@ -212,7 +212,7 @@ for(i in unique(all_diffs$Substance)){
     ) +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 1), 
-      panel.grid.major = element_line(size = 0.2, color = "gray90"),  
+      panel.grid.major = element_line(linewidth = 0.2, color = "gray90"),  
       panel.background = element_blank() 
     )
   
@@ -242,6 +242,9 @@ for(i in unique(all_diffs$Substance)){
 on particle settling velicities and rate constants.
 
 ```{r}
+
+rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
+source("baseScripts/initWorld.R")
 
 # to be added, script showing for the effects of different drag methods and shapes on particle settling velicities and rate constants.
 
