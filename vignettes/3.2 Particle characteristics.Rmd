@@ -118,7 +118,7 @@ The settling velocity is computed though the following functions:
     The inputs (Sphericity, etc.) are calculated in v_SettlingVelocity.R
 
 -   f_SetVelSolver: The settling velocity (vs) depends on the reynolds number (Re) and the drag coefficient.
-    However, Re itself depends on the settling veloicity, therefore this solver function is needed to solve for the settling velocity, which solves for vs until it converges.
+    However, Re itself depends on the settling velocity, therefore this solver function is needed to solve for the settling velocity, which solves for vs until it converges.
 
 -   v_SettlingVelocity: Computes the inputs needed (described above) to solve for the settling velocity in air and water.
 
