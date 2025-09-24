@@ -3,11 +3,8 @@ library(openxlsx)
 setwd("~/Documents/GitHub/SBooScripts")
 # Read csvs
 plastic_values <- read.xlsx("vignettes/CaseData/FateFactorsUpdate/SI_3_Fate.xlsx", sheet = "Polymer_list") 
-
 regions <- read.xlsx("vignettes/CaseData/FateFactorsUpdate/SI_3_Fate.xlsx", sheet = "4.1.Regio_param") 
-
 colnames(regions) <- regions[2,]
-
 regions_rows = nrow(regions)
 #Import the data with regionalization. Some variables are left as the default input of SBoo
 #If no variable is provided in the regio sheet, the default value is kept
@@ -94,8 +91,6 @@ tot_num_species_fresh = 150000
 tot_num_species_terr = 1600000
 list_tot_species = c(tot_num_species_marine, tot_num_species_fresh, tot_num_species_terr)
 ####
-
-
 
 
 # Get the names and abbreviations of all compartments
