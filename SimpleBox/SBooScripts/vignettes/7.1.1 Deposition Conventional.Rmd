@@ -1,0 +1,111 @@
+---
+title: "7.1.1. Molecular Deposition Processes"
+author: "Joris Quick, Valerie de Rijk"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+###Deposition processes for Molecules
+
+The intermedia transfer processes are related to transport from air to soil/water and from water to sediment, and vice versa. It also includes transport from soil to water.
+
+Another vignette describes the flows related to diffusion processes (OtherkAir) and other intermedia transfer coefficients (OtherInterMedia.Rmd). Here we describe the implementation of the Deposition process from air to soil and water for the molecular species.
+
+#### Deposition
+Once again, we initialize the World object before any calculations.
+```{r initiate, message=FALSE, warning=FALSE}
+source("baseScripts/initWorld_onlyMolec.R")
+```
+
+#### Variables needed
+
+Calculation of deposition for molecular substances differs from calculating deposition of substances that are (part of) particles. This description focusses on the molecular process which is more elaborate. In SimpleBox 4.0, dry and wet deposition occurs through dry aerosol 
+deposition, and through wet aerosol and gas washout; mass-flows are 
+derived by means of the approach described by Jolliet and Hauschild 
+(2006). 
+
+The deposition pattern consists of dry and wet periods of dry and wet 
+deposition, respectively. The dry deposition contains dry deposition from 
+the aerosol phase of the air and gas absorption from the air to the soil 
+and water compartment.The wet deposition contains chemical washout from the aerosol and gas 
+phase of the air, and from gas absorption from the air to the soil and 
+water compartments.
+
+
+First we try to see of all variables are available for calculating the deposition rate constant:
+
+```{r MEAN deposition, echo=TRUE}
+
+World$fetchData("FRingas")
+World$fetchData("WINDspeed")
+World$fetchData("VertDistance")
+World$fetchData("twet")
+World$fetchData("tdry")
+World$fetchData("COLLECTeff")
+World$fetchData("AEROSOLdeprate")
+World$fetchData("Kacompw")
+World$fetchData("FRorig")
+World$fetchData("SpeciesName")
+
+World$fetchData("RAINrate")
+
+World$fetchData("Area")
+
+World$fetchData("Kaers")
+World$fetchData("Kaerw")
+World$fetchData("FRACa")
+World$fetchData("FRACw")
+World$fetchData("FRACs")
+
+World$fetchData("FRinaerw")
+World$fetchData("FRinaers")
+
+```
+
+To calculate molecular deposition, the other processes describing fluxes that leave the air box are part of the calculation. This demands a different procedure to the other functions used to calculate k's. Here we create a variable named 'OtherkAir'. This will be further dived into in vignette 7.2 OtherKair.
+```{r}
+kaas <- World$kaas 
+
+# To see the K's:
+
+
+OnlyMolecular <- kaas$fromSpecies == "Unbound"
+OnlyCalculated <- kaas$process != "LoadKaas" #LoadKaas results from a testing module (MPClassicNano) that reads in the rate constants (k's) from SBxlsx.
+
+kaas |> filter(fromSpecies == "Unbound" & fromSubCompart == "air")
+
+data.frame(Scale = kaas$fromScale[kaas$fromSubCompart == "air" & OnlyMolecular & OnlyCalculated],
+Species = kaas$fromSpecies[kaas$fromSubCompart == "air" & OnlyMolecular & OnlyCalculated],
+OtherkAir = kaas$k[kaas$fromSubCompart == "air" & OnlyMolecular & OnlyCalculated])
+
+testtm <- World$NewCalcVariable("OtherkAir")
+#testtm$execute()
+World$CalcVar("OtherkAir")
+
+
+
+```
+
+Now the deposition rate constants for molecular substances can also be calculated.
+
+```{r}
+
+testClass <- World$NewProcess("k_Deposition")
+testClass$execute()
+
+
+World$FromDataAndTo(processName = "k_Deposition")
+
+
+testClass$execute()
+```
+

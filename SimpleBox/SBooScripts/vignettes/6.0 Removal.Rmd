@@ -1,0 +1,130 @@
+---
+title: "6 Removal processes"
+author: "Jaap Slootweg, Joris Quik"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+### Removal processes
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+Here we describe the fate processess that are implemented for removal for a compartment:
+
+1.  \- Degradation
+
+2.  \- Leaching
+
+3.  \- Burial
+
+4.  \- Escape from air to stratosphere (k_Escape)
+
+```{r preparation, message=FALSE, warning=FALSE}
+#First, we initialize the world object
+source("baseScripts/initWorld_onlyMolec.R")
+```
+
+#### 6.1 Degradation
+
+-   v_Tempfactor is used to correct the generic degradation rate constants either from data (measured) or calculated for the temperature and other factors differentiating the different compartments or scales. For this
+
+-   Q.10 is required for calculating the temperature related conversion of the measured or calculated kdeg per compartment. Q.10 is added as a constant.
+
+-   The concentration bacteria in the test (BACTtest) and the water compartment (BACTcomp) needs to be given. BACTcomp is added to SpeciesCompartments.csv
+
+```{r v_Tempfactor}
+        World$fetchData("Temp")
+        World$fetchData("Q.10")
+        World$fetchData("Q.10")
+        World$fetchData("Ea.OHrad")
+
+        World$NewCalcVariable("Tempfactor")
+        World$CalcVar("Tempfactor")
+```
+
+k_Deg is either measured or estimated.Measurement dependant on rate constants measured under standard conditions for air, soil, water and sediment. It is estimated based on (European Commission, 2003a). Following section 3.3.12 of report 2015-0161. See Schoorl et al. (2015) for additional details.
+
+```{r v_KdegDorC}
+
+World$fetchData("C.OHrad.n")
+World$fetchData("C.OHrad")
+World$fetchData("k0.OHrad")
+
+
+World$fetchData("BACTcomp")
+World$fetchData("BACTtest")
+World$fetchData("rhoMatrix")
+World$fetchData("kdeg")
+
+
+World$NewCalcVariable("KdegDorC")
+World$CalcVar("KdegDorC")
+
+```
+
+Then the final k_Degradation is calculated based on v_DegDorC and v_Tempfactor. The correction factor is currently only implemented for the molecular species. These v_Deg's are (or can be) corrected for temperature and bacteria concentrations. For particulate species such corrections are not yet available/implemented.
+
+In comparison with the xlsx version of SimpleBox, the measured degradation rate constants are not input in the substance database, but in the subcompartment and substance database (SubCompartSpeciesData).
+
+```{r k_Degradation}
+
+World$FromDataAndTo("k_Degradation")
+
+testClass <- World$NewProcess("k_Degradation")
+testClass$execute()
+
+
+```
+
+k_Degradation is now calculated correctly, but further testing is neededn. E.g. when kdeg needs to be calculated.
+
+#### 6.2 Burial
+
+Burial is the process by which chemicals are buried in sediment, e.g. they are not part of the top layer of sediment considered in SimpleBox.
+
+Burial is implemented based on the NETsedrate which is an input parameter in data (ScaleSubComprtData.csv)
+
+```{r Burial}
+World$fetchData("NETsedrate")
+
+TestProcess <- World$NewProcess("k_Burial")
+World$FromDataAndTo("k_Burial")
+TestProcess$execute() 
+
+```
+
+#### 6.3 Leaching
+
+The removal from soil is caused by temperature dependent degradation 
+in sediment and leaching of the chemical from the soil into ground 
+water. Leaching is modelled in the following manner. It is dependent on a correction factor for depth dependent-soil concentration, Rain rate and the soil water partioning coefficient. 
+
+```{r Leaching}
+#the function to correct for depth-dependendent soil concentration 
+f_CORRsoil
+World$fetchData("Kscompw")
+
+#calculation of kaas is by executing a process
+testClass <- World$NewProcess("k_Leaching")
+World$FromDataAndTo("k_Leaching")
+testClass$execute()
+
+```
+
+#### 6.4 Escape
+
+t_half_Escape is added as constant. A 60 year half life (in seconds) is used in SB4 to calculate the rate constant for escape of chemicals from air to the stratosphere. 
+
+```{r k_Escape}
+World$fetchData("t_half_Escape")
+testClass <- World$NewProcess("k_Escape")
+testClass$execute()
+
+```

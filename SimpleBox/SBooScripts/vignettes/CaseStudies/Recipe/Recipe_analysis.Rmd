@@ -1,0 +1,333 @@
+---
+title: "Recipe data analysis"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(scales)
+```
+
+# Steadystate fate factors
+
+## Make batch files for steadystate fate factors
+Calculating the steadystate masses for 1000 runs per polymer takes a lot of time.
+The script 01_Write_batch_files_SS.R was written to make one batch file per polymer,
+so that the fate factors for the polymers can be calculated in parallel. The chunk
+below shows how to make these batch files. 
+
+```{r Steadystate batch files}
+source("vignettes/CaseStudies/Recipe/01_Write_batch_files_SS.R")
+```
+
+The files are created in the folder "vignettes/CaseStudies/Recipe/BatchFilesRecipe". 
+All files can be run in the background in RStudio, or on a high performance cluster 
+using the commands written to the script HPC_commands.txt.
+
+## Load output data
+```{r Load output data, warning=FALSE, message=FALSE}
+folderpath <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/FF_SS"
+
+filepaths <- list.files(folderpath)
+
+RData_files <- filepaths[endsWith(filepaths, '.RData')]
+
+SS_masses_continental <- tibble()
+
+for(file in RData_files){
+  load(paste0(folderpath, "/", file))
+  
+  SS_masses_allScale <- Output |> 
+    unnest(SBoutput) |> 
+    mutate(OutputType = names(SBoutput)) |> 
+    rename(EmisScale = Scale) |> 
+    filter(OutputType == "SteadyStateMass") |> 
+    unnest(SBoutput) |> 
+    filter(Species != "Unbound") |> 
+    ungroup() |> 
+    group_by(Polymer, EmisComp, EmisScale, RUN, Scale, SubCompart, Unit) |> 
+    summarise(EqMass_SAP = sum(EqMass)) 
+  
+  SS_masses_continental_pol <- SS_masses_allScale |> 
+  filter(EmisScale == "Continental" & (Scale == c("Regional")|Scale == c("Continental"))) |> 
+  ungroup() |> 
+  group_by(Polymer, EmisComp, EmisScale, RUN, SubCompart, Unit) |> 
+  summarise(EqMass_SAP = sum(EqMass_SAP)) |>  # sum nested regional mass and rest of EU mass
+  mutate(
+    CompartmentFF = case_when(
+      SubCompart == "agriculturalsoil" ~ "agriculturalSoil",
+      SubCompart == "naturalsoil" ~ "naturalSoil",
+      SubCompart == "othersoil" ~ "otherSoil",
+      SubCompart == "cloudwater" ~ "air",
+      SubCompart == "lake" ~ "freshwater",
+      SubCompart == "river" ~ "freshwater",
+      SubCompart == "lakesediment" ~ "freshwatersediment",
+      TRUE ~ SubCompart)) |> 
+    ungroup() |>
+    group_by(Polymer, EmisComp, EmisScale, RUN, CompartmentFF, Unit) |>
+    summarise(EqMass_SAP = sum(EqMass_SAP)) |>
+    ungroup() |>
+  mutate(Unit = "kg[ss]/kg[e] seconds")
+  
+  SS_masses_continental <- bind_rows(SS_masses_continental, SS_masses_continental_pol)
+}
+
+rm(SS_masses_allScale, SS_masses_continental_pol)
+```
+
+### Clean up data
+
+TO DO: There are still a lot of very small values in the boxplots. Maybe there
+should be more cleanup before making the plots.. 
+
+Not all runs are successful due to the sensitivity of the solver. To remove the
+values from unsuccessful runs, we will remove all values that are larger than 
+the 95th percentile, or smaller than the 5th percentile.
+
+```{r Clean up output, warning=FALSE, message=FALSE}
+SS_masses_clean <- SS_masses_continental |>
+  group_by(Polymer, CompartmentFF, EmisComp) |>
+  mutate(
+    p05 = quantile(EqMass_SAP, 0.05, na.rm = TRUE),
+    p95 = quantile(EqMass_SAP, 0.95, na.rm = TRUE)
+  ) |>
+  filter(EqMass_SAP >= p05 & EqMass_SAP <= p95) |>
+  select(-p05, -p95) |> 
+  ungroup()
+
+rm(SS_masses_continental)
+```
+
+```{r Make table, warning=FALSE, message=FALSE}
+output_table_percentiles <- SS_masses_clean |>
+  group_by(Polymer,CompartmentFF,EmisComp) |> 
+  summarise(FF_SteadyState_avg = mean(EqMass_SAP),
+            FF_SteadyState_std = sd(EqMass_SAP),
+            FF_SteadyState_p95 = quantile(EqMass_SAP, 0.95),
+            FF_SteadyState_p75 = quantile(EqMass_SAP, 0.75),            
+            FF_SteadyState_p25 = quantile(EqMass_SAP, 0.25),
+            FF_SteadyState_p05 = quantile(EqMass_SAP, 0.05))
+
+output_table_average <- output_table_percentiles |>
+  pivot_wider(
+    id_cols = c(Polymer,  EmisComp),
+    names_from = CompartmentFF,
+    values_from = FF_Dynamic_avg
+  )
+
+knitr::kable(output_table_average)
+
+write.xlsx(output_table_average, "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/FF_output_table_average_SS.xlsx")
+write.xlsx(output_table_percentiles, "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/FF_output_table_percentiles_SS.xlsx")
+```
+
+```{r Make figures, warning=FALSE, message=FALSE}
+plot_theme <-  theme(
+  axis.title.x = element_text(size = 30),    
+  axis.title.y = element_text(size = 30),    
+  axis.text.x = element_text(size = 28, angle = 45, hjust = 1),     
+  axis.text.y = element_text(size = 28),
+  legend.text = element_text(size = 28),
+  title = element_text(size=30),
+  strip.text = element_text(size = 20))
+
+figurefolder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/Figures/"
+
+for(pol in unique(SS_masses_clean$Polymer)){
+  plot_data <- SS_masses_clean |>
+    filter(Polymer == pol) |>
+    filter(!is.na(EqMass_SAP)) 
+  
+  facetplot <- ggplot(plot_data, aes(y=EqMass_SAP, x=CompartmentFF, fill=CompartmentFF))+
+    geom_boxplot(outlier.colour="black", outlier.shape=16,
+             outlier.size=1, notch=FALSE)+
+      scale_y_log10(
+    breaks = scales::trans_breaks("log10", function(x) 10^x, n = 10),
+    labels = scales::trans_format("log10", scales::math_format(10^.x))
+  ) +
+    facet_wrap(~EmisComp) +
+  theme_bw() +
+  labs(title = pol,
+       y = paste0("Fate factor ", unique(plot_data$Unit)),
+       x = "") +
+  scale_fill_discrete() +
+  plot_theme +
+  theme(legend.position = "none")
+  
+  print(facetplot)
+
+  ggsave(paste0(figurefolder, "FF_facetplot_SS_", pol, ".png"), plot=facetplot, width = 25, height = 15, dpi = 1000)
+}
+```
+
+### Clear the environment and initialize a new environment for dynamic fate factor calculations
+
+```{r Clear environment}
+rm(list=ls())
+```
+
+```{r Initialize new environment}
+library(tidyverse)
+library(scales)
+source("basescripts/initWorld_onlyParticulate.R")
+```
+
+# Dynamic fate factors
+
+## Make batch files for dynamic fate factors
+We can also calculate fate factors from dynamic masses. The goal is to calculate
+fate factors after 20 and 100 years of emissions. The script below is used to 
+create batch files for dynamic fate factors. 
+
+```{r Dynamic batch files}
+source("vignettes/CaseStudies/Recipe/03_Write_batch_files_Dyn.R")
+```
+
+## Load output data
+```{r Load output data, warning=FALSE, message=FALSE}
+folderpath <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/FF_Dyn"
+
+filepaths <- list.files(folderpath)
+
+RData_files <- filepaths[endsWith(filepaths, '.RData')]
+
+Dyn_masses_continental <- tibble()
+
+states <- World$states$asDataFrame
+
+years <- c(20, 100)
+
+for(file in RData_files){
+  load(paste0(folderpath, "/", file))
+  
+  Dyn_masses_allScale <- Output |> 
+    unnest(SBoutput) |> 
+    mutate(OutputType = names(SBoutput)) |> 
+    rename(EmisScale = Scale) |> 
+    filter(OutputType == "DynamicMass") |> 
+    unnest(SBoutput) |> 
+    filter(time %in% years) |>
+    select(-OutputType) |>
+    pivot_longer(!c(EmisComp, Polymer, time, RUN, EmisScale), values_to = "EqMass", names_to = "Abbr") |>
+    rename(Year = time) |>
+    left_join(states, by="Abbr")|>
+    filter(Species != "Unbound") |> 
+    ungroup() |> 
+    mutate(Unit ="kg") |>
+    group_by(Polymer, EmisComp, EmisScale, RUN, Scale, SubCompart, Unit, Year) |> 
+    summarise(EqMass_SAP = sum(EqMass)) 
+  
+  Dyn_masses_continental_pol <- Dyn_masses_allScale |> 
+  filter(EmisScale == "Continental" & (Scale == c("Regional")|Scale == c("Continental"))) |> 
+  ungroup() |> 
+  group_by(Polymer, EmisComp, EmisScale, RUN, SubCompart, Unit, Year) |> 
+  summarise(EqMass_SAP = sum(EqMass_SAP)) |>  # sum nested regional mass and rest of EU mass
+  mutate(
+    CompartmentFF = case_when(
+      SubCompart == "agriculturalsoil" ~ "agriculturalSoil",
+      SubCompart == "naturalsoil" ~ "naturalSoil",
+      SubCompart == "othersoil" ~ "otherSoil",
+      SubCompart == "cloudwater" ~ "air",
+      SubCompart == "lake" ~ "freshwater",
+      SubCompart == "river" ~ "freshwater",
+      SubCompart == "lakesediment" ~ "freshwatersediment",
+      TRUE ~ SubCompart)) |> 
+    ungroup() |>
+    group_by(Polymer, EmisComp, EmisScale, RUN, CompartmentFF, Unit, Year) |>
+    summarise(EqMass_SAP = sum(EqMass_SAP)) |>
+    ungroup() |>
+  mutate(Unit = "kg[dyn]/kg[e] seconds")
+  
+  Dyn_masses_continental <- bind_rows(Dyn_masses_continental, Dyn_masses_continental_pol)
+}
+
+rm(Dyn_masses_allScale, Dyn_masses_continental_pol)
+```
+
+### Clean up data
+
+Not all runs are successful due to the sensitivity of the solver. To remove the
+values from unsuccessful runs, we will remove all values that are larger than  
+the 95th percentile, or smaller than the 5th percentile.
+
+```{r Clean up output, warning=FALSE, message=FALSE}
+Dyn_masses_clean <- Dyn_masses_continental |>
+  group_by(Polymer, CompartmentFF, EmisComp, Year) |>
+  mutate(
+    p05 = quantile(EqMass_SAP, 0.05, na.rm = TRUE),
+    p95 = quantile(EqMass_SAP, 0.95, na.rm = TRUE)
+  ) |>
+  filter(EqMass_SAP >= p05 & EqMass_SAP <= p95) |>
+  select(-p05, -p95) |> 
+  ungroup()
+
+rm(Dyn_masses_continental)
+```
+
+```{r Make table, warning=FALSE, message=FALSE}
+output_table_percentiles <- Dyn_masses_clean |>
+  group_by(Polymer,CompartmentFF,EmisComp, Year) |> 
+  summarise(FF_Dynamic_avg = mean(EqMass_SAP),
+            FF_Dynamic_std = sd(EqMass_SAP),
+            FF_Dynamic_p95 = quantile(EqMass_SAP, 0.95),
+            FF_Dynamic_p75 = quantile(EqMass_SAP, 0.75),            
+            FF_Dynamic_p25 = quantile(EqMass_SAP, 0.25),
+            FF_Dynamic_p05 = quantile(EqMass_SAP, 0.05))
+
+output_table_average <- output_table_percentiles |>
+  pivot_wider(
+    id_cols = c(Polymer,  EmisComp, Year),
+    names_from = CompartmentFF,
+    values_from = FF_Dynamic_avg
+  )
+
+knitr::kable(output_table_average)
+
+write.xlsx(output_table_average, "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/FF_output_table_average_Dyn.xlsx")
+write.xlsx(output_table_percentiles, "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/FF_output_table_percentiles_Dyn.xlsx")
+```
+
+```{r Make figures, warning=FALSE, message=FALSE}
+plot_theme <-  theme(
+  axis.title.x = element_text(size = 30),    
+  axis.title.y = element_text(size = 30),    
+  axis.text.x = element_text(size = 28, angle = 45, hjust = 1),     
+  axis.text.y = element_text(size = 28),
+  legend.text = element_text(size = 28),
+  title = element_text(size=30),
+  strip.text = element_text(size = 20))
+
+figurefolder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Recipe/Figures/"
+
+for(pol in unique(Dyn_masses_clean$Polymer)){
+  for(year in unique(Dyn_masses_clean$Year)){
+      plot_data <- Dyn_masses_clean |>
+      filter(Polymer == pol) |>
+      filter(!is.na(EqMass_SAP)) |>
+      filter(Year == year)
+    
+    facetplot <- ggplot(plot_data, aes(y=EqMass_SAP, x=CompartmentFF, fill=CompartmentFF))+
+      geom_boxplot(outlier.colour="black", outlier.shape=16,
+         outlier.size=1, notch=FALSE)+
+        scale_y_log10(
+      breaks = scales::trans_breaks("log10", function(x) 10^x, n = 10),
+      labels = scales::trans_format("log10", scales::math_format(10^.x))
+    ) +
+      facet_wrap(~EmisComp) +
+    theme_bw() +
+    labs(title = paste0(pol, ", year ", year),
+         y = paste0("Fate factor ", unique(plot_data$Unit)),
+         x = "") +
+    scale_fill_discrete() +
+    plot_theme +
+    theme(legend.position = "none")
+    
+    print(facetplot)
+  
+    ggsave(paste0(figurefolder, "FF_facetplot_Dyn_year_", year, "_", pol, ".png"), plot=facetplot, width = 25, height = 15, dpi = 1000)
+  }
+}
+```

@@ -1,0 +1,14 @@
+Package: sboo
+Title: Simple Box, the Object Oriented version
+Version: 0.2
+Authors@R: person("Jaap", "Slootweg", email = "jaap.slootweg@rivm.nl",
+                  role = c("aut", "cre"))
+Description: R6 objects and usage thereof to stream the work with simplebox
+Depends: R (>= 4.0)
+License: rivm
+LazyData: TRUE
+RoxygenNote: 7.3.2
+Config/testthat/edition: 3
+Imports: 
+    constants,
+    R6

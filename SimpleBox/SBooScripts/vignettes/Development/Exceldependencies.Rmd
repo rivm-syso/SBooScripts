@@ -1,0 +1,100 @@
+---
+title: "Excel Dependencies"
+author: "Jaap Slootweg, Valerie de Rijk"
+date: "`r Sys.Date()`"
+output: github_document
+header-includes:
+  - \usepackage{tikz}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if (!file.exists("baseScripts/fakeLib.R")){
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+}
+```
+
+## Trace precedents / dependancies
+This vignette is not necessarily related to the SBoo implementation in R, but rather gives insight in dependencies in Excel (on which this is based). This vignette creates a Directed Graph from formulas in excel. It demonstrates the further use of the ClassicNanoProcess, especially the methods Excelgrep, Exceldependencies and Exceltrace, in combination with igraph. The end result is a plotted graph which gives you inside in the coherence of the waterflows and the related exchange-rates.
+
+First we initialise a landscape "World", and grab cells with names containing "flow" or "Ocean", and their contents
+```{r startWorld, warning = FALSE}
+#script to initialize test environment faking library(sboo)
+source("baseScripts/fakeLib.R", verbose = F) #TODO silence the source
+NewstateModule <- ClassicNanoWorld$new("data", "Ag(I)")
+#with this data we create an instance of the central "core" object,
+World <- SBcore$new(NewstateModule)
+#reading data from the excel version(s) resembles the process class 
+ClassicClass <- ClassicNanoProcess$new(TheCore = World, filename = "data/SimpleBox4.01_20211028.xlsm")
+World$UpdateKaas(ClassicClass)
+
+```
+We use the Excelgrep method to extract the cells with names like flow or ocean. The Scale and Subcompart columns are based on the naming convention in the SB excel versions
+```{r}
+flows <- ClassicClass$Excelgrep("flow|Ocean")
+flows[,c("Scale","Scale.1","SubCompart","SubCompart.1","varName", "FormValue")]
+```
+
+## Track and Trace
+We back-track the dependencies of these cells, but we limit the tracking-depth (maxDepth) to avoid cluttering of the graph. To filter the data to our needs, we convert the graph temporarily to a data.frame.
+
+```{r dependanciesTrace, echo=FALSE, include = FALSE}
+All2Nodes <- ClassicClass$Exceldependencies(flows$varName, maxDepth = 2)
+asDF <- igraph::as_data_frame(All2Nodes)  #as.data.frame(All2Nodes)
+asDF <- asDF[grep("flow|TAU|Ocean", asDF$from) ,]
+```
+
+## Concatenate another selection
+To complete the graph we have to add a "layer" to the other side: the trace of the cell. The unique function makes sure there are no double edges between the original graph and the novel part.
+Further information can be added to graph by colors. In this case I'm focussing on the scales Continental (trailing C in the name) and Regional (trailing R). I also substituted the SubCompartment codes to more verbose ones.
+```{r Concatenate, echo=FALSE}
+#The include = FALSE is the only way I can get rid of the igraph verbosity
+k_part <- ClassicClass$Exceltrace(asDF$to, maxDepth = 2)
+k_part <- igraph::as_data_frame(k_part)  
+fromAndTo <- unique(rbind(asDF, k_part))
+#If you are dazzled by the subcompartment abbreviations, you can search and replace them..
+fromAndTo$from <- gsub("w0", "lake", fromAndTo$from)
+fromAndTo$from <- gsub("w1", "river", fromAndTo$from)
+fromAndTo$from <- gsub("w2", "sea", fromAndTo$from)
+fromAndTo$from <- gsub("w3", "dpOcean", fromAndTo$from)
+fromAndTo$to <- gsub("w0", "lake", fromAndTo$to)
+fromAndTo$to <- gsub("w1", "river", fromAndTo$to)
+fromAndTo$to <- gsub("w2", "sea", fromAndTo$to)
+fromAndTo$to <- gsub("w3", "dpOcean", fromAndTo$to)
+TheGraph <- igraph::graph_from_data_frame(fromAndTo)
+vertices <- names(igraph::V(TheGraph))
+vertLastChar <- substr(vertices, start = nchar(vertices), stop = nchar(vertices))
+Vcolor <- sapply(vertLastChar, switch,
+            "C" = "brown",
+            "R" = "darkgreen",
+            "grey") #else
+
+igraph::V(TheGraph)[]$color <- Vcolor
+
+
+# Plot the graph with larger figure size and no overlapping nodes
+par(mar = c(0, 0, 0, 0)) # Set margins to zero
+plot(TheGraph, 
+     vertex.label = igraph::V(TheGraph)$name, 
+     vertex.size = 20, 
+     vertex.label.cex = 0.8, 
+     vertex.label.dist = 1.5, 
+     edge.arrow.size = 0.5, 
+     edge.width = 1.5,
+     layout = igraph::layout_with_fr(TheGraph)) # Use Fruchterman-Reingold layout for better spacing
+```
+
+
+## The logic of rain-induced  regional / continental waterflows.
+The next step is to find the formulas with this graph. From the graph we extract the order of the calculation. We exclude flows between sea and deepocean. The combination of the ordered list and the formula's / values from the flows data.frame is:
+```{r corder}
+#flows[flows$Scale %in% c("Regional", "Continental") | flows$Scale.1 %in% c("Regional", "Continental"), c("Scale","Scale.1","SubCompart","SubCompart.1","varName")]
+corder <- match(c("WATERflow.w1C.w2C", "WATERflow.w0C.w1C", "WATERflow.w1C.w1R", "WATERflow.w1R.w2R", "WATERflow.w2C.w2R", "WATERflow.w2R.w2C", "WATERflow.w0R.w1R", "WATERflow.w0R.w1R"),
+                flows$varName)
+rownames(flows) <- flows$varName
+flows[corder, c("FormValue", "varName")]
+```
+## R implementation
+The runoff from soils and the direct rainfall on w1 (rivers = "freshwater") are available from the flux x_RunOff and the variable "RainOnRiver". There are also two fractions controlling the flux from Continental rivers to Regional, and vice versa: FRAC.w1C.w1R and FRAC.w1R.w1C. Use these if you clipping of Regional out of Continental is not 100% consistent with the catchments. FRAC.w1R.w1C is a landscape setting, 0.0 for the Default and EUSES scenarios. FRAC.w1C.w1R is also a landscape scenario set to 0 for Default, but 3.4 % for EUSES. The outflow of continental river to the sea is the rain-originating input, excluding the fraction to Regional river. The outflow from the lake to the river is 10% from the outflow of the river to the sea. (It is unclear where the lake water comes from. See vignette 5.4 Advection in the vignettes folder for additional details. 
+

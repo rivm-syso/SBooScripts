@@ -1,0 +1,57 @@
+---
+author: "Valerie de Rijk "
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+### 3.1 Molecular Characteristics
+
+#### Properties of molecules
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+Properties related to the substance directly are all contained in csv files that serve as the input data for SimpleBox. These can be accessed after initializing the SimpleBox world. Each property is accessed by a key, which is dependent on the amount of detail that is required for the property of the substance (e.g. a property that is dependent on both the SubCompartment and the Scale would need both of these keys to be accessesed). First, let's initialize the World object:
+
+```{r initiate, echo=TRUE, message=FALSE, warning=FALSE}
+#we choose a random molecule to initialize the world 
+substance <- "1-aminoanthraquinone" 
+#different worlds exist representing the processes for molecules, particulates and plastics. In this instance we create a world for molecules. 
+source("baseScripts/initWorld_onlyMolec.R")
+```
+
+All substance data, as mentioned before, is saved in csv files. An example of this is the substances csv, where global substance-specific data is located. Here, we filter on a specifical Chemical Class (*Acid*)
+
+```{r CSV fileas}
+read_csv("data/Substances.csv") |> filter(ChemClass == "Acid") 
+```
+
+#### Accessing properties
+Properties of the substance (and the world) that are constants (or calculated as a variable) can be accessed by the command World$fetchData(). An example is given below for some molecular properties. 
+
+```{r Accessing molecular details}
+# First, we check a world property, namely the amount of rainwater that becomes runoff
+FracRun <- World$fetchData("FRACrun")
+print(paste("Frac run is:", FracRun))
+#Next, we choose a parameter that is molecule specific, namely the partitioning coefficient Kow
+Kow <- World$fetchData("Kow")
+print(Kow)
+
+```
+
+#### Accessing calculated variables 
+As mentioned before you can also access calculated variables (as long as they're not functions). An example here is given: 
+
+```{r Accessing other variables}
+## We choose settling velocity as an example 
+
+SettlingVelocity <- World$fetchData("SettlVelocitywater")
+print(SettlingVelocity)
+
+```

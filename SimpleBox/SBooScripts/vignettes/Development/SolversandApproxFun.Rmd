@@ -1,0 +1,187 @@
+---
+title: "Solvers and Approxfun"
+author: "Valerie de Rijk"
+date: "`r Sys.Date()`"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+options(dplyr.summarise.inform=FALSE)
+knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 8)
+```
+
+# Different ways of solving
+
+SimpleBox offers various solving techniques tailored to different scenarios, currently categorized into two core types:
+
+i) Steady-State
+ii) Dynamic
+
+Each strategy provides unique possibilities for solving problems. In this vignette, we will explore the use of these techniques and highlight the differences between them.
+
+## Steady State Solving
+
+We will first demonstrate solving the system assuming steady state. This means we will obtain one output: the assumed equilibrium mass in each compartment. We first initialize the world, in this case for a molecular substance, after which we will create dummy input emission data. 
+
+```{r Initialize,include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+Potential_substances <- c("1-aminoanthraquinone", # no class
+                          "1-HYDROXYANTHRAQUINONE", # acid
+                          "1-Hexadecanamine, N,N-dimethyl-", # base
+                          "1-Chloro-2-nitro-propane", # neutral
+                          "Sb(III)" # metal
+                          ) 
+              
+substance <- Potential_substances[3]
+
+source("baseScripts/initWorld_onlyMolec.R")
+
+World$substance <- substance
+```
+
+For Steady State solving the emissions need to be provided in a dataframe consisting of two columns (**Abr** (for abbreviation of the compartment) and **Emis** (the *constant* emission to the compartment)). This dataframe cannot be time-dependent, as this goes against the principles for solving steady state. We will now create our dummy data. 
+
+The emissions are assumed to be going into the model as kg/s. In theory, you can choose any mass/s (like tonnes or mol) unit; what you put in is what you get out, as long as you are careful with unit conversions. However, since the rate constants within the model are within seconds, you should always adhere to the time unit of seconds. 
+
+```{r Steady State Emission data}
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(10, 10, 10) ) 
+```
+
+We provide two steady-state solvers: SB1Solve and SBsteady. 
+
+SB1Solve solves using base-R's [solve](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/solve) which solves our matrix through solving the equation a %*% x = b for x, where b is our matrix and we assume x = 0. 
+
+SBsteady takes a different approach and runs the system of first-order kinetics at the rates determined by the matrix of rate constants using rootSolve's [runsteady](https://www.rdocumentation.org/packages/rootSolve/versions/1.8.2.4/topics/runsteady). The function runs the simulation until the system reaches a steady state, where the amounts in each compartment no longer change over time.
+
+For non-extreme parameter values, we assume that these outputs are relatively similar, as can be seen below. 
+
+We initialize and solve for the two solvers in the following way: 
+
+```{r Steady State Solving, paged.print=TRUE}
+World$NewSolver("SB1Solve")
+SB1Solve_output <- World$Solve(emissions)
+World$NewSolver("SBsteady")
+SBsteady_output <- World$Solve(emissions)
+
+
+# Rename columns
+SB1Solve_output <- SB1Solve_output |>
+  rename(Eqmass_SB1Solve = EqMass)
+
+SBsteady_output <- SBsteady_output |>
+  rename(Eqmass_SBsteady = y)
+
+SB1Solve_output <- SB1Solve_output |>
+  mutate(Eqmass_SBsteady = SBsteady_output$Eqmass_SBsteady) 
+
+knitr::kable(SB1Solve_output)
+
+```
+
+
+## Dynamic solving 
+
+Multiple ways exist to solve the system dynamically. This means that, in addition to emission data per compartment, you have emission data per compartment and time. There's two main differences of solving this kind of input data: 
+
+i) Event-solving: With this type of solver you assume all the emission is emitted at once (per year or given timestep), effectively creating multiple point emissions
+
+ii) Approximation functions: This type of solver assumes continuous emissions, based on interpolation between data-points. This is deemed more realistic and recommended for normal use. You can choose to provide the emissions as a dataframe with time or to create these functions yourself. 
+
+Examples of both solvers are given in the following chunks: 
+
+### Dynamic Event Solving
+
+For this solver, it is important you do not divide the provided emissions per second (as it is only injected at one point in time). However, you should take care that the time-datapoints are expected in seconds. So, if your emission is assumed to be at 1 year, this should be timestep 1* 365.25 * 24 * 60  *60.  The required format of the dataframe is three columns:Abbr (for compartments), Emis (for emission pulse) and Timed (for timepoints). In the example below we have three emission points (100  tonnes in aRs at year 1, etc.)
+
+We solve the system for 4 years. As you can see, we obtain a dataframe with the mass per compartment for every timestep.There is only mass in the compartments as soon as the first emission point is reached. Unfortunately, a relational solution (such as for steady state), is hard to obtain here. As such, we use abbrevations of the compartments. 
+```{r i Event-solving}
+# Voorbeeld met dataframe
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU"), Emis = c(100, 100, 100), Timed = c(1, 2, 3) ) # convert 1 t/y to si units: kg/s
+
+
+emissions <- emissions |>
+  mutate(Emis = Emis*1000) |>           # Don't divide the emissions by seconds when using this solver!!
+  mutate(Timed = (Timed*(365*24*60*60)))
+
+World$NewSolver("EventSolver")
+
+EventSolved  <- World$Solve(emissions, needdebug = F, tmax = 4*365.25*24*3600, nTIMES = 20)
+knitr::kable(EventSolved)
+```
+
+### Dynamic Approxfun solving 
+
+As mentioned before, this solving strategy creates an approximation between known datapoints through interpolation. Two options exist here: providing a dataframe with datapoints (as for event-solving) and providing the approximation functions itself. We will first show the latter option. 
+
+The chunk below shows how to create an emission function yourself before using it to solve. A couple of noteworthy points: 
+
+- For each compartment, the emission data should contain at least two datapoints in order for the function to work. 
+- All data should be in mass/s (preferably kg/s) in order for it to produce wanted results.
+- Approximation function rule [2](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/approxfun) allows extrapolation, in that it will take the most extreme (left/right) values and continue this trend in the respective way. Rule 1 only allows for interpolation. If you do not want any extending of data that does not exist, you should ensure that the datapoints exceed the tmax of the system, else the system will not work. 
+- Other functions are also able to be implemented to the core, but its structure should be the same as the 'funlist' below.
+
+Once again, we run the model for 4 years. The output is in a quite similar structure as the Event solving, but also provides columns in which the emission data is specified. This allows for more convenient checks on the output that thas been created. Below, we also plot our approximation function for the hypothetical scenario of 25 years. As the emission data for the compartment we plot (s2RU) only runs until the 5th year, you can clearly see the assumed continuation of this last value for the remaining years. 
+
+
+```{r ii Approximation function}
+
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU","aRU", "s2RU", "w1RU"), Emis = c(10, 10, 10,20, 20, 20), Timed = c(1, 2, 3, 4, 5, 6)) # convert 1 t/y to si units: kg/s
+
+emissions <- emissions |>
+  mutate(Timed = Timed*(365.25*24*60*60)) |> ungroup()
+
+SBEmissions3 <- 
+  emissions |> 
+  group_by(Abbr) |> 
+  summarise(n=n(),
+            EmisFun = list(
+              approxfun(
+                data.frame(Timed = c(0,Timed), 
+                           Emis=c(0,Emis)),
+                rule = 2) # Change to rule 1:1 for no extrapolation
+            )
+  )
+
+funlist <- SBEmissions3$EmisFun
+names(funlist) <- SBEmissions3$Abbr
+
+tmax <- 365.25*24*60*60*4
+times <- seq(0, tmax, length.out = 10)
+
+World$NewSolver("DynApproxSolve")
+DynApproxSolved <- World$Solve(tmax = 4*365.25*24*3600, funlist, needdebug = F, nTIMES = 20 )
+
+
+
+# Plot approxfun
+times <- seq(0, 25*365.25*24*3600, by=10000)
+PlotEmis <- funlist[["s2RU"]]
+values <- sapply(times, PlotEmis)
+
+plot(times, values, type = "l", lwd=2)
+
+knitr::kable(DynApproxSolved)
+```
+
+If you, as a user, do not want to create the approximation functions yourself, the opportunity exists to solely provide a dataframe with timed emission data. The rest of the solver copies the same behavior as the one above. This means that extrapolation (taking the most extreme value and continuing this as a constant emission) is automatically done, as else the solver will crash. As you can observe, the output is also the same.
+
+```{r ii Approximation with only a dataframe, warning= FALSE}
+emissions <- data.frame(Abbr = c("aRU", "s2RU", "w1RU", "aRU", "s2RU", "w1RU"), Emis = c(10, 10, 10,20, 20, 20), Timed = c(1, 2, 3, 4, 5, 6)) # convert 1 t/y to si units: kg/s
+
+emissions <- emissions |>
+  mutate(Timed = Timed*(365.25*24*60*60)) |> ungroup()
+
+tmax <- 365.25*24*60*60*10
+times <- seq(0, tmax, length.out = 10)
+rm(World)
+source("baseScripts/initWorld_onlyMolec.R")
+
+World$substance <- substance
+World$NewSolver("DynApproxSolve")
+
+DynApproxDFSolved<- World$Solve( emissions = emissions, tmax =4*365.25*24*3600, needdebug = F, nTIMES = 20 )
+
+knitr::kable(DynApproxDFSolved)
+```

@@ -1,0 +1,253 @@
+---
+title: "LEON-T TWP data analysis"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+
+log_warning <- function(warning_message) {
+  cat(paste(Sys.time(), "WARNING:", warning_message, "\n"), file = "warnings.log", append = TRUE)
+}
+
+log_info <- function(warning_message) {
+  cat(paste(Sys.time(), "INFO:", warning_message, "\n"), file = "warnings.log", append = TRUE)
+}
+
+
+
+```
+
+
+```{r HPC output}
+## internal output file testing:
+HPC_output_path <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HPC_output_v3"
+HPC_SBout_files <- list.files(HPC_output_path)
+
+HPC_fileName = HPC_SBout_files[1]
+#HPC_output_path = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/HPC_output_test"
+
+# function for testing.
+# now includes:
+# 1. test to see if solver made output for 101 time steps
+# ...
+check_HPC_output <- function(HPC_fileName = HPC_SBout_files[1],
+                             HPC_output_path = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5") {
+  
+  load(paste0(HPC_output_path,"/",HPC_fileName))
+  log_info(paste0(HPC_output_path,"/",HPC_fileName))
+  
+  test_time1 <-  
+    Output |>
+    unnest(cols = c(SBoutput)) |> 
+    mutate(OutputType = names(SBoutput)) |> 
+    filter(OutputType == "DynamicMass") |> 
+    unnest(SBoutput) |> 
+    ungroup() |> group_by(Polymer) |> 
+    count(RUN) |> filter(n<101) |> rename(Timed_length = n)
+  
+  
+  tryCatch({
+    if(length(test_time1$RUN)>0){
+      
+      warning_message <- "Not 100 years in RUN:\n"
+      test_time1_text <- capture.output(print(as.data.frame(test_time1)))
+      warning_message <-
+        paste(warning_message, paste(test_time1_text, collapse = "\n"),
+              "\n See file",paste(HPC_fileName))
+      
+      warning(warning_message)
+      log_warning(warning_message)
+    }
+  }
+  )
+}
+
+sapply(HPC_SBout_files,check_HPC_output,HPC_output_path = HPC_output_path)
+
+#check_HPC_output(HPC_fileName = "SBout_Other_RUNS_131_132_v1.RData","/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/")
+
+```
+
+## test ode solver
+
+```{r}
+path_parameters_file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Microplastic_variables_v1.1.xlsx"
+# load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_TWP_20241127.RData"))
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Parameters_LEON-T_D3.5_Other_20241127.RData"))
+
+# load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_TWP_20241126.RData"))
+
+load(paste0("/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFAoutput_LEON-T_D3.5_Other_20241126.RData"))
+```
+
+
+```{r}
+source("baseScripts/initWorld_onlyPlastics.R")
+
+#Manually change based on Run you want to test:
+
+World$substance <- "microplastic"
+RUNSamples = c(131:132)
+pol="RUBBER"
+
+subsetRuns2 <- function(dfRUNs,nummers){ #Function to select RUNsamples from parameter data
+  dfRUNs[nummers,]
+}
+# Filter out emission subcompartments for which SimpleBox does not have a compartment (yet)
+Sel_DPMFA_micro <-
+  DPMFA_SBoutput$DPMFA_sink_micro |> filter(Subcompartment %in% World$fetchData("AbbrC")$AbbrC) |> 
+  mutate(Emis = map(Emis, subsetRuns2,nummers=RUNSamples))  
+# mutate(Timed = Timed-(1950*24*3600*365.25)) # 1950 is t0, 1951 is t1, etc...
+
+# overview of polymer emission data to each compartment
+
+# check if all emission at t=0 are 0.
+
+DPMFA_SBoutput$DPMFA_sink_micro  |>
+  ungroup() |> group_by(Abbr) |> 
+  unnest(Emis) |> 
+  filter(Timed == 1950*24*3600*365.25) |> 
+  filter(Mass_kg_s == 0) |> count(Polymer) |> 
+  pivot_wider(names_from = Polymer,
+              values_from = n)
+
+
+DPMFA_SBoutput$DPMFA_sink_micro  |>
+  ungroup() |> group_by(Abbr) |> 
+  unnest(Emis) |> 
+  filter(Timed == 1951*24*3600*365.25) |> 
+  filter(Mass_kg_s > 0) |> count(Polymer) |> 
+  pivot_wider(names_from = Polymer,
+              values_from = n)
+
+
+
+emis_source <- Sel_DPMFA_micro |>
+  filter(Polymer == pol) |>
+  select(Abbr, Timed, Emis) 
+
+ # Sel_DPMFA_micro |>
+ #  filter(Polymer == pol) |>
+ #  select(Abbr, Timed, Emis) |> filter(Timed == 61537320000) |> unnest(Emis)
+
+
+Material_Parameters_n <- Parameters$Material_Parameters_n |> 
+  mutate(data = map(data, subsetRuns2, nummers = RUNSamples))
+sample_source <- Material_Parameters_n |>
+  filter(Polymer == pol) |>
+  select(VarName, Scale, SubCompart, Species, data) |> 
+  rename(varName = VarName)
+
+#### Get SB World ####
+# Read in data to change Regional scale to fit NL scale DPMFA data
+Regional_Parameters <- readxl::read_excel(path_parameters_file, sheet = "Netherlands_data") |>
+  rename(varName = Variable) |>
+  rename(Waarde = Value) |>
+  select(-Unit) 
+# Recalculate the area's
+World$mutateVars(Regional_Parameters)
+World$UpdateDirty(unique(Regional_Parameters$varName))
+
+sample_source <- Material_Parameters_n |>
+  filter(Polymer == pol) |>
+  select(VarName, Scale, SubCompart, Species, data) |> 
+  rename(varName = VarName)
+
+World$NewSolver("UncertainDynamicSolver") # with browser() before the ode commad for testing below.
+solved <- World$Solve((emis_source), sample_source, needdebug = F,
+                      rtol_ode=1e-30, atol_ode = 0.5e-2)
+solved$DynamicMass |>
+  ungroup()  |> 
+  count(RUN)
+
+
+
+```
+
+
+```{r}
+# Check the numerical difference/error between the solution using different tolerances
+start_time <- Sys.time()
+sol <- deSolve::ode(
+  y = as.numeric(SB.m0),
+  times = SBtime,
+  func = ODEapprox,
+  parms = list(K = SB.K, SBNames=SBNames, emislist= funlist),
+  rtol = 0, atol = 1e-3)
+elapsed_time <- Sys.time() - start_time
+print(elapsed_time)
+start_time <- Sys.time()
+sol2 <- deSolve::ode(
+  y = as.numeric(SB.m0),
+  times = SBtime,
+  func = ODEapprox,
+  parms = list(K = SB.K, SBNames=SBNames, emislist= funlist),
+  rtol = 1e-10, atol = 1e-2)
+elapsed_time <- Sys.time() - start_time
+print(elapsed_time)
+start_time <- Sys.time()
+sol3 <- deSolve::ode(
+  y = as.numeric(SB.m0),
+  times = SBtime,
+  func = ODEapprox,
+  parms = list(K = SB.K, SBNames=SBNames, emislist= funlist),
+  rtol = 1e-30, atol = 1e-2)
+elapsed_time <- Sys.time() - start_time
+print(elapsed_time)
+
+length(sol[,1])
+length(sol2[,1])
+length(sol3[,1])
+sum(abs(sol-sol2))
+sum(abs(sol-sol3))
+sum(abs(sol2-sol3))
+
+sum(sol[,2:156])-sum(sol2[,2:156])
+sum(sol[,2:156])-sum(sol3[,2:156])
+sum(sol2[,2:156])-sum(sol3[,2:156])
+sum(sol3[,2:156])
+
+any(sol<0)
+
+```
+
+
+## testing SBoo with specific parameter RUNs
+testing SBoo with specific parameter RUN sets in order to see why ode cannot integrate
+```{r}
+
+
+plot(funlist$w1RS(SBtime))
+plot(funlist$w1CS(SBtime))
+plot(funlist$aRS(SBtime))
+plot(funlist$s2CS(SBtime))
+plot(funlist$s3RS(SBtime))
+names(funlist)
+# Define the solver function
+ODEapprox = function(t, m, parms) {
+  with(as.list(c(parms, m)), {
+    e <- c(rep(0, length(SBNames)))
+    for (name in names(parms$emislist)) {
+      e[grep(name, SBNames)] <- parms$emislist[[name]](t) 
+    }
+    dm <- with(parms, K %*% m + e) 
+    return(list(dm, signal = e))
+  })
+}
+
+# Solve the matrix
+sol <- deSolve::ode(
+  y = as.numeric(SB.m0),
+  times = SBtime,
+  func = ODEapprox,
+  parms = list(K = SB.K, SBNames=SBNames, emislist= funlist),
+  rtol = rtol_ode, atol = atol_ode)
+
+```
+
+

@@ -1,0 +1,59 @@
+---
+title: "Concentrations and mass flux"
+author: "Jaap Slootweg, Valerie de Rijk"
+date: "`r Sys.Date()`"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+## Concentrations and mass fluxes
+
+This vignette demonstrates how to obtain concentrations and mass fluxes for a steady-state solution. We first initialize the world for molecules and add arbitrary emissions to the regional air and river compartments. 
+
+```{r, warning = FALSE}
+#We need to initialize, by default a molecular substance is selected
+source("baseScripts/initWorld_onlyMolec.R")
+
+Solvr <- World$NewSolver("SB1Solve")
+Solution <- World$Solve(emissions = data.frame(
+  Abbr = c( "aRU", "w1RU"),
+  Emis = 10e6)
+  )
+
+
+```
+
+## Calculating concentrations.
+
+After computing the steady state solution we end up with equilibrium masses for the compartments. To compute the concentration, we simply divide by the Volume of the respective compartment. 
+
+```{r}
+Concentrations <- function(EqMass, Volume) {
+  EqMass / Volume
+}
+World$NewCalcVariable("Concentrations")
+ConcPM <- World$CalcVar("Concentrations")
+pivot_wider(ConcPM[, c("SubCompart", "Scale", "Concentrations")],
+            values_from = "Concentrations",
+            values_fill = NULL,
+            names_from = "Scale")
+
+```
+
+## Mass fluxes
+Now, if we're interested in the mass fluxes between the compartments, we compute the mass fluxes. This is simply the value of the first order rate constant k (or kaas) and the equilibrium mass of the from compartment. As such, we end up with mass fluxes in weight per second.
+```{r}
+World$fetchData("EqMass")
+
+MsFlux <- left_join(World$kaas, World$fetchData("EqMass"), 
+                    join_by(fromScale == Scale, fromSubCompart == SubCompart, fromSpecies == Species))
+MsFlux$mFlux <- MsFlux$k * MsFlux$EqMass
+print(MsFlux)
+```
+

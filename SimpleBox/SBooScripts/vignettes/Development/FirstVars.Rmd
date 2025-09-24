@@ -1,0 +1,108 @@
+---
+title: "Introduction to SB-variables"
+author: "Jaap Slootweg, Valerie de Rijk"
+date: "11/23/2022"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+## impossible to generalise? projectRoot <- paste(getwd(), "..", sep = "/")
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
+```
+
+# Variables in SimpleBox
+
+are read initially, but you can add variables just by defining the
+function how to calculate the variable. This vignette will demonstrate
+how the variable "volume" is defined, how it can be retrieved, and how
+to verify it against the values in the excel-version. First step is to
+initiate testing objects by running a standard script
+baseScripts/initTestWorld.R. We will use two objects that are created:
+"World" and "ClassicExcel". Note the class properties and the
+inheritance of ClassicExcel.
+
+```{r initTestWorld, warning = FALSE}
+source("baseScripts/initWorld_onlyMolec.R")
+class(World)
+```
+
+SimpleBox Variables (SBVs) are defined by a function, and many of the
+defining functions are present in the package. One of the variable
+defining functions is "Volume". The method NewCalcVariable adds the
+SimpleBox variable; it needs the name (as character) of the function.
+
+```{r volfunction}
+Volume
+World$NewCalcVariable("Volume")
+```
+
+R "knows" the parameters of a function, see the function formals(). The
+names of these parameters are also SBVs, partly already read from data
+in the initialisation. You can lookup which variables are known, and
+their values by method fetchData(varname) of the class SBcore. World, as
+initiated in the baseScript initWorld.R is of this class. An empty
+varname (the parameter for this method) returns all known parameters.
+Note that variable are usually data.frames (tables), with keyfields
+indicating the domain of the variable.
+
+## Atomic functions and tables
+
+Note that variables are usually tables, including the key fields
+defining their domain (except constants) but the parameters in the
+functions are atomic. This means you can treat it as a simple number or
+character; its not the table, not even a vector! This makes writing a
+SBV defining function a lot easier, think of the "normal" if()
+situations that need the ifelse() functions. The variable defining
+functions are called by SBOO for each relevant combination of the
+variables. Results, when not NA, are stored in the in-memory database of
+SBOO.
+
+```{r volparameters}
+formals(Volume)
+World$fetchData()
+World$fetchData("VertDistance")
+World$fetchData("FRACcldw")
+```
+
+The variable Area is missing. Missing variables can be found by the
+method whichUnresolved. Area is also a function, which needs other
+variables. To complete the calculation of Volume we have four steps,
+three in preparation. Area can (and will) be used by other functions. No
+need to recalculate it.
+
+```{r neededparameters}
+#World$whichUnresolved()
+
+lapply(c("AreaSea", "AreaLand", "Area"), function(FuName){
+  World$NewCalcVariable(FuName)
+  World$CalcVar(FuName)
+})
+
+World$CalcVar("Volume")
+```
+
+The calculation differs slightly from the excel version. This is
+because:
++ the automation of the calculation demands a much more formal
+approach 
++ a stricter differentiation between data and calculations 
++ simplifications are applied like renaming both depth and height into VertDistance
+
+The variables as functions/tables and the automated dependencies can be
+confusing initially, but the concept is powerful and helps documenting
+the model as a whole. We can even create a graph showcasing all relationships between the variables.
+
+```{r theDAG}
+library(ggdag)
+NodeAsText <- paste(World$nodelist$Params, "->" ,World$nodelist$Calc)
+AllNodesAsText <- do.call(paste, c(as.list(NodeAsText), list(sep = ";")))
+dag <- dagitty::dagitty(paste("dag{", AllNodesAsText, "}"))
+plot(dagitty::graphLayout(dag))
+```

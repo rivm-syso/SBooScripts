@@ -1,0 +1,1416 @@
+---
+title: "Trapped solver"
+author: "Valerie de Rijk"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::knit_meta()
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+projectRoot <- paste(getwd(), "..", "..", sep = "/")
+knitr::opts_knit$set(root.dir = projectRoot) 
+```
+
+
+This vignette demonstrates how to use the SimpleBox model in a trapped manner, allowing for the fate prediction of multi-faceted particles. In this vignette, we'll take a closer look at GO-Chitosan, a combination of the sheet-like graphene oxide and the biological compound Chitosan. 
+
+## Initiation
+
+We assume you have the input data for a substance or material of interest and all the data describing the SimpleBox world to be created ready and thus can run the initWorld script.
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+library(dplyr)
+source("baseScripts/initWorld_onlyParticulate.R")
+World$SetConst(kdis = 0)
+World$UpdateKaas()
+World$substance <- substance
+
+```
+
+## Computing Spherical equivalent diameter
+
+We calculate the spherical equivalent diameter (deq) and subsequently use it to overwrite radS. In this manner we include the shape of the considered particles. We update the matrix in the chunk after. [TODO: In future this could be included in the initialization for relevant particles that consist of multiple components]
+
+We need the following properties for the GO-Chitosan related particles:
+
+-   Shape
+
+-   Size
+
+-   Density
+
+-   Other 'unknown' variables, such as attachment efficiency, etc.
+
+| Property             | GO-Chitosan     | GO              | Chitosan         |
+|----------------------|-----------------|-----------------|------------------|
+| Shape                | Sheet-like      | Flake           | Fragment         |
+| Size - square (LxB)  | 70 - 90 (80) um | 70 - 90 (80) um | 100-200 (150) nm |
+| Size - thickness (H) | 10-20 (15) nm   | 1-10 (5) nm     | 100-200 (150) nm |
+| Density              | Calculated      | 0.35 g/ml       | 0.874 g/ml       |
+
+: The density of GO-chitosan is approximated by 1/8 \* dens_Graphene + 7/8 \* dens_Chitosan
+
+```{r Computing Radius, message=FALSE, warning=FALSE}
+
+# Longest <- World$fetchData("Longest_side")
+# Intermediate <- World$fetchData("Intermediate_side")
+# Shortest <- World$fetchData("Shortest_side")
+Longest <- 80*1e-06
+Intermediate <- 80*1e-06
+Shortest <- 15*1e-9
+
+Volume <- Longest*Intermediate*Shortest
+d_eq <- ( 6/ pi * Volume)^(1/3)
+rad_eq <- d_eq/2
+print(rad_eq)
+
+World$SetConst(RadS = rad_eq)
+
+
+World$fetchData("RhoS")
+World$UpdateKaas(mergeExisting = F)
+```
+
+## Adjusting Parameters with Uncertainty
+
+Since attachment efficiencies (alpha) are very uncertain, below is a chunk where we can create distributions for these parameters. We start however with a deterministic calculation using averages.
+
+```{r Example Uncertain Alpha, message=FALSE, warning=FALSE}
+fwa_min <- 1e-4
+fwa_max<- 0.1
+n <- 100000
+log_uniform_samples <- 10^runif(n, min = log10(fwa_min), max = log10(fwa_max))
+fw_alpha_mean_log_samples <- mean(log_uniform_samples)
+
+
+#Check with histogram 
+hist(log_uniform_samples, breaks = 30, freq = FALSE,
+     main = "Histogram of Log Uniform Distribution [10^-3, 10^-1]",
+     xlab = "Value", ylab = "Density")
+# Plot the probability density function (pdf) curve
+curve(dunif(log10(x), min = log10(fwa_min), max = log10(fwa_max)) / x,
+      from = fwa_min, to = fwa_max, add = TRUE, col = "blue", lwd = 2 )
+
+#marine 
+ma_min <- 1e-3 
+ma_max <- 1
+log_uniform_samples <- 10^runif(n, min = log10(ma_min), max = log10(ma_max))
+marine_alpha_mean_log_samples <- mean(log_uniform_samples)
+
+
+subcompartsmarine <- c("sea", "marinesediment", "freshwatersediment", "deepocean")
+
+
+subcomparts <- c("river", "lake", "water", "agriculturalsoil", "naturalsoil", "othersoil")
+all_subcomparts <- c(subcomparts, subcompartsmarine)
+#species <- rep(c("Large", "Small"), times = length(all_subcomparts))
+
+alpha = data.frame(
+SubCompart = c(subcomparts,subcompartsmarine),  
+alpha = c(fw_alpha_mean_log_samples, marine_alpha_mean_log_samples))
+
+World$fetchData("alpha")
+ToPaste <- lapply(list(alpha), function(x) {
+  varName <- names(x)[!names(x) %in% The3D]
+  stopifnot(length(varName)==1)
+  # one line with 2 disadvantages of tidyverse..:
+  as.data.frame(pivot_longer(data = x, cols = all_of(varName), names_to = "varName", values_to = "Waarde"))
+})
+
+dfs <- do.call(bind_rows, ToPaste)
+
+World$mutateVars(dfs)
+
+World$UpdateKaas(mergeExisting = F)
+World$fetchData("alpha")
+```
+
+## NewSolver
+
+Different solvers are available, basically:
+
+1.  Solving the steadystate of the SimpleBox world
+
+2.  Solving in time the states of SimpleBox world
+
+Both will be illustrated bellow, but it starts with defining the solver you want to use by `world$NewSolver("[name of s_function]")`
+
+### SBsteady
+
+Currently there are two ways to solve the matrix in steady state, so with constant emission and infinite time horizon. These are:
+
+1.  `SB1solve` - using solve from base R
+
+2.  `SBsteady` - using runsteady from the rootSolve package
+
+Another option would be to set a time horizon using the ode solver from the DeSolve package. This can be done using `SBsolve`.
+
+```{r SBsteady}
+# World$NewSolver("SBsteady")
+# SB1Solve provides the best results, this uses the solve function in R.
+World$NewSolver("SB1Solve") 
+
+```
+
+What solving means is that using matrix algebra a set of differential equations is solved:
+
+`K %*% m + e`
+
+Where:
+
+K is the matrix of rate constants for each process describing the mass transfers to and from and out of a state (e.g. substance in freshwater (w1U) or small heteroagglomerate in natural soil (s1A)).
+
+m is the mass in each compartment, e.g. 0 at t=0.
+
+e is the emission to each compartment per unit of time, e.g. 1 t/y.
+
+Here, we define the emissions for a Steady State Calculation, based on averages for 2035 for GO-Chitosan. We convert the emissions to kg/s
+
+```{r constant emission}
+emissions <- data.frame(Abbr = c("aCS", "s2CS", "w1CS"), 
+                        Emis = c(0.000047, 150, 43))
+emissions$Emis<- emissions$Emis * 1000 / (365.25 * 24 * 60 * 60)
+
+
+# TODO: explain what is the reason for this Abbr? Why is it not a relational table defining scale, compartment and species as for all other data?
+```
+
+Now we are ready to run the solver, which results in the mass in each compartment.
+
+```{r}
+Solution <- World$Solve(emissions)
+Solution <- Solution |>
+  filter(Species != "Unbound")
+#Solution <- World$SolutionAsRelational(Solution)
+```
+## Dynamic solving
+
+### Adjusting Parameters to Match considered Scale
+
+In this case study we are considering emission data only for Europe. By default the 'World' is represented by a nested regional scale, which is not relevant for the current assessment using emissions data only for Europe. Here we use the option to allocate part of the emissions to the regional scale based on the fraction of surface area in order to mimic not having a nested scale. In future one would be interested for instance in including a local or national scale as well. One could adjust the regional scale for this purpose.
+
+The code is commented out, but this is an example of adjusting the regional scale to represent Switzerland. You can only adjust parameters that are initial input data, not variables that are calculated later in SBOO. The adjusted dataframes are printed below. Note, at this point the input is already converted to SI units, so new data also needs to be put in this format.
+
+```{r Scaling, include=FALSE}
+
+Area <- World$fetchData("TotalArea")
+AreaRegional <- Area$TotalArea[Area$Scale =="Regional"]
+AreaContinental <- Area$TotalArea[Area$Scale =="Continental"]
+fracReg <- AreaRegional/AreaContinental
+fracCont <- 1-fracReg
+
+FracRC <- tibble(
+  Scale_SBname = c("Regional","Continental"),
+  Abr_scale = c("R","C"),
+  AreaFraction = c(fracReg,fracCont)
+)
+
+
+print(FracRC)
+
+```
+
+We can also solve the differential equations dynamically in time, but the optimal implementation is still work in progress, see [issue](https://github.com/rivm-syso/SBoo/issues/111).
+
+```{r emission data, include=FALSE}
+file_paths <- 
+  list.files("data/emissions",recursive = TRUE)
+Emissions <-
+  read_csv(paste0("data/emissions/",file_paths), id="file_name", col_names = c("RUN",0:24),skip = 1) # unit: Metric tonnes
+
+
+```
+
+### Prepare DPMFA data
+
+Data from an DPMFA model should be prepared to fit the SBoo world. For instance the time unit should be correct, the mass unit is not as important as this will be the same in the output then, but for good measure we use kg. This is the quick and dirty way, a more elegant way is till in progress as mentioned above.
+
+We define the compartments of the emission based on the DMPFA model.
+
+*NOTE* all concentrations need to be in mass unit/s in order for the solver to work. This is due to the fact that the matrix operates in seconds
+
+```{r Emissions, include=FALSE}
+# TODO: solve for every RUN
+Emissions <- 
+  Emissions |>
+  pivot_longer(
+    cols = !c(file_name,RUN),
+    names_to = "year",
+    values_to = "emission_t" ) |> mutate_at('year',as.numeric) |> 
+  ungroup() |> 
+  group_by(file_name,year) |> 
+  summarise(Emission_p50_kg = quantile(emission_t,probs = 0.5)*1000/(365.25*24*3600),
+            Emission_mean_kg = mean(emission_t)*1000/(365.25*24*3600)) |> ungroup()
+
+Emissions <- 
+  Emissions |> 
+  mutate(compartment = 
+           case_when(str_detect(file_name, "(?i)Air") ~ "Air",
+                     str_detect(file_name, "(?i)Soil") ~ "SludgeTreatedSoil",
+                     str_detect(file_name, "(?i)Water") ~ "SurfaceWater",
+                     str_detect(file_name, "(?i)Subsurface") ~ "Subsurface",
+                     TRUE ~ "Other"),
+         scale = 
+           case_when(str_detect(file_name, "(?i)EU") ~ "EU_average",
+                     str_detect(file_name, "(?i)Ireland") ~ "EU_STsoil",
+                     str_detect(file_name, "(?i)Switzerland") ~ "EU_noSTsoil",
+                     TRUE ~ "Other"),
+         Substance = "GO-Chitosan",
+  )
+
+```
+
+### Scaling Emission data based on material density
+
+When running for only GO or only Chitosan, you want to correct for the fact that it's partly Chitosan and partly GO through using the densities.
+
+```{r DensityScaling, include=FALSE}
+
+Weightfactor <- switch(substance,
+                       "GO-Chitosan" = 1,
+                       "Chitosan" = 7/8,
+                       "GO" = 1/8)
+
+Emissions <-
+  Emissions |> mutate(Emission_mean_kg = Emission_mean_kg* Weightfactor,
+                      Emission_p50_kg = Emission_p50_kg*Weightfactor)
+
+head(Emissions)
+
+```
+
+### Scaling Input Data based on World (Regional nested in Continental)
+
+In this chunk, we adjust for the fact that the input data for the DMPFA model is all Europe based. Hence we scale by the factor fracReg and fracCont to still include the current regional scale (could alse be done differently). The regional data is thus a portion of the EU emission, scaled based on the land surface area.
+
+```{r ScaleScaling, include=FALSE}
+
+SBEmissions2 <- 
+  Emissions |> mutate(
+    Abr_comp =  case_match(compartment,
+                           "Air" ~ "a",
+                           "SludgeTreatedSoil" ~ "s2",
+                           "SurfaceWater" ~ "w1",
+                           .default = NA
+    ),
+    Abr_scale =  case_match(scale,
+                            "EU_average" ~ "C",
+                            .default = NA
+    ),
+    Abr_species = "S"
+    
+  ) |> drop_na() 
+
+SBEmissions2 <-  
+  SBEmissions2 |> rbind(
+    SBEmissions2 |> 
+      mutate(
+        Abr_scale =  case_match(Abr_scale,
+                                "C" ~ "R",
+                                .default = NA
+        ),
+        scale = "EU_average"
+      )
+  ) |> full_join(FracRC) |> 
+  
+  mutate(Abr = paste0(Abr_comp,Abr_scale,Abr_species)) |> 
+  mutate(Emission_mean_kg = Emission_mean_kg*AreaFraction,
+         Emission_p50_kg = Emission_p50_kg*AreaFraction)
+
+head(SBEmissions2)
+
+```
+
+### make time dependent emission functions
+
+```{r approxfuns, include=FALSE}
+SBEmissions3 <- 
+  SBEmissions2 |> 
+  mutate(time_s = year*(365.25*24*60*60)+(365.25*24*60*60)) |> ungroup() |> 
+  group_by(compartment,Abr_scale,Abr,Substance) |> 
+  summarise(n=n(),
+            EmisFun = list(
+              approxfun(
+                data.frame(time_s = c(0,time_s), 
+                           emis_kg=c(0,Emission_mean_kg)),
+                rule = 1:1)
+            )
+  )
+
+funlist <- SBEmissions3$EmisFun
+names(funlist) <- SBEmissions3$Abr
+
+times <- seq(0, 25*365.25*24*3600, by = 10000)
+
+CompartInterest <- "s2CS"
+
+time_s = c(0,(SBEmissions2 |> filter(Abr == CompartInterest) |> pull(year))*(365.25*24*60*60)+(365.25*24*60*60))
+emis_kg = c(0,(SBEmissions2 |> filter(Abr == CompartInterest) |> pull(Emission_mean_kg)))
+
+PlotEmisFun = funlist[[CompartInterest]]
+
+plot(time_s,
+     emis_kg)
+curve(PlotEmisFun,
+      add = TRUE)
+
+
+
+```
+
+### Dynamic solving for deterministic input data
+
+The chunk below gives the opportunity to Solve for constant input data. The chunk after that gives the opportunity to also vary SB Input data
+
+```{r DynamicSolve, include=FALSE}
+
+##ODE
+
+SimpleBoxODE = function(t, m, parms) {
+  
+  with(as.list(c(parms, m)), {
+    e <- c(rep(0, length(SBNames)))
+    
+    for (name in names(funlist)) {
+      e[grep(name, SBNames)] <- funlist[[name]](t)
+    }
+    
+    dm <- K%*% m + e
+    res <- c(dm)
+    list(res, signal = e)
+  })
+}
+
+# print(SBNames)
+
+#Function to Solve
+SBsolve4 <- function( tmax = 1e10, nTIMES = 100, Engine, funlist) {
+  
+  SB.K = Engine
+  SBNames = colnames(Engine)
+  SB.m0 <- rep(0, length(SBNames))
+  SBtime <- seq(0,tmax,length.out = nTIMES)
+  
+  
+  out <- deSolve::ode(
+    y = as.numeric(SB.m0),
+    times = SBtime ,
+    func = SimpleBoxODE,
+    parms = list(K = SB.K, SBNames=SBNames, funlist=funlist),
+    rtol = 1e-6, atol = 1e-1)
+  #if(as.character(class(deS)[1])!="data.frame") return (list(errorstate="error", deS))
+  colnames(out)[1:length(SBNames)+1] <- SBNames
+  colnames(out)[grep("signal",colnames(out))] <- paste("emis",SBNames,sep = "2")
+  as.data.frame(out)
+  
+}
+
+
+
+# Solving
+Solution <- SBsolve4(tmax = 24*(365.25*24*3600),
+nTIMES = 130,
+Engine = World$exportEngineR(),
+funlist = funlist)
+
+
+
+Solution <- as.data.frame(Solution)
+
+
+
+
+
+```
+
+## Prepping of removal as input for other particles
+To be able to solve for seperate GO or Chitosan, we need to obtain the fluxes representing the removal processes. We first need to use the engine to get the processes (k) from and to each compartment with usable abbreviations. 
+```{r getting fluxes/prepping kaas}
+World$kaas
+kaas <- as_tibble(World$kaas)
+# Define acronyms maps
+accronym_map <- c("marinesediment" = "sd2",
+                "freshwatersediment" = "sd1",
+                "lakesediment" = "sd0", #SB Excel does not have this compartment. To do: can we turn this off (exclude this compartment) for testing?
+                "agriculturalsoil" = "s2",
+                "naturalsoil" = "s1",
+                "othersoil" = "s3",
+                "air" = "a",
+                "deepocean" = "w3",
+                "sea" = "w2",
+                "river" = "w1",
+                "lake" = "w0", 
+                "cloudwater" = "cw")
+
+accronym_map2 <- c("Arctic" = "A",
+                   "Moderate" = "M",
+                   "Tropic" = "T",
+                   "Continental" = "C",
+                   "Regional" = "R")
+
+accronym_map3 <- c("Dissolved" = "D", 
+                   "Gas" = "G", 
+                   "Large" = "P", 
+                   "Small" = "A",
+                   "Solid" = "S", 
+                   "Unbound" = "U")
+
+kaas <- kaas |> mutate(from =  paste0(accronym_map[fromSubCompart], 
+                            accronym_map2[fromScale], 
+                            accronym_map3[fromSpecies]),
+               to = paste0(accronym_map[toSubCompart], 
+                           accronym_map2[toScale], 
+                           accronym_map3[toSpecies]))
+
+
+
+
+```
+
+Now, we transpose are solution and combine it with the k's so that we can obtain fluxes (in kg/s) of the processes. We will use the degradation rate to further determine the fate of GO and Chitosan
+```{r}
+solution_transposed <- as.data.frame(t(Solution))
+colnames(solution_transposed) <- solution_transposed[1, ]
+solution_transposed$from <- rownames(solution_transposed)
+# Remove the first row as it's now the column names
+solution_transposed <- solution_transposed[-1, ]
+kaas_time <- merge(kaas, solution_transposed, by = "from")
+
+kaas_time <- kaas_time |>
+  # Step 1: Multiply numeric columns by the 'k' column
+  mutate(across(where(is.numeric), ~ . * k)) 
+degradation <- kaas_time |>
+  # Filter rows where 'process' is 'k_degradation' and 'from' and 'to' are the same
+  filter(process == "k_Degradation", from == to)
+```
+
+We will assume that 15% of the mass degrades directly into products that will not be followed. The other 85% will degrade into both Graphene Oxide and Chitosan. For that, we will follow the earlier assumption made: : The density of GO-chitosan is approximated by 1/8 \* dens_Graphene + 7/8 \* dens_Chitosan.As such, we assume that this is also the distribution the degraded substances will follow, e.g. 1/8 will be Graphene and 7/8 Chitosan.
+ 
+We will use the resulting fluxes as input 'emission' for the next stage
+
+```{r distribution of degradation}
+#15% is totally degraded
+degradation_remaining <-  degradation |>
+  mutate(across(where(is.numeric), ~ . * 0.85))
+degradation_GO <- degradation |> 
+   mutate(across(where(is.numeric), ~ . * 1/8))
+degradation_Chit <- degradation |> 
+   mutate(across(where(is.numeric), ~ . * 7/8))
+
+```
+
+## Solving for Graphene Oxide and Chitosan
+We will now solve for the two remaining substances, Graphene Oxide and Chitosan. 
+```{r loop for solving of remaining substances}
+
+process_substance <- function(substance_name, degradation_data, compartment_interest) {
+  # Re-initialize world for Graphene Oxide and Chitosan 
+  World$substance <- substance_name
+  
+  # Check for numeric column names
+  is_numeric_name <- function(name) {
+    !is.na(suppressWarnings(as.numeric(name))) && nzchar(name)
+  }
+  
+  # Create a logical vector for numeric column names
+  numeric_columns <- sapply(names(degradation_data), is_numeric_name)
+  
+  # Combine this logical vector with the condition for the column 'from'
+  keep_columns <- numeric_columns | names(degradation_data) == 'from'
+  
+  # Get the column names to keep
+  columns_to_keep <- names(degradation_data)[keep_columns]
+  
+  # Select only these columns
+  degradation_filtered <- degradation_data |>
+    select(all_of(columns_to_keep))
+  
+  # Pivot to long format
+  long_filtered <- degradation_filtered |>
+    pivot_longer(cols = -from, names_to = "time", values_to = "value") |>
+    mutate(time = as.numeric(time))
+  
+  # Summarize to get emission functions
+  emissions <- long_filtered |>
+    group_by(from) |>
+    summarise(n = n(),
+              EmisFun = list(
+                approxfun(
+                  data.frame(time = time, value = value),
+                  rule = 1
+                )
+              ))
+  
+  funlist <- emissions$EmisFun
+  names(funlist) <- emissions$from
+  
+  # Extract time and emission values for plotting
+  time_s <- c(0, long_filtered |> filter(from == compartment_interest) |> pull(time))
+  emis_kg <- c(0, long_filtered |> filter(from == compartment_interest) |> pull(value))
+  
+  PlotEmisFun <- funlist[[compartment_interest]]
+  
+  # Plot
+  plot(time_s, emis_kg)
+  curve(PlotEmisFun, from = min(time_s), to = max(time_s), add = TRUE)
+  
+  # Return the function list for ODE solving
+  return(funlist)
+}
+
+# Process Chitosan
+funlist_Chit <- process_substance("Chitosan", degradation_Chit, "w1CA")
+
+# Solve ODE for Chitosan
+Solution_Chit <- SBsolve4(
+  tmax = 24 * (365.25 * 24 * 3600),
+  nTIMES = 130,
+  Engine = World$exportEngineR(),
+  funlist = funlist_Chit
+)
+
+# Process Graphene Oxide
+funlist_GO <- process_substance("Graphene Oxide", degradation_GO, "w1CA")
+
+# Solve ODE for Graphene Oxide
+Solution_GO <- SBsolve4(
+  tmax = 24 * (365.25 * 24 * 3600),
+  nTIMES = 130,
+  Engine = World$exportEngineR(),
+  funlist = funlist_GO
+)
+```
+
+## Probabilistic dynamic 
+
+We now want to try to run this for all input data, e.g. not only for average emission data and for a distribution of parameters. We need to load in the emission data again.  
+
+```{r}
+file_paths <- 
+  list.files("data/emissions",recursive = TRUE)
+Emissions <-
+  read_csv(paste0("data/emissions/",file_paths), id="file_name", col_names = c("RUN",0:24),skip = 1)
+
+Emissions <- 
+  Emissions |>
+  pivot_longer(
+    cols = !c(file_name,RUN),
+    names_to = "year",
+    values_to = "emission_t" ) |> mutate_at('year',as.numeric)
+
+Emissions <- 
+  Emissions |> 
+  mutate(compartment = 
+           case_when(str_detect(file_name, "(?i)Air") ~ "Air",
+                     str_detect(file_name, "(?i)Soil") ~ "SludgeTreatedSoil",
+                     str_detect(file_name, "(?i)Water") ~ "SurfaceWater",
+                     str_detect(file_name, "(?i)Subsurface") ~ "Subsurface",
+                     TRUE ~ "Other"),
+         scale = 
+           case_when(str_detect(file_name, "(?i)EU") ~ "EU_average",
+                     str_detect(file_name, "(?i)Ireland") ~ "EU_STsoil",
+                     str_detect(file_name, "(?i)Switzerland") ~ "EU_noSTsoil",
+                     TRUE ~ "Other"),
+         Substance = "GO-Chitosan",
+  )
+
+Emissions_run <- 
+  Emissions |> mutate(
+    Abr_comp =  case_match(compartment,
+                           "Air" ~ "a",
+                           "SludgeTreatedSoil" ~ "s2",
+                           "SurfaceWater" ~ "w1",
+                           .default = NA
+    ),
+    Abr_scale =  case_match(scale,
+                            "EU_average" ~ "C",
+                            .default = NA
+    ),
+    Abr_species = "S"
+    
+  ) |> drop_na() 
+
+Emissions_run_filtered <-  
+  Emissions_run |> rbind(
+    Emissions_run |> 
+      mutate(
+        Abr_scale =  case_match(Abr_scale,
+                                "C" ~ "R",
+                                .default = NA
+        ),
+        scale = "EU_average"
+      )
+  ) |> full_join(FracRC) |> 
+  
+  mutate(Abr = paste0(Abr_comp,Abr_scale,Abr_species)) |>
+  filter(RUN >= 0 & RUN <= 10)
+
+Emission_run_approx <- 
+  Emissions_run_filtered |> 
+  mutate(time_s = year*(365.25*24*60*60)+(365.25*24*60*60)) |> ungroup() |> 
+  group_by(Abr,RUN ) |> 
+  summarise(n=n(),
+            EmisFun = list(
+              approxfun(
+                data.frame(time_s = c(0,time_s), 
+                           emis_kg=c(0,emission_t*1000/(365.25*24*3600))),
+                rule = 1:1)
+            )
+  )
+
+
+```
+
+We assign the relevant approxfunctions per run and solve for each run, as defined above.
+```{r solver loop}
+results_list <- list()
+
+# Get the unique runs from your Emission_run_approx data
+unique_runs <- unique(Emission_run_approx$RUN)
+
+# Loop through each run
+for (run in unique_runs) {
+  print(run)
+  # Extract the appropriate approxfun objects for the current run
+  approxfuns <- Emission_run_approx %>%
+    filter(RUN == run) |>
+    pull(EmisFun)
+  
+  # Define the funlist based on the approxfuns
+  funlist <- approxfuns
+  names(funlist) <- Emission_run_approx |>
+    filter(RUN == run) |>
+    pull(Abr)
+  
+  # Solve using SBsolve4 and store the result in the results list
+  result <- SBsolve4(
+    tmax = 24 * (365.25 * 24 * 3600),
+    nTIMES = 100,
+    Engine = World$exportEngineR(),
+    funlist = funlist
+  )
+  
+  # Store the result in the results list
+  results_list[[as.character(run)]] <- result
+}
+```
+
+Here, we present the output for the solver based on the runs done above for GO-Chitosan only. 
+```{r solver results}
+
+# Define the variable of interest
+interest <- "w1RA"
+
+# Assuming `results_list` is populated as per your provided code
+
+# Step 1: Extract the variable of interest for each run over time
+variable_data <- data.frame()
+
+for (run in names(results_list)) {
+  result <- results_list[[run]]
+  
+  # Dynamically extract the relevant data based on the variable of interest
+  variable_values <- result[[interest]]
+  time_values <- result$time
+  
+  # Combine into a data frame
+  run_data <- data.frame(Time = time_values, Value = variable_values, Run = run)
+  
+  # Append to the overall data frame
+  variable_data <- rbind(variable_data, run_data)
+}
+
+# Step 2: Calculate mean and confidence intervals at each time point
+summary_stats <- variable_data |>
+  group_by(Time) |>
+  summarise(
+    Mean_Value = mean(Value),
+    SD_Value = sd(Value),
+    Lower_CI = Mean_Value - 1.96 * SD_Value / sqrt(n()),
+    Upper_CI = Mean_Value + 1.96 * SD_Value / sqrt(n())
+  )
+
+# Step 3: Plot with ggplot2
+ggplot(summary_stats, aes(x = Time, y = Mean_Value)) +
+  geom_line(color = "blue", size = 1) +
+  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2, fill = "blue") +
+  labs(title = paste("Mean mass in", interest, "with Uncertainty Bands Over Time for GO-Chitosan"),
+       x = "Time [s]",
+       y = paste("mass of", interest, "[kg]")) +
+  theme_minimal()
+
+```
+
+```{r obtain rates of degradation for Graphene Oxide and Chitosan} 
+
+processed_results_list <- list()
+
+for (run in names(results_list)) {
+  # Extract the result for the current run
+  solution <- results_list[[run]]
+  
+  # Transpose the solution and adjust column names and row names
+  solution_transposed <- as.data.frame(t(solution))
+  colnames(solution_transposed) <- solution_transposed[1, ]
+  solution_transposed$from <- rownames(solution_transposed)
+  
+  # Remove the first row as it's now the column names
+  solution_transposed <- solution_transposed[-1, ]
+  
+  # Merge with `kaas` dataframe
+  kaas_time <- merge(kaas, solution_transposed, by = "from")
+  
+  # Multiply numeric columns by the 'k' column
+  kaas_time <- kaas_time |>
+    mutate(across(where(is.numeric), ~ . * k)) 
+  
+  # Filter rows where 'process' is 'k_Degradation' and 'from' and 'to' are the same
+  degradation <- kaas_time |>
+    filter(process == "k_Degradation", from == to)
+  
+  # Store the processed result in a list
+  processed_results_list[[run]] <- degradation
+}
+
+```
+
+```{r compute solutions for Graphene Oxide and Chitosan}
+library(dplyr)
+library(tidyr)
+
+# Function to process each substance
+process_substance <- function(substance_name, degradation_data, compartment_interest) {
+  World$substance <- substance_name
+  
+  is_numeric_name <- function(name) {
+    !is.na(suppressWarnings(as.numeric(name))) && nzchar(name)
+  }
+  
+  numeric_columns <- sapply(names(degradation_data), is_numeric_name)
+  keep_columns <- numeric_columns | names(degradation_data) == 'from'
+  columns_to_keep <- names(degradation_data)[keep_columns]
+  
+  degradation_filtered <- degradation_data |>
+    select(all_of(columns_to_keep))
+  
+  long_filtered <- degradation_filtered |>
+    pivot_longer(cols = -from, names_to = "time", values_to = "value") |>
+    mutate(time = as.numeric(time))
+  
+  emissions <- long_filtered |>
+    group_by(from) |>
+    summarise(n = n(),
+              EmisFun = list(
+                approxfun(
+                  data.frame(time = time, value = value),
+                  rule = 1
+                )
+              ))
+  
+  funlist <- emissions$EmisFun
+  names(funlist) <- emissions$from
+  
+  
+  
+  return(funlist)
+}
+
+# List to store results for all runs
+final_results_list <- list()
+
+for (run in names(results_list)) {
+  print(run)
+  degradation <- processed_results_list[[run]]  # Assume processed_results_list contains preprocessed data for each run
+  
+  # Apply the degradation calculations
+  degradation_remaining <-  degradation |>
+    mutate(across(where(is.numeric), ~ . * 0.85))
+  degradation_GO <- degradation |>
+    mutate(across(where(is.numeric), ~ . * 1/8))
+  degradation_Chit <- degradation |>
+    mutate(across(where(is.numeric), ~ . * 7/8))
+  
+  # Process and solve for Chitosan
+  funlist_Chit <- process_substance("Chitosan", degradation_Chit, "w1CA")
+  Solution_Chit <- SBsolve4(
+    tmax = 24 * (365.25 * 24 * 3600),
+    nTIMES = 100,
+    Engine = World$exportEngineR(),
+    funlist = funlist_Chit
+  )
+  
+  # Process and solve for Graphene Oxide
+  funlist_GO <- process_substance("Graphene Oxide", degradation_GO, "w1CA")
+  Solution_GO <- SBsolve4(
+    tmax = 24 * (365.25 * 24 * 3600),
+    nTIMES = 100,
+    Engine = World$exportEngineR(),
+    funlist = funlist_GO
+  )
+  
+  # Store solutions in final results list
+  final_results_list[[paste(run, "Chitosan", sep = "_")]] <- Solution_Chit
+  final_results_list[[paste(run, "GO", sep = "_")]] <- Solution_GO
+}
+```
+
+```{r Plotting results }
+# Define the variable of interest
+interest <- "w1RA"
+
+# Assuming `results_list` is populated as per your provided code
+variable_data_All_Variables <- data.frame()
+# Step 1: Extract the variable of interest for each run over time for GO-Chitosan
+for (run in names(results_list)) {
+  result <- results_list[[run]]
+  
+  # Extract and process data for "GO-Chitosan"
+  variable_values <- result[[interest]]
+  time_values <- result$time
+  
+  # Combine into a data frame for this run
+  run_data <- data.frame(Time = time_values, Value = variable_values, Run = run, Substance = "GO-Chitosan")
+  
+  # Append to the overall data frame
+  variable_data_All_Variables <- rbind(variable_data_All_Variables, run_data)
+  
+  # Step 2: Process data for Chitosan and Graphene Oxide for this run
+  for (substance_name in c("Chitosan", "GO")) {
+    # Access the specific data for the current run and substance
+    substance_result <- final_results_list[[paste(run, substance_name, sep = "_")]]
+    
+    # Extract the relevant data for each substance
+    substance_values <- substance_result[[interest]]
+    time_values <- substance_result$time
+    
+    # Combine into a data frame
+    substance_data <- data.frame(Time = time_values, Value = substance_values, Run = run, Substance = substance_name)
+    
+    # Append to the overall data frame
+    variable_data_All_Variables <- rbind(variable_data_All_Variables, substance_data)
+  }
+}
+
+# Step 3: Calculate mean and confidence intervals at each time point, grouped by Substance
+summary_stats <- variable_data_All_Variables |>
+  group_by(Time, Substance) |>
+  summarise(
+    Mean_Value = mean(Value),
+    SD_Value = sd(Value),
+    Lower_CI = Mean_Value - 1.96 * SD_Value / sqrt(n()),
+    Upper_CI = Mean_Value + 1.96 * SD_Value / sqrt(n())
+  ) |>
+  ungroup()
+
+# Step 4: Plot with ggplot2
+ggplot(summary_stats, aes(x = Time, y = Mean_Value, color = Substance, fill = Substance)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2) +
+  labs(title = paste("Mean mass in", interest, "with uncertainty over time"),
+       x = "Time [s]",
+       y = paste("Mass of substance in ", interest, "[kg] - log scale")) +
+  theme_minimal() +
+  scale_color_manual(values = c("blue", "red", "green")) +  # Customize colors for each substance
+  scale_fill_manual(values = c("blue", "red", "green"))  +
+  scale_y_log10()
+
+filtered_stats <- summary_stats |> filter(Substance != "GO-Chitosan")
+
+# Create the plot with the filtered data
+ggplot(filtered_stats, aes(x = Time, y = Mean_Value, color = Substance, fill = Substance)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2) +
+  labs(title = paste("Mean mass in", interest, "with uncertainty over time only GO and Chit"),
+       x = "Time [s]",
+       y = paste("Mass of substance in ", interest, "[kg] - log scale")) +
+  theme_minimal() +
+  scale_color_manual(values = c("blue", "red", "green")) +  # Customize colors for each substance
+  scale_fill_manual(values = c("blue", "red", "green")) 
+
+
+```
+
+## Introducing variable uncertainty
+```{r introducing uncertainty with LHS}
+library(lhs)
+num_combinations <- 2
+
+# Generate 10 LHS samples for each distribution
+set.seed(123)  # For reproducibility
+fw_lhs_samples <- randomLHS(num_combinations, 1)
+ma_lhs_samples <- randomLHS(num_combinations, 1)
+
+# Scale LHS samples to the log-uniform distribution range
+fw_alpha_values <-  10^(fw_lhs_samples * (log10(fwa_max) - log10(fwa_min)) + log10(fwa_min))
+ma_alpha_values <- 10^(ma_lhs_samples * (log10(ma_max) - log10(ma_min)) + log10(ma_min))
+
+
+combinations_list <- vector("list", num_combinations)
+
+# Assign alpha values to each compartment for each combination
+for (i in 1:num_combinations) {
+  # Freshwater compartments
+  fw_alpha_df <- data.frame(
+    SubCompart = subcomparts,
+    alpha = rep(fw_alpha_values[i], length(subcomparts))
+  )
+  
+  # Marine compartments
+  ma_alpha_df <- data.frame(
+    SubCompart = subcompartsmarine,
+    alpha = rep(ma_alpha_values[i], length(subcompartsmarine))
+  )
+  
+  # Combine freshwater and marine data frames
+  combination_df <- rbind(fw_alpha_df, ma_alpha_df)
+  
+  # Store the combination in the list
+  combinations_list[[i]] <- combination_df
+}
+
+# Print the list of combinations
+print(combinations_list)
+```
+
+```{r creating solver strategy for uncertainty in parameters and emissions} 
+
+library(tidyverse)
+
+# Get the unique runs from your Emission_run_approx data
+unique_runs <- unique(Emission_run_approx$RUN)
+
+# Initialize an empty list to store nested results
+nested_results <- list()
+kaas_list <- list()
+# Loop through each combination in combinations_list
+for (i in seq_along(combinations_list)) {
+  alpha <- combinations_list[[i]]
+  alpha_fw <- alpha |> filter(SubCompart == "river") |> pull(alpha)
+  alpha_mw <- alpha |> filter(SubCompart == "sea") |> pull(alpha)
+  # Process the combination to generate the appropriate dataframe
+  dfs <- map_df(list(alpha), function(x) {
+    varName <- names(x)[!names(x) %in% The3D]
+    stopifnot(length(varName) == 1)
+    pivot_longer(x, cols = all_of(varName), names_to = "varName", values_to = "Waarde")
+  })
+  
+  # Update the World object with the new dataframe
+  World$mutateVars(dfs)
+  World$UpdateKaas(mergeExisting = FALSE)
+  kaas <- World$kaas
+  kaas_list[[paste0(i)]] <- list(
+    alpha_fw = alpha_fw,
+    alpha_mw = alpha_mw,
+    kaas = kaas
+  )
+  
+  # Collect results for the current alpha
+  alpha_results <- map(unique_runs, function(run) {
+    # Extract the appropriate approxfun objects for the current run
+    # Print progress information
+    print(paste("Processing alpha index", i, "and run", run))
+  
+    approxfuns <- Emission_run_approx |>
+      filter(RUN == run) |>
+      pull(EmisFun)
+    
+    # Define the funlist based on the approxfuns
+    funlist <- approxfuns
+    names(funlist) <- Emission_run_approx |>
+      filter(RUN == run) |>
+      pull(Abr)
+    
+    # Solve using SBsolve4
+    result <- SBsolve4(
+      tmax = 24 * (365.25 * 24 * 3600),
+      nTIMES = 100,
+      Engine = World$exportEngineR(),
+      funlist = funlist
+    )
+    
+    # Return a tibble with the run and the result
+    tibble(
+      run = run,
+      result = list(result)
+    )
+  })
+  
+  # Nest the results for the current alpha
+  nested_results[[i]] <- tibble(
+    alpha_fw = alpha_fw,
+    alpha_mw = alpha_mw,
+    data = list(bind_rows(alpha_results))
+  )
+}
+
+# Combine all alpha results into a single nested tibble
+nested_results_df_GoChit <- bind_rows(nested_results)
+
+# The resulting `nested_results_df_GOChit` has columns `alpha` and `data`
+
+
+```
+
+```{r plotting of solver}
+
+# Define the variable of interest
+interest <- "w1RA"
+
+# Initialize an empty dataframe to hold all extracted data
+all_variable_data <- data.frame()
+
+# Loop through each row of the nested results
+for (i in seq_len(nrow(nested_results_df_GoChit))) {
+  # Extract alpha_fw and alpha_mw for labeling
+  alpha_fw <- nested_results_df_GoChit$alpha_fw[i]
+  alpha_mw <- nested_results_df_GoChit$alpha_mw[i]
+  
+  # Extract the nested data
+  nested_data <- nested_results_df_GoChit$data[[i]]
+  
+  # Loop through each run in the nested data
+  for (j in seq_len(nrow(nested_data))) {
+    run <- nested_data$run[j]
+    result <- nested_data$result[[j]]
+    
+    # Extract the variable of interest and time values
+    variable_values <- result[[interest]]
+    time_values <- result$time
+    
+    # Combine into a data frame
+    run_data <- data.frame(
+      Time = time_values,
+      Value = variable_values,
+      Run = run,
+      Alpha_FW = alpha_fw,
+      Alpha_MW = alpha_mw
+    )
+    
+    # Append to the overall data frame
+    all_variable_data <- rbind(all_variable_data, run_data)
+  }
+}
+
+# Step 2: Calculate mean and confidence intervals at each time point across all alphas
+summary_stats <- all_variable_data |>
+  group_by(Time) |>
+  summarise(
+    Mean_Value = mean(Value, na.rm = TRUE),
+    SD_Value = sd(Value, na.rm = TRUE),
+    Lower_CI = Mean_Value - 1.96 * SD_Value / sqrt(n()),
+    Upper_CI = Mean_Value + 1.96 * SD_Value / sqrt(n())
+  ) |>
+  ungroup()
+
+# Step 3: Plot with ggplot2 without faceting
+ggplot(summary_stats, aes(x = Time, y = Mean_Value)) +
+  geom_line(color = "blue", size = 1) +
+  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2, fill = "blue") +
+  labs(title = paste("Mean mass in", interest, "with Uncertainty Bands Over Time"),
+       x = "Time [s]",
+       y = paste("Mass of compound in compartment", interest, "[kg]")) +
+  theme_minimal()
+
+```
+
+## Propagation of uncertainty
+
+```{r degradation data}
+# Initialize an empty list to store the final processed results
+final_processed_results_list <- list()
+
+# Iterate over each row in nested_results_df_GoChit
+for (i in seq_len(nrow(nested_results_df_GoChit))) {
+  # Extract the alpha values and results for the current row
+  alpha_fw <- nested_results_df_GoChit$alpha_fw[i]
+  alpha_mw <- nested_results_df_GoChit$alpha_mw[i]
+  alpha_results <- nested_results_df_GoChit$data[[i]]
+  
+  # Find the matching kaas_run based on alpha_fw and alpha_mw
+  kaas_run <- kaas_list[[which(sapply(kaas_list, function(x) x$alpha_fw == alpha_fw & x$alpha_mw == alpha_mw))]]
+  kaas <- kaas_run$kaas
+  
+  # Update 'from' and 'to' columns in kaas dataframe
+  kaas$from <- paste0(accronym_map[kaas$fromSubCompart], 
+                      accronym_map2[kaas$fromScale], 
+                      accronym_map3[kaas$fromSpecies])
+  kaas$to <- paste0(accronym_map[kaas$toSubCompart], 
+                    accronym_map2[kaas$toScale], 
+                    accronym_map3[kaas$toSpecies])
+  
+  # Initialize an empty list to store results for each run
+  run_results_list <- list()
+  
+  # Iterate over each run in alpha_results
+  for (j in seq_along(alpha_results$run)) {
+    run <- alpha_results$run[j]
+    result <- alpha_results$result[[j]]
+    
+    # Convert the result to a dataframe, transpose it, and adjust column and row names
+    solution_transposed <- as.data.frame(t(result))
+    colnames(solution_transposed) <- solution_transposed[1, ]
+    solution_transposed$from <- rownames(solution_transposed)
+    solution_transposed <- solution_transposed[-1, ]
+    
+    # Merge with kaas dataframe
+    kaas_time <- merge(kaas, solution_transposed, by = "from")
+    
+    # Multiply numeric columns by the 'k' column
+    k <- kaas_time$k[1]  # Assuming k is the same for all rows in kaas_time
+    numeric_cols <- sapply(kaas_time, is.numeric)
+    kaas_time[numeric_cols] <- kaas_time[numeric_cols] * k
+    
+    # Filter rows where 'process' is 'k_Degradation' and 'from' and 'to' are the same
+    degradation <- kaas_time[kaas_time$process == "k_Degradation" & kaas_time$from == kaas_time$to, ]
+    
+    # Store the processed result for the current run
+    run_results_list[[j]] <- data.frame(
+      alpha_fw = alpha_fw,
+      alpha_mw = alpha_mw,
+      run = run,
+      degradation = I(list(degradation))
+    )
+  }
+  
+  # Combine results for all runs into a single dataframe
+  processed_results <- do.call(rbind, run_results_list)
+  
+  # Store the processed results for the current alpha combination
+  final_processed_results_list[[i]] <- processed_results
+}
+
+# Combine all processed results into a single dataframe
+final_processed_results_df <- do.call(rbind, final_processed_results_list)
+
+
+```
+
+
+
+
+```{r Go and Chit computation}
+library(tidyr)
+library(purrr)
+library(tibble)
+
+## Initialize lists to store results
+nested_results <- list()
+kaas_list <- list()
+
+# Function to process substances and solve the system
+process_substance <- function(substance_name, degradation_data) {
+  World$substance <- substance_name
+  
+  is_numeric_name <- function(name) {
+    !is.na(suppressWarnings(as.numeric(name))) && nzchar(name)
+  }
+  
+  numeric_columns <- sapply(names(degradation_data), is_numeric_name)
+  keep_columns <- numeric_columns | names(degradation_data) == 'from'
+  columns_to_keep <- names(degradation_data)[keep_columns]
+  
+  degradation_filtered <- degradation_data |>
+    select(all_of(columns_to_keep))
+  
+  long_filtered <- degradation_filtered |>
+    pivot_longer(cols = -from, names_to = "time", values_to = "value") |>
+    mutate(time = as.numeric(time))
+  
+  emissions <- long_filtered |>
+    group_by(from) |>
+    summarise(n = n(),
+              EmisFun = list(
+                approxfun(
+                  data.frame(time = time, value = value),
+                  rule = 1
+                )
+              ))
+  
+  funlist <- emissions$EmisFun
+  names(funlist) <- emissions$from
+  
+  return(funlist)
+}
+
+# Iterate over each combination in combinations_list
+for (i in seq_along(combinations_list)) {
+  alpha <- combinations_list[[i]]
+  alpha_fw <- alpha |> filter(SubCompart == "river") |> pull(alpha)
+  alpha_mw <- alpha |> filter(SubCompart == "sea") |> pull(alpha)
+  
+  # Process the combination to generate the appropriate dataframe
+  dfs <- map_df(list(alpha), function(x) {
+    varName <- names(x)[!names(x) %in% The3D]
+    stopifnot(length(varName) == 1)
+    pivot_longer(x, cols = all_of(varName), names_to = "varName", values_to = "Waarde")
+  })
+  
+  # Update the World object with the new dataframe
+  World$mutateVars(dfs)
+  World$UpdateKaas(mergeExisting = FALSE)
+  kaas <- World$kaas
+  kaas_list[[paste0(i)]] <- list(
+    alpha_fw = alpha_fw,
+    alpha_mw = alpha_mw,
+    kaas = kaas
+  )
+  
+  # Initialize a list to store results for the current alpha
+  alpha_results <- list()
+  
+  # Collect results for the current alpha
+  for (Run in unique_runs) {
+    print(paste("Processing alpha index", i, "and run", Run))
+
+    # Extract the relevant data for the current row in final_processed_results_df
+    row_data <- final_processed_results_df |> filter(run == Run)
+    
+    # Extract the degradation data
+    degradation <- row_data$degradation[[1]]
+    
+    # Apply degradation calculations
+    degradation_GO <- degradation |> mutate(across(where(is.numeric), ~ . * 1/8))
+    degradation_Chit <- degradation |> mutate(across(where(is.numeric), ~ . * 7/8))
+    
+    # Process and solve for Chitosan
+    funlist_Chit <- process_substance("Chitosan", degradation_Chit)
+    Solution_Chit <- SBsolve4(
+      tmax = 24 * (365.25 * 24 * 3600),
+      nTIMES = 20,
+      Engine = World$exportEngineR(),
+      funlist = funlist_Chit
+    )
+    
+    # Process and solve for Graphene Oxide
+    funlist_GO <- process_substance("Graphene Oxide", degradation_GO)
+    Solution_GO <- SBsolve4(
+      tmax = 24 * (365.25 * 24 * 3600),
+      nTIMES = 100,
+      Engine = World$exportEngineR(),
+      funlist = funlist_GO
+    )
+    
+    # Store results for the current run using named list indexing
+    alpha_results[[as.character(Run)]] <- tibble(
+      run = Run,
+      Solution_Chitosan = list(Solution_Chit),
+      Solution_Graphene_Oxide = list(Solution_GO)
+    )
+  }
+  
+  # Nest the results for the current alpha
+  nested_results[[i]] <- tibble(
+    alpha_fw = alpha_fw,
+    alpha_mw = alpha_mw,
+    data = list(bind_rows(alpha_results))
+  )
+}
+
+# Combine all alpha results into a single nested tibble
+nested_results_df_GOandChit <- bind_rows(nested_results)
+
+
+```
+
+```{r final plots}
+
+# Initialize an empty dataframe to hold all extracted data
+all_variable_data <- data.frame()
+
+# Function to extract data from a nested dataframe
+extract_data <- function(nested_results_df, substance_name) {
+  data <- data.frame()
+  
+  for (i in seq_len(nrow(nested_results_df))) {
+    # Extract alpha_fw and alpha_mw for labeling
+    alpha_fw <- nested_results_df$alpha_fw[i]
+    alpha_mw <- nested_results_df$alpha_mw[i]
+    
+    # Extract the nested data
+    nested_data <- nested_results_df$data[[i]]
+    
+    # Loop through each run in the nested data
+    for (j in seq_len(nrow(nested_data))) {
+      run <- nested_data$run[j]
+      result <- if(substance_name == "GO-Chitosan") {
+        nested_data$result[[j]]  # Extract GO-Chitosan result
+      } else if(substance_name == "Chitosan") {
+        nested_data$Solution_Chitosan[[j]]  # Extract Chitosan result
+      } else {
+        nested_data$Solution_Graphene_Oxide[[j]]  # Extract GO result
+      }
+      
+      # Extract the variable of interest and time values
+      variable_values <- result[[interest]]
+      time_values <- result$time
+      
+      # Combine into a data frame
+      run_data <- data.frame(
+        Time = time_values,
+        Value = variable_values,
+        Run = run,
+        Alpha_FW = alpha_fw,
+        Alpha_MW = alpha_mw,
+        Substance = substance_name
+      )
+      
+      # Append to the overall data frame
+      data <- rbind(data, run_data)
+    }
+  }
+  
+  return(data)
+}
+
+# Extract data from Chitosan and GO results in nested_results_df
+all_variable_data <- rbind(
+  all_variable_data, 
+  extract_data(nested_results_df_GOandChit, "Chitosan"),
+  extract_data(nested_results_df_GOandChit, "Graphene Oxide")
+)
+
+# Extract data from GO-Chitosan results in nested_results_df_GoChit
+all_variable_data <- rbind(
+  all_variable_data, 
+  extract_data(nested_results_df_GoChit, "GO-Chitosan")
+)
+
+# Step 2: Calculate mean and confidence intervals at each time point across all alphas
+summary_stats <- all_variable_data |>
+  group_by(Time, Substance) |>
+  summarise(
+    Mean_Value = mean(Value, na.rm = TRUE),
+    SD_Value = sd(Value, na.rm = TRUE),
+    Lower_CI = Mean_Value - 1.96 * SD_Value / sqrt(n()),
+    Upper_CI = Mean_Value + 1.96 * SD_Value / sqrt(n())
+  ) |>
+  ungroup()
+
+# Step 3: Plot with ggplot2, adding a color distinction for Chitosan, GO, and GO-Chitosan
+ggplot(summary_stats, aes(x = Time, y = Mean_Value, color = Substance)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI, fill = Substance), alpha = 0.2) +
+  labs(title = paste("Mean mass in", interest, "with Uncertainty Bands Over Time"),
+       x = "Time [s]",
+       y = paste("Mass of compound in compartment", interest, "[kg]"),
+       color = "Substance",
+       fill = "Substance") +
+  theme_minimal() + 
+  scale_y_log10() 
+
+filtered_stats <- summary_stats |> filter(Substance != "GO-Chitosan")
+
+# Create the plot with the filtered data
+ggplot(filtered_stats, aes(x = Time, y = Mean_Value, color = Substance, fill = Substance)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2) +
+  labs(title = paste("Mean mass in", interest, "with uncertainty over time only GO and Chit"),
+       x = "Time [s]",
+       y = paste("Mass of substance in ", interest, "[kg] - log scale")) +
+  theme_minimal() +
+  scale_color_manual(values = c("red", "blue"))   # Customize colors for each 
+```

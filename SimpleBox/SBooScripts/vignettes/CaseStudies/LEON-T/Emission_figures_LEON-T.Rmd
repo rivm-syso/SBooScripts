@@ -1,0 +1,528 @@
+---
+title: "LEON-T_emission_figures"
+author: "Anne Hids"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+```{r load data}
+library(ggplot2)
+library(tidyverse)
+library(scales)
+library(openxlsx)
+library(networkD3)
+library(webshot)
+library(jsonlite)
+library(viridis)
+
+Figure_folder <- "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/Figures/Emission_plots/"
+MFAtype <- "DPMFA"
+```
+
+# Prepare data for plotting
+```{r}
+# Load emission data 
+load(file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_NL_EU_long.RData")
+load(file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_NL_long.RData")
+load(file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_EU_long.RData")
+load(file = "/rivm/r/E121554 LEON-T/03 - uitvoering WP3/Deliverable 3.5/DPMFA_emission_NL_EU_TW_time.RData")
+
+Years_available <- unique(data_long$Year)
+
+############################### Prepare NL + EU data ###########################
+data_Year <- data_long |>
+  mutate(Mass_Polymer_t = Mass_Polymer_kt * 1000, .keep = "unused") |> # convert kt to ton
+  mutate(`Environmental_compartment` = # make column indicating of this an air, water or soil sink.
+           case_when(
+             str_detect(To_Compartment, 'water') ~ "water",
+             str_detect(To_Compartment, 'air') ~ "air",
+             str_detect(To_Compartment, 'soil') ~ "soil",
+             .default = "none"
+           )) |> filter(`Environmental_compartment` != "none") |> # remove sinks that are not environmental
+  mutate(IenW_Source = # aggregate inputs to the Major sources classes the study focusses on
+           case_when(
+             str_detect(Source, 'Import of primary plastics') ~ "Pre-production pellets",
+             str_detect(Source, 'Domestic primary plastic production') ~ "Pre-production pellets",
+             str_detect(Source, 'Clothing') ~ "Clothing",
+             str_detect(Source, 'Household textiles') ~ "Household textiles",
+             .default = Source
+           )) |>
+  filter(!is.na(Mass_Polymer_t)) |>
+  mutate(Scale = "EU_with_NL")
+  
+data_Year_sep_macro <- 
+  data_Year |> filter(Material_Type == "micro") |> full_join(
+    data_Year |> 
+      filter(Material_Type == "macro") |> 
+      ungroup() |> 
+      group_by(Type, Scale, Polymer,To_Compartment, Material_Type, RUN, Year, Environmental_compartment) |> 
+      summarise(Mass_Polymer_t = sum(Mass_Polymer_t),
+                IenW_Source = "Macroplastic",
+                Source = "Macroplastic")  )
+
+data_micro_summed_over_polymers <- data_Year |>
+  filter(Material_Type == "micro") |>
+  group_by(Type, Scale, Source, To_Compartment, Material_Type, RUN, Year, Environmental_compartment, IenW_Source) |>
+  summarise(Mass_Polymer_t = sum(Mass_Polymer_t))
+
+############################### Prepare NL data ################################
+# Create a dataframe for just selectyear
+data_Year_NL <- data_long_NL |>
+  mutate(Mass_Polymer_t = Mass_Polymer_kt * 1000, .keep = "unused") |> # convert kt to ton
+  mutate(`Environmental_compartment` = # make column indicating of this an air, water or soil sink.
+           case_when(
+             str_detect(To_Compartment, 'water') ~ "water",
+             str_detect(To_Compartment, 'air') ~ "air",
+             str_detect(To_Compartment, 'soil') ~ "soil",
+             .default = "none"
+           )) |> filter(`Environmental_compartment` != "none") |> # remove sinks that are not environmental
+  mutate(IenW_Source = # aggregate inputs to the Major sources classes the study focusses on
+           case_when(
+             str_detect(Source, 'Import of primary plastics') ~ "Pre-production pellets",
+             str_detect(Source, 'Domestic primary plastic production') ~ "Pre-production pellets",
+             str_detect(Source, 'Clothing') ~ "Clothing",
+             str_detect(Source, 'Household textiles') ~ "Household textiles",
+             .default = Source
+           )) |>
+  filter(!is.na(Mass_Polymer_t)) |>
+  mutate(Scale = "NL")
+  
+data_Year_sep_macro_NL <- 
+  data_Year_NL |> filter(Material_Type == "micro") |> full_join(
+    data_Year |> 
+      filter(Material_Type == "macro") |> 
+      ungroup() |> 
+      group_by(Type, Polymer, To_Compartment, Scale, Material_Type, RUN, Year,Environmental_compartment) |> 
+      summarise(Mass_Polymer_t = sum(Mass_Polymer_t),
+                IenW_Source = "Macroplastic",
+                Source = "Macroplastic"))
+
+data_micro_summed_over_polymers_NL <- data_Year_NL |>
+  filter(Material_Type == "micro") |>
+  group_by(Type, Source, To_Compartment, Scale, Material_Type, RUN, Year, Environmental_compartment, IenW_Source) |>
+  summarise(Mass_Polymer_t = sum(Mass_Polymer_t))
+
+############################### Prepare EU data ################################
+# Create a dataframe for just selectyear
+data_Year_EU <- data_long_EU |>
+  mutate(Mass_Polymer_t = Mass_Polymer_kt * 1000, .keep = "unused") |> # convert kt to ton
+  mutate(`Environmental_compartment` = # make column indicating of this an air, water or soil sink.
+           case_when(
+             str_detect(To_Compartment, 'water') ~ "water",
+             str_detect(To_Compartment, 'air') ~ "air",
+             str_detect(To_Compartment, 'soil') ~ "soil",
+             .default = "none"
+           )) |> filter(`Environmental_compartment` != "none") |> # remove sinks that are not environmental
+  mutate(IenW_Source = # aggregate inputs to the Major sources classes the study focusses on
+           case_when(
+             str_detect(Source, 'Import of primary plastics') ~ "Pre-production pellets",
+             str_detect(Source, 'Domestic primary plastic production') ~ "Pre-production pellets",
+             str_detect(Source, 'Clothing') ~ "Clothing",
+             str_detect(Source, 'Household textiles') ~ "Household textiles",
+             .default = Source
+           )) |>
+  filter(!is.na(Mass_Polymer_t)) |>
+  mutate(Scale = "EU")
+  
+data_Year_sep_macro_EU <- 
+  data_Year_NL |> filter(Material_Type == "micro") |> full_join(
+    data_Year |> 
+      filter(Material_Type == "macro") |> 
+      ungroup() |> 
+      group_by(Type, Polymer, To_Compartment, Scale, Material_Type, RUN, Year,Environmental_compartment) |> 
+      summarise(Mass_Polymer_t = sum(Mass_Polymer_t),
+                IenW_Source = "Macroplastic",
+                Source = "Macroplastic"))
+
+data_micro_summed_over_polymers_EU <- data_Year_EU |>
+  filter(Material_Type == "micro") |>
+  group_by(Type, Source, To_Compartment, Material_Type, Scale, RUN, Year, Environmental_compartment, IenW_Source) |>
+  summarise(Mass_Polymer_t = sum(Mass_Polymer_t))
+
+```
+
+```{r}
+# Create a theme for the plots
+plot_theme = theme(
+  axis.title.x = element_text(size = 32),
+  legend.text = element_text(size = 26),
+  axis.text = element_text(size = 26), 
+  axis.title.y = element_text(size = 32),
+  title = element_text(size = 32),
+  plot.background = element_rect(fill = 'white'),
+  panel.background = element_rect(fill = 'white'),
+  axis.line = element_line(color='black'),
+  plot.margin = margin(2, 4, 2, 2, "cm"),
+  legend.title = element_blank(),  
+  panel.grid.major = element_line(color = "lightgrey", size = 0.5),  # Major grid lines in light grey
+  panel.grid.minor = element_line(color = "lightgrey", size = 0.25)
+)
+
+# Define colors for groups
+source_colors <- c(
+  "Agriculture" = "#F8766D",
+  "Clothing" = "#E58700",
+  "Household textiles" = "#E76BF3",
+  "Intentionally produced microparticles" = "#C99800",
+  "Macroplastic" = "#A3A500",
+  "Packaging" = "#619cff",
+  "Paint" = "#00BA38",
+  "Pre-production pellets" = "#00C0AF",
+  "Technical textiles" = "#00B0F6",
+  "Textile" = "#B983FF",
+  "Tyre wear" = "#ff67a4"
+)
+
+TW_other_colors <- c(
+  "Tyre wear" = "#ff67a4",
+  "Other sources" = "#619cff"
+)
+
+micro_macro_colors <- c(
+  "Microplastic" = "#A3A500",
+  "Macroplastic" = "#B983FF"
+)
+
+sink_colors <- c(
+  "Sea water" = "dodgerblue4",
+  "Air" = "slategray3",
+  "Other soil" = "darkgoldenrod",
+  "Fresh water" = "cyan3",
+  "Roadside soil" = "azure4"
+)
+
+to_comp_colors <- c(
+  "Agricultural soil" = "darkolivegreen3",
+  "Outdoor air" = "deepskyblue",
+  "Residential soil" = "chartreuse4",
+  "Road side soil" = "azure4",
+  "Surface water" = "cyan3",
+  "Sub-surface soil" = "chocolate4"
+)
+```
+
+Figure comparing all micro emissions per source for NL + EU
+```{r}
+source_comparison_micro_data <- data_Year_sep_macro
+
+micro_source_plot <- ggplot(source_comparison_micro_data, aes(x = IenW_Source, y = Mass_Polymer_t, fill=IenW_Source)) +
+  geom_violin() +
+  scale_fill_manual(values = source_colors) +
+  theme(legend.position="none")+
+  scale_y_log10(labels = scales::number_format())+          
+  labs(x = "", y = "Total plastic emissions (ton)") +                   # Adjust labels
+  coord_flip() +
+  plot_theme 
+
+micro_source_plot
+
+ggsave(paste0(Figure_folder, "micro_source_EU_with_NL_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
+       width = 20, height = 10)
+```
+
+Figure comparing micro with macro emissions for NL + EU
+```{r Micro macro}
+micro_macro <- data_Year_sep_macro |>
+  group_by(Material_Type, RUN)|>
+  summarise(Mass_Polymer_t = sum(Mass_Polymer_t)) |>
+  mutate(Material_Type =case_when(
+    Material_Type == "micro" ~ "Microplastic",
+    Material_Type == "macro" ~ "Macroplastic"
+  ))
+
+micro_macro_plot <- ggplot(micro_macro, aes(x = Material_Type, y = Mass_Polymer_t, fill=Material_Type)) +
+  geom_violin() +
+  scale_fill_manual(values = micro_macro_colors) +
+  theme(legend.position="none")+
+  scale_y_log10(labels = scales::number_format())+          
+  labs(x = "", y = "Total plastic emissions (ton)") +                   # Adjust labels
+  coord_flip() +
+  plot_theme 
+
+micro_macro_plot
+
+ggsave(paste0(Figure_folder, "Micro_macro_EU_with_NL_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
+       width = 20, height = 10)
+```
+
+Figure comparing microplastic emissions tyre wear with other microplastic emissions for NL + EU
+```{r}
+Data_TW_separated <- data_micro_summed_over_polymers |>
+  mutate(TW_class = ifelse(Source == "Tyre wear", "Tyre wear", "Other sources")) |>
+  group_by(TW_class, RUN, Scale) |>
+  summarise(Mass_Polymer_t = sum(Mass_Polymer_t))
+
+TW_Other_micro_plot <- ggplot(Data_TW_separated, aes(x = TW_class, y = Mass_Polymer_t, fill=TW_class)) +
+  geom_violin() +
+  scale_fill_manual(values = TW_other_colors) +
+  theme(legend.position="none")+
+  scale_y_log10(labels = scales::number_format())+          
+  labs(x = "", y = "Microplastic emissions (ton)") +                   # Adjust labels
+  coord_flip() +
+  plot_theme 
+
+TW_Other_micro_plot
+
+ggsave(paste0(Figure_folder, "TW_other_EU_with_NL_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
+       width = 20, height = 10)
+```
+
+Figure comparing microplastic emissions tyre wear with other microplastic emissions for NL
+```{r}
+Data_TW_separated_NL <- data_micro_summed_over_polymers_NL |>
+  mutate(TW_class = ifelse(Source == "Tyre wear", "Tyre wear", "Other sources")) |>
+  group_by(TW_class, RUN, Scale) |>
+  summarise(Mass_Polymer_t = sum(Mass_Polymer_t))
+
+TW_Other_micro_plot_NL <- ggplot(Data_TW_separated_NL, aes(x = TW_class, y = Mass_Polymer_t, fill=TW_class)) +
+  geom_violin() +
+  scale_fill_discrete()+
+  theme(legend.position="none")+
+  scale_fill_manual(values = TW_other_colors) +
+  scale_y_log10(labels = scales::number_format())+          
+  labs(x = "",
+       y = "Microplastic emissies (ton)",
+       title = "Microplastic emissies naar het milieu in 2019") +                   # Adjust labels
+  coord_flip() +
+  plot_theme 
+
+TW_Other_micro_plot_NL
+
+ggsave(paste0(Figure_folder, "TW_other_NL_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
+       width = 20, height = 10)
+```
+
+Figure comparing microplastic emissions tyre wear with other microplastic emissions for EU
+```{r}
+Data_TW_separated_EU <- data_micro_summed_over_polymers_EU |>
+  mutate(TW_class = ifelse(Source == "Tyre wear", "Tyre wear", "Other sources")) |>
+  group_by(TW_class, RUN, Scale) |>
+  summarise(Mass_Polymer_t = sum(Mass_Polymer_t))
+
+TW_Other_micro_plot_EU <- ggplot(Data_TW_separated_EU, aes(x = TW_class, y = Mass_Polymer_t, fill=TW_class)) +
+  geom_violin() +
+  scale_fill_discrete()+
+  theme(legend.position="none")+
+  scale_fill_manual(values = TW_other_colors) +
+  scale_y_log10(labels = scales::number_format())+          
+  labs(x = "",
+       y = "Microplastic emissies (ton)",
+       title = "Microplastic emissies naar het milieu in 2019") +                   # Adjust labels
+  coord_flip() +
+  plot_theme 
+
+TW_Other_micro_plot_EU
+
+ggsave(paste0(Figure_folder, "TW_other_EU_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
+       width = 20, height = 10)
+```
+
+Plot comparing EU, NL and NL EU emissions
+```{r}
+TW_other <- bind_rows(Data_TW_separated, Data_TW_separated_EU, Data_TW_separated_NL) |>
+    mutate(
+    Scale = str_replace_all(Scale, "EU_with_NL", "EU + NL"),
+    Scale = factor(Scale, levels = c("EU + NL", "EU", "NL")) # Reorder levels
+  ) |>
+  mutate(as.factor(Scale)) 
+
+TW_other_scale_plot <- ggplot(TW_other, aes(x = Scale, y = Mass_Polymer_t, fill=TW_class)) +
+    geom_violin() +
+  theme(legend.position="bottom")+
+  scale_fill_manual(values = TW_other_colors) +
+  scale_y_log10(labels = scales::number_format())+          
+  labs(x = "",
+       y = "Microplastic emissions (ton)")+
+  coord_flip() +
+  plot_theme 
+
+TW_other_scale_plot
+
+ggsave(paste0(Figure_folder, "TW_other_EU_NL_comparison_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
+       width = 20, height = 10)
+```
+
+TW to environmental compartments
+```{r}
+TW_data <- data_micro_summed_over_polymers |>
+  mutate(TW_class = ifelse(Source == "Tyre wear", "Tyre wear", "Other sources")) |>
+  filter(Source == "Tyre wear") |>
+  mutate(To_Compartment = str_remove(To_Compartment, fixed(" (micro)")))
+
+TW_env_comp_plot <- ggplot(TW_data, aes(x = To_Compartment, y = Mass_Polymer_t, fill=To_Compartment)) +
+  geom_violin() +
+  theme(legend.position="none")+
+  scale_y_log10(labels = scales::number_format())+          
+  labs(x = "", y = "Microplastic emissions (ton)") +                   # Adjust labels
+  coord_flip() +
+  plot_theme 
+
+TW_env_comp_plot
+
+ggsave(paste0(Figure_folder, "TW_to_env_comps_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
+       width = 20, height = 10)
+```
+
+Stacked barplot distribution over different sinks TWP vs. other sources
+```{r}
+barplot_data <- data_micro_summed_over_polymers |>
+  mutate(TW_class = ifelse(Source == "Tyre wear", "Tyre wear", "Other sources")) |>
+  ungroup() |> 
+  mutate(Environmental_compartment = case_when(
+    Environmental_compartment == "soil" ~ "Other soil",
+    Environmental_compartment == "air" ~ "Air",
+    .default = Environmental_compartment
+  )) |>
+  mutate(Environmental_compartment = case_when(
+    To_Compartment == "Road side soil (micro)" ~ "Roadside soil",
+    To_Compartment == "Surface water (micro)" ~ "Fresh water",
+    To_Compartment == "Sea water (micro)" ~ "Sea water",
+    .default = Environmental_compartment
+  )) |>
+  group_by(Scale, TW_class, To_Compartment, Environmental_compartment, Year, Type, Material_Type) |> 
+  summarise(Mass_Polymer_t = mean(Mass_Polymer_t),
+            n = n()) |> 
+  ungroup() |> 
+  group_by(Scale, TW_class, Environmental_compartment, Year, Type) |> 
+  summarise(Mass_Polymer_t = sum(Mass_Polymer_t),
+            n= n())
+
+# Make a stacked barplot for what percentage goes to air, soil and water
+sink_dist_barplot <- ggplot(barplot_data, aes(fill = Environmental_compartment, x = TW_class, y = Mass_Polymer_t)) +
+  geom_bar(position = "fill", stat="identity", color = "transparent") +
+  scale_fill_manual(values = sink_colors) +
+  scale_x_discrete(labels = wrap_format(10)) +                   # Wraps text longer than 10 characters
+  scale_y_continuous(labels = scales::percent) +
+  plot_theme +
+  labs(y= "Distribution",
+       x="") +
+  labs(fill='Sink type') +
+   theme( # Override specific elements
+    panel.grid.major = element_blank(), # Major grid lines removed
+    panel.grid.minor = element_blank()  # Minor grid lines removed
+  ) 
+
+sink_dist_barplot
+
+ggsave(paste0(Figure_folder, "Env_comp_barplot_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
+       width = 20, height = 10)
+```
+
+Figure violin plot from each source to soil types
+
+```{r}
+soil_data <- data_Year |>
+  filter(Environmental_compartment == "soil") |>
+  filter(Material_Type == "micro")
+
+source_soil_plot <- ggplot(soil_data, aes(x = IenW_Source, y = Mass_Polymer_t, fill = To_Compartment)) +
+  geom_violin() +
+  scale_fill_discrete()+
+  theme(legend.position="right")+
+  scale_y_log10(labels = scales::number_format())+          
+  labs(x = "", y = "Microplastic emissions (ton)") +                   # Adjust labels
+  coord_flip() +
+  plot_theme 
+
+source_soil_plot
+
+ggsave(paste0(Figure_folder, "Sources_to_soil_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
+       width = 20, height = 10)
+```
+
+Plot TWP over time
+```{r}
+excluded_compartments <- c("Landfill", "Elimination", "Secondary material reuse")
+
+TW_mean_data <- TW_emissions_over_time |>
+  mutate(Mass_Polymer_t = Mass_Polymer_kt*1000) |>
+  group_by(Source, To_Compartment, Year, Scale, Polymer) |>
+  summarise(Mean = mean(Mass_Polymer_t)) |>
+  mutate(Year = as.integer(Year)) |>
+  filter(!To_Compartment %in% excluded_compartments) |>
+  mutate(To_Compartment = str_replace_all(To_Compartment, " \\(micro\\)", ""))
+
+TW_over_time <- ggplot(TW_mean_data, aes(x = Year, y = Mean, colour = To_Compartment, group = To_Compartment)) +
+  geom_line(size=1) +
+  plot_theme +          
+  labs(x = "Year", y = "Mean microplastic emission (ton)", title = "Tyre wear emissions to environmental compartments") +
+  scale_color_manual(values = to_comp_colors)
+
+TW_over_time
+
+ggsave(paste0(Figure_folder, "Tyre_wear_concentration_over_time_", MFAtype, "_", format(Sys.time(),'%Y%m%d'),".png"),
+       width = 20, height = 10)
+```
+
+Tyre wear sankey for NL + EU
+```{r}
+palette_name <-"RdYlBu"
+
+# Calculate mean flows for TW
+TW_sankey_data <- TW_emissions_over_time |>
+  filter(Year == 2019) |>
+  group_by(Source, Polymer, To_Compartment) |>
+  summarise(Mass_Polymer_kt = mean(Mass_Polymer_kt)) |>
+  mutate(From_Compartment = "Tyre wear") |>
+  mutate(Mass_Polymer_t = Mass_Polymer_kt*1000)
+
+links <- TW_sankey_data |>
+  group_by(Source, To_Compartment) |>
+  summarise(Mass_Polymer_t = sum(Mass_Polymer_t)) |>
+  filter(Mass_Polymer_t !=0)|>
+  rename(source = Source, target = To_Compartment, value = Mass_Polymer_t)
+
+# Prepare node labels
+source_label_names <- links |>
+  group_by(source) |>
+  summarise(value = sum(value) / 1000, 2) |>
+  mutate(value = format(value, scientific = TRUE, digits = 3))|>
+  mutate(label = paste0(source, ': ', value, " kt"))
+
+target_label_names <- links |>
+  group_by(target) |>
+  summarise(value = sum(value) / 1000, 2) |>
+  mutate(value = format(value, scientific = TRUE, digits = 3))|>
+  mutate(label = paste0(target, ': ', value, " kt"))
+
+all_names <- c(source_label_names$source, target_label_names$target)
+all_labels <- c(source_label_names$label, target_label_names$label)
+
+# Make dataframe with node names
+nodes <- data.frame(name = all_names, label = all_labels)
+
+# Add columns to links (needed for sankey function)
+links$source_id <- match(links$source, nodes$name) - 1
+links$target_id <- match(links$target, nodes$name) - 1
+
+# Create a color scheme
+viridis_colors <- viridis(length(unique(links$target)), option = "D")
+
+color_scale <- paste0(
+  'd3.scaleOrdinal()',
+  '.domain(["', paste(unique(links$target), collapse = '", "'), '"])',
+  '.range(["', paste(viridis_colors, collapse = '", "'), '"])')
+
+# Make the sankey diagram
+sankey <- sankeyNetwork(Links = links, 
+                        Nodes = nodes, 
+                        Source = 'source_id',
+                        Target = 'target_id',
+                        Value = 'value', 
+                        NodeID = 'label',
+                        fontSize = 25, 
+                        #colourScale=color_scale,
+                        LinkGroup='target')
+
+sankey 
+
+filename<- "Sankey_tyre_wear_to_sinks_"
+
+# Save the sankey diagram as an HTML file
+html_file <- paste0(Figure_folder, filename, ".html")
+saveNetwork(sankey, file = html_file, selfcontained = TRUE)
+```
