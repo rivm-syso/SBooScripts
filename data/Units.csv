@@ -50,6 +50,7 @@ kdeg.water,s-1,,Substances,Degradation rate constant water
 kdis,s-1,,SubstanceSubCompartSpeciesData,Dissolution rate constant
 kfrag,s-1,,SubstanceSubCompartSpeciesData,Fragmentation rate of heteroagglomerates
 Kow,-,,Substances,Octanol water partitioning coefficient 
+Kssdr,m.s-1,,SubstanceCompartments,Surface related degradation rate constant
 Ksw,-,,Substances,Soil water partitioning coefficient
 kwsd,m.s-1,,MatrixSheet,PARTIAL MASS TRANSFER COEFFICIENT subcompartment side of water/sed interface
 LakeFracRiver,-,,CONSTANTS,The fraction of freshwater belonging to the lake water
