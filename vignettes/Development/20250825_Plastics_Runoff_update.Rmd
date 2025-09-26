@@ -1,7 +1,7 @@
 ---
 title: "Comparison runoff update"
 author: "Anne Hids, Nadim Saadi, Joris Quik"
-date: "2025-05-27"
+date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
   chunk_output_type: console
@@ -19,13 +19,11 @@ source("baseScripts/initWorld.R")
 
 # Explanation of update
 
-
-=======
-In the previous itteration Runoff was only reduced for the largest
-species of heteroagglomerates (P/attached species). Runoff for the solid
-and aggregate species would be calculated using the runoff rate for
-microplastics as used in the orignial SimpleBox4Plastics model (Quik
-etal. 2024). As microplastics themselves can already be relatively
+======= In the previous itteration Runoff was only reduced for the
+largest species of heteroagglomerates (P/attached species). Runoff for
+the solid and aggregate species would be calculated using the runoff
+rate for microplastics as used in the orignial SimpleBox4Plastics model
+(Quik etal. 2024). As microplastics themselves can already be relatively
 large, runoff is overestimated for those larger microplastics because
 larger particles are likely to be trapped or slowed down by vegetation
 present on the soil.
@@ -39,7 +37,6 @@ density vegetation as found by Han et al. (2022). The option to use this
 interception fraction is now added in SimpleBox based on the previous
 implementation by Louvet et al. (in prep).
 
-
 Old function:
 
 $(Runoff * f_CORRsoil(VertDistance, relevant_depth_s, penetration_depth_s)) / Volume * to.FracROWatComp$
@@ -48,13 +45,11 @@ New function:
 
 $(Runoff * f_CORRsoil(VertDistance, relevant_depth_s, penetration_depth_s)) / Volume * to.FracROWatComp * (1-IntrcptFrac)$
 
-
 Where IntrcptFrac is calculated based on rad_species being larger than
 SizeRunoff and being set to VegInterceptFrac. Default VegInterceptFrac =
 1, which means no Runoff for those larger particles, but can be adjusted
 to 0.9715 using MutateVars, see also general documentation in [7.3
 OtherIntermedia.md](/vignettes/7.3-OtherIntermedia.md).
-
 
 # Change in k values for runoff flows
 
@@ -193,7 +188,6 @@ microplastics and TRWP are about
 `r round(abs(min(unique(changed_kaas$rel_diff))), 0)` times lower than
 in the previous version. For other substances k_Runoff remains
 unchanged.
-
 
 ```{R Plot the differences between ks, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
 
@@ -361,4 +355,3 @@ In the above plots for large microplastics and TWRP (250 micrometer),
 you can see that now Runoff in the new situation is switched off, due to
 the interception being set to 1 (100%). The relative differences between
 old and new is thus also 1 ((Old-New)/Old)
-
