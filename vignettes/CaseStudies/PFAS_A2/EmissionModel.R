@@ -3,23 +3,42 @@ library(ggplot2)
 library(reshape2)
 library(readxl)
 
-emission_fun <- function  (plot=FALSE, runtime=140, Wereldwijd=TRUE, scenario ='simple1') {
-  make_emission_df <- function(emis, time_steps, location, scale) {
+##Simple1 scenario is wereldwijde constante 30 ton aan emissies voor 50 jaar, de 30 ton is verdeeld over de compartimenten op basis van hun oppervlakte.
+##prob_nruns is het aantal runs voor rekenen met onzekerheid
+
+emission_fun <- function  (plot=FALSE, runtime=140, Wereldwijd=TRUE, scenario ='simple1', prob_nruns=0) {
+  if (prob_nruns != 0) {
+    prob = TRUE
+  } else {
+    prob=FALSE
+  }
+  
+  make_emission_df <- function(emis, time_steps, location, scale, prob_nruns) {
     areas = World$fetchData("TotalArea")
     areas <- areas %>%
       mutate(TotalArea = TotalArea/sum(areas$TotalArea)) %>%
       filter(Scale == scale)
-    
-    emission <- data.frame(
-      Emis = rep(emis*areas$TotalArea, times= length(unique(location))),
-      Time = rep(1:time_steps, times= length(unique(location))),
-      Abbr = rep(location, each=time_steps)
+
+    emission <- expand.grid(
+      Emis = emis*areas$TotalArea,
+      Abbr = location,
+      Time = 1:time_steps,
+      RUN = 1:prob_nruns
     )
+    
     empty_emission <- expand.grid(
       Time = seq(from = time_steps + 1, to = runtime),
-      Abbr = location
+      Abbr = location,
+      RUN = 1:prob_nruns
     )
     empty_emission$Emis <- 0
+    
+    # empty_start <- expand.grid(
+    #   Emis = 0,
+    #   Abbr = location,
+    #   Time = 0,
+    #   RUN = 1:prob_nruns
+    # )
     
     emission <- bind_rows(emission, empty_emission)
     return(emission)
@@ -27,20 +46,20 @@ emission_fun <- function  (plot=FALSE, runtime=140, Wereldwijd=TRUE, scenario ='
 
   if (scenario == 'simple1') {
     #Simpel scenario met wereldwijde constante 30 ton emissies voor een bepaalde tijd 
-    emissions_regional_wat <- make_emission_df(30000, 50, c("w0RU", "w1RU", "w2RU"), "Regional")
-    emissions_regional_air <- make_emission_df(30000, 50, c("aRU"), "Regional")
+    emissions_regional_wat <- make_emission_df(30000, 50, c("w0RU", "w1RU", "w2RU"), "Regional", prob_nruns)
+    emissions_regional_air <- make_emission_df(30000, 50, c("aRU"), "Regional", prob_nruns)
     
-    emissions_continental_wat <- make_emission_df(30000, 50, c("w0CU", "w1CU", "w2CU"), "Continental")
-    emissions_continental_air <- make_emission_df(30000, 50, c("aCU"), "Continental")
+    emissions_continental_wat <- make_emission_df(30000, 50, c("w0CU", "w1CU", "w2CU"), "Continental", prob_nruns)
+    emissions_continental_air <- make_emission_df(30000, 50, c("aCU"), "Continental", prob_nruns)
     
-    emissions_moderate_wat <- make_emission_df(30000, 50, c("w0MU", "w1MU", "w2MU"), "Moderate")
-    emissions_moderate_air <- make_emission_df(30000, 50, c("aMU"), "Moderate")
+    emissions_moderate_wat <- make_emission_df(30000, 50, c("w0MU", "w1MU", "w2MU"), "Moderate", prob_nruns)
+    emissions_moderate_air <- make_emission_df(30000, 50, c("aMU"), "Moderate", prob_nruns)
     
-    emissions_tropic_wat <- make_emission_df(30000, 50, c("w0TU", "w1TU", "w2TU"), "Tropic")
-    emissions_tropic_air <- make_emission_df(30000, 50, c("aTU"), "Tropic")
+    emissions_tropic_wat <- make_emission_df(30000, 50, c("w0TU", "w1TU", "w2TU"), "Tropic", prob_nruns)
+    emissions_tropic_air <- make_emission_df(30000, 50, c("aTU"), "Tropic", prob_nruns)
     
-    emissions_arctic_wat <- make_emission_df(30000, 50, c("w0AU", "w1AU", "w2AU"), "Arctic")
-    emissions_arctic_air <- make_emission_df(30000, 50, c("aAU"), "Arctic")
+    emissions_arctic_wat <- make_emission_df(30000, 50, c("w0AU", "w1AU", "w2AU"), "Arctic", prob_nruns)
+    emissions_arctic_air <- make_emission_df(30000, 50, c("aAU"), "Arctic", prob_nruns)
     emissions <- bind_rows(emissions_regional_wat, emissions_regional_air,
                            emissions_continental_wat, emissions_continental_air,
                            emissions_moderate_wat, emissions_moderate_air,
@@ -50,10 +69,19 @@ emission_fun <- function  (plot=FALSE, runtime=140, Wereldwijd=TRUE, scenario ='
     emissions <- emissions |>
       mutate(Time = Time*(365.25*24*60*60)) |> # Convert time from y to s
       ungroup() |>
-      mutate(Emis = Emis*1000/(MW*365*24*60*60)) |> #MW =500 # convert 1 t/y to si units: kg/s
-      full_join(expand.grid(Abbr=unique(emissions$Abbr)) |>
-                  mutate(Time = 0,
-                         Emis = 0))
+      mutate(Emis = Emis*1000/(MW*365*24*60*60))  #|> #MW =500 # convert 1 t/y to si units: kg/s
+      # full_join(expand.grid(Abbr=unique(emissions$Abbr)) |>
+      #             mutate(Time = 0,
+      #                    Emis = 0,
+      #                    RUN = rep(1:prob_nruns, times=prob_nruns)))
+    
+    empty_start = expand.grid(
+      Emis=0,
+      Abbr=unique(emissions$Abbr),
+      Time=0,
+      RUN = 1:prob_nruns
+    )
+    emissions <- bind_rows(empty_start, emissions)
     return(emissions)
   }
   

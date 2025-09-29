@@ -45,6 +45,7 @@ check_and_install("exactextractr")
 check_and_install("here")
 check_and_install("reshape2")
 check_and_install("scales")
+
 library(dplyr)
 library(here)
 library(lhs)
@@ -96,14 +97,9 @@ initiate <- function(substance_func, catchment, runtime=140) {
   }
  
   
-  return(runtime*365.25*24*60*60)
+
 }
-runtime <- 300 #years
-tmax <- runtime*365.25*24*60*60 #in seconds
-nTIMES <- runtime+1 #Number of timesteps, e.g. yearly, 2-year
-Wereldwijd = TRUE
-catchment = 'Rhine'
-scenario = 1
+
 
 
 ```
@@ -141,6 +137,19 @@ print(World$fetchData("Area"))
 
 ```
 
+## Stofeigenschap onzekerheid
+
+```{r}
+#varName; Scale; SubCompart; Species; Distribution; a; b; c; Data Source
+get_probFuncs_PFAS <- function(substance) {
+  data <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/Uncertainty.xlsx", sheet = substance)
+  varFuns <- World$makeInvFuns(Example_vars)
+  
+}
+vars <- c("pKa" = 'uniform', "Tm" = 'uniform', "Pvap25" = 'uniform', "Sol25" = 'uniform', "Kaw25"= 'uniform', "Kow" = 'uniform', "Ksw" = 'uniform')
+
+
+```
 
 ```{r}
 ##Loop om per PFAS resultaat te krijgen:
@@ -148,6 +157,12 @@ print(World$fetchData("Area"))
 ## Functies maken WORLD en passen deze aan, de loop is nu erg traag omdat hij dezelfde dingen berekent bij initiate()
 ## scenario kunnen aangegeven worden in emission_fun(), simple1 is 30000 Tonnes constant in lucht en water voor 50 jaar, daarna resterende periode van runtime variabele leeg.
 ## 
+runtime <- 140 #years
+tmax <- runtime*365.25*24*60*60 #in seconds
+nTIMES <- runtime+1 #Number of timesteps, e.g. yearly, 2-year
+Wereldwijd = TRUE
+catchment = 'Rhine'
+scenario = 1
 
 stoffen <- c("Perfluorobutane_sulfonic", "Perfluorobutanoic", 
                       "Perfluoropentanoic", "Perfluoroheptanoic", 
@@ -160,10 +175,18 @@ jaren = data.frame(PFAS = stoffen,
 
 for (index in seq_len(length(stoffen))) {
   substance = stoffen[index]
-  tmax = initiate(substance)
+  initiate(substance)
+  vars_uncertainty <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/Uncertainty.xlsx", sheet = substance)
+  varFuns <- World$makeInvFuns(vars_uncertainty)
+  
   World$NewSolver("DynamicSolver")
-  emissions = emission_fun(scenario='simple1', runtime = runtime)
-  World$Solve(emissions = emissions, tmax=tmax, nTIMES = 141)
+  emissions = emission_fun(scenario='simple1', runtime = runtime, prob_nruns=20)
+  World$Solve(emissions = emissions,
+              var_box_df = vars_uncertainty, 
+              var_invFun = varFuns,
+              nRUNs =  20,
+              tmax=tmax, 
+              nTIMES = 141)
   solution <- World$Masses()
   emission <- World$Emissions()
   concentration_data <- World$Concentration() 
