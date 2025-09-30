@@ -18,22 +18,32 @@ source("baseScripts/initWorld.R")
 
 # Explanation of update
 
-[Some information on the changes]
+This update introduces the Surface Specific Degradation Rate (SSDR) approach of Maga et al. (2022) (https://doi.org/10.1007/s11367-022-02040-1) and adapted by Corella-Puertas et al. (2023) (https://doi.org/10.1016/j.jclepro.2023.138197) to account for degradation of microplastics in the environment. The approach considers multiple parameters to derive a degradation rate (kdeg [yr-1]).
+
+Further, this update introduces MinSettVel, as a place holder settling velocity for low and medium density microplastics to account for biofouling. In fact, SBoo used to compute a settling velocity of 0 m/s for particles with density smaller than that of water. However, this approach ignores the change in density of particles due to the formation of a biofilm on the surface of microplastics, which can increase the density and lead to the (slow) sedimentation of low and medium density microplastics. MinSettVel is implemented using sedimentation rate values from Corella-Puertas et al. (2023) to account for this.
 
 -   v_KdegDorC is changed to include the new Kssdr input parameter
     instead of just kdeg
 
     -   The Kssdr approach uses
 
-        -   ShapeFac
+        -   ShapeFac: A factor to consider the shape 2 for films/boxes, 3 for fibers/cylinders, 4 for spheres       
+        (Corella-Puertas et al., 2023)
 
-        -   CorFacSSA
+        -   CorFacSSA: A surface area correction factor, which accounts for polymer surface roughness and porosity.
 
-        -   Shortest_side
+        -   Shortest_side: The characteristic dimension through which degradation occurs. The degradation is assumed to
+        mainly occur perpendicular to the largest surface, along the shortest_side axis.
+        
+        -   KSSDR: The specific surface degradation rate (SSDR) in [m/year]. 
+        kSSDR can be found in the literature for different polymers (Maga et al., 2022)
+        
+        - kdeg = ShapeFac * KSSDR * CorFacSSA / Shortest_side
 
 -   v_SettlingVelocity is changed
 
-    -   MinSettVel added when
+    -   MinSettVel added when the density of the particle is smaller than that of water, to avoid a null
+    settling velocity. 
 
 ```{R Specify directories, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 library(tidyverse)
