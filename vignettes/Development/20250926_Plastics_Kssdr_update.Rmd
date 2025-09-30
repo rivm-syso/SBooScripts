@@ -54,7 +54,7 @@ from Corella-Puertas et al. (2023) to account for this.
             shortest_side axis.
 
         -   KSSDR: The specific surface degradation rate (SSDR) in
-            [m/year]. kSSDR can be found in the literature for different
+            [m/year]. KSSDR can be found in the literature for different
             polymers (Maga et al., 2022)
 
         -   kdeg = ShapeFac \* KSSDR \* CorFacSSA / Shortest_side
@@ -76,8 +76,8 @@ library(tidyverse)
 
 InstallSBoo(Release_SBoo = NA, # tag for release use NA for branch
             Release_SBooScripts = NA, # tag for release use NA for branch
-            devBranch_SBoo = "development",
-            devBranch_SBooScripts = "development",
+            devBranch_SBoo = "Shape_setvel",
+            devBranch_SBooScripts = "Shape_setvel",
             Temp_Folder = NULL # an existing folder where SimpleBox is to be installed
 )
 
@@ -158,12 +158,15 @@ changed_kaas <- kaas_comparison |>
 changed_kaas
 ```
 
-As can be seen in the figures below, the new rate constants for the
-substances, `r paste(substances$Substance)`, have a negligible
-difference of max `r max(abs(unique(changed_kaas$rel_diff)))*100` %
-difference to the previous version. The figures below also show this and
-therefor this verification of replicating the previous version with the
-new code is complete.
+As can be seen in the figures below, the new degradation rate constants
+for `r paste(substances$Substance)[2]`, have a very large difference,
+max `r max(abs(unique(changed_kaas$rel_diff)))*(-100)` % larger compared
+to the previous default kdeg value's. The figures below also show this
+and and that the code still works as expected for the other compounds
+for which no Kssdr is defined. The larger degradation rates for
+microplastics is as expected due to the Kssdr implementation. Further
+examples should illustrate the validity of this modification, e.g.
+comparing to measuresments etc.
 
 ```{R Plot the differences between ks, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 all_diffs <- kaas_comparison |>
