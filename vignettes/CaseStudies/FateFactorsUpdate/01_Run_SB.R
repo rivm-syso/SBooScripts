@@ -48,6 +48,14 @@ global_df <- data.frame(varName = c("VertDistance", "VertDistance", "VertDistanc
 World$mutateVars(global_df)
 World$UpdateDirty(unique(global_df$varName))
 
+#Remove fragmentation
+kfrag_df <- data.frame(varName = c("kfrag"), 
+                       #SubCompart = c("freshwatersediment","lakesediment","marinesediment","naturalsoil","agriculturalsoil"),
+                       #Species = c("Continental","Regional"),
+                       Waarde = c(0))
+World$mutateVars(kfrag_df)
+World$UpdateDirty(unique(kfrag_df$varName))
+
 vars_to_update = c()
 
 # Loop over regions
@@ -57,6 +65,7 @@ polymer_names <- colnames(plastic_values)[3:ncol(plastic_values)]
 #### emission compartments, volumes, SDF, etc needed for CF calculation
 sizes <- c(1,10,100,1000,5000) #D will be divided by 2
 shapes <- c("Sphere","Fiber","Film")
+time_horizon=20 #[yrs] time horizon for dynamic solver (Time over which impacts are integrated for )
 #list of possible emission compartments to loop over
 #only SOLID
 emission_compartments <- c("aRS","w1RS","w0RS","w2RS","sd1RS","sd0RS","sd2RS","s1RS","s2RS",
@@ -140,9 +149,10 @@ count <- 0
 #Variables to test
 reg = "Ocenia"
 reg = "North America"
-pol = "TRWP"
+pol = "PET"
 size = 5000
 shape = "Sphere"
+emission_compartment = "s1RS"
 
 #### LOOPS
 
@@ -331,7 +341,7 @@ for(reg in region_names){
         #loop over emission compartments
         for (emission_compartment in emission_compartments) {
           #define the emission, solve and retrieve steady state masses
-          emissions <- data.frame(Abbr = c(emission_compartment), Emis = 1/3600/24) #emission of 1kg/d in kg/s - resulting steady state masses (kg) can be divided by 1 (kg/d) to get FF (d)
+          emissions <- data.frame(Abbr = c(emission_compartment), Emis = 1/3600/24) #emission of 1kg/d input in kg/s - resulting steady state masses (kg) can be divided by 1 (kg/d) to get FF (d)
           World$NewSolver("SteadyStateSolver")
           World$Solve(emissions = emissions)
           k_matrix = World$exportEngineR()
@@ -366,6 +376,7 @@ for(reg in region_names){
             
             dplyr::select(-Mass_kg)
           
+          ########
           CF_mid_PAF_day <- as.data.frame(t(as.matrix(SDF) %*% as.matrix(Masses_grouped_over_species$CF_comp_PAF_day))) %>%
           mutate(region = reg,
                   polymer = pol,
