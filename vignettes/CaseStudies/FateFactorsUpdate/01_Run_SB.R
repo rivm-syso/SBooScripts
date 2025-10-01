@@ -147,12 +147,12 @@ count <- 0
 
 #####TEST
 #Variables to test
-reg = "Ocenia"
+#reg = "Ocenia"
 reg = "North America"
-pol = "PET"
-size = 5000
+pol = "TRWP_v2"
+size = 100
 shape = "Sphere"
-emission_compartment = "s1RS"
+#emission_compartment = "s1RS"
 
 #### LOOPS
 
@@ -465,8 +465,8 @@ for(reg in region_names){
 close(pb)
 
 # Load workbook if it exists, otherwise create a new one
-wb <- if (file.exists("results_FF_CF.xlsx")) {
-  loadWorkbook("results_FF_CF.xlsx")
+wb <- if (file.exists("vignettes/CaseData/FateFactorsUpdate/results_FF_CF.xlsx")) {
+  loadWorkbook("vignettes/CaseData/FateFactorsUpdate/results_FF_CF.xlsx")
 } else {
   createWorkbook()
 }
