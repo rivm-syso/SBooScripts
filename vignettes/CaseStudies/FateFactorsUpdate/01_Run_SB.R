@@ -40,10 +40,10 @@ DragMethod_df <- data.frame(varName = "DragMethod",
 World$mutateVars(DragMethod_df)
 World$UpdateDirty(unique(DragMethod_df$varName))
 
-global_df <- data.frame(varName = c("VertDistance", "VertDistance", "VertDistance", "VertDistance", "VertDistance"), 
-                        SubCompart = c("freshwatersediment","lakesediment","marinesediment","naturalsoil","agriculturalsoil"),
+global_df <- data.frame(varName = c("VertDistance", "VertDistance", "VertDistance", "VertDistance", "VertDistance", "VertDistance"), 
+                        SubCompart = c("freshwatersediment","lakesediment","marinesediment","naturalsoil","agriculturalsoil","othersoil"),
                         #Scale = c("Continental","Regional"),
-                        Waarde = c(0.1, 0.1, 0.1, 0.1, 0.1)) #Set the depth of all sediments and soil to 10cm, as per USEtox
+                        Waarde = c(0.1, 0.1, 0.1, 0.1, 0.1, 0.1)) #Set the depth of all sediments and soil to 10cm, as per USEtox
 
 World$mutateVars(global_df)
 World$UpdateDirty(unique(global_df$varName))
@@ -336,7 +336,8 @@ for(reg in region_names){
         
         #UpdateDirty with the names of all variables that were changed, in all the loops
         World$UpdateDirty(vars_to_update)
-        
+        k_matrix = World$exportEngineR()
+        k_detailed = World$fetchData("kaas")
   
         #loop over emission compartments
         for (emission_compartment in emission_compartments) {
@@ -344,7 +345,7 @@ for(reg in region_names){
           emissions <- data.frame(Abbr = c(emission_compartment), Emis = 1/3600/24) #emission of 1kg/d input in kg/s - resulting steady state masses (kg) can be divided by 1 (kg/d) to get FF (d)
           World$NewSolver("SteadyStateSolver")
           World$Solve(emissions = emissions)
-          k_matrix = World$exportEngineR()
+          
           Masses <- World$Masses()
 
           Masses_grouped_over_species <- Masses |>
@@ -479,8 +480,22 @@ writeData(wb, sheet = "results_CF_end_species_year", results_CF_end_species_year
 writeData(wb, sheet = "results_CF_end_PDF_m2_year", results_CF_end_PDF_m2_year, withFilter = FALSE)
 
 # Save without deleting other sheets
-saveWorkbook(wb, "results_FF_CF.xlsx", overwrite = TRUE)
+saveWorkbook(wb, "vignettes/CaseData/FateFactorsUpdate/results_FF_CF.xlsx", overwrite = TRUE)
 
+
+###
+
+wb <- if (file.exists("vignettes/CaseData/FateFactorsUpdate/kvalues.xlsx")) {
+  loadWorkbook("vignettes/CaseData/FateFactorsUpdate/kvalues.xlsx")
+} else {
+  createWorkbook()
+}
+
+# Replace or add each results sheet
+writeData(wb, sheet = "kvalues2", k_detailed, withFilter = FALSE)
+
+# Save without deleting other sheets
+saveWorkbook(wb, "vignettes/CaseData/FateFactorsUpdate/kvalues.xlsx", overwrite = TRUE)
 
 #write.xlsx(results_FF, file = "results_FF.xlsx")
 #write.xlsx(results_CF, file = "results_CF.xlsx")
