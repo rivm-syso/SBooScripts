@@ -65,8 +65,8 @@ library(tidyverse)
 
 InstallSBoo(Release_SBoo = NA, # tag for release use NA for branch
             Release_SBooScripts = NA, # tag for release use NA for branch
-            devBranch_SBoo = "development",
-            devBranch_SBooScripts = "development",
+            devBranch_SBoo = "Shape_setvel",
+            devBranch_SBooScripts = "Shape_setvel",
             Temp_Folder = NULL # an existing folder where SimpleBox is to be installed
 )
 
@@ -77,8 +77,8 @@ Comparison <- c("Previous", "ThisOne")
 result_files <- paste0("results_", Comparison, ".rds")
 
 # Directory of your Git repository (modify this path to the correct repository location)
-#script_dir <-getwd()
-#repo_dir <- file.path(getwd(), "..", "SBoo")
+script_dir <-getwd()
+repo_dir <- file.path(getwd(), "..", "SBoo")
 
 ```
 
@@ -93,26 +93,21 @@ substances <- substances |>
   filter(Substance %in% substance_names)
 ```
 
-```{R Switch to SBoo Development branch, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-# Switch to the correct Git directory
-# setwd(repo_dir)
 
-# Checkout the branch
-# branch <- branches[1]
-# message("Switching to branch: ", branch)
-# system(paste("git checkout -f ", branch))
-# system("git pull", intern = TRUE)  # Ensure the branch is up-to-date
-  
-# setwd(script_dir)
-```
-
-```{R Run SB and get advection ks for development, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+```{R Run SB and get advection ks for original dragmethod, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 this_kaas <- data.frame()
 this_variables <- data.frame()
+
 for(substanceK in substances$Substance){
   # Get the substance type
   substance <- substanceK
       source("baseScripts/initWorld.R")
+  DragMethod_df <- data.frame(
+  varName = "DragMethod",
+  Waarde = "Original"
+  )
+  World$mutateVars(DragMethod_df)
+  World$UpdateDirty("DragMethod")
 
   kaas <- World$kaas |>
     # filter(process == "k_Runoff") |>
@@ -133,30 +128,25 @@ Do the same for the other implementation.
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 ```
 
-```{R Switch to SBoo Flux_work branch, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-# Switch to the correct Git directory
-# setwd(repo_dir)
+## Quantify changes based drag method chosen
 
-# Checkout the branch
-# branch <- branches[2]
-# message("Switching to branch: ", branch)
-# system(paste("git checkout -f ", branch))
-# system("git pull", intern = TRUE)  # Ensure the branch is up-to-date
-  
-# setwd(script_dir)
+Change drag method and recalculate k values
 
-
-```
-
-```{R Run SB and get advection ks for FLux_work branch, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+```{R Run SB and get k values for Bagheri drag method, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 
 other_kaas <- data.frame()
-  
+
 for(substanceK in substances$Substance){
 Temp_Folder=NULL
 substance = substanceK
 
 source("baseScripts/initWorldOther.R")
+DragMethod_df <- data.frame(
+  varName = "DragMethod",
+  Waarde = "Bagheri"
+  )
+World$mutateVars(DragMethod_df)
+World$UpdateDirty("DragMethod")
 
   kaas <- World$kaas |>
     # filter(process == "k_Runoff") |>
@@ -236,16 +226,156 @@ for(i in unique(all_diffs$Substance)){
 }
 ```
 
-## Quantify changes based on shape and drag method chosen
+## Quantify changes based on shape 
 
-[TODO] script showing the effects of different drag methods and shapes
-on particle settling velicities and rate constants.
+Change shape and observe the difference (using Bagheri)
 
 ```{r}
 
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
-source("baseScripts/initWorld.R")
+```
 
-# to be added, script showing for the effects of different drag methods and shapes on particle settling velicities and rate constants.
 
+##Run SBoo for a sphere
+Using Bagheri Dragmethod
+
+```{R Run SB and get k values for Bagheri drag method for a sphere, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+this_kaas_shape <- data.frame()
+#this_variables <- data.frame()
+
+for(substanceK in substances$Substance){
+  # Get the substance type
+  substance <- substanceK
+      source("baseScripts/initWorld.R")
+  DragMethod_df <- data.frame(
+  varName = "DragMethod",
+  Waarde = "Original"
+  )
+  World$mutateVars(DragMethod_df)
+  World$UpdateDirty("DragMethod")
+  
+  shape_df <- data.frame(
+  varName = "Shape",
+  Waarde = "Sphere"
+  )
+  World$mutateVars(shape_df)
+  World$UpdateDirty("Shape")
+
+  kaas <- World$kaas |>
+    # filter(process == "k_Runoff") |>
+    mutate(Substance = substance)
+  
+  # SetVel <- World$fetchData("SettlingVelocity") |> 
+    # mutate(Substance = substance)
+  # this_variables <- rbind(this_variables,SetVel)
+  # this_variables <- cross_join(SetVel)
+  this_kaas_shape <- rbind(this_kaas_shape, kaas)
+}
+
+```
+
+##Run SBoo for a fiber
+Using Bagheri drag method
+
+
+```{R Run SB and get k values for Bagheri drag method for a fiber, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+
+other_kaas_shape <- data.frame()
+
+for(substanceK in substances$Substance){
+Temp_Folder=NULL
+substance = substanceK
+
+source("baseScripts/initWorldOther.R")
+DragMethod_df <- data.frame(
+  varName = "DragMethod",
+  Waarde = "Bagheri"
+  )
+World$mutateVars(DragMethod_df)
+World$UpdateDirty("DragMethod")
+
+shape_df <- data.frame(
+  varName = "Shape",
+  Waarde = "Fiber"
+  )
+World$mutateVars(shape_df)
+World$UpdateDirty("Shape")
+
+  kaas <- World$kaas |>
+    # filter(process == "k_Runoff") |>
+    mutate(Substance = substance)
+  
+  other_kaas_shape <- rbind(other_kaas_shape, kaas)
+}
+
+```
+
+
+## Change between shape (sphere and fiber)
+
+```{R Calculate the differences between ks (shape), include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+common_cols_shape <- setdiff(intersect(colnames(this_kaas_shape), colnames(other_kaas_shape)), "k")
+
+kaas_comparison_shape <- merge(this_kaas_shape, other_kaas_shape, by=common_cols, suffixes = c("_Old", "_New"))
+
+kaas_comparison_shape <- kaas_comparison_shape |>
+  mutate(diff = k_New-k_Old) |> # If this number is positive, the New_k is higher than the Old_k (higher advection rate with new method)
+  mutate(rel_diff = diff/k_New)
+
+changed_kaas_shape <- kaas_comparison_shape |>
+ filter(diff != 0) |>
+    # filter(abs(rel_diff) > 0.001) |>
+  mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
+changed_kaas_shape
+```
+
+As can be seen in the figures below, the new rate constants for the
+substances, `r paste(substances$Substance)`, have a negligible
+difference of max `r max(abs(unique(changed_kaas_shape$rel_diff)))*100` %
+difference to the previous version. The figures below also show this and
+therefor this verification of replicating the previous version with the
+new code is complete.
+
+```{R Plot the differences between ks (shape), include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+all_diffs_shape <- kaas_comparison_shape |>
+  mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
+  mutate(toname = paste0(toSubCompart, "_", toScale))
+
+for(i in unique(all_diffs_shape$Substance)){
+  diffs_substance_shape <- all_diffs_shape |>
+    filter(Substance == i)
+  
+  absdif_plot_shape <- ggplot(diffs_substance_shape, mapping = aes(x = toname, y = fromname, color = diff)) + 
+    geom_point() + 
+    labs(
+      title = "Difference between sphere and fiber k's",
+      subtitle = i,
+      x = "To",  
+      y = "From",  
+      color = "Difference"  
+    ) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1), 
+      panel.grid.major = element_line(linewidth = 0.2, color = "gray90"),  
+      panel.background = element_blank() 
+    )
+  
+  print(absdif_plot_shape)
+  
+  reldif_plot_shape <- ggplot(diffs_substance_shape, mapping = aes(x = toname, y = fromname, color = rel_diff)) + 
+    geom_point() + 
+    labs(
+      title = "Relative difference between sphere and fiber k's",
+      subtitle = i,
+      x = "To",  
+      y = "From",  
+      color = "Relative difference"  
+    ) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1), 
+      panel.grid.major = element_line(size = 0.2, color = "gray90"),
+      panel.background = element_blank()  
+    )
+  print(reldif_plot_shape)
+}
 ```
