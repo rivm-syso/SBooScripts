@@ -1,0 +1,215 @@
+---
+title: "Setup Simplebox PFAS Tjebbe"
+output: html_document
+date: "2025-01-06"
+author: "Tjebbe Janson"
+editor_options: 
+  chunk_output_type: console
+---
+
+### Setup libraries and working directory
+```{R Packages laden}
+
+print(getwd())
+check_and_install <- function(package) {
+  tryCatch({
+    # Load the package
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "is already installed and loaded."))
+  }, error = function(e) {
+    # If an error occurs, install the package
+    message(paste("Package", package, "is not installed. Installing now..."))
+    install.packages(package, dependencies = TRUE)
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "has been successfully installed and loaded."))
+  })
+}
+
+# Install the required packages
+check_and_install("patchwork")
+check_and_install("ggplot2")
+check_and_install("tidyverse")
+check_and_install("constants")
+check_and_install("deSolve")
+check_and_install("knitr")
+check_and_install("dplyr")
+check_and_install("zyp")
+check_and_install("slider")
+check_and_install("readxl")
+check_and_install("Kendall")
+check_and_install("ggpubr")
+check_and_install("ncdf4")
+check_and_install("raster")
+check_and_install("sf")
+check_and_install("exactextractr")
+check_and_install("here")
+check_and_install("reshape2")
+check_and_install("scales")
+
+library(dplyr)
+library(here)
+library(lhs)
+library(tidyverse)
+library(treemapify)
+library(gridExtra)
+source("vignettes/CaseStudies/PFAS_A2/EmissionModel.R")
+source("vignettes/CaseStudies/PFAS_A2/plot.R")
+
+```
+
+### Stof kiezen, Wereld aanpassen
+```{r Substance list, warning=FALSE, include=TCUE}
+#Stof instellingen, handmatig 
+# initiate <- function(substance_func, catchment, runtime=140) {
+  
+  
+  substances <- read.csv(here("data", "Substances.csv"))
+  Units <- read.csv(here("data", "Units.csv"))
+  Substance_Compartment <- read.csv(here("data", "SubstanceCompartments.csv"))
+  gekozen_stoffen = c("Perfluorobutane_sulfonic", "Perfluorobutanoic", 
+                      "Perfluoropentanoic", "Perfluoroheptanoic", 
+                      "Perfluorooctanoic", "Trifluoroacetic", "Perfluorohexanoic")
+  #substances <- filter(substances, Substance %in% gekozen_stoffen)
+  substance = gekozen_stoffen[1]
+  # substance <- substance_func
+  
+  chemclass <- substances |>
+    filter(Substance == substance) |>
+    dplyr::select(ChemClass)
+  chemclass <- chemclass$ChemClass
+  
+  #World Module
+  if(substance == "microplastic"){
+    source("baseScripts/initWorld_onlyPlastics.R")
+  } else if (chemclass == "particle") {
+    source("baseScripts/initWorld_onlyParticulate.R")
+  } else {
+    source("baseScripts/initWorld_onlyMolec.R")
+  }
+  World$substance <- substance
+  
+  #Model aanpassen met AdjustModel{catchment}.R 
+  catchment <- 'Rhine'
+  if(catchment == "Rhine"){
+    source("vignettes/CaseStudies/PFAS_A2/AdjustModelRhine.R")
+  } else if (catchment == "Meuse") {
+    source("vignettes/CaseStudies/PFAS_A2/AdjustModelMeuse.R")
+  }
+ 
+  
+
+# }
+
+
+
+```
+
+### Informatie over afkortingen, scales en oppervlaktes
+```{r Scales}
+# scales <- data.frame(Scale = c("Arctic", "Continental", "Moderate", "Regional", "Tropic"), Abbreviation = c("A", "C", "M", "R", "T"))
+# 
+# subcompartments <- read.csv("data/SubCompartSheet.csv") |>
+#   dplyr::select(SubCompartName, AbbrC) |>
+#   rename(Abbreviation = AbbrC) |>
+#   rename(SubCompartment = SubCompartName)
+# 
+# species <- read.csv("data/SpeciesSheet.csv") |>
+#   dplyr::select(Species, AbbrP) |>
+#   rename(Abbreviation = AbbrP)
+# 
+# substancesubcompartments <- read.csv("data/SubstanceCompartments.csv")
+# 
+# kable(scales)
+# kable(subcompartments)
+# kable(species)
+# 
+# # Area simplebox is ongeveer 51% van aarde
+# Area_simplebox <- World$fetchData("TotalArea") %>%
+#   dplyr::select(TotalArea) %>%
+#   summarize(sum = sum(TotalArea, na.rm=TCUE)) %>%
+#   pull(sum)
+# print(Area_simplebox * 100 /5.1e+14)
+# 
+# # Area continental
+# print(World$fetchData("Area"))
+
+# Area regional
+
+```
+
+## Stofeigenschap onzekerheid
+
+```{r}
+#varName; Scale; SubCompart; Species; Distribution; a; b; c; Data Source
+# get_probFuncs_PFAS <- function(substance) {
+#   data <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/Uncertainty.xlsx", sheet = substance)
+#   varFuns <- World$makeInvFuns(Example_vars)
+#   
+# }
+# vars <- c("pKa" = 'uniform', "Tm" = 'uniform', "Pvap25" = 'uniform', "Sol25" = 'uniform', "Kaw25"= 'uniform', "Kow" = 'uniform', "Ksw" = 'uniform')
+
+
+Substance_data <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/Substance02.xlsx", sheet = "Variable_data")
+Substance_correlations <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/Substance02.xlsx", sheet = "Correlation")
+
+
+```
+
+```{r}
+##Loop om per PFAS resultaat te krijgen:
+## Geeft nu het aantal jaren to X% vermindering van Concentratie
+## Functies maken WORLD en passen deze aan, de loop is nu erg traag omdat hij dezelfde dingen berekent bij initiate()
+## scenario kunnen aangegeven worden in emission_fun(), simple1 is 30000 Tonnes constant in lucht en water voor 50 jaar, daarna resterende periode van runtime variabele leeg.
+## 
+runtime <- 100 #years
+tmax <- runtime*365.25*24*60*60 #in seconds
+nTIMES <- runtime+1 #Number of timesteps, e.g. yearly, 2-year
+Wereldwijd = TRUE
+catchment = 'Rhine'
+scenario = 1
+nRUNs = 5
+
+# #Load workspace perfluorobutanoic t/m line 180
+# load("perfluorobutanoic_workspace.RData")
+# 
+# stoffen <- c("Perfluorobutane_sulfonic", "Perfluorobutanoic", 
+#                       "Perfluoropentanoic", "Perfluoroheptanoic", 
+#                       "Perfluorooctanoic", "Trifluoroacetic", "Perfluorohexanoic")
+# jaren = data.frame(PFAS = stoffen,
+#                    verwijdering_concentratie_99 = 0,
+#                    verwijdering_concentratie_95 = 0,
+#                    verwijdering_concentratie_50 = 0,
+#                    verwijdering_concentratie_75 = 0)
+
+for (index in seq_len(length(stoffen))) {
+  substance = stoffen[index]
+  initiate(substance)
+  #Probabilistisch
+  vars_uncertainty <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/Uncertainty.xlsx", 
+                                        sheet = substance)
+  #vars_uncertainty <- filter(vars_uncertainty, varName == "kdeg") eventuele filteren
+  #correlation <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/uncertain_variables_correlation.xlsx",sheet = "Correlation")
+  
+  # Solve 
+  varFuns <- World$makeInvFuns(vars_uncertainty)
+  World$NewSolver("DynamicSolver")
+  
+  
+ emissions = emission_fun(scenario='simple1', runtime = runtime, prob_nruns=nRUNs) #zet prob_nruns op 0 of dataframe zonder kolom 'RUN' aan te maken
+  emissions$Time
+  
+  World$Solve(emissions = emissions, 
+              var_box_df = Substance_data, 
+              var_invFun = World$makeInvFuns(Substance_data), 
+              nRUNs = 5, 
+              tmin = min(unique(emissions$Time)),
+              tmax = max(unique(emissions$Time)), 
+              nTIMES = 100)
+  
+  solution <- World$Masses()
+  emission <- World$Emissions()
+  concentration_data <- World$Concentration() 
+  variable_values = World$VariableValues()
+  
+```
+  
