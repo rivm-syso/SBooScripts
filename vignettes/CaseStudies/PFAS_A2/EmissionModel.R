@@ -12,27 +12,40 @@ emission_fun <- function  (plot=FALSE, runtime=140, Wereldwijd=TRUE, scenario ='
   } else {
     prob=FALSE
   }
-  
-  make_emission_df <- function(emis, time_steps, location, scale, prob_nruns) {
+  #Functie om dataframe te maken met input: emis per tijdstap, locatie. 
+  #Geeft ook prob_nruns mee, blijkt niet nodig. 
+  make_emission_df <- function(emis, time_steps, location, scale, prob_nruns, prob) {
     areas = World$fetchData("TotalArea")
     areas <- areas %>%
       mutate(TotalArea = TotalArea/sum(areas$TotalArea)) %>%
       filter(Scale == scale)
-
-    emission <- expand.grid(
-      Emis = emis*areas$TotalArea,
-      Abbr = location,
-      Time = 1:time_steps,
-      RUN = 1:prob_nruns
-    )
+    if (prob) {
+      emission <- expand.grid(
+        Emis = emis*areas$TotalArea,
+        Abbr = location,
+        Time = 1:time_steps,
+        RUN = 1:prob_nruns
+      )
     
-    empty_emission <- expand.grid(
-      Time = seq(from = time_steps + 1, to = runtime),
-      Abbr = location,
-      RUN = 1:prob_nruns
-    )
-    empty_emission$Emis <- 0
-    
+      empty_emission <- expand.grid(
+        Time = seq(from = time_steps + 1, to = runtime),
+        Abbr = location,
+        RUN = 1:prob_nruns
+      )
+      empty_emission$Emis <- 0
+    } else {
+      emission <- expand.grid(
+        Emis = emis*areas$TotalArea,
+        Abbr = location,
+        Time = 1:time_steps
+      )
+      
+      empty_emission <- expand.grid(
+        Time = seq(from = time_steps + 1, to = runtime),
+        Abbr = location
+      )
+      empty_emission$Emis <- 0
+    }
     # empty_start <- expand.grid(
     #   Emis = 0,
     #   Abbr = location,
@@ -43,29 +56,32 @@ emission_fun <- function  (plot=FALSE, runtime=140, Wereldwijd=TRUE, scenario ='
     emission <- bind_rows(emission, empty_emission)
     return(emission)
   }  
-
+  
+  #Functie aanroepen om voor alle locaties schalen/compartiment combi's dataframes te maken
   if (scenario == 'simple1') {
     #Simpel scenario met wereldwijde constante 30 ton emissies voor een bepaalde tijd 
-    emissions_regional_wat <- make_emission_df(30000, 50, c("w0RU", "w1RU", "w2RU"), "Regional", prob_nruns)
-    emissions_regional_air <- make_emission_df(30000, 50, c("aRU"), "Regional", prob_nruns)
+    emissions_regional_wat <- make_emission_df(30000, 50, c("w0RU", "w1RU", "w2RU"), "Regional", prob_nruns, prob)
+    emissions_regional_air <- make_emission_df(30000, 50, c("aRU"), "Regional", prob_nruns, prob)
     
-    emissions_continental_wat <- make_emission_df(30000, 50, c("w0CU", "w1CU", "w2CU"), "Continental", prob_nruns)
-    emissions_continental_air <- make_emission_df(30000, 50, c("aCU"), "Continental", prob_nruns)
+    emissions_continental_wat <- make_emission_df(30000, 50, c("w0CU", "w1CU", "w2CU"), "Continental", prob_nruns, prob)
+    emissions_continental_air <- make_emission_df(30000, 50, c("aCU"), "Continental", prob_nruns, prob)
     
-    emissions_moderate_wat <- make_emission_df(30000, 50, c("w0MU", "w1MU", "w2MU"), "Moderate", prob_nruns)
-    emissions_moderate_air <- make_emission_df(30000, 50, c("aMU"), "Moderate", prob_nruns)
+    emissions_moderate_wat <- make_emission_df(30000, 50, c("w0MU", "w1MU", "w2MU"), "Moderate", prob_nruns, prob)
+    emissions_moderate_air <- make_emission_df(30000, 50, c("aMU"), "Moderate", prob_nruns, prob)
     
-    emissions_tropic_wat <- make_emission_df(30000, 50, c("w0TU", "w1TU", "w2TU"), "Tropic", prob_nruns)
-    emissions_tropic_air <- make_emission_df(30000, 50, c("aTU"), "Tropic", prob_nruns)
+    emissions_tropic_wat <- make_emission_df(30000, 50, c("w0TU", "w1TU", "w2TU"), "Tropic", prob_nruns, prob)
+    emissions_tropic_air <- make_emission_df(30000, 50, c("aTU"), "Tropic", prob_nruns, prob)
     
-    emissions_arctic_wat <- make_emission_df(30000, 50, c("w0AU", "w1AU", "w2AU"), "Arctic", prob_nruns)
-    emissions_arctic_air <- make_emission_df(30000, 50, c("aAU"), "Arctic", prob_nruns)
+    emissions_arctic_wat <- make_emission_df(30000, 50, c("w0AU", "w1AU", "w2AU"), "Arctic", prob_nruns, prob)
+    emissions_arctic_air <- make_emission_df(30000, 50, c("aAU"), "Arctic", prob_nruns, prob)
     emissions <- bind_rows(emissions_regional_wat, emissions_regional_air,
                            emissions_continental_wat, emissions_continental_air,
                            emissions_moderate_wat, emissions_moderate_air,
                            emissions_tropic_wat, emissions_tropic_air,
                            emissions_arctic_wat, emissions_arctic_air)
+    #Waardes omzetten
     MW = World$fetchData('MW')
+    print(MW)
     emissions <- emissions |>
       mutate(Time = Time*(365.25*24*60*60)) |> # Convert time from y to s
       ungroup() |>
@@ -75,16 +91,27 @@ emission_fun <- function  (plot=FALSE, runtime=140, Wereldwijd=TRUE, scenario ='
       #                    Emis = 0,
       #                    RUN = rep(1:prob_nruns, times=prob_nruns)))
     
-    empty_start = expand.grid(
-      Emis=0,
-      Abbr=unique(emissions$Abbr),
-      Time=0,
-      RUN = 1:prob_nruns
-    )
+    #Lege start 'stap' toevoegen
+    if (prob) {
+      empty_start = expand.grid(
+        Emis=0,
+        Abbr=unique(emissions$Abbr),
+        Time=0,
+        RUN = 1:prob_nruns
+      )
+    } else {
+      empty_start = expand.grid(
+        Emis=0,
+        Abbr=unique(emissions$Abbr),
+        Time=0)
+    }
+    
+    #Dataframes aan elkaar knopen
     emissions <- bind_rows(empty_start, emissions)
     return(emissions)
   }
   
+  #Ander scenario
   if (scenario =='simple2') {
     emissions_simple <- data.frame(Abbr = c("aRU", "s2RU", "s1RU", "s3RU", "w0RU", "w1RU", "w2RU",
                                             "aCU", "s2CU", "s1CU", "s3CU", "w0CU", "w1CU", "w2CU"), 

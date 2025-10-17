@@ -157,12 +157,16 @@ vars <- c("pKa" = 'uniform', "Tm" = 'uniform', "Pvap25" = 'uniform', "Sol25" = '
 ## Functies maken WORLD en passen deze aan, de loop is nu erg traag omdat hij dezelfde dingen berekent bij initiate()
 ## scenario kunnen aangegeven worden in emission_fun(), simple1 is 30000 Tonnes constant in lucht en water voor 50 jaar, daarna resterende periode van runtime variabele leeg.
 ## 
-runtime <- 140 #years
+runtime <- 100 #years
 tmax <- runtime*365.25*24*60*60 #in seconds
 nTIMES <- runtime+1 #Number of timesteps, e.g. yearly, 2-year
 Wereldwijd = TRUE
 catchment = 'Rhine'
 scenario = 1
+nRUNs = 5
+
+#Load workspace perfluorobutanoic t/m line 180
+load("perfluorobutanoic_workspace.RData")
 
 stoffen <- c("Perfluorobutane_sulfonic", "Perfluorobutanoic", 
                       "Perfluoropentanoic", "Perfluoroheptanoic", 
@@ -176,24 +180,34 @@ jaren = data.frame(PFAS = stoffen,
 for (index in seq_len(length(stoffen))) {
   substance = stoffen[index]
   initiate(substance)
-  vars_uncertainty <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/Uncertainty.xlsx", sheet = substance)
-  varFuns <- World$makeInvFuns(vars_uncertainty)
+  #Probabilistisch
+  vars_uncertainty <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/Uncertainty.xlsx", 
+                                        sheet = substance)
+  #vars_uncertainty <- filter(vars_uncertainty, varName == "kdeg") eventuele filteren
+  #correlation <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/uncertain_variables_correlation.xlsx",sheet = "Correlation")
   
+  # Solve 
+  varFuns <- World$makeInvFuns(vars_uncertainty)
   World$NewSolver("DynamicSolver")
-  emissions = emission_fun(scenario='simple1', runtime = runtime, prob_nruns=20)
-  World$Solve(emissions = emissions,
+  emissions = emission_fun(scenario='simple1', runtime = runtime, prob_nruns=nRUNs) #zet prob_nruns op 0 of dataframe zonder kolom 'RUN' aan te maken
+  World$Solve(emissions = emissions, 
               var_box_df = vars_uncertainty, 
-              var_invFun = varFuns,
-              nRUNs =  20,
-              tmax=tmax, 
-              nTIMES = 141)
+              var_invFun = varFuns, 
+              nRUNs = 5, 
+              #tmin = tmin,
+              tmax = tmax, 
+              nTIMES = nTIMES)
+  
   solution <- World$Masses()
   emission <- World$Emissions()
   concentration_data <- World$Concentration() 
+  variable_values = World$VariableValues()
   message(substance)
   #message("Aantal jaren tot 95% verlaging concentratie: ")
   #for (subcompart in c("a", "sd1", "sd0", "sd2", "s2", "s1", "s3", "w0", "w1", "w2")) {
   subcompart = 'w1'
+  
+  
   procent95weg <- concentration_data %>%
       filter(grepl("R", Abbr) & grepl(subcompart, Abbr)) %>%
       mutate(year = 1970 + as.numeric(time) / 31557600)
@@ -205,6 +219,7 @@ for (index in seq_len(length(stoffen))) {
     )
   for (i in names(verwijdering_concentraties)) {
     print(i)
+    
     filterjaar <- procent95weg %>%
       filter(Concentration < (verwijdering_concentraties[i])) %>%
       filter(year > 2020)
@@ -217,8 +232,8 @@ for (index in seq_len(length(stoffen))) {
 }
 
 
-World$PlotConcentration()
-
+World$PlotMasses(scale = "Continental", subcompart = "agriculturalsoil")
+World$PlotConcentration(scale="Tropic", subcompart = "sea")
 ```
 
 
