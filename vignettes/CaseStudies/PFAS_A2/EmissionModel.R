@@ -15,10 +15,13 @@ emission_fun <- function  (plot=FALSE, runtime=140, Wereldwijd=TRUE, scenario ='
   #Functie om dataframe te maken met input: emis per tijdstap, locatie. 
   #Geeft ook prob_nruns mee, blijkt niet nodig. 
   make_emission_df <- function(emis, time_steps, location, scale, prob_nruns, prob) {
+    #Schalen naar oppervlakte
     areas = World$fetchData("TotalArea")
     areas <- areas %>%
       mutate(TotalArea = TotalArea/sum(areas$TotalArea)) %>%
       filter(Scale == scale)
+    
+    #Probabilistisch dataframe
     if (prob) {
       emission <- expand.grid(
         Emis = emis*areas$TotalArea,
@@ -33,6 +36,8 @@ emission_fun <- function  (plot=FALSE, runtime=140, Wereldwijd=TRUE, scenario ='
         RUN = 1:prob_nruns
       )
       empty_emission$Emis <- 0
+    
+    #Deterministisch dataframe
     } else {
       emission <- expand.grid(
         Emis = emis*areas$TotalArea,
@@ -53,6 +58,7 @@ emission_fun <- function  (plot=FALSE, runtime=140, Wereldwijd=TRUE, scenario ='
     #   RUN = 1:prob_nruns
     # )
     
+    #VOlle emissie dataframe aan lege dataframe knopen
     emission <- bind_rows(emission, empty_emission)
     return(emission)
   }  

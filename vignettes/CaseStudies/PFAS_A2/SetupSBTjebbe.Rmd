@@ -54,6 +54,7 @@ library(treemapify)
 library(gridExtra)
 source("vignettes/CaseStudies/PFAS_A2/EmissionModel.R")
 source("vignettes/CaseStudies/PFAS_A2/plot.R")
+source("vignettes/CaseStudies/PFAS_A2/EmissionFunction.R")
 
 ```
 
@@ -95,13 +96,7 @@ initiate <- function(substance_func, catchment, runtime=140) {
   } else if (catchment == "Meuse") {
     source("vignettes/CaseStudies/PFAS_A2/AdjustModelMeuse.R")
   }
- 
-  
-
 }
-
-
-
 ```
 
 ### Informatie over afkortingen, scales en oppervlaktes
@@ -140,14 +135,14 @@ print(World$fetchData("Area"))
 ## Stofeigenschap onzekerheid
 
 ```{r}
-#varName; Scale; SubCompart; Species; Distribution; a; b; c; Data Source
-get_probFuncs_PFAS <- function(substance) {
-  data <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/Uncertainty.xlsx", sheet = substance)
-  varFuns <- World$makeInvFuns(Example_vars)
-  
-}
-vars <- c("pKa" = 'uniform', "Tm" = 'uniform', "Pvap25" = 'uniform', "Sol25" = 'uniform', "Kaw25"= 'uniform', "Kow" = 'uniform', "Ksw" = 'uniform')
-
+# #varName; Scale; SubCompart; Species; Distribution; a; b; c; Data Source
+# get_probFuncs_PFAS <- function(substance) {
+#   data <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/Uncertainty.xlsx", sheet = substance)
+#   varFuns <- World$makeInvFuns(Example_vars)
+#   
+# }
+# vars <- c("pKa" = 'uniform', "Tm" = 'uniform', "Pvap25" = 'uniform', "Sol25" = 'uniform', "Kaw25"= 'uniform', "Kow" = 'uniform', "Ksw" = 'uniform')
+# 
 
 ```
 
@@ -189,12 +184,12 @@ for (index in seq_len(length(stoffen))) {
   # Solve 
   varFuns <- World$makeInvFuns(vars_uncertainty)
   World$NewSolver("DynamicSolver")
-  emissions = emission_fun(scenario='simple1', runtime = runtime, prob_nruns=nRUNs) #zet prob_nruns op 0 of dataframe zonder kolom 'RUN' aan te maken
+  emissions = emission_fun(scenario='simple1', runtime = runtime, prob_nruns=0) #zet prob_nruns op 0 of dataframe zonder kolom 'RUN' aan te maken
   World$Solve(emissions = emissions, 
               var_box_df = vars_uncertainty, 
               var_invFun = varFuns, 
               nRUNs = 5, 
-              #tmin = tmin,
+              #tmin = tmin, 
               tmax = tmax, 
               nTIMES = nTIMES)
   
@@ -208,6 +203,8 @@ for (index in seq_len(length(stoffen))) {
   subcompart = 'w1'
   
   
+
+  #Maak tabel met jaartallen tot verwijdering
   procent95weg <- concentration_data %>%
       filter(grepl("R", Abbr) & grepl(subcompart, Abbr)) %>%
       mutate(year = 1970 + as.numeric(time) / 31557600)
@@ -237,6 +234,7 @@ World$PlotConcentration(scale="Tropic", subcompart = "sea")
 ```
 
 
+#Oud resultaat als je deterministisch runnt
 > jaren (oude stofeigenschappen)
                       PFAS verwijdering_concentratie_99 verwijdering_concentratie_95 verwijdering_concentratie_50 verwijdering_concentratie_75
 1 Perfluorobutane_sulfonic                           34                           20                            2                            6
@@ -257,215 +255,6 @@ World$PlotConcentration(scale="Tropic", subcompart = "sea")
 6          Trifluoroacetic                            6                            3                            1                            1
 7        Perfluorohexanoic                            0                            0                            0                            0
 
-##Solven
-``` {r Solve}
-#steadystate
-#T/y
-# pas_stofeigenschap_aan <- function(value, variable){
-#   #print var
-#   print(paste("adjusting var: ", variable, "...."))
-#   print(paste("Old var:", World$fetchData(variable)))
-#   #Make df
-#   df = data.frame(
-#   Waarde = value,
-#   varName = (variable)
-#   )
-#   #Mutating
-#   World$mutateVars(df)
-#   #print new var and updatedirty
-#   print(paste("Updated var: ", World$fetchData(variable)))
-#   World$UpdateDirty(variable) 
-# }
-# 
-# # Stof eigenschappen uit 'Data pilot study stock assessments_QSAR estimates' - Joris Meesters?
-# #MolecularWeight <- pas_stofeigenschap_aan()
-# MeltingPoint <- pas_stofeigenschap_aan(136.16, "Tm")
-# WaterSolubility <- pas_stofeigenschap_aan(253.8, "Sol25")  #0.4813
-# DissociationConstant <- pas_stofeigenschap_aan(-4.2, "pKa") #-4.2
-# VapourPressure <- pas_stofeigenschap_aan(0.0000475, "Pvap25")    #19.3
-# Kaw <- pas_stofeigenschap_aan(0.57, "Kaw25") #0.57                
-# Kow <- pas_stofeigenschap_aan(1, "Kow") #4.81                  
-# Ksw <- pas_stofeigenschap_aan(1.03, "Ksw") #1.03 obv kow          
 
 
-# World$fetchData("kdeg")
-# degradation = data.frame(
-#   SubCompart = c("air", "cloudwater", "agriculturalsoil", 
-#                  "naturalsoil", "othersoil", "deepocean", 
-#                  "river", "sea", "lake"),
-#   Waarde = c(2.2e-08, 2.2e-08, 1.1e-10, 1.1e-10, 1.1e-10, 2.2e-10, 2.2e-10, 2.2e-10, 2.2e-10),
-#   varName = ("kdeg")
-# )
-# 
-# degradation_test = data.frame(
-#   SubCompart = c("air", "cloudwater", "agriculturalsoil", 
-#                  "naturalsoil", "othersoil", "deepocean", 
-#                  "river", "sea", "lake"),
-#   Waarde = c(2.2e-4, 2.2e-4, 1.1e-5, 1.1e-5, 1.1e-5, 2.2e-5, 2.2e-5, 2.2e-5, 2.2e-5),
-#   varName = ("kdeg")
-# )
-# 
-# World$mutateVars(degradation)
-# World$fetchData("kdeg")
-# World$UpdateDirty("kdeg")
 
-#kdeg lager = snellere degradatie
-
-```
-
-``` {r Plot staafdiagram}
-##Staaf diagram maken 
-
-#SteadyStates omzetten naar percentages totale massa
-#regionaal
-solutions_pfoa <- solution_pfoa %>%
-  filter(grepl("R", Abbr)) %>%
-  mutate(percentage_pfoa = 100 * Mass_kg /sum(Mass_kg)) 
-solutions_tfa <- solution_tfa %>%
-  filter(grepl("R", Abbr)) %>%
-  mutate(percentage_tfa = 100 * Mass_kg /sum(Mass_kg))
-solutions_reg <- left_join(solutions_pfoa, solutions_tfa, by = "Abbr", suffix = c("_pfoa", "_tfa"))
-#Continentaal
-solutions_pfoa <- solution_pfoa %>%
-  filter(grepl("C", Abbr)) %>%
-  mutate(percentage_pfoa = 100 * Mass_kg /sum(Mass_kg)) 
-solutions_tfa <- solution_tfa %>%
-  filter(grepl("C", Abbr)) %>%
-  mutate(percentage_tfa = 100 * Mass_kg /sum(Mass_kg))
-solutions_con <- left_join(solutions_pfoa, solutions_tfa, by = "Abbr", suffix = c("_pfoa", "_tfa"))
-
-#Pivot
-solutions_regional <- solutions_reg %>%
-  dplyr::select(Abbr, percentage_pfoa, percentage_tfa) %>%
-  pivot_longer(
-    cols = c(percentage_pfoa, percentage_tfa),
-    names_to = "stof",
-    values_to = "waarde"
-  )
-solutions_continental <- solutions_con %>%
-  dplyr::select(Abbr, percentage_pfoa, percentage_tfa) %>%
-  pivot_longer(
-    cols = c(percentage_pfoa, percentage_tfa),
-    names_to = "stof",
-    values_to = "waarde"
-  )
-
-df_list = list()
-for (compartiment in list("w", "s[0-9]", "sd")) {
-  #Continental
-  concentration <- concentration_pfoa %>%
-    filter(grepl("C", Abbr)) %>%
-    filter(grepl(compartiment, Abbr)) %>%
-    pivot_longer(
-      cols = c(Concentration),#, Concentration_TFA),
-      names_to = "stof",
-      values_to = "waarde"
-    )
-  naam <- paste0("concentratie_reg_", compartiment)
-  df_list[[naam]] <- concentration
-  
-  concentration <- concentration_pfoa %>%
-    filter(grepl("R", Abbr)) %>%
-    filter(grepl(compartiment, Abbr)) %>%
-    pivot_longer(
-      cols = c(Concentration),#, Concentration_TFA),
-      names_to = "stof",
-      values_to = "waarde"
-    )
-  naam <- paste0("concentratie_con_", compartiment)
-  df_list[[naam]] <- concentration
-  
-}
-
-kable(subcompartments)
-#staaf diagram maken van verdeling per compartiment en Stof
-Kolom = 'waarde'
-
-water_reg <- ggplot(df_list[2], aes(x = Abbr, y = large_waarde, fill = stof)) +
-                geom_bar(stat = "identity", position = "dodge") +
-                #scale_y_log10() +
-                labs(
-                  x = "",
-                  y = ""
-                ) +
-                theme(axis.text.x = element_text(angle = 20, hjust = 1),
-                      legend.position = "none") +
-                scale_x_discrete(labels = c("w0RU" = "Oppervlakte Water", "w1RU" = "Rivier", "w2RU" = "Zee", 
-                                            "sd0RU" = "Sediment Opp. W", "sd1RU" = "Sediment Rivier", 
-                                            "sd2RU" =  "Sediment Zee", "s1RU" = "Natuurlijke Bodem", 
-                                            "s2RU" = "Agrarische Bodem", "s3RU" = "Overige Bodem"))
-
-water_con <- ggplot(df_list[1], aes(x = Abbr, y = large_waarde, fill = stof)) +
-                geom_bar(stat = "identity", position = "dodge") +
-                #scale_y_log10() + 
-                labs(
-                  x = "",
-                  y = ""
-                ) +
-                theme(axis.text.x = element_text(angle = 20, hjust = 1),
-                      legend.position = "none") +
-                scale_x_discrete(labels = c("w0CU" = "Oppervlakte Water", "w1CU" = "Rivier", "w2CU" = "Zee", 
-                                            "sd0CU" = "Sediment Opp. W", "sd1CU" = "Sediment Rivier", 
-                                            "sd2CU" =  "Sediment Zee", "s1CU" = "Natuurlijke Bodem", 
-                                            "s2CU" = "Agrarische Bodem", "s3CU" = "Overige Bodem"))
-sed_reg <- ggplot(df_list[6], aes(x = Abbr, y = large_waarde, fill = stof)) +
-                geom_bar(stat = "identity", position = "dodge") +
-                #scale_y_log10() +
-                labs(
-                  x = "",
-                  y = ""
-                ) +
-                theme(axis.text.x = element_text(angle = 20, hjust = 1),
-                      legend.position = "none") +
-                scale_x_discrete(labels = c("w0RU" = "Oppervlakte Water", "w1RU" = "Rivier", "w2RU" = "Zee", 
-                                            "sd0RU" = "Sediment Opp. W", "sd1RU" = "Sediment Rivier", 
-                                            "sd2RU" =  "Sediment Zee", "s1RU" = "Natuurlijke Bodem", 
-                                            "s2RU" = "Agrarische Bodem", "s3RU" = "Overige Bodem"))
-
-sed_con <- ggplot(df_list[6], aes(x = Abbr, y = large_waarde, fill = stof)) +
-                geom_bar(stat = "identity", position = "dodge") +
-                #scale_y_log10() + 
-                labs(
-                  x = "",
-                  y = ""
-                ) +
-                theme(axis.text.x = element_text(angle = 20, hjust = 1),
-                      legend.position = "none") +
-                scale_x_discrete(labels = c("w0CU" = "Oppervlakte Water", "w1CU" = "Rivier", "w2CU" = "Zee", 
-                                            "sd0CU" = "Sediment Opp. W", "sd1CU" = "Sediment Rivier", 
-                                            "sd2CU" =  "Sediment Zee", "s1CU" = "Natuurlijke Bodem", 
-                                            "s2CU" = "Agrarische Bodem", "s3CU" = "Overige Bodem"))
-sed_reg <- ggplot(concentrations_reg, aes(x = Abbr, y = large_waarde, fill = stof)) +
-                geom_bar(stat = "identity", position = "dodge") +
-                #scale_y_log10() +
-                labs(
-                  x = "",
-                  y = ""
-                ) +
-                theme(axis.text.x = element_text(angle = 20, hjust = 1),
-                      legend.position = "none") +
-                scale_x_discrete(labels = c("w0RU" = "Oppervlakte Water", "w1RU" = "Rivier", "w2RU" = "Zee", 
-                                            "sd0RU" = "Sediment Opp. W", "sd1RU" = "Sediment Rivier", 
-                                            "sd2RU" =  "Sediment Zee", "s1RU" = "Natuurlijke Bodem", 
-                                            "s2RU" = "Agrarische Bodem", "s3RU" = "Overige Bodem"))
-
-sed_con <- ggplot(concentrations_con, aes(x = Abbr, y = large_waarde, fill = stof)) +
-                geom_bar(stat = "identity", position = "dodge") +
-                #scale_y_log10() + 
-                labs(
-                  x = "",
-                  y = ""
-                ) +
-                theme(axis.text.x = element_text(angle = 20, hjust = 1),
-                      legend.position = "none") +
-                scale_x_discrete(labels = c("w0CU" = "Oppervlakte Water", "w1CU" = "Rivier", "w2CU" = "Zee", 
-                                            "sd0CU" = "Sediment Opp. W", "sd1CU" = "Sediment Rivier", 
-                                            "sd2CU" =  "Sediment Zee", "s1CU" = "Natuurlijke Bodem", 
-                                            "s2CU" = "Agrarische Bodem", "s3CU" = "Overige Bodem"))
-
-(water_reg + sed_reg + soil_reg) / (water_con + sed_con + soil_con)
-
-kable(subcompartments)
-```
-
-  
