@@ -202,7 +202,7 @@ for(i in unique(all_diffs$Substance)){
 
 The Original and Bagheri drag method will be compared.
 
-```{R include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+```{R message=FALSE, warning=FALSE, include=FALSE}
 substance_names <- c("microplastic", "TRWP", "1-aminoanthraquinone","nAg_10nm") 
 substances <- read.csv("data/Substances.csv")
 substances <- substances |>
@@ -265,7 +265,7 @@ for(substanceK in substances$Substance){
 
 ```
 
-```{R include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+```{R message=FALSE, warning=FALSE, include=FALSE}
 common_cols <- setdiff(intersect(colnames(this_kaas), colnames(other_kaas)), "k")
 
 kaas_comparison <- merge(this_kaas, other_kaas, by=common_cols, suffixes = c("_Old", "_New"))
@@ -276,20 +276,28 @@ kaas_comparison <- kaas_comparison |>
 
 changed_kaas <- kaas_comparison |>
  filter(diff != 0) |>
-    # filter(abs(rel_diff) > 0.001) |>
+    filter(abs(rel_diff) > 0.1) |>
   mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
 
-changed_kaas |> distinct(process) |> pull()
+# changed_kaas |> distinct(process) |> pull()
 
 ```
 
 As can be seen in the figures below, the new rate constants for the
 substances, `r paste(substances$Substance)`, have a difference of max
-`r max(abs(unique(changed_kaas$rel_diff)))*100` % between the original
-and Bagheri drag methods. This affects the
+`r round(max(abs(unique(changed_kaas$rel_diff)))*100, 1)` % between the
+original and Bagheri drag methods. This affects the
 `r changed_kaas |> distinct(process) |> pull()` processes.
 
-```{R include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+`r knitr::kable(changed_kaas)`
+
+From the above table it can be seen, that also the Ag 10 nm nanomaterial
+is affected with an
+`r``round(max(abs(unique(changed_kaas$rel_diff)))*100, 1)` decrease in
+k_sedimentation. It is (for now) advised to not use the Bagheri drag
+method for nanomaterials.
+
+```{R echo=FALSE, fig.height=4, fig.width=5, message=FALSE, warning=FALSE}
 all_diffs <- kaas_comparison |>
   mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
   mutate(toname = paste0(toSubCompart, "_", toScale))
