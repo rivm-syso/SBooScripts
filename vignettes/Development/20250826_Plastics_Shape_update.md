@@ -201,7 +201,7 @@ is affected with an
 decrease in k_sedimentation. It is (for now) advised to not use the
 Bagheri drag method for nanomaterials.
 
-![](20250826_Plastics_Shape_update_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->![](20250826_Plastics_Shape_update_files/figure-gfm/unnamed-chunk-4-2.png)<!-- -->![](20250826_Plastics_Shape_update_files/figure-gfm/unnamed-chunk-4-3.png)<!-- -->![](20250826_Plastics_Shape_update_files/figure-gfm/unnamed-chunk-4-4.png)<!-- -->![](20250826_Plastics_Shape_update_files/figure-gfm/unnamed-chunk-4-5.png)<!-- -->![](20250826_Plastics_Shape_update_files/figure-gfm/unnamed-chunk-4-6.png)<!-- -->![](20250826_Plastics_Shape_update_files/figure-gfm/unnamed-chunk-4-7.png)<!-- -->![](20250826_Plastics_Shape_update_files/figure-gfm/unnamed-chunk-4-8.png)<!-- -->
+![](20250826_Plastics_Shape_update_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->![](20250826_Plastics_Shape_update_files/figure-gfm/unnamed-chunk-4-2.png)<!-- -->![](20250826_Plastics_Shape_update_files/figure-gfm/unnamed-chunk-4-3.png)<!-- -->![](20250826_Plastics_Shape_update_files/figure-gfm/unnamed-chunk-4-4.png)<!-- -->![](20250826_Plastics_Shape_update_files/figure-gfm/unnamed-chunk-4-5.png)<!-- -->![](20250826_Plastics_Shape_update_files/figure-gfm/unnamed-chunk-4-6.png)<!-- -->
 
 ## Example for differently shaped particles
 
@@ -209,25 +209,6 @@ Change shapes based on substance data
 
 Run SBoo for a sphere Using Bagheri Dragmethod.
 <!--# TODO: Compare the new shapes to spheres with same volume to show the implications of using shapes. And doing this for different sizes. -->
-
-``` r
-substances <- read.csv("data/Substances.csv")
-substances <- substances |>
-  filter(str_detect(Substance, "^microplastic"))
-
-this_kaas_shape <- data.frame()
-
-for(substanceK in substances$Substance){
-  
-  substance <- substanceK
-      source("baseScripts/initWorld.R")
-
-  kaas <- World$kaas |>
-    mutate(Substance = substance)
-  
-  this_kaas_shape <- rbind(this_kaas_shape, kaas)
-}
-```
 
 All are calculated, but let’s check if the new microplastics_sphere (set
 as Shortest_side) provides the same k’s as the default microplastic (set

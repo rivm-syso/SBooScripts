@@ -297,10 +297,11 @@ is affected with an
 k_sedimentation. It is (for now) advised to not use the Bagheri drag
 method for nanomaterials.
 
-```{R echo=FALSE, fig.height=4, fig.width=5, message=FALSE, warning=FALSE}
+```{R echo=FALSE, fig.height=8, fig.width=12, message=FALSE, warning=FALSE}
 all_diffs <- kaas_comparison |>
-  mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
-  mutate(toname = paste0(toSubCompart, "_", toScale))
+  filter(abs(rel_diff) > 0.05) |> 
+  mutate(fromname = paste0(fromSubCompart, "_", fromScale, "_",fromSpecies)) |>
+  mutate(toname = paste0(toSubCompart, "_", toScale, "_", toSpecies))
 
 for(i in unique(all_diffs$Substance)){
   diffs_substance <- all_diffs |>
@@ -348,7 +349,7 @@ Change shapes based on substance data
 Run SBoo for a sphere Using Bagheri Dragmethod.
 <!--# TODO: Compare the new shapes to spheres with same volume to show the implications of using shapes. And doing this for different sizes. -->
 
-```{R Run SB and get k values for different shapes, echo=TRUE, message=FALSE, warning=FALSE}
+```{R Run SB and get k values for different shapes, message=FALSE, warning=FALSE, include=FALSE}
 
 substances <- read.csv("data/Substances.csv")
 substances <- substances |>
