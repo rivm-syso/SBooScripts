@@ -20,8 +20,9 @@ This explains the way we include drag of particles with shapes different
 to a sphere.
 
 Several processes which depend on the settling velocity now are
-dependant on the Setlling Velocity solver based on a specific Drag
-method.
+dependant on the Settling Velocity solver based on a specific Drag
+method. The supported particle shapes can be found in section [3.2
+Particle Properties]{.underline} of the documentation.
 
 The updated functions are:
 
@@ -49,36 +50,20 @@ The updated functions are:
     -   In future shape could also be included for SPM, now still sphere
         assumed representative
 
--   k_Resuspension due to update of f_SetVelWater
+-   k_Resuspension due to the update of f_SetVelWater
 
--   R/k_Sedimentation.R due to update of f_SetVelWater
+-   R/k_Sedimentation.R due to the update of f_SetVelWater
 
 ```{R Specify directories, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 library(tidyverse)
 
-# InstallSBoo (Release_SBoo = NA, # tag for release use NA for branch
-#              Release_SBooScripts = NA, # tag for release use NA for branch
-#              devBranch_SBoo = "Runoff_update_clean",
-#              devBranch_SBooScripts = "Runoff_MPinterception",
-#              Temp_Folder = "C:/Temp" # an existing folder where SimpleBox is to be installed
-# )
-
 InstallSBoo(Release_SBoo = NA, # tag for release use NA for branch
             Release_SBooScripts = NA, # tag for release use NA for branch
-            devBranch_SBoo = "Shape_setvel",
-            devBranch_SBooScripts = "Shape_setvel",
+            devBranch_SBoo = "development",
+            devBranch_SBooScripts = "development",
             Temp_Folder = NULL # an existing folder where SimpleBox is to be installed
 )
 
-# Define branches to test
-Comparison <- c("Previous", "ThisOne")
-
-# Specify file paths for saving results
-result_files <- paste0("results_", Comparison, ".rds")
-
-# Directory of your Git repository (modify this path to the correct repository location)
-script_dir <-getwd()
-repo_dir <- file.path(getwd(), "..", "SBoo")
 
 ```
 
@@ -93,8 +78,7 @@ substances <- substances |>
   filter(Substance %in% substance_names)
 ```
 
-
-```{R Run SB and get advection ks for original dragmethod, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+```{R Run SB and get ks for this branch (new code), include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 this_kaas <- data.frame()
 this_variables <- data.frame()
 
@@ -102,12 +86,6 @@ for(substanceK in substances$Substance){
   # Get the substance type
   substance <- substanceK
       source("baseScripts/initWorld.R")
-  DragMethod_df <- data.frame(
-  varName = "DragMethod",
-  Waarde = "Original"
-  )
-  World$mutateVars(DragMethod_df)
-  World$UpdateDirty("DragMethod")
 
   kaas <- World$kaas |>
     # filter(process == "k_Runoff") |>
@@ -124,15 +102,11 @@ for(substanceK in substances$Substance){
 
 Do the same for the other implementation.
 
-```{R Clean environment again, include=FALSE}
+```{R Clean environment, include=FALSE}
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 ```
 
-## Quantify changes based drag method chosen
-
-Change drag method and recalculate k values
-
-```{R Run SB and get k values for Bagheri drag method, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+```{R Run SB and get ks for other (old code), include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 
 other_kaas <- data.frame()
 
@@ -141,15 +115,8 @@ Temp_Folder=NULL
 substance = substanceK
 
 source("baseScripts/initWorldOther.R")
-DragMethod_df <- data.frame(
-  varName = "DragMethod",
-  Waarde = "Bagheri"
-  )
-World$mutateVars(DragMethod_df)
-World$UpdateDirty("DragMethod")
 
   kaas <- World$kaas |>
-    # filter(process == "k_Runoff") |>
     mutate(Substance = substance)
   
   other_kaas <- rbind(other_kaas, kaas)
@@ -157,7 +124,7 @@ World$UpdateDirty("DragMethod")
 
 ```
 
-## Verification of previous and new implementation
+## Verification of previous and new implementation (Original drag method)
 
 ```{R Calculate the differences between ks, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 common_cols <- setdiff(intersect(colnames(this_kaas), colnames(other_kaas)), "k")
@@ -172,15 +139,20 @@ changed_kaas <- kaas_comparison |>
  filter(diff != 0) |>
     # filter(abs(rel_diff) > 0.001) |>
   mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
-changed_kaas
+
+# changed_kaas
+
+paste(c(changed_kaas |> distinct(process) |> pull()), sep = )
+
 ```
 
 As can be seen in the figures below, the new rate constants for the
 substances, `r paste(substances$Substance)`, have a negligible
 difference of max `r max(abs(unique(changed_kaas$rel_diff)))*100` %
-difference to the previous version. The figures below also show this and
-therefor this verification of replicating the previous version with the
-new code is complete.
+difference to the previous version, related to processes:
+`r c(changed_kaas |> distinct(process) |> pull())`. The figures below
+also show this and therefore this verification of replicating the
+previous version with the new code is complete.
 
 ```{R Plot the differences between ks, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 all_diffs <- kaas_comparison |>
@@ -219,29 +191,28 @@ for(i in unique(all_diffs$Substance)){
     ) +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 1), 
-      panel.grid.major = element_line(size = 0.2, color = "gray90"),
+      panel.grid.major = element_line(linewidth = 0.2, color = "gray90"),
       panel.background = element_blank()  
     )
   print(reldif_plot)
 }
 ```
 
-## Quantify changes based on shape 
+## Quantify changes for new drag method options
 
-Change shape and observe the difference (using Bagheri)
+The Original and Bagheri drag method will be compared.
 
-```{r}
-
-rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
+```{R include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+substance_names <- c("microplastic", "TRWP", "1-aminoanthraquinone","nAg_10nm") 
+substances <- read.csv("data/Substances.csv")
+substances <- substances |>
+  filter(Substance %in% substance_names)
 ```
 
-
-##Run SBoo for a sphere
-Using Bagheri Dragmethod
-
-```{R Run SB and get k values for Bagheri drag method for a sphere, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-this_kaas_shape <- data.frame()
-#this_variables <- data.frame()
+```{R include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
+this_kaas <- data.frame()
+this_variables <- data.frame()
 
 for(substanceK in substances$Substance){
   # Get the substance type
@@ -253,13 +224,6 @@ for(substanceK in substances$Substance){
   )
   World$mutateVars(DragMethod_df)
   World$UpdateDirty("DragMethod")
-  
-  shape_df <- data.frame(
-  varName = "Shape",
-  Waarde = "Sphere"
-  )
-  World$mutateVars(shape_df)
-  World$UpdateDirty("Shape")
 
   kaas <- World$kaas |>
     # filter(process == "k_Runoff") |>
@@ -269,86 +233,75 @@ for(substanceK in substances$Substance){
     # mutate(Substance = substance)
   # this_variables <- rbind(this_variables,SetVel)
   # this_variables <- cross_join(SetVel)
-  this_kaas_shape <- rbind(this_kaas_shape, kaas)
+  this_kaas <- rbind(this_kaas, kaas)
 }
 
 ```
 
-##Run SBoo for a fiber
-Using Bagheri drag method
+Change drag method and recalculate k values
 
+```{R Run SB and get k values for Bagheri drag method, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 
-```{R Run SB and get k values for Bagheri drag method for a fiber, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-
-other_kaas_shape <- data.frame()
+other_kaas <- data.frame()
 
 for(substanceK in substances$Substance){
-Temp_Folder=NULL
-substance = substanceK
-
-source("baseScripts/initWorldOther.R")
-DragMethod_df <- data.frame(
-  varName = "DragMethod",
-  Waarde = "Bagheri"
+  
+  substance = substanceK
+  
+  source("baseScripts/initWorld.R")
+  
+  DragMethod_df <- data.frame(
+    varName = "DragMethod",
+    Waarde = "Bagheri"
   )
-World$mutateVars(DragMethod_df)
-World$UpdateDirty("DragMethod")
-
-shape_df <- data.frame(
-  varName = "Shape",
-  Waarde = "Fiber"
-  )
-World$mutateVars(shape_df)
-World$UpdateDirty("Shape")
-
+  World$mutateVars(DragMethod_df)
+  World$UpdateDirty("DragMethod")
+  
   kaas <- World$kaas |>
-    # filter(process == "k_Runoff") |>
     mutate(Substance = substance)
   
-  other_kaas_shape <- rbind(other_kaas_shape, kaas)
+  other_kaas <- rbind(other_kaas, kaas)
 }
 
 ```
 
+```{R include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+common_cols <- setdiff(intersect(colnames(this_kaas), colnames(other_kaas)), "k")
 
-## Change between shape (sphere and fiber)
+kaas_comparison <- merge(this_kaas, other_kaas, by=common_cols, suffixes = c("_Old", "_New"))
 
-```{R Calculate the differences between ks (shape), include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-common_cols_shape <- setdiff(intersect(colnames(this_kaas_shape), colnames(other_kaas_shape)), "k")
-
-kaas_comparison_shape <- merge(this_kaas_shape, other_kaas_shape, by=common_cols, suffixes = c("_Old", "_New"))
-
-kaas_comparison_shape <- kaas_comparison_shape |>
+kaas_comparison <- kaas_comparison |>
   mutate(diff = k_New-k_Old) |> # If this number is positive, the New_k is higher than the Old_k (higher advection rate with new method)
   mutate(rel_diff = diff/k_New)
 
-changed_kaas_shape <- kaas_comparison_shape |>
+changed_kaas <- kaas_comparison |>
  filter(diff != 0) |>
     # filter(abs(rel_diff) > 0.001) |>
   mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
-changed_kaas_shape
+
+changed_kaas |> distinct(process) |> pull()
+
 ```
 
 As can be seen in the figures below, the new rate constants for the
-substances, `r paste(substances$Substance)`, have a negligible
-difference of max `r max(abs(unique(changed_kaas_shape$rel_diff)))*100` %
-difference to the previous version. The figures below also show this and
-therefor this verification of replicating the previous version with the
-new code is complete.
+substances, `r paste(substances$Substance)`, have a difference of max
+`r max(abs(unique(changed_kaas$rel_diff)))*100` % between the original
+and Bagheri drag methods. This affects the
+`r changed_kaas |> distinct(process) |> pull()` processes.
 
-```{R Plot the differences between ks (shape), include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
-all_diffs_shape <- kaas_comparison_shape |>
+```{R include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+all_diffs <- kaas_comparison |>
   mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
   mutate(toname = paste0(toSubCompart, "_", toScale))
 
-for(i in unique(all_diffs_shape$Substance)){
-  diffs_substance_shape <- all_diffs_shape |>
+for(i in unique(all_diffs$Substance)){
+  diffs_substance <- all_diffs |>
     filter(Substance == i)
   
-  absdif_plot_shape <- ggplot(diffs_substance_shape, mapping = aes(x = toname, y = fromname, color = diff)) + 
+  absdif_plot <- ggplot(diffs_substance, mapping = aes(x = toname, y = fromname, color = diff)) + 
     geom_point() + 
     labs(
-      title = "Difference between sphere and fiber k's",
+      title = "Difference between k's for originial and Bagheri's drag method",
       subtitle = i,
       x = "To",  
       y = "From",  
@@ -360,12 +313,12 @@ for(i in unique(all_diffs_shape$Substance)){
       panel.background = element_blank() 
     )
   
-  print(absdif_plot_shape)
+  print(absdif_plot)
   
-  reldif_plot_shape <- ggplot(diffs_substance_shape, mapping = aes(x = toname, y = fromname, color = rel_diff)) + 
+  reldif_plot <- ggplot(diffs_substance, mapping = aes(x = toname, y = fromname, color = rel_diff)) + 
     geom_point() + 
     labs(
-      title = "Relative difference between sphere and fiber k's",
+      title = "Relative  between k's for originial and Bagheri's drag method",
       subtitle = i,
       x = "To",  
       y = "From",  
@@ -373,9 +326,74 @@ for(i in unique(all_diffs_shape$Substance)){
     ) +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 1), 
-      panel.grid.major = element_line(size = 0.2, color = "gray90"),
+      panel.grid.major = element_line(linewidth = 0.2, color = "gray90"),
       panel.background = element_blank()  
     )
-  print(reldif_plot_shape)
+  print(reldif_plot)
 }
+```
+
+## Example for differently shaped particles
+
+Change shapes based on substance data
+
+Run SBoo for a sphere Using Bagheri Dragmethod.
+<!--# TODO: Compare the new shapes to spheres with same volume to show the implications of using shapes. And doing this for different sizes. -->
+
+```{R Run SB and get k values for different shapes, echo=TRUE, message=FALSE, warning=FALSE}
+
+substances <- read.csv("data/Substances.csv")
+substances <- substances |>
+  filter(str_detect(Substance, "^microplastic"))
+
+this_kaas_shape <- data.frame()
+
+for(substanceK in substances$Substance){
+  
+  substance <- substanceK
+      source("baseScripts/initWorld.R")
+
+  kaas <- World$kaas |>
+    mutate(Substance = substance)
+  
+  this_kaas_shape <- rbind(this_kaas_shape, kaas)
+}
+
+```
+
+All are calculated, but let's check if the new microplastics_sphere (set
+as Shortest_side) provides the same k's as the default microplastic (set
+as RadS).
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+substance <- substances$Substance[1]
+      source("baseScripts/initWorld.R")
+this_kaas <- World$kaas
+
+# set the substance to the test substance using World$substance
+# after initiatlisation using the default microplastic substance
+# otherwise alpha, kdis and kdeg are not set properly
+
+World$substance <- substances$Substance[2]
+
+# World$fetchData("Shortest_side")
+
+other_kaas <- World$kaas
+
+common_cols <- setdiff(intersect(colnames(this_kaas), colnames(other_kaas)), "k")
+
+kaas_comparison <- merge(this_kaas, other_kaas, by=common_cols, suffixes = c("_Old", "_New"))
+
+kaas_comparison <- kaas_comparison |>
+  mutate(diff = k_New-k_Old) |> # If this number is positive, the New_k is higher than the Old_k (higher advection rate with new method)
+  mutate(rel_diff = diff/k_New)
+
+changed_kaas <- kaas_comparison |>
+ filter(diff != 0) |>
+    filter(process == "k_HeteroAgglomeration.wsd") |>
+  mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
+
+if(nrow(changed_kaas) == 0) print("test passed, no changes in k's found") else stop("different k's found, plese check!")
+
 ```
