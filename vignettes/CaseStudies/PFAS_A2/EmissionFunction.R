@@ -5,25 +5,64 @@
 #' @param time_steps de tijdsstappen van de dataframe
 #' @param ReductionDuration het aantal jaar waarin het toekomstscenario afbouwt
 #' @param TotalReduction in procenten het uiteindelijke doel van de reductie, bijvoorbeeld na 30 jaar 95% afgenomen
-#' @param StepDuration Het aantal stappen waarin afgebouwd wordt in de ReductionDuration
-#' @param ReductionFractions vector met de fracties die het formaat van elke reductiestap aangeven, bijv vector[1] = reductiestap 1 is 30% van Total reduction
+#' @param StepDuration Het aantal stappen waarin afgebouwd wordt in de ReductionDuration, standaard is equal waarbij gelijk wordt verdeeld, alternatief is vector
+#' @param ReductionFractions vector met de fracties die het formaat van elke reductiestap aangeven, bijv vector[1] = reductiestap 1 is 30% van Total reduction standaard is equal waarbij gelijk wordt verdeeld, alternatief is vector
 #'
 #' @return EmissionsDataframe
 
-sb_emission_df <- function(GlobalEmission, time_steps, EmissionDuration, TotalRuntime, SubCompartments = c('a', 's2', 's1', 's3', 'w0', 'w1', 'w2', 'w3'),
-                           ReductionDuration = 30, TotalReduction = 95, ReductionSteps = 3, StepDuration = c(10,10,10), ReductionFractions = c(0.33, 0.33, 0.33)) {
+sb_emission_df <- function(GlobalEmission, EuropeFraction =NULL, SelectScales=c("A", "C", "M", "R", "T"), time_steps, EmissionDuration, 
+                           TotalRuntime, SubCompartments = c('a', 's2', 's1', 's3', 'w0', 'w1', 'w2', 'w3'),
+                           ReductionDuration, TotalReduction, ReductionSteps, StepDuration='equal', ReductionFractions='equal',
+                           rc = NULL) {
+  print("Emissie dataframe maken met afbouwend scenario op basis van gegeven input")
+  print("GlobalEmission wordt naar oppervlakte over de schalen verspreidt, binnen een schaal gaat 1/3 naar zowel bodem, lucht en water")
+  #Lineair of exponentieel verlagen van emissies
+  if (any(ReductionFractions == 'equal')) {
+    ReductionFractions = rep(1/ReductionSteps, ReductionSteps)
+  }
+  if (any(StepDuration == 'equal')) {
+    StepDuration = rep(ReductionDuration/ReductionSteps, ReductionSteps)
+  }
+  
+  if ((any(ReductionFractions == 'exponential')) & (!is.null(rc))) {
+    ReductionFractions <- rc^(0:(ReductionSteps-1))
+    ReductionFractions <- ReductionFractions / sum(ReductionFractions) 
+  }
+  
   #Voorwaarden voor runnen
   if (length(ReductionFractions) != ReductionSteps)  {
     #ReductionSteps niet hetzelfde als het aantal fracties
     stop("Het aantal opgegeven fracties is niet hetzelfde als de aantal [ReductionSteps]")
   }
-  if (sum(ReductionFractions) < 0.99) {
-    #Som reductieFracties te laag
-    stop("De som van de reductiefracties < 0.99")
-  }
+  # if (sum(ReductionFractions) < 0.99) {
+  #   #Som reductieFracties te laag
+  #   stop("De som van de reductiefracties < 0.99")
+  # }
   
   #Dataframe met oppervlaktes per schaal en subcompartiment
+  #Indien EuropeFraction verhoog de fractie Continental en Regional om meer van globale emissies in EU te laten plaats vinden
   areas = World$fetchData("TotalArea")
+  TotalArea <- sum(areas$TotalArea)
+  
+  #EuropeFraction verwerken zodat meer emissie naar europa gaat
+  if (!is.null(EuropeFraction)) {
+    Europe_toevoeging <- TotalArea * (EuropeFraction/100)
+    Continental_Regional <- areas %>%
+      filter(Scale == 'Continental' |
+             Scale == 'Regional') 
+    Continental <- Continental_Regional %>%
+      mutate(TotalArea = TotalArea/sum(Continental_Regional$TotalArea)) %>%
+      filter(Scale=='Continental') %>%
+      mutate(Toevoeging = TotalArea * Europe_toevoeging) %>%
+      pull(Toevoeging)
+    Regional <- Continental_Regional %>%
+      mutate(TotalArea = TotalArea/sum(Continental_Regional$TotalArea)) %>%
+      filter(Scale=='Regional') %>%
+      mutate(Toevoeging = TotalArea * Europe_toevoeging) %>%
+      pull(Toevoeging)
+    areas$TotalArea[areas$Scale=="Regional"] <- areas$TotalArea[areas$Scale=="Regional"]+Regional
+    areas$TotalArea[areas$Scale=="Continental"] <- areas$TotalArea[areas$Scale=="Continental"]+Continental
+  }
   areas <- areas %>%
     mutate(TotalArea = TotalArea/sum(areas$TotalArea)) 
   print("Area fractions:")
@@ -40,12 +79,13 @@ sb_emission_df <- function(GlobalEmission, time_steps, EmissionDuration, TotalRu
   ##Verdeling van GlobalEmission: 1/3 naar zowel bodem, lucht als water
   emissions <- data.frame()
   
-  for (schaal in c("A", "C", "M", "R", "T")) {
+  for (schaal in SelectScales) {
     #Global emission schalen naar 'schaal'
     EmissieSchaal = areas %>%
       filter(substr(Scale,1,1) == schaal)
     EmissieSchaal = GlobalEmission * EmissieSchaal$TotalArea
     check = 0
+    
     cat(paste0("Schaal: ", schaal," - ", GlobalEmission,"/",round(EmissieSchaal,2), "\t(", round((EmissieSchaal*100/GlobalEmission),5),"%)\n"))
     for (subcompartment in SubCompartments) {
       #Bepaal voor subcompartiment het aandeel van GlobalEmissions
@@ -85,7 +125,7 @@ sb_emission_df <- function(GlobalEmission, time_steps, EmissionDuration, TotalRu
       stop(paste("Te groot verschil in verdeelde emissies en emissies voor schaal", schaal))
     }
   }
-
+  
   #2 Dataframe met afbouwende emissies volgens input
   lastemi <- emissions %>%
     filter(Time == EmissionDuration)
@@ -96,32 +136,169 @@ sb_emission_df <- function(GlobalEmission, time_steps, EmissionDuration, TotalRu
   
   for (step in 1:ReductionSteps) {
     timewindow <- (var$Time[1]+1):(var$Time[1]+1+StepDuration[step]-1)
-    reduction_x <- ((100-(TotalReduction*ReductionFractions[step])) /100) - last_reduction
+    # reduction_x <- ((100-(TotalReduction*ReductionFractions[step])) /100) - last_reduction
+    # reduction_x <- ((100-(TotalReduction*test[step])) /100) - last_reduction
+    
+    if (ReductionFractions[step] > 1) {
+      reduction_x <- ReductionFractions[step]
+    } else {
+      reduction_x <- (TotalReduction/100) * (ReductionFractions[step])
+    }
+    
     print(timewindow)
-    print(reduction_x) 
-    last_reduction <- 1-reduction_x
+    print(reduction_x)
+    #last_reduction <- 1-reduction_x
     
     emi_future <- lastemi %>%
       slice(rep(1:n(), each=length(timewindow))) %>%
       mutate(Time = rep(timewindow, times=nrow(lastemi)),
              Emis = Emis * reduction_x)
+    
     var <- emi_future %>%
         filter(Time == tail(timewindow, 1))
     Hist_Futu_emissions <- bind_rows(Hist_Futu_emissions, emi_future)
+    
   }
+ 
+  #Overblijvende runtime leeg toevoegen
+  lasttime <-tail(Hist_Futu_emissions$Time, 1)
+  lastemi <- Hist_Futu_emissions %>%
+    filter(Time == lasttime)
+  years <- seq(from = lasttime + 1, to = runtime)
   
+  remaining_years <- data.frame(
+    Abbr = rep(lastemi$Abbr, each = length(years)),
+    Time = rep(years, times = length(lastemi$Abbr)),
+    Emis = rep(lastemi$Emis, each = length(years))
+  )
+  Hist_Futu_emissions <-  bind_rows(Hist_Futu_emissions, remaining_years)
+  
+  #Plotten
   Grouped <- Hist_Futu_emissions %>%
     group_by(Time) %>%
-    summarise(Emis_sum = sum(Emis))
+    summarise(Emis_sum = sum(Emis)) %>%
+    mutate(year = 1990+Time,
+           procent = 100*Emis_sum/GlobalEmission)
   
-  
-  
-  
-  ggplot(Grouped, aes(x=Time, y=Emis_sum)) +
+  p1 = ggplot(Grouped, aes(x=year, y=procent)) +
     geom_line() +
     labs(title="Emissies op alle schalen", x="Tijd", y="Emissies [kg]") +
-    theme_minimal()
+    theme_minimal() +
+    scale_x_continuous(breaks = seq(min(Grouped$year), max(Grouped$year), by = 5)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    
+  #Omzetten naar juiste eenheden en lege start toevoegen
+  MW = World$fetchData('MW')
+  Hist_Futu_emissions <- Hist_Futu_emissions |>
+    mutate(Time = Time*(365.25*24*60*60)) |> # Convert time from y to s
+    ungroup() |>
+    mutate(Emis = Emis*1000/(MW*365*24*60*60)) |> #MW =500 # convert 1 t/y to si units: kg/s
+    full_join(expand.grid(Abbr=unique(emissions$Abbr)) |>
+                mutate(Time = 0,
+                       Emis = 0))
+  procenten <- c()
+  for (i in 1:(nrow(Grouped)/1)) {
+    procenten <- append(procenten, (paste0("Afname% in ", Grouped$year[seq(1, length(Grouped$year), by = 1)][i], " = ", Grouped$procent[seq(1, length(Grouped$procent), by = 1)][i])))
+  }
   
-  return(Hist_Futu_emissions)  
+  
+  return(list(plot=p1, emissions= Hist_Futu_emissions, procenten=procenten))  
 }  
+
+
+get_reduction_steps <- function(sheet_name, variable, start, end) {
  
+  path="/rivm/biogrid/quikj/PFAS_A2/data/emissions_stock_cumulative_stock_scenarios_A_F.xlsx"
+  if (file.exists(path)) {
+    print("emissions_stock_cumulative_stock_scenarios_A_F.xlsx laden vanuit BioGrid...")
+    headers <- read_xlsx(path, sheet = sheet_name, n_max = 2, col_names = FALSE)
+    header1 <- as.character(headers[1,])
+    header1 <- tidyr::fill(data.frame(h = header1), h, .direction = "down")$h
+    header2 <- as.character(headers[2,])
+    combined_names <- ifelse(
+      is.na(header1) | header1 == "",
+      header2,
+      paste(header1, header2, sep = " ")
+    )
+    combined_names <- combined_names %>%
+      str_replace_all("NA", "") %>%
+      str_replace_all(" +", " ") %>%
+      str_trim()
+    data <- suppressMessages(read_xlsx(path, sheet = sheet_name, skip = 2, col_names = FALSE))
+    colnames(data) <- combined_names
+    data <- data[-1,]
+  } else {
+    stop("emissions_stock_cumulative_stock_scenarios_A_F.xlsx niet gevonden...")
+  }
+  
+  startingpoint <- data[[variable]][(start+1-as.numeric(data$Year[1]))]
+  reduction = data.frame(
+    variable = data[[variable]][(start+1-as.numeric(data$Year[1])):(end+1-as.numeric(data$Year[1]))]
+  )
+  reduction <- mutate(reduction, procent = (100*reduction$variable/startingpoint)/100)
+  reduction$perc_change <- c(0, diff(reduction$procent) / head(reduction$procent, -1) * 100)
+  
+  return(reduction$procent)
+}
+  # #Area fraction
+  # subcompartments_data <- read.csv("data/SubCompartSheet.csv") |>
+  #   dplyr::select(SubCompartName, AbbrC) |>
+  #   rename(Abbreviation = AbbrC) |>
+  #   rename(SubCompartment = SubCompartName)
+  # SubCompartArea = World$fetchData("Area") %>%
+  #   merge(subcompartments_data, by.x="SubCompart", by.y="SubCompartment") %>%
+  #   filter(Scale == "Arctic") 
+  # areas <- SubCompartArea %>%
+  #   mutate(Area = Area/sum(SubCompartArea$Area)) 
+  # 
+  # #Cumulative wereldwijde emissies in ton als startpunt emissie dataframe
+  # if (bound=='average') {
+  #   cumulative_emission <- mean(
+  #     c(
+  #       data$`Lower cumulative stock estimate at global scale (t.y) In total`[(start_year+EmissionDuration-1950)], 
+  #       data$`Higher cumulative stock estimate at global scale (t.y) In total`[(start_year+EmissionDuration-1950)]
+  #     )
+  #   )
+  #   soil <- rowMeans(
+  #     cbind(
+  #       data$`Lower dynamic stock estimate at global scale (t) In soil`, 
+  #       data$`Higher dynamic stock estimate at global scale (t) In soil`
+  #     ),
+  #     na.rm=TRUE
+  #   )
+  #   water <- rowMeans(
+  #     cbind(
+  #       data$`Lower dynamic stock estimate at global scale (t) In water`, 
+  #       data$`Higher dynamic stock estimate at global scale (t) In water`
+  #     ),
+  #     na.rm=TRUE
+  #   )
+  #   air <- rowMeans(
+  #     cbind(
+  #       data$`Lower dynamic stock estimate at global scale (t) In air`, 
+  #       data$`Higher dynamic stock estimate at global scale (t) In air`
+  #     ),
+  #     na.rm=TRUE
+  #   )
+  #   sediment <- rowMeans(
+  #     cbind(
+  #       data$`Lower dynamic stock estimate at global scale (t) In sediment`, 
+  #       data$`Higher dynamic stock estimate at global scale (t) In sediment`
+  #     ),
+  #     na.rm=TRUE
+  #   )
+  #   
+  #   emissions <- data.frame(
+  #     year = data$Year,
+  #     soil = soil,
+  #     water = water,
+  #     air = air,
+  #     sediment = sediment
+  #   )
+  #   
+  # }
+  # 
+  # for (schaal in c("A", "M", "T")) {
+  #   emissions <- data.frame()
+  #   
+  # }

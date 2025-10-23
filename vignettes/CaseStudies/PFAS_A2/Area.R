@@ -2,10 +2,10 @@
 library(sf)
 
 #shapefiles inladen
-RhineNL <- st_read("/rivm/biogrid/quikj/PFAS_A2/GIS/RhineNL.shp")
-RhineEU <- st_read("/rivm/biogrid/quikj/PFAS_A2/GIS/RhineEU.shp")
-MeuseNL <- st_read("/rivm/biogrid/quikj/PFAS_A2/GIS/MeuseNL.shp")
-MeuseEU <- st_read("/rivm/biogrid/quikj/PFAS_A2/GIS/MeuseEU.shp")
+RhineNL <- st_read("/rivm/biogrid/quikj/PFAS_A2/GIS/RhineNL.shp", quiet = TRUE)
+RhineEU <- st_read("/rivm/biogrid/quikj/PFAS_A2/GIS/RhineEU.shp", quiet = TRUE)
+MeuseNL <- st_read("/rivm/biogrid/quikj/PFAS_A2/GIS/MeuseNL.shp", quiet = TRUE)
+MeuseEU <- st_read("/rivm/biogrid/quikj/PFAS_A2/GIS/MeuseEU.shp", quiet = TRUE)
 #transformeren naar lokale CRS
 RhineNL <- st_transform(RhineNL, 28992)
 RhineEU <- st_transform(RhineEU, 28992)
