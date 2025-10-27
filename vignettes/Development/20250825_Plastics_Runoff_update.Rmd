@@ -11,12 +11,16 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
 substance <- "microplastic"
+
 source("baseScripts/initWorld.R")
 ```
 
 # Explanation of update
 
+
+=======
 In the previous itteration Runoff was only reduced for the largest
 species of heteroagglomerates (P/attached species). Runoff for the solid
 and aggregate species would be calculated using the runoff rate for
@@ -35,6 +39,7 @@ density vegetation as found by Han et al. (2022). The option to use this
 interception fraction is now added in SimpleBox based on the previous
 implementation by Louvet et al. (in prep).
 
+
 Old function:
 
 $(Runoff * f_CORRsoil(VertDistance, relevant_depth_s, penetration_depth_s)) / Volume * to.FracROWatComp$
@@ -43,11 +48,13 @@ New function:
 
 $(Runoff * f_CORRsoil(VertDistance, relevant_depth_s, penetration_depth_s)) / Volume * to.FracROWatComp * (1-IntrcptFrac)$
 
+
 Where IntrcptFrac is calculated based on rad_species being larger than
 SizeRunoff and being set to VegInterceptFrac. Default VegInterceptFrac =
 1, which means no Runoff for those larger particles, but can be adjusted
 to 0.9715 using MutateVars, see also general documentation in [7.3
 OtherIntermedia.md](/vignettes/7.3-OtherIntermedia.md).
+
 
 # Change in k values for runoff flows
 
@@ -168,11 +175,13 @@ source("baseScripts/initWorldOther.R")
 ```{R Calculate the differences between ks, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 common_cols <- setdiff(intersect(colnames(this_kaas), colnames(other_kaas)), "k")
 
+
 kaas_comparison <- merge(this_kaas, other_kaas, by=common_cols, suffixes = c("_New", "_Old"))
 
 kaas_comparison <- kaas_comparison |>
   mutate(diff = k_New-k_Old) |> # If this number is positive, the New_k is higher than the Old_k (higher advection rate with new method)
   mutate(rel_diff = diff/k_Old)
+
 
 changed_kaas <- kaas_comparison |>
   filter(diff != 0) |>
@@ -185,7 +194,9 @@ microplastics and TRWP are about
 in the previous version. For other substances k_Runoff remains
 unchanged.
 
+
 ```{R Plot the differences between ks, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+
 all_diffs <- kaas_comparison |>
   mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
   mutate(toname = paste0(toSubCompart, "_", toScale))
@@ -350,3 +361,4 @@ In the above plots for large microplastics and TWRP (250 micrometer),
 you can see that now Runoff in the new situation is switched off, due to
 the interception being set to 1 (100%). The relative differences between
 old and new is thus also 1 ((Old-New)/Old)
+

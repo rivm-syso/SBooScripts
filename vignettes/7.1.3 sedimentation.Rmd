@@ -61,6 +61,7 @@ Sedimentation is directly to the sediment below. Its rate is thus dependent on t
 
 ```{r message=FALSE, warning=FALSE}
 World$fetchData("SpeciesName")
+World$FromDataAndTo(processName = "k_Sedimentation")
 
 test1 <- World$NewProcess("k_Sedimentation")
 test1$execute()

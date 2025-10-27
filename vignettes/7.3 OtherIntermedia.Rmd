@@ -108,7 +108,6 @@ test1$execute()
 ```
 
 #### Runoff Particulate species
-
 For particulate species Runoff is not appliable for very large particles, meaning that `VegInterceptFrac = 1`.
 These particles behave more like other particulates that make up the soil or ar at least intercepted by vegetation reducing the Runoff rate.
 As of version 2025.10.0 a size cutoff, SizeRunoff, is introduced above which Runoff is either set to 0 or to a value reduced by the `VegInterceptFrac` (see SubCompartSheet.csv) parameter as calculated in the `IntrcptFrac` variable.
@@ -140,7 +139,9 @@ test1$execute()
 # if you want an Interceptation fraction  of 0.9 to be applied to all species above 100 nm
 World$fetchData("VegInterceptFrac")
 f_MutateHelper("VegInterceptFrac",
+
                c(0.975,0.975,0.975))
+
 
 World$fetchData("SizeRunoff")
 f_MutateHelper("SizeRunoff",
