@@ -14,6 +14,7 @@ COL,mg.L-1,COL/1000,SubcompartSheet,mass CONCENTRATION Natural Colloids in water
 COLLECTeff,-,,ScaleSheet,Aerosol COLLECTION EFFICIENCY
 ColRad,m,,SubcompartSheet,Land surface particle collector radius [m] appendix A of LOTEUR.
 ContinentalInModerate,boolean,,CONSTANTS,Nesting of scales
+CorFacSSA,-,,Substance,Particle surface area Kssdr correction for surface roughness and porosity
 Corg,-,,MatrixSheet,Mass fraction organic carbon in subcompartment
 CORG.susp,-,,CONSTANTS,mass fraction organic carbon suspended in water
 CorgStandard,-,,CONSTANTS,Standard mass FRACTION organic carbon in soil/sediment
@@ -50,6 +51,7 @@ kdeg.water,s-1,,Substances,Degradation rate constant water
 kdis,s-1,,SubstanceSubCompartSpeciesData,Dissolution rate constant
 kfrag,s-1,,SubstanceSubCompartSpeciesData,Fragmentation rate of heteroagglomerates
 Kow,-,,Substances,Octanol water partitioning coefficient 
+Kssdr,m.s-1,,SubstanceCompartments,Surface related degradation rate constant
 Ksw,-,,Substances,Soil water partitioning coefficient
 kwsd,m.s-1,,MatrixSheet,PARTIAL MASS TRANSFER COEFFICIENT subcompartment side of water/sed interface
 LakeFracRiver,-,,CONSTANTS,The fraction of freshwater belonging to the lake water
@@ -58,6 +60,7 @@ Longest_side,um,Longest_side/1000000,Substances,Particle sizes
 Mackay1,m.d-1,Mackay1/3600/24,CONSTANTS,constant described by Mackay (2001)
 Mackay2,-,,CONSTANTS,Mackay constant
 MaxPvap,Pa,,CONSTANTS,Maximum vapor pressure
+MinSettVel,m.s-1,,Substances,Particle specific minimal settling rate in water to avoid null sedimentation
 MW,g.mol-1,MW/1000,Substances,Molar weight of substance
 NaturalRad,m,,SpeciesCompartments,Natural particle radius
 NaturalRho,kg.m-3,,SpeciesCompartments,Natural particle density

@@ -664,7 +664,7 @@ kdeg,air,Malathion,5.81e-5,NA
 kdeg,air,MALEIC HYDRAZIDE,9.94e-6,NA
 kdeg,air,MANCOZEB,1.59276e-4,NA
 kdeg,air,MCPB,1.52e-5,NA
-kdeg,air,MEBENDAZOLE,0.00010202200000000001,NA
+kdeg,air,MEBENDAZOLE,0.000102022,NA
 kdeg,air,mecoprop,1.3e-5,NA
 kdeg,air,Mecoprop-P,1.3e-5,NA
 kdeg,air,median substance SimpleBox vs 3,3.5e-6,NA
@@ -3749,3 +3749,7 @@ kdeg,water,vinyltoluene,5.3e-10,NA
 kdeg,water,Xylenes,5.35e-7,NA
 kdeg,water,Zearalenone,2.14e-7,NA
 kdeg,water,Zn(II),1e-20,NA
+Kssdr,air,microplastic,0,m.s-1
+Kssdr,water,microplastic,5.23356e-13,m.s-1
+Kssdr,soil,microplastic,3.78991e-12,m.s-1
+Kssdr,sediment,microplastic,2.80624e-13,m.s-1
