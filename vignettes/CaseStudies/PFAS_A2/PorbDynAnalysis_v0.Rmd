@@ -52,8 +52,8 @@ library(lhs)
 library(tidyverse)
 library(treemapify)
 library(gridExtra)
-source("vignettes/CaseStudies/PFAS_A2/EmissionModel.R")
-source("vignettes/CaseStudies/PFAS_A2/plot.R")
+
+
 
 ```
 
@@ -61,47 +61,41 @@ source("vignettes/CaseStudies/PFAS_A2/plot.R")
 ```{r Substance list, warning=FALSE, include=TCUE}
 #Stof instellingen, handmatig 
 # initiate <- function(substance_func, catchment, runtime=140) {
-  
-  
-  substances <- read.csv(here("data", "Substances.csv"))
-  Units <- read.csv(here("data", "Units.csv"))
-  Substance_Compartment <- read.csv(here("data", "SubstanceCompartments.csv"))
-  gekozen_stoffen = c("Perfluorobutane_sulfonic", "Perfluorobutanoic", 
-                      "Perfluoropentanoic", "Perfluoroheptanoic", 
-                      "Perfluorooctanoic", "Trifluoroacetic", "Perfluorohexanoic")
-  #substances <- filter(substances, Substance %in% gekozen_stoffen)
-  substance = gekozen_stoffen[1]
-  # substance <- substance_func
-  
-  chemclass <- substances |>
-    filter(Substance == substance) |>
-    dplyr::select(ChemClass)
-  chemclass <- chemclass$ChemClass
-  
-  #World Module
-  if(substance == "microplastic"){
-    source("baseScripts/initWorld_onlyPlastics.R")
-  } else if (chemclass == "particle") {
-    source("baseScripts/initWorld_onlyParticulate.R")
-  } else {
-    source("baseScripts/initWorld_onlyMolec.R")
-  }
-  World$substance <- substance
-  
-  #Model aanpassen met AdjustModel{catchment}.R 
-  catchment <- 'Rhine'
-  if(catchment == "Rhine"){
-    source("vignettes/CaseStudies/PFAS_A2/AdjustModelRhine.R")
-  } else if (catchment == "Meuse") {
-    source("vignettes/CaseStudies/PFAS_A2/AdjustModelMeuse.R")
-  }
- 
-  
 
+substances <- read.csv(here("data", "Substances.csv"))
+Units <- read.csv(here("data", "Units.csv"))
+Substance_Compartment <- read.csv(here("data", "SubstanceCompartments.csv"))
+gekozen_stoffen = c("Perfluorobutane_sulfonic", "Perfluorobutanoic", 
+                    "Perfluoropentanoic", "Perfluoroheptanoic", 
+                    "Perfluorooctanoic", "Trifluoroacetic", "Perfluorohexanoic")
+#substances <- filter(substances, Substance %in% gekozen_stoffen)
+substance = gekozen_stoffen[1]
+# substance <- substance_func
+
+chemclass <- substances |>
+  filter(Substance == substance) |>
+  dplyr::select(ChemClass)
+chemclass <- chemclass$ChemClass
+
+#World Module
+if(substance == "microplastic"){
+  source("baseScripts/initWorld_onlyPlastics.R")
+} else if (chemclass == "particle") {
+  source("baseScripts/initWorld_onlyParticulate.R")
+} else {
+  source("baseScripts/initWorld_onlyMolec.R")
+}
+World$substance <- substance
+
+#Model aanpassen met AdjustModel{catchment}.R 
+catchment= "Rijn"
+
+if(catchment == "Rijn"){ 
+  source("vignettes/CaseStudies/PFAS_A2/AdjustModelRhine.R")
+} else if (catchment == "Maas") {
+  source("vignettes/CaseStudies/PFAS_A2/AdjustModelMeuse.R")
+}
 # }
-
-
-
 ```
 
 ### Informatie over afkortingen, scales en oppervlaktes
@@ -140,34 +134,52 @@ source("vignettes/CaseStudies/PFAS_A2/plot.R")
 ## Stofeigenschap onzekerheid
 
 ```{r}
-#varName; Scale; SubCompart; Species; Distribution; a; b; c; Data Source
-# get_probFuncs_PFAS <- function(substance) {
-#   data <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/Uncertainty.xlsx", sheet = substance)
-#   varFuns <- World$makeInvFuns(Example_vars)
-#   
-# }
-# vars <- c("pKa" = 'uniform', "Tm" = 'uniform', "Pvap25" = 'uniform', "Sol25" = 'uniform', "Kaw25"= 'uniform', "Kow" = 'uniform', "Ksw" = 'uniform')
-
-
 Substance_data <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/Substance02.xlsx", sheet = "Variable_data")
 Substance_correlations <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/Substance02.xlsx", sheet = "Correlation")
-
 
 ```
 
 ```{r}
-##Loop om per PFAS resultaat te krijgen:
-## Geeft nu het aantal jaren to X% vermindering van Concentratie
-## Functies maken WORLD en passen deze aan, de loop is nu erg traag omdat hij dezelfde dingen berekent bij initiate()
-## scenario kunnen aangegeven worden in emission_fun(), simple1 is 30000 Tonnes constant in lucht en water voor 50 jaar, daarna resterende periode van runtime variabele leeg.
-## 
+#Proberen: 1) emissie df uit solver use gebruiken. 2)Lege tijdsstap er uit halen
+
 runtime <- 100 #years
 tmax <- runtime*365.25*24*60*60 #in seconds
 nTIMES <- runtime+1 #Number of timesteps, e.g. yearly, 2-year
 Wereldwijd = TRUE
-catchment = 'Rhine'
+catchment = 'Rijn'
 scenario = 1
-nRUNs = 5
+nRUNs = 20
+source("vignettes/CaseStudies/PFAS_A2/EmissionModel.R")
+
+#Example data
+tmax <- max(unique(example_data$Time))
+tmin <- min(unique(example_data$Time))
+nTIMES <- length(seq(0, tmax, length.out = 10))
+
+# Solve
+World$NewSolver("DynamicSolver")
+#Functie 
+emissions = emission_fun(scenario='simple1', runtime = runtime, prob_nruns=nRUNs) #zet prob_nruns op 0 of dataframe zonder kolom 'RUN' aan te maken
+emissions = emissions |>
+  filter(RUN == 1 | RUN == 2)
+
+
+World$Solve(emissions = example_data,
+            var_box_df = Substance_data,
+            var_invFun = World$makeInvFuns(Substance_data),
+            nRUNs = nRUNs,
+            tmin = min(unique(emissions$Time)),
+            tmax = max(unique(emissions$Time)),
+            nTIMES = nTIMES)
+
+solution <- World$Masses()
+emission <- World$Emissions()
+concentration_data <- World$Concentration()
+variable_values = World$VariableValues()
+
+
+
+##Loop om per PFAS resultaat te krijgen: voor dit ff niet nodig
 
 # #Load workspace perfluorobutanoic t/m line 180
 # load("perfluorobutanoic_workspace.RData")
@@ -181,35 +193,37 @@ nRUNs = 5
 #                    verwijdering_concentratie_50 = 0,
 #                    verwijdering_concentratie_75 = 0)
 
-for (index in seq_len(length(stoffen))) {
-  substance = stoffen[index]
-  initiate(substance)
-  #Probabilistisch
-  vars_uncertainty <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/Uncertainty.xlsx", 
-                                        sheet = substance)
-  #vars_uncertainty <- filter(vars_uncertainty, varName == "kdeg") eventuele filteren
-  #correlation <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/uncertain_variables_correlation.xlsx",sheet = "Correlation")
-  
-  # Solve 
-  varFuns <- World$makeInvFuns(vars_uncertainty)
-  World$NewSolver("DynamicSolver")
-  
-  
- emissions = emission_fun(scenario='simple1', runtime = runtime, prob_nruns=nRUNs) #zet prob_nruns op 0 of dataframe zonder kolom 'RUN' aan te maken
-  emissions$Time
-  
-  World$Solve(emissions = emissions, 
-              var_box_df = Substance_data, 
-              var_invFun = World$makeInvFuns(Substance_data), 
-              nRUNs = 5, 
-              tmin = min(unique(emissions$Time)),
-              tmax = max(unique(emissions$Time)), 
-              nTIMES = 100)
-  
-  solution <- World$Masses()
-  emission <- World$Emissions()
-  concentration_data <- World$Concentration() 
-  variable_values = World$VariableValues()
+
+# 
+# for (index in seq_len(length(stoffen))) {
+#   substance = stoffen[index]
+#   initiate(substance)
+#   #Probabilistisch
+#   vars_uncertainty <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/Uncertainty.xlsx", 
+#                                         sheet = substance)
+#   #vars_uncertainty <- filter(vars_uncertainty, varName == "kdeg") eventuele filteren
+#   #correlation <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/uncertain_variables_correlation.xlsx",sheet = "Correlation")
+#   
+#   # Solve 
+#   varFuns <- World$makeInvFuns(vars_uncertainty)
+#   World$NewSolver("DynamicSolver")
+#   
+#   
+#  emissions = emission_fun(scenario='simple1', runtime = runtime, prob_nruns=nRUNs) #zet prob_nruns op 0 of dataframe zonder kolom 'RUN' aan te maken
+#   emissions$Time
+#   
+#   World$Solve(emissions = emissions, 
+#               var_box_df = Substance_data, 
+#               var_invFun = World$makeInvFuns(Substance_data), 
+#               nRUNs = 5, 
+#               tmin = min(unique(emissions$Time)),
+#               tmax = max(unique(emissions$Time)), 
+#               nTIMES = 100)
+#   
+#   solution <- World$Masses()
+#   emission <- World$Emissions()
+#   concentration_data <- World$Concentration() 
+#   variable_values = World$VariableValues()
   
 ```
   

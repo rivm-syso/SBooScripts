@@ -2,93 +2,98 @@ library(ncdf4)
 library(sf)
 message("Adjusting model for Rhine catchment...")
 
-message("Afvoer: wordt niet gebruikt enkel voor validatie neerslag")
-data_nl = read_delim("/rivm/biogrid/quikj/PFAS_A2/data/20250114_009.csv", delim = ";", escape_double = FALSE, trim_ws = TRUE, show_col_types = FALSE)
-#message("Meetpunten: ", sort(unique(data_nl$MEETPUNT_IDENTIFICATIE)))
-rijn <- data_nl %>%
-  dplyr::select(MEETPUNT_IDENTIFICATIE,WAARNEMINGDATUM, "WAARNEMINGTIJD (MET/CET)", ALFANUMERIEKEWAARDE, EENHEID_CODE) %>%
-  filter(MEETPUNT_IDENTIFICATIE == "Lobith") %>%
-  mutate(ALFANUMERIEKEWAARDE = as.numeric(ALFANUMERIEKEWAARDE),
-         ALFANUMERIEKEWAARDE = ifelse(ALFANUMERIEKEWAARDE == 9.99999E+37, NA, ALFANUMERIEKEWAARDE)) %>%
-  mutate(WAARNEMINGDATUM = as.Date(WAARNEMINGDATUM, format = "%d-%m-%Y")) %>%
-  group_by(WAARNEMINGDATUM) %>%
-  summarize(AVERAGE_VALUE = mean(ALFANUMERIEKEWAARDE, na.rm = TRUE))
-
-#rijn_gem <- mean(rijn$AVERAGE_VALUE, na.rm=TRUE)
-#rijn_median <- median(rijn$AVERAGE_VALUE, na.rm=TRUE)
-rijn_last_10yr <-  rijn%>%
-  tail(10*365) %>%
-  dplyr::select(AVERAGE_VALUE) %>%
-  summarise(mean_value = mean(AVERAGE_VALUE, na.rm = TRUE)) %>%
-  pull(mean_value)
-message("Gemiddelde gemeten afvoer Rijn 2013-2023: ", rijn_last_10yr)
-
-"Neerslag: neerslag waardes berekenen ahv model data en basin shape file"
-#NC handling
-pre <- nc_open("/rivm/biogrid/quikj/PFAS_A2/data/ERA5_monthly.nc")
-lon <- ncvar_get(pre, "longitude")  
-lat <- ncvar_get(pre, "latitude")
-time <- ncvar_get(pre, "valid_time")
-time_unit <- ncatt_get(pre, "valid_time" , "units")  #Eenheid van de tijd
-tp_units <- ncatt_get(pre, "tp", "units")   #Eenheid van de tp = totale neerslag
-ref_date <- strsplit(time_unit$value, "since ")[[1]][2]
-ref_date <- as.POSIXct(ref_date, format = "%Y-%m-%d", tz = "UTC")
-dates <- ref_date + time        #met ref date een omrekenslag van seconden na/voor 1970 een datum te maken
-precipitation.array <- ncvar_get(pre, "tp")
-dim(precipitation.array)
-fillvalue <- ncatt_get(pre, "tp", "_FillValue")
-
-##Shapefile van Rijn stroomgebied inladen
-shape <- st_read("/rivm/biogrid/quikj/PFAS_A2/GIS/Rhine.shp")
-
-#Loopen door de tijdsdimensie van het NC bestand om een dataframe met neerslag te maken
-#df maken
-precipitation_df <- data.frame(
-  Month = dates,
-  TotalPrecipitation = numeric(dim(precipitation.array)[3])
-)
-#Loopen
-for (month in 1:dim(precipitation.array)[3]){
-  precipitation.slide <- precipitation.array[, , month]
-  r <- raster(t(precipitation.slide), xmn=min(lon), xmx=max(lon), ymn=min(lat), ymx=max(lat), crs=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84        +no_defs+ towgs84=0,0,0"))
-  r[is.nan(r)] <- NA
-  mask <- mask(r, shape)
-  monthly_pre <- cellStats(mask, stat="mean", na.rm=TRUE) * 1000 * 30.43  #data is month average [m] precipitation > conversion to mm/month
-  precipitation_df$TotalPrecipitation[month] <- monthly_pre
+if (file.exists("/rivm/biogrid/quikj/PFAS_A2/data/AdjustModelRhine_workspace.RData")) {
+  print("aanpassen met eerder opgeslagen workspace...")
+  load("/rivm/biogrid/quikj/PFAS_A2/data/AdjustModelRhine_workspace.RData")
+} else {
+  message("Afvoer: wordt niet gebruikt enkel voor validatie neerslag")
+  data_nl = read_delim("/rivm/biogrid/quikj/PFAS_A2/data/20250114_009.csv", delim = ";", escape_double = FALSE, trim_ws = TRUE, show_col_types = FALSE)
+  #message("Meetpunten: ", sort(unique(data_nl$MEETPUNT_IDENTIFICATIE)))
+  rijn <- data_nl %>%
+    dplyr::select(MEETPUNT_IDENTIFICATIE,WAARNEMINGDATUM, "WAARNEMINGTIJD (MET/CET)", ALFANUMERIEKEWAARDE, EENHEID_CODE) %>%
+    filter(MEETPUNT_IDENTIFICATIE == "Lobith") %>%
+    mutate(ALFANUMERIEKEWAARDE = as.numeric(ALFANUMERIEKEWAARDE),
+           ALFANUMERIEKEWAARDE = ifelse(ALFANUMERIEKEWAARDE == 9.99999E+37, NA, ALFANUMERIEKEWAARDE)) %>%
+    mutate(WAARNEMINGDATUM = as.Date(WAARNEMINGDATUM, format = "%d-%m-%Y")) %>%
+    group_by(WAARNEMINGDATUM) %>%
+    summarize(AVERAGE_VALUE = mean(ALFANUMERIEKEWAARDE, na.rm = TRUE))
+  
+  #rijn_gem <- mean(rijn$AVERAGE_VALUE, na.rm=TRUE)
+  #rijn_median <- median(rijn$AVERAGE_VALUE, na.rm=TRUE)
+  rijn_last_10yr <-  rijn%>%
+    tail(10*365) %>%
+    dplyr::select(AVERAGE_VALUE) %>%
+    summarise(mean_value = mean(AVERAGE_VALUE, na.rm = TRUE)) %>%
+    pull(mean_value)
+  message("Gemiddelde gemeten afvoer Rijn 2013-2023: ", rijn_last_10yr)
+  
+  "Neerslag: neerslag waardes berekenen ahv model data en basin shape file"
+  #NC handling
+  pre <- nc_open("/rivm/biogrid/quikj/PFAS_A2/data/ERA5_monthly.nc")
+  lon <- ncvar_get(pre, "longitude")  
+  lat <- ncvar_get(pre, "latitude")
+  time <- ncvar_get(pre, "valid_time")
+  time_unit <- ncatt_get(pre, "valid_time" , "units")  #Eenheid van de tijd
+  tp_units <- ncatt_get(pre, "tp", "units")   #Eenheid van de tp = totale neerslag
+  ref_date <- strsplit(time_unit$value, "since ")[[1]][2]
+  ref_date <- as.POSIXct(ref_date, format = "%Y-%m-%d", tz = "UTC")
+  dates <- ref_date + time        #met ref date een omrekenslag van seconden na/voor 1970 een datum te maken
+  precipitation.array <- ncvar_get(pre, "tp")
+  dim(precipitation.array)
+  fillvalue <- ncatt_get(pre, "tp", "_FillValue")
+  
+  ##Shapefile van Rijn stroomgebied inladen
+  shape <- st_read("/rivm/biogrid/quikj/PFAS_A2/GIS/Rhine.shp")
+  
+  #Loopen door de tijdsdimensie van het NC bestand om een dataframe met neerslag te maken
+  #df maken
+  precipitation_df <- data.frame(
+    Month = dates,
+    TotalPrecipitation = numeric(dim(precipitation.array)[3])
+  )
+  #Loopen
+  for (month in 1:dim(precipitation.array)[3]){
+    precipitation.slide <- precipitation.array[, , month]
+    r <- raster(t(precipitation.slide), xmn=min(lon), xmx=max(lon), ymn=min(lat), ymx=max(lat), crs=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84        +no_defs+ towgs84=0,0,0"))
+    r[is.nan(r)] <- NA
+    mask <- mask(r, shape)
+    monthly_pre <- cellStats(mask, stat="mean", na.rm=TRUE) * 1000 * 30.43  #data is month average [m] precipitation > conversion to mm/month
+    precipitation_df$TotalPrecipitation[month] <- monthly_pre
+  }
+  
+  #Jaarlijkse en maandelijkse vertalingen om te valideren
+  precipitation_df$month_number <- format(precipitation_df$Month, "%m")
+  monthly_summary <- precipitation_df %>%
+    group_by(month_number) %>%
+    summarise(
+      TotalPrecipitationMean = mean(TotalPrecipitation, na.rm = TRUE),
+      Observations = n()
+    )
+  
+  precipitation_df$year_number <- format(precipitation_df$Month, "%Y")
+  yearly_summary <- precipitation_df %>%
+    group_by(year_number) %>%
+    summarise(
+      TotalPrecipitationMean = sum(TotalPrecipitation, na.rm = TRUE)
+    )
+  #dataframe met klimaat standaard 30 jaarlijks gemiddelden
+  precipitation_df <- precipitation_df %>%
+    filter(year_number > 1992, year_number < 2023) %>%
+    group_by(year_number) %>%
+    summarise(
+      TotalPrecipitation= sum(TotalPrecipitation, na.rm=TRUE)
+    )
+  
+  #calculating long-term gemiddelde neerslag en oppervlakte rijn stroomgebied
+  rainrate_mod = mean(yearly_summary$TotalPrecipitationMean, na.rm=TRUE)
+  area = st_area(shape)
+  
+  "Landfractions afgeleid van satelliet data geclipt op het stroomgebied"
+  landfrac <- read_delim("/rivm/biogrid/quikj/PFAS_A2/GIS/landuse.csv", delim=',', show_col_types = FALSE) %>%
+    filter(name == 'Rhine')
+  
+  "partition coefficients: work in progress"
 }
-
-#Jaarlijkse en maandelijkse vertalingen om te valideren
-precipitation_df$month_number <- format(precipitation_df$Month, "%m")
-monthly_summary <- precipitation_df %>%
-  group_by(month_number) %>%
-  summarise(
-    TotalPrecipitationMean = mean(TotalPrecipitation, na.rm = TRUE),
-    Observations = n()
-  )
-
-precipitation_df$year_number <- format(precipitation_df$Month, "%Y")
-yearly_summary <- precipitation_df %>%
-  group_by(year_number) %>%
-  summarise(
-    TotalPrecipitationMean = sum(TotalPrecipitation, na.rm = TRUE)
-  )
-#dataframe met klimaat standaard 30 jaarlijks gemiddelden
-precipitation_df <- precipitation_df %>%
-  filter(year_number > 1992, year_number < 2023) %>%
-  group_by(year_number) %>%
-  summarise(
-    TotalPrecipitation= sum(TotalPrecipitation, na.rm=TRUE)
-  )
-
-#calculating long-term gemiddelde neerslag en oppervlakte rijn stroomgebied
-rainrate_mod = mean(yearly_summary$TotalPrecipitationMean, na.rm=TRUE)
-area = st_area(shape)
-
-"Landfractions afgeleid van satelliet data geclipt op het stroomgebied"
-landfrac <- read_delim("/rivm/biogrid/quikj/PFAS_A2/GIS/landuse.csv", delim=',', show_col_types = FALSE) %>%
-  filter(name == 'Rhine')
-
-"partition coefficients: work in progress"
 
 
 
@@ -194,7 +199,7 @@ print("Onnodige variables verwijderen....")
 remove(data_NL, rijn, pre, lon, lat, time, time_unit, tp_units, ref_date, dates, fillvalue, shape, r,
        monthly_pre, precipitation_df, monthly_summary, yearly_summary, precipitation.slide, TotalArea,
        rainrate_mod, FRACinf 
-       )
+)
 
 check_catchment <- function() {
   print("RHINE:")
@@ -205,4 +210,3 @@ check_catchment <- function() {
   print(Rainrate)
   cat("\nRunoff adjusted to:\n")
   print(FRACrun) }
-
