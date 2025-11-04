@@ -1,0 +1,78 @@
+---
+title: "ProbDyn_test_Anne"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{R}
+check_and_install <- function(package) {
+  tryCatch({
+    # Load the package
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "is already installed and loaded."))
+  }, error = function(e) {
+    # If an error occurs, install the package
+    message(paste("Package", package, "is not installed. Installing now..."))
+    install.packages(package, dependencies = TRUE)
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "has been successfully installed and loaded."))
+  })
+}
+
+library(dplyr)
+library(here)
+library(lhs)
+library(tidyverse)
+library(treemapify)
+library(gridExtra)
+source("vignettes/CaseStudies/PFAS_A2/EmissionModel.R")
+source("vignettes/CaseStudies/PFAS_A2/plot.R")
+```
+
+# Initialize the World
+```{R}
+gekozen_stoffen = c("Perfluorobutane_sulfonic", "Perfluorobutanoic", 
+                    "Perfluoropentanoic", "Perfluoroheptanoic", 
+                    "Perfluorooctanoic", "Trifluoroacetic", "Perfluorohexanoic")
+substance = gekozen_stoffen[2]
+
+source("baseScripts/initWorld_onlyMolec.R")
+
+World$substance <- substance
+```
+
+# Prepare the emissions
+```{R}
+# Create a test df
+emis_test <- data.frame(Emis = c(0.003, 0.003, 0.005, 0.007, 0.006, 0.009),
+                         Time = c(2015*365.25*24*60*60, 2015*365.25*24*60*60, 2016*365.25*24*60*60, 2016*365.25*24*60*60, 2017*365.25*24*60*60, 2017*365.25*24*60*60),
+                        Abbr = rep(c("w2RU", "w1RU"), 3))
+```
+
+# Make test variable df
+```{R}
+vars_uncertainty <- readxl::read_xlsx("/rivm/biogrid/quikj/PFAS_A2/data/Uncertainty.xlsx",
+                                         sheet = substance)
+
+var_funs <- World$makeInvFuns(vars_uncertainty)
+```
+
+# Solve
+```{R}
+World$NewSolver("DynamicSolver")
+
+runtime <- 3 #years
+tmax <- runtime*365.25*24*60*60 #in seconds
+nTIMES <- runtime+1 #Number of timesteps, e.g. yearly, 2-year
+nRUNs = 5
+
+World$Solve(emissions = emis_test,
+               var_box_df = vars_uncertainty,
+               var_invFun = var_funs,
+               nRUNs = 5,
+               tmin = min(unique(emis_test$Time)),
+               tmax = max(unique(emis_test$Time)),
+               nTIMES = 50)
+```
+
