@@ -1,4 +1,4 @@
-﻿VarName,Unit,ToSI,table,Description
+VarName,Unit,ToSI,table,Description
 AEROresist,s.m-1,,CONSTANTS,Aerodynamic resistance
 AEROSOLdeprate,m.s-1,,ScaleSheet,deposition aerosol particles
 alpha,-,,SubstanceSubCompartSpeciesData,Attachment efficiency of ENPs
@@ -19,6 +19,12 @@ Corg,-,,MatrixSheet,Mass fraction organic carbon in subcompartment
 CORG.susp,-,,CONSTANTS,mass fraction organic carbon suspended in water
 CorgStandard,-,,CONSTANTS,Standard mass FRACTION organic carbon in soil/sediment
 DefaultNETsedrate,m.s-1,,SubCompartSheet,Default net sedimentation rate
+deg_x,-,,Substances,Empirical degradation constant for all compartments for a specific polymer 
+deg_tau,-,,Substances,Empirical degradation constant for all compartments for a specific polymer
+deg_y,-,,Substances,Empirical degradation constant for all compartments for a specific polymer
+deg_theta,-,,Substances,Empirical degradation constant for all compartments for a specific polymer
+deg_z,-,,Substances,Empirical degradation constant for all compartments for a specific polymer
+deg_eta,-,,Substances,Empirical degradation constant for all compartments for a specific polymer
 Df,-,,CONSTANTS,Fractal dimension of combined heteroagglomerate
 dischargeFRAC,-,,ScaleSheet,Fraction of the continental riverflow that flows into the regional river
 DynViscAirStandard,kg.m-1.s-1,,CONSTANTS,Dynamic viscosity of air standard
