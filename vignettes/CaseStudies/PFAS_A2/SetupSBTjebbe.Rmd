@@ -54,6 +54,7 @@ check_and_install("lhs")
 check_and_install("tidyverse")
 check_and_install("treemapify")
 check_and_install("gridExtra")
+library(RColorBrewer)
 
 ```
 
@@ -140,129 +141,160 @@ print(World$fetchData("Area"))
 ##
 
 #Input
-start_year = 1990                     #Start jaartal
-EmissionDuration <- 10                #Aantal jaar met emissies
+start_year = 2020                     #Start jaartal
+EmissionDuration <- 5                #Aantal jaar met emissies
 runtime <- 150 + EmissionDuration     #Looptijd van het model
 end_year = start_year + runtime       #Eind jaartal
 tmax <- runtime*365.25*24*60*60       #Eind in seconden
 nTIMES <- runtime+1                   #Number of timesteps, e.g. yearly, 2-year
-ReductionDuration <- 50
+ReductionDuration <- 15
 Wereldwijd = TRUE 
-catchment = 'Rijn'
 
 #Gekozen PFAS-stof namen en scenarios van Joris Meesters
 stoffen <- c("Perfluorobutane_sulfonic", "Perfluorobutanoic", 
                       "Perfluoropentanoic", "Perfluoroheptanoic", 
                       "Perfluorooctanoic", "Trifluoroacetic", "Perfluorohexanoic")
-scenarios <- c("A Historical", "B No intervention", "C No reduction of emis. fac.", "D No reduction of prod. vol.", "E No REACH restriction",
+scenarios_jm <- c("A Historical", "B No intervention", "C No reduction of emis. fac.", "D No reduction of prod. vol.", "E No REACH restriction",
                "F REACH restriction in 2003")
+#ReductionDuration, TotalReduction, ReductionSteps, ReductionFractions, PlotTitle
+scenarios <- list(list(15, 99, 15, 'equal', "1) Volledig reduceren van emissies"), 
+               list(15, 95, 15, 'equal', "2) REACH restrictie"), 
+               list(20, 95, 20, c(rep(0.05, times=10), rep(0.045, times=10)), "3) REACH restrictie met derogaties"),
+               list('-', 0, 0, 0, "4) Geen restricties"))
 
-#Resultaten dataframe
-data <- expand.grid(
-  verwijdering = c("99.9% verwijdering", "95% verwijdering", "75% verwijdering", "50% verwijdering"),
-  scenario = scenarios,
-  stof = stoffen
-  )
-waardes = c()
-
-#Loop door stoffen, start SB-wereld, Loop door scenario's, per scenario resultaten berekenen.
-for (index in seq_len(length(stoffen))) {
-  substance = stoffen[index]
+data_list = list()
+barplot_list = list()
+emissie_plots = list()
+for (catchment in c("Rijn", "Maas")) {
   
-  #Start Wereld
-  initiate(substance, catchment = catchment)
-  source("vignettes/CaseStudies/PFAS_A2/EmissionFunction.R")
-  
-  #Loop door Joris Meesters emissie scenario's
-  for (scenario in scenarios) {
-    World$NewSolver("DynamicSolver")
+  #Resultaten dataframe
+  data <- expand.grid(
+    verwijdering = c("99.9% verwijdering", "95% verwijdering", "75% verwijdering", "50% verwijdering"),
+    scenario = lapply(scenarios, function(x) x[[5]]),
+    stof = stoffen
+    )
+  waardes = c()
+  #Loop door stoffen, start SB-wereld, Loop door scenario's, per scenario resultaten berekenen.
+  for (index in seq_len(length(stoffen))) {
+    substance = stoffen[index]
     
-    #Gebruik EmissionFunction om Emissie dataframe te maken
-    result = sb_emission_df(GlobalEmission = 457.2, SelectScales=c("A", "M", "T", "R", "C"),
-                            time_steps= nTIMES, EmissionDuration = EmissionDuration, TotalRuntime = runtime,
-                            ReductionDuration = ReductionDuration, TotalReduction = 99.6, ReductionSteps = 51,
-                            StepDuration = 'equal', ReductionFractions = get_reduction_steps(sheet_name=scenario, 
-                                                                     variable = "Lower bound emission estimate (t/y) In total", 
-                                                                     start_year+EmissionDuration, 
-                                                                     start_year+EmissionDuration+ReductionDuration))
+    #Start Wereld
+    initiate(substance, catchment = catchment)
+    source("vignettes/CaseStudies/PFAS_A2/EmissionFunction.R")
     
-    #Solve
-    World$Solve(emissions = result$emissions, tmax=tmax, nTIMES = nTIMES)
-    concentration_data <- World$Concentration() 
-    
-    #Bereken voor Regional River hoe lang het duurt tot de concentratie X% lager is
-    subcompart = 'w1'
-    concentration_data <- concentration_data %>%
-        filter(grepl("R", Abbr) & grepl(subcompart, Abbr)) %>%
-        mutate(year = start_year + as.numeric(time) / 31557600)
-    
-    #Bepaal thresholds
-    concentratie_thresholds <- c(
-      threshold_concentratie_50 = concentration_data$Concentration[EmissionDuration] * 0.5, 
-      threshold_concentratie_75 = concentration_data$Concentration[EmissionDuration] * 0.25,
-      threshold_concentratie_95 = concentration_data$Concentration[EmissionDuration] * 0.05,
-      threshold_concentratie_99 = concentration_data$Concentration[EmissionDuration] * 0.01 #99.9%
-      )
-    
-    #Filter de concentratie data op thresholds
-    x50 <- concentration_data %>%
-      filter(Concentration < (concentratie_thresholds[1])) %>%
-      filter(year > (start_year + EmissionDuration))
-    x75 <- concentration_data %>%
-      filter(Concentration < (concentratie_thresholds[2])) %>%
-      filter(year > (start_year + EmissionDuration))
-    x95 <- concentration_data %>%
-      filter(Concentration < (concentratie_thresholds[3])) %>%
-      filter(year > (start_year + EmissionDuration))
-    x99 <- concentration_data %>%
-      filter(Concentration < (concentratie_thresholds[4])) %>%
-      filter(year > (start_year + EmissionDuration))
-    
-    #Sla resultaten op in vector 'waardes'
-    waardes <- c(waardes,min(x99$year - (start_year+EmissionDuration)))
-    waardes <- c(waardes,min(x95$year - (start_year+EmissionDuration)))
-    waardes <- c(waardes,min(x75$year - (start_year+EmissionDuration)))
-    waardes <- c(waardes,min(x50$year - (start_year+EmissionDuration)))
+    #Loop door Joris Meesters emissie scenario's
+    for (scenario in scenarios) {
+      #scenario = scenarios[[2]]
+      World$NewSolver("DynamicSolver")
+      
+      #Gebruik EmissionFunction om Emissie dataframe te maken
+      result = sb_emission_df(GlobalEmission = 457.2, SelectScales=c("A", "M", "T", "R", "C"),
+                              time_steps= nTIMES, EmissionDuration = EmissionDuration, start_year = start_year, TotalRuntime = runtime,
+                              ReductionDuration = scenario[[1]], TotalReduction = scenario[[2]], ReductionSteps =scenario[[3]],
+                              StepDuration = 'equal', ReductionFractions = scenario[[4]], PlotTitle = scenario[[5]])
+      emissie_plots[[length(emissie_plots) + 1]] <- result$plot
+      
+      
+      #Solve
+      World$Solve(emissions = result$emissions, tmax=tmax, nTIMES = nTIMES)
+      concentration_data <- World$Concentration() 
+      
+      #Bereken voor Regional River hoe lang het duurt tot de concentratie X% lager is
+      subcompart = 'w1'
+      concentration_data <- concentration_data %>%
+          filter(grepl("R", Abbr) & grepl(subcompart, Abbr)) %>%
+          mutate(year = start_year + as.numeric(time) / 31557600)
+      
+      #Bepaal thresholds
+      concentratie_thresholds <- c(
+        threshold_concentratie_50 = concentration_data$Concentration[EmissionDuration] * 0.5, 
+        threshold_concentratie_75 = concentration_data$Concentration[EmissionDuration] * 0.25,
+        threshold_concentratie_95 = concentration_data$Concentration[EmissionDuration] * 0.05,
+        threshold_concentratie_99 = concentration_data$Concentration[EmissionDuration] * 0.01 #99.9%
+        )
+      
+      #Filter de concentratie data op thresholds
+      x50 <- concentration_data %>%
+        filter(Concentration < (concentratie_thresholds[1])) %>%
+        filter(year > (start_year + EmissionDuration))
+      x75 <- concentration_data %>%
+        filter(Concentration < (concentratie_thresholds[2])) %>%
+        filter(year > (start_year + EmissionDuration))
+      x95 <- concentration_data %>%
+        filter(Concentration < (concentratie_thresholds[3])) %>%
+        filter(year > (start_year + EmissionDuration))
+      x99 <- concentration_data %>%
+        filter(Concentration < (concentratie_thresholds[4])) %>%
+        filter(year > (start_year + EmissionDuration))
+      
+      #Sla resultaten op in vector 'waardes'
+      waardes <- c(waardes,min(x99$year - (start_year+EmissionDuration)))
+      waardes <- c(waardes,min(x95$year - (start_year+EmissionDuration)))
+      waardes <- c(waardes,min(x75$year - (start_year+EmissionDuration)))
+      waardes <- c(waardes,min(x50$year - (start_year+EmissionDuration)))
+    }
   }
-}
-#voeg toe aan resultaten dataframe
-data$waarde <- waardes
+  #voeg toe aan resultaten dataframe
+  data$waarde <- waardes
+  
+  #output bewerken voor plotten
+  mapping <-  c("Perfluorobutane_sulfonic" = "PFBS", "Perfluorobutanoic" = "PFBA", 
+              "Perfluoropentanoic" = "PFPeA", "Perfluoroheptanoic" = "PFHpA", 
+              "Perfluorooctanoic" = "PFOA", "Trifluoroacetic" = "TFA", 
+              "Perfluorohexanoic" = "PFHxA")
+  data <- data %>%
+    mutate(
+      stof = recode(as.character(stof), !!!mapping),
+      text_color = ifelse(waarde > 14, "white", "black"),
+      scenario = map_chr(scenario, ~ .x[[1]]),
+      label = ifelse(is.infinite(data$waarde), "∞", data$waarde)
+    )
+  data_list[[length(data_list) + 1]] <- data
 
-#Bekijk Info over emissiescenario
-#result_glob$plot
-#result_eu$plot
-#result$plot
-#result$procenten
-# emissions = result$emissions %>%
-#   mutate(year = start_year + as.numeric(Time) / 31557600)
-
-##Plotten
-library(RColorBrewer)
-
-#Bij hoge waardes label kleur wit maken voor zichtbaarheid
-data <- data %>%
-  mutate(text_color = ifelse(waarde > 28, "white", "black"))
-#Sommige scenario's zorgen voor Inf aantal jaren tot dat threshold bereikt is:
-data$label <- ifelse(is.infinite(data$waarde), "∞", data$waarde)
-
-barplot <- ggplot(data, aes(x = verwijdering, y = stof, fill = waarde)) +
+  
+  #Plotten
+  barplot <- ggplot(data, aes(x = verwijdering, y = stof, fill = waarde)) +
                   geom_tile() +
                   geom_text(aes(label = label, color = text_color), size = 5) +
                   facet_wrap(~ scenario) +
                   scale_fill_distiller(palette = "YlGnBu", direction = 1, name = "Jaren") +
                   scale_color_identity() +
                   theme_minimal() +
-                  labs(title = paste0("Aantal jaren tot verlaging van PFAS concentratie in de ", catchment), x = "", y = "", fill = "Value") +
+                  labs(title = paste0("Tijdsduur van afname in concentratie in de ", catchment), x = "", y = "", fill = "Value") +
                   theme(axis.text.x = element_text(angle = 45, hjust = 1),
                         plot.title = element_text(size =18),
                         axis.title = element_text(size=18),
                         axis.text = element_text(size=12),
                         strip.text = element_text(size=11)
                         )
-barplot
-#Barplot opslaan op schijf
-ggsave(paste0("/rivm/biogrid/quikj/PFAS_A2/output/Resultaten_",catchment,"_figuur1_2310.png"), plot = barplot, width = 10, height = 6, dpi = 300)
+  barplot_list[[length(barplot_list) + 1]] <- barplot
+  barplot
+  ggsave(paste0("/rivm/biogrid/quikj/PFAS_A2/output/Resultaten_",catchment,"_figuur1_41125.png"), plot = barplot, width = 10, height = 6, dpi = 300)
+}
+
+#Bekijk Info over emissiescenario
+#result_glob$plot
+#result_eu$plot
+
+#result$procenten
+emissions = result$emissions %>%
+  mutate(year = start_year + as.numeric(Time) / 31557600)
+
+##Plotten
+
+#data_maas <- data
+#data_rijn <- data
+
+#Recode engelse PFAS termen:
+
 ```
 
 
 
+result = sb_emission_df(GlobalEmission = 457.2, SelectScales=c("A", "M", "T", "R", "C"),
+                            time_steps= nTIMES, EmissionDuration = EmissionDuration, TotalRuntime = runtime,
+                            ReductionDuration = ReductionDuration, TotalReduction = 99.6, ReductionSteps = 51,
+                            StepDuration = 'equal', ReductionFractions = get_reduction_steps(sheet_name=scenario, 
+                                                                     variable = "Lower bound emission estimate (t/y) In total", 
+                                                                     start_year+EmissionDuration, 
+                                                                     start_year+EmissionDuration+ReductionDuration))

@@ -10,27 +10,31 @@
 #'
 #' @return EmissionsDataframe
 
-sb_emission_df <- function(GlobalEmission, EuropeFraction =NULL, SelectScales=c("A", "C", "M", "R", "T"), time_steps, EmissionDuration, 
+sb_emission_df <- function(GlobalEmission, EuropeFraction =NULL, SelectScales=c("A", "C", "M", "R", "T"), time_steps, EmissionDuration, start_year,
                            TotalRuntime, SubCompartments = c('a', 's2', 's1', 's3', 'w0', 'w1', 'w2', 'w3'),
                            ReductionDuration, TotalReduction, ReductionSteps, StepDuration='equal', ReductionFractions='equal',
-                           rc = NULL) {
+                           rc = NULL, PlotTitle = "Emissies op alle schalen") {
   print("Emissie dataframe maken met afbouwend scenario op basis van gegeven input")
   print("GlobalEmission wordt naar oppervlakte over de schalen verspreidt, binnen een schaal gaat 1/3 naar zowel bodem, lucht en water")
   #Lineair of exponentieel verlagen van emissies
   if (any(ReductionFractions == 'equal')) {
-    ReductionFractions = rep(1/ReductionSteps, ReductionSteps)
+    ReductionFractions = rep((TotalReduction/100)/ReductionSteps, ReductionSteps)
   }
-  if (any(StepDuration == 'equal')) {
+  if ((ReductionSteps != 0) & (any(StepDuration == 'equal'))) {
     StepDuration = rep(ReductionDuration/ReductionSteps, ReductionSteps)
+    
   }
   
   if ((any(ReductionFractions == 'exponential')) & (!is.null(rc))) {
+    exponential = TRUE
     ReductionFractions <- rc^(0:(ReductionSteps-1))
     ReductionFractions <- ReductionFractions / sum(ReductionFractions) 
+  } else {
+    exponential = FALSE
   }
   
   #Voorwaarden voor runnen
-  if (length(ReductionFractions) != ReductionSteps)  {
+  if ((ReductionSteps != 0) & (length(ReductionFractions) != ReductionSteps))  {
     #ReductionSteps niet hetzelfde als het aantal fracties
     stop("Het aantal opgegeven fracties is niet hetzelfde als de aantal [ReductionSteps]")
   }
@@ -127,39 +131,63 @@ sb_emission_df <- function(GlobalEmission, EuropeFraction =NULL, SelectScales=c(
   }
   
   #2 Dataframe met afbouwende emissies volgens input
-  lastemi <- emissions %>%
-    filter(Time == EmissionDuration)
-  var <- emissions %>%
-    filter(Time == EmissionDuration)
+  #Frame om toekomst aan toe te voegen
   Hist_Futu_emissions <- emissions
-  last_reduction = 0
+  #Exponentiele reeks staat al goed voor vermenigvuldiging met startwaarde, dit ook doen voor fractions
+  print(ReductionFractions)
+  if (any(ReductionDuration != '-')) {
+    if (!exponential) {
+      #Omzetten naar fracties op startwaarde
+      tol <- .Machine$double.eps^0.5
+      if (abs(sum(ReductionFractions) - (TotalReduction/100)) < tol) {
+        Fraction_same_as_TotalReduction = TRUE
+      } else {
+        print("Waarschuwing: TotalReduction niet hetzelfde als totaal van ReductionFractions")
+        Fraction_same_as_TotalReduction = FALSE
+      }
+      ReductionFractions = cumsum(ReductionFractions)
+      ReductionFractions = 1-ReductionFractions
+    } 
   
-  for (step in 1:ReductionSteps) {
-    timewindow <- (var$Time[1]+1):(var$Time[1]+1+StepDuration[step]-1)
-    # reduction_x <- ((100-(TotalReduction*ReductionFractions[step])) /100) - last_reduction
-    # reduction_x <- ((100-(TotalReduction*test[step])) /100) - last_reduction
+    #Laatste tijdstap van emissies
+    lastemi <- emissions %>%
+      filter(Time == EmissionDuration)
     
-    if (ReductionFractions[step] > 1) {
-      reduction_x <- ReductionFractions[step]
-    } else {
-      reduction_x <- (TotalReduction/100) * (ReductionFractions[step])
+    #Variabele dataframe om nieuwe timewindow te definieren
+    var <- emissions %>%
+      filter(Time == EmissionDuration)
+    
+    #Loop
+    for (step in 1:ReductionSteps) {
+      timewindow <- (var$Time[1]+1):(var$Time[1]+1+StepDuration[step]-1)
+      
+      #Reduction_x maken
+      if (ReductionFractions[step] > 1) {
+        reduction_x <- ReductionFractions[step]
+        print("Waarschuwing: Stijgende emissie in ReductionFractions")
+      } else if (exponential) {
+        reduction_x <- (TotalReduction/100) * (ReductionFractions[step])
+      } else {
+        if (Fraction_same_as_TotalReduction) {
+          reduction_x <- ReductionFractions[step]
+        } else {
+          reduction_x <- (TotalReduction/100) * (ReductionFractions[step])
+        }
+        if (ReductionSteps != length(ReductionFractions)) {
+          print("Waarschuwing: Reductiesteps is niet gelijk aan het aantal ReductieFractions")
+        }
+      }
+      emi_future <- lastemi %>%
+        slice(rep(1:n(), each=length(timewindow))) %>%
+        mutate(Time = rep(timewindow, times=nrow(lastemi)),
+               Emis = Emis * (reduction_x))
+      #Update var voor timewindow
+      var <- emi_future %>%
+          filter(Time == tail(timewindow, 1))
+      #Voeg toe aan output
+      Hist_Futu_emissions <- bind_rows(Hist_Futu_emissions, emi_future)
     }
-    
-    print(timewindow)
-    print(reduction_x)
-    #last_reduction <- 1-reduction_x
-    
-    emi_future <- lastemi %>%
-      slice(rep(1:n(), each=length(timewindow))) %>%
-      mutate(Time = rep(timewindow, times=nrow(lastemi)),
-             Emis = Emis * reduction_x)
-    
-    var <- emi_future %>%
-        filter(Time == tail(timewindow, 1))
-    Hist_Futu_emissions <- bind_rows(Hist_Futu_emissions, emi_future)
-    
   }
- 
   #Overblijvende runtime leeg toevoegen
   lasttime <-tail(Hist_Futu_emissions$Time, 1)
   lastemi <- Hist_Futu_emissions %>%
@@ -173,20 +201,20 @@ sb_emission_df <- function(GlobalEmission, EuropeFraction =NULL, SelectScales=c(
   )
   Hist_Futu_emissions <-  bind_rows(Hist_Futu_emissions, remaining_years)
   
-  #Plotten
   Grouped <- Hist_Futu_emissions %>%
     group_by(Time) %>%
     summarise(Emis_sum = sum(Emis)) %>%
-    mutate(year = 1990+Time,
+    mutate(year = (start_year-1) + (Time),
            procent = 100*Emis_sum/GlobalEmission)
   
   p1 = ggplot(Grouped, aes(x=year, y=procent)) +
-    geom_line() +
-    labs(title="Emissies op alle schalen", x="Tijd", y="Emissies [kg]") +
+    geom_step() +
+    labs(title=paste("Emissie Scenario:", PlotTitle), x="Jaar", y="Emissies [%]") +
     theme_minimal() +
     scale_x_continuous(breaks = seq(min(Grouped$year), max(Grouped$year), by = 5)) +
+    scale_y_continuous(limits = c(0, NA)) + 
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
-    
+  
   #Omzetten naar juiste eenheden en lege start toevoegen
   MW = World$fetchData('MW')
   Hist_Futu_emissions <- Hist_Futu_emissions |>
@@ -196,6 +224,10 @@ sb_emission_df <- function(GlobalEmission, EuropeFraction =NULL, SelectScales=c(
     full_join(expand.grid(Abbr=unique(emissions$Abbr)) |>
                 mutate(Time = 0,
                        Emis = 0))
+  #Plotten
+  
+  
+ 
   procenten <- c()
   for (i in 1:(nrow(Grouped)/1)) {
     procenten <- append(procenten, (paste0("Afname% in ", Grouped$year[seq(1, length(Grouped$year), by = 1)][i], " = ", Grouped$procent[seq(1, length(Grouped$procent), by = 1)][i])))
