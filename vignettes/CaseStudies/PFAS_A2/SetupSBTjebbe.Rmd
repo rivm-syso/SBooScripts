@@ -192,8 +192,12 @@ for (catchment in c("Rijn", "Maas")) {
                               time_steps= nTIMES, EmissionDuration = EmissionDuration, start_year = start_year, TotalRuntime = runtime,
                               ReductionDuration = scenario[[1]], TotalReduction = scenario[[2]], ReductionSteps =scenario[[3]],
                               StepDuration = 'equal', ReductionFractions = scenario[[4]], PlotTitle = scenario[[5]])
-      emissie_plots[[length(emissie_plots) + 1]] <- result$plot
       
+      emissie_plots[[length(emissie_plots) + 1]] <- result$plot_25j
+      
+      #Save a grid
+      #grid = grid.arrange(emissie_plots[[1]],emissie_plots[[2]],emissie_plots[[3]],emissie_plots[[4]])
+      #ggsave(paste0("/rivm/biogrid/quikj/PFAS_A2/output/", "em_scen_grid",".png"), plot = grid, width = 10, height = 10, dpi = 300)
       
       #Solve
       World$Solve(emissions = result$emissions, tmax=tmax, nTIMES = nTIMES)

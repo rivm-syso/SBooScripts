@@ -215,6 +215,15 @@ sb_emission_df <- function(GlobalEmission, EuropeFraction =NULL, SelectScales=c(
     scale_y_continuous(limits = c(0, NA)) + 
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
   
+  p2 <- ggplot(Grouped[1:35, ], aes(x=year, y=procent)) +
+    geom_line() +
+    labs(title=paste("Emissie Scenario:", PlotTitle), x="Jaar", y="Emissies [%]") +
+    theme_minimal() +
+    scale_x_continuous(breaks = seq(min(Grouped$year), max(Grouped$year), by = 5)) +
+    scale_y_continuous(limits = c(0, NA)) + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    annotate("text", x = 2040, y = 80, label = "Modeltijd 2020-2175 →", hjust = 0, vjust = -1)
+  
   #Omzetten naar juiste eenheden en lege start toevoegen
   MW = World$fetchData('MW')
   Hist_Futu_emissions <- Hist_Futu_emissions |>
@@ -234,7 +243,7 @@ sb_emission_df <- function(GlobalEmission, EuropeFraction =NULL, SelectScales=c(
   }
   
   
-  return(list(plot=p1, emissions= Hist_Futu_emissions, procenten=procenten))  
+  return(list(plot=p1, emissions= Hist_Futu_emissions, procenten=procenten, plot_25j = p2))  
 }  
 
 
