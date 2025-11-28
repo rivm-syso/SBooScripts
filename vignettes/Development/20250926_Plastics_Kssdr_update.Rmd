@@ -54,8 +54,8 @@ from Corella-Puertas et al. (2023) to account for this.
             shortest_side axis.
 
         -   KSSDR: The specific surface degradation rate (SSDR) in
-            [m/year]. KSSDR can be found in the literature for different
-            polymers (Maga et al., 2022)
+            [m/second]. KSSDR can be found in the literature for
+            different polymers (Maga et al., 2022)
 
         -   kdeg = ShapeFac \* KSSDR \* CorFacSSA / Shortest_side
 
