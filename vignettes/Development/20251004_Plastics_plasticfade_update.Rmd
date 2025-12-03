@@ -13,7 +13,6 @@ editor_options:
 
 source("baseScripts/initWorld.R")
 
-
 ```
 
 # Explanation of update
@@ -22,13 +21,22 @@ source("baseScripts/initWorld.R")
 
 PlasticFADE (Plastic Fragmentation And Degradation in the Environment)
 
--   v_KdegDorC is changed to include the new plasticFADE input parameter
-    instead of just kdeg
+-   v_KdegDorC is changed to include the new plasticFADE input
+    parameters.
 
-    -   The plasticFADE model uses:
+There is now a choice of three types of degradation input to be used:
+Kssdr, plasticFADE and the Default by setting kdeg directly for all the
+relevant compartments based on seperately estimated half lifes.
 
-        -   xxx
+This is done using `World$SetConst(DegApproach = "Default")`.
 
+The plasticFADE model uses:
+
+-   xxx
+
+3 dec 2025: the script now compares to show nothing has changed, but
+verification of plasticFADE evaluation of data and comparison to
+expected kdeg half life outcomes is still needed.
 
 ```{R Specify directories, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 library(tidyverse)
@@ -42,8 +50,8 @@ library(tidyverse)
 
 InstallSBoo(Release_SBoo = NA, # tag for release use NA for branch
             Release_SBooScripts = NA, # tag for release use NA for branch
-            devBranch_SBoo = "Shape_setvel",
-            devBranch_SBooScripts = "Shape_setvel",
+            devBranch_SBoo = "development",
+            devBranch_SBooScripts = "development",
             Temp_Folder = NULL # an existing folder where SimpleBox is to be installed
 )
 
@@ -62,7 +70,7 @@ substances <- substances |>
 
 ```{R, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 this_kaas <- data.frame()
-this_variables <- data.frame()
+# this_variables <- data.frame()
 for(substanceK in substances$Substance){
   # Get the substance type
   substance <- substanceK
@@ -135,7 +143,7 @@ examples should illustrate the validity of this modification, e.g.
 comparing to measuresments etc.
 
 ```{R Plot the differences between ks, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
-all_diffs <- kaas_comparison |>
+all_diffs <- changed_kaas |>
   mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
   mutate(toname = paste0(toSubCompart, "_", toScale))
 
