@@ -3761,9 +3761,9 @@ kdeg,water,Perfluoroheptanoic,2.20E-10,NA
 kdeg,air,Perfluorooctanoic,2.20E-08,NA
 kdeg,soil,Perfluorooctanoic,1.10E-10,NA
 kdeg,water,Perfluorooctanoic,2.20E-10,NA
-kdeg,air,Trifluoroacetic,8.02E-09,NA
-kdeg,soil,Trifluoroacetic,1.15E-09,NA
-kdeg,water,Trifluoroacetic,2.29E-09,NA
+kdeg,air,Trifluoroacetic,2.20E-08,NA
+kdeg,soil,Trifluoroacetic,1.10E-10,NA
+kdeg,water,Trifluoroacetic,2.20E-10,NA
 kdeg,air,Perfluorobutanoic,2.20E-08,NA
 kdeg,soil,Perfluorobutanoic,1.10E-10,NA
 kdeg,water,Perfluorobutanoic,2.20E-10,NA
