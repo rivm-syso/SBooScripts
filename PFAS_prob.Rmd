@@ -1,0 +1,116 @@
+---
+title: "PFAS_prob"
+output: html_document
+---
+
+### Use the dynamic solver probabilistically
+
+For the dynamic deterministic solver, the emissions need to be given as
+a dataframe with three columns:
+
+-   'Abbr', which contains the abbreviations for the compartments
+
+-   'Emis', which contains the emissions to the compartments, in kg/s
+
+-   'Time', which contains the time of the emission in seconds,
+
+-   'RUN', which contains the run number of the emission.
+
+```{r Prepare uncertain dynamic emissions, warning=FALSE, message=FALSE}
+
+substance <- "Trifluoroacetic"
+source('baseScripts/initWorld.R')
+
+source("AdjustModelRhine.R")
+
+load("data/Examples/example_uncertain_data.RData")
+
+example_data <- 
+  example_data |>
+  dplyr::select(To_Compartment, `2020`, `2021`,`2022`, `2023`, RUN) |>
+  pivot_longer(!c(To_Compartment, RUN), names_to = "year", values_to = "Emis") |>
+  mutate(Abbr = case_when(
+    To_Compartment == "Agricultural soil (micro)" ~ "s2RU",
+    To_Compartment == "Residential soil (micro)" ~ "s3RU",
+    To_Compartment == "Surface water (micro)" ~ "w1RU"
+  )) |>
+  dplyr::select(-To_Compartment) |>
+  mutate(Time = ((as.numeric(year))*365.25*24*3600)) |>
+  mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> # Convert kt/year to kg/s
+  dplyr::select(-year)
+
+# The raw emission data from 2020 to 2023 will not solve due to instability in the intital state starting at 0. This can be solved by starting at t=0 and mass=0 see below:
+
+example_data <-
+  example_data |> 
+  mutate(Time = Time - 2019*365.25*24*3600) |> # converting to 0 being one year before 2020
+  full_join(expand.grid(Abbr = unique(example_data$Abbr), 
+                        RUN = c(1:20)) |> 
+              mutate(Time = 0,
+                     Emis = 0))
+
+```
+
+Prepare the variables the same way as used for the variables in the
+steady state probabilistic solver.
+
+```{r Prepare variable df and functions dyn, warning=FALSE, message=FALSE}
+
+# Load the Excel file containing example distributions for variablese
+Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")
+
+varFuns <- World$makeInvFuns(Example_vars)
+
+```
+
+`World$Solve` needs the following variables to solve steady state
+probabilistically:
+
+-   emissions: the emissions dataframe
+
+-   var_box_df: a dataframe with the example variables
+
+-   var_invFun: the functions created from the var_box_df in a list
+
+-   nRUNs: the number of runs (should match the number of RUNs in the
+    emissions dataframe provided)
+
+-   tmax: the end time for running the solver, in seconds
+
+-   nTIMES: the number of calculation time steps.
+
+Now we can solve and get the solution, variable values, concentration
+and emissions. NOTE: These calculations take a bit longer than the
+previous calculations.
+
+```{r Solve dyn probabilistic, warning=FALSE, message=FALSE}
+World$NewSolver("DynamicSolver")
+
+
+tmax <- max(unique(example_data$Time))
+tmin <- min(unique(example_data$Time))
+nTIMES <- length(seq(0, tmax, length.out = 10))
+
+World$Solve(emissions = example_data, 
+            var_box_df = Example_vars, 
+            var_invFun = varFuns, 
+            nRUNs = length(unique(example_data$RUN)), 
+            tmin = tmin,
+            tmax = tmax, 
+            nTIMES = nTIMES)
+
+solution = World$Masses()
+emission = World$Emissions()
+variable_values = World$VariableValues()
+concentrations = World$Concentration()
+```
+
+Finally, we can plot the outcome using the predefined plot functions. If
+there is no scale specified, the Regional scale will be selected. If
+there is no subcompart specified, "agriculturalsoil" will be selected.
+
+```{r Plot outcome with uncertainty, warning=FALSE, message=FALSE}
+World$PlotConcentration(scale = "Regional", subcompart = "agriculturalsoil")
+
+World$PlotMasses(scale = "Regional", subcompart = "agriculturalsoil")
+```

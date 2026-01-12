@@ -1,4 +1,4 @@
-﻿VarName,Compartment,Substance,Waarde,Unit
+VarName,Compartment,Substance,Waarde,Unit
 EF,air,microplastic,0.333333333,NA
 EF,air,nAg_10nm,0.333333333,NA
 EF,air,nC60_10nm,0.333333333,NA
@@ -3753,3 +3753,7 @@ Kssdr,air,microplastic,0,m.s-1
 Kssdr,water,microplastic,5.23356e-13,m.s-1
 Kssdr,soil,microplastic,3.78991e-12,m.s-1
 Kssdr,sediment,microplastic,2.80624e-13,m.s-1
+kdeg,air,Trifluoroacetic,2.20e-8,NA
+kdeg,soil,Trifluoroacetic,1.10e-10,NA
+kdeg,water,Trifluoroacetic,2.20e-10,NA
+kdeg,sediment,Trifluoroacetic,2.20e-10,NA
