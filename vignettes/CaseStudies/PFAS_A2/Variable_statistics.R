@@ -4,6 +4,9 @@ library(patchwork)
 library(ncdf4)
 library(sf)
 library(raster)
+library(dplyr)
+library(tidyverse)
+library(writexl)
 
 rijn <- st_read("vignettes/CaseStudies/PFAS Tjebbe/GIS/Rhine.shp")
 maas <- st_read("vignettes/CaseStudies/PFAS Tjebbe/GIS/Meuse.shp")
@@ -43,7 +46,7 @@ calculate_precipitation <- function(shape) {
     summarise(
       TotalPrecipitationMean = sum(TotalPrecipitation, na.rm = TRUE)
     )
-  return(yearly_summary)
+  return(list(yearly_summary, precipitation_df))
 } 
 
 #Neerslag Rijn
@@ -76,10 +79,10 @@ afvoer_maas <- data_nl %>%
 #Histogrammen:
 histogrammen <- function(afvoer, neerslag) {
   #Data op percentielen afsnijden
-  percentiles1 <- quantile(neerslag$TotalPrecipitationMean, c(0.05,0.95), na.rm=TRUE)
+  percentiles1 <- quantile(neerslag$TotalPrecipitation, c(0.05,0.95), na.rm=TRUE)
   data1 <- neerslag[
-    neerslag$TotalPrecipitationMean > percentiles1[1] & 
-    neerslag$TotalPrecipitationMean < percentiles1[2], 
+    neerslag$TotalPrecipitation > percentiles1[1] & 
+    neerslag$TotalPrecipitation < percentiles1[2], 
     ]
   percentiles2 <- quantile(afvoer$AVERAGE_VALUE, c(0.05,0.95), na.rm=TRUE)
   data2 <- afvoer[
@@ -89,27 +92,27 @@ histogrammen <- function(afvoer, neerslag) {
   
 
   #Data Plotten
-  p1 <- ggplot(data = data1, aes(x=TotalPrecipitationMean)) +
-    geom_histogram(bins=13, fill = "skyblue", color = "black", alpha = 0.7) +
-    geom_vline(xintercept=median(data1$TotalPrecipitationMean), color="black", linetype="dashed", size=1.5) +
-    geom_vline(xintercept=mean(data1$TotalPrecipitationMean), color="red", linetype="dashed",size=1.5) +
+  p1 <- ggplot(data = data1, aes(x=TotalPrecipitation)) +
+    geom_histogram(bins=30, fill = "skyblue", color = "black", alpha = 0.7) +
+    geom_vline(xintercept=median(data1$TotalPrecipitation), color="black", linetype="dashed", size=1.5) +
+    geom_vline(xintercept=mean(data1$TotalPrecipitation), color="red", linetype="dashed",size=1.5) +
     labs(title = "Histogram Neerslag ERA5 Model ",
-         x = "Waarde [mm/jaar]", y = "Frequentie") +
+         x = "Waarde [mm/month]", y = "Frequentie") +
     theme_minimal()
   
   p2 <- ggplot(data = data2, aes(x=AVERAGE_VALUE)) +
     geom_histogram(bins=30, fill = "skyblue", color = "black", alpha = 0.7) +
-    geom_vline(xintercept=median(data2$AVERAGE_VALUE), color="black", linetype="dashed",size=1.5) +
-    geom_vline(xintercept=mean(data2$AVERAGE_VALUE), color="red", linetype="dashed",size=1.5) +
-    labs(title = "Histogram Afvoer Rijn",
+    geom_vline(xintercept=median(data2$AVERAGE_VALUE, na.rm=TRUE), color="black", linetype="dashed",size=1.5) +
+    geom_vline(xintercept=mean(data2$AVERAGE_VALUE, na.rm=TRUE), color="red", linetype="dashed",size=1.5) +
+    labs(title = "Histogram Afvoer Maas",
          x = "Waarde [m3/s]", y = "Frequentie") +
     theme_minimal()
   
   
-  return(list(neerslag_gem <- mean(data1$TotalPrecipitationMean),
-         neerslag_med <- median(data1$TotalPrecipitationMean),
-         neerslag_min <- min(data1$TotalPrecipitationMean, na.rm=TRUE),
-         neerslag_max <- max(data1$TotalPrecipitationMean,  na.rm=TRUE),
+  return(list(neerslag_gem <- mean(data1$TotalPrecipitation),
+         neerslag_med <- median(data1$TotalPrecipitation),
+         neerslag_min <- min(data1$TotalPrecipitation, na.rm=TRUE),
+         neerslag_max <- max(data1$TotalPrecipitation,  na.rm=TRUE),
          afvoer_gem <- mean(data2$AVERAGE_VALUE, na.rm=TRUE),
          afvoer_med<- median(data2$AVERAGE_VALUE, na.rm=TRUE),
          afvoer_min <- min(data2$AVERAGE_VALUE,  na.rm=TRUE),
@@ -119,13 +122,18 @@ histogrammen <- function(afvoer, neerslag) {
 }
 
 #Rhine Neerslag en Afvoer 
-resultaat_rijn <- histogrammen(afvoer_rijn, neerslag_rijn)
+resultaat_rijn <- histogrammen(afvoer_rijn, neerslag_rijn[[2]])
 
 #Maas Neerslag en afvoer
-resultaat_maas <- histogrammen(afvoer_maas, neerslag_maas)
+resultaat_maas <- histogrammen(afvoer_maas, neerslag_maas[[2]])
 
 
-cat("Min neerslag rijn: \t", min(neerslag_rijn$TotalPrecipitationMean),
-    "\nMax neerslag rijn: \t", max(neerslag_rijn$TotalPrecipitationMean),
-    "\nMin neerslag maas: \t", min(neerslag_maas$TotalPrecipitationMean),
-    "\nMax neerslag maas: \t", max(neerslag_maas$TotalPrecipitationMean))
+cat("Min neerslag rijn: \t", min(neerslag_rijn[[2]]$TotalPrecipitation),
+    "\nMax neerslag rijn: \t", max(neerslag_rijn[[2]]$TotalPrecipitation),
+    "\nMin neerslag maas: \t", min(neerslag_maas[[2]]$TotalPrecipitation),
+    "\nMax neerslag maas: \t", max(neerslag_maas[[2]]$TotalPrecipitation))
+
+
+#To excel
+write_xlsx(neerslag_rijn, "~/my_biogrid/Rijn.xlsx")
+write_xlsx(neerslag_maas, "~/my_biogrid/Maas.xlsx")

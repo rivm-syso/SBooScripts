@@ -440,17 +440,17 @@ load("data/Examples/example_uncertain_data.RData")
 
 example_data <- 
   example_data |>
-  select(To_Compartment, `2020`, `2021`,`2022`, `2023`, RUN) |>
+  dplyr::select(To_Compartment, `2020`, `2021`,`2022`, `2023`, RUN) |>
   pivot_longer(!c(To_Compartment, RUN), names_to = "year", values_to = "Emis") |>
   mutate(Abbr = case_when(
     To_Compartment == "Agricultural soil (micro)" ~ "s2RS",
     To_Compartment == "Residential soil (micro)" ~ "s3RS",
     To_Compartment == "Surface water (micro)" ~ "w1RS"
   )) |>
-  select(-To_Compartment) |>
+  #dplyr::select(-To_Compartment) |>
   mutate(Time = ((as.numeric(year))*365.25*24*3600)) |>
   mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> # Convert kt/year to kg/s
-  select(-year)
+  dplyr::select(-year)
 
 # The raw emission data from 2020 to 2023 will not solve due to instability in the intital state starting at 0. This can be solved by starting at t=0 and mass=0 see below:
 
@@ -522,7 +522,7 @@ there is no scale specified, the Regional scale will be selected. If
 there is no subcompart specified, "agriculturalsoil" will be selected.
 
 ```{r Plot outcome with uncertainty, warning=FALSE, message=FALSE}
-World$PlotConcentration(scale = "Regional", subcompart = "agriculturalsoil")
+World$PlotConcentration(scale = "Regional", subcompart = "river")
 
 World$PlotMasses(scale = "Regional", subcompart = "agriculturalsoil")
 ```

@@ -157,10 +157,10 @@ stoffen <- c("Perfluorobutane_sulfonic", "Perfluorobutanoic",
 scenarios_jm <- c("A Historical", "B No intervention", "C No reduction of emis. fac.", "D No reduction of prod. vol.", "E No REACH restriction",
                "F REACH restriction in 2003")
 #ReductionDuration, TotalReduction, ReductionSteps, ReductionFractions, PlotTitle
-scenarios <- list(list(15, 99, 15, 'equal', "1) Volledig reduceren van emissies"), 
+scenarios <- list(list(15, 100, 15, 'equal', "1) Volledig reduceren van emissies"), 
                list(15, 95, 15, 'equal', "2) REACH restrictie"), 
-               list(20, 95, 20, c(rep(0.05, times=10), rep(0.045, times=10)), "3) REACH restrictie met derogaties"),
-               list('-', 0, 0, 0, "4) Geen restricties"))
+               list(20, 95, 20, c(rep(0.05, times=10), rep(0.045, times=10)), "3) REACH restrictie met derogaties"))#,
+               #list('-', 0, 0, 0, "4) Geen restricties"))
 
 data_list = list()
 barplot_list = list()
@@ -273,7 +273,7 @@ for (catchment in c("Rijn", "Maas")) {
                         )
   barplot_list[[length(barplot_list) + 1]] <- barplot
   barplot
-  ggsave(paste0("/rivm/biogrid/quikj/PFAS_A2/output/Resultaten_",catchment,"_figuur1_41125.png"), plot = barplot, width = 10, height = 6, dpi = 300)
+  ggsave(paste0("/rivm/biogrid/quikj/PFAS_A2/output/Resultaten_",catchment,"_figuur1_71125.png"), plot = barplot, width = 10, height = 6, dpi = 300)
 }
 
 #Bekijk Info over emissiescenario

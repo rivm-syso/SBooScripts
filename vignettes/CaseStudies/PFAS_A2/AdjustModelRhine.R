@@ -2,12 +2,12 @@ library(ncdf4)
 library(sf)
 message("Adjusting model for Rhine catchment...")
 
-if (file.exists("/rivm/biogrid/quikj/PFAS_A2/data/AdjustModelRhine_workspace.RData")) {
+if (file.exists("/data/BioGrid/quikj/PFAS_A2/data/AdjustModelRhine_workspace.RData")) {
   print("aanpassen met eerder opgeslagen workspace...")
-  load("/rivm/biogrid/quikj/PFAS_A2/data/AdjustModelRhine_workspace.RData")
+  load("/data/BioGrid/quikj/PFAS_A2/data/AdjustModelRhine_workspace.RData")
 } else {
   message("Afvoer: wordt niet gebruikt enkel voor validatie neerslag")
-  data_nl = read_delim("/rivm/biogrid/quikj/PFAS_A2/data/20250114_009.csv", delim = ";", escape_double = FALSE, trim_ws = TRUE, show_col_types = FALSE)
+  data_nl = read_delim("/data/BioGrid/quikj/PFAS_A2/data/20250114_009.csv", delim = ";", escape_double = FALSE, trim_ws = TRUE, show_col_types = FALSE)
   #message("Meetpunten: ", sort(unique(data_nl$MEETPUNT_IDENTIFICATIE)))
   rijn <- data_nl %>%
     dplyr::select(MEETPUNT_IDENTIFICATIE,WAARNEMINGDATUM, "WAARNEMINGTIJD (MET/CET)", ALFANUMERIEKEWAARDE, EENHEID_CODE) %>%
@@ -29,7 +29,7 @@ if (file.exists("/rivm/biogrid/quikj/PFAS_A2/data/AdjustModelRhine_workspace.RDa
   
   "Neerslag: neerslag waardes berekenen ahv model data en basin shape file"
   #NC handling
-  pre <- nc_open("/rivm/biogrid/quikj/PFAS_A2/data/ERA5_monthly.nc")
+  pre <- nc_open("/data/BioGrid/quikj/PFAS_A2/data/ERA5_monthly.nc")
   lon <- ncvar_get(pre, "longitude")  
   lat <- ncvar_get(pre, "latitude")
   time <- ncvar_get(pre, "valid_time")
@@ -43,7 +43,7 @@ if (file.exists("/rivm/biogrid/quikj/PFAS_A2/data/AdjustModelRhine_workspace.RDa
   fillvalue <- ncatt_get(pre, "tp", "_FillValue")
   
   ##Shapefile van Rijn stroomgebied inladen
-  shape <- st_read("/rivm/biogrid/quikj/PFAS_A2/GIS/Rhine.shp")
+  shape <- st_read("/data/BioGrid/quikj/PFAS_A2/GIS/Rhine.shp")
   
   #Loopen door de tijdsdimensie van het NC bestand om een dataframe met neerslag te maken
   #df maken
@@ -89,7 +89,7 @@ if (file.exists("/rivm/biogrid/quikj/PFAS_A2/data/AdjustModelRhine_workspace.RDa
   area = st_area(shape)
   
   "Landfractions afgeleid van satelliet data geclipt op het stroomgebied"
-  landfrac <- read_delim("/rivm/biogrid/quikj/PFAS_A2/GIS/landuse.csv", delim=',', show_col_types = FALSE) %>%
+  landfrac <- read_delim("/data/BioGrid/quikj/PFAS_A2/GIS/landuse.csv", delim=',', show_col_types = FALSE) %>%
     filter(name == 'Rhine')
   
   "partition coefficients: work in progress"
