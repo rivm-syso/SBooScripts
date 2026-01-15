@@ -29,6 +29,8 @@ sapply(paste("k", ParProcesses, sep = "_"), World$NewProcess)
 FluxDefFunctions <- names(AllF) %>% startsWith("x_")
 sapply(names(AllF)[FluxDefFunctions], World$NewFlow)
 World$SetConst(Test = "FALSE")
+World$SetConst(Test_surface_water = "FALSE")
+World$SetConst(Remove_global = "FALSE")
 #derive needed variables
 World$VarsFromprocesses()
 

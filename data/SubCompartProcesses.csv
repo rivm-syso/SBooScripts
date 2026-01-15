@@ -1,4 +1,4 @@
-﻿process,from,to
+process,from,to
 k_Adsorption,air,agriculturalsoil
 k_Adsorption,air,lake
 k_Adsorption,air,naturalsoil
@@ -73,7 +73,6 @@ k_Leaching,othersoil,othersoil
 k_Resuspension,freshwatersediment,river
 k_Resuspension,lakesediment,lake
 k_Resuspension,marinesediment,deepocean
-k_Resuspension,marinesediment,sea
 k_Runoff,agriculturalsoil,lake
 k_Runoff,agriculturalsoil,river
 k_Runoff,naturalsoil,lake
@@ -85,7 +84,6 @@ k_Sedimentation,deepocean,marinesediment
 k_Sedimentation,lake,lakesediment
 k_Sedimentation,river,freshwatersediment
 k_Sedimentation,sea,deepocean
-k_Sedimentation,sea,marinesediment
 k_SedimentRemoval,freshwatersediment,freshwatersediment
 k_SedimentRemoval,lakesediment,lakesediment
 k_SedimentRemoval,marinesediment,marinesediment

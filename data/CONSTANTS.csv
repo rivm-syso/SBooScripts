@@ -1,4 +1,4 @@
-﻿VarName,Waarde,SB4N_name,Unit,Comments
+VarName,Waarde,SB4N_name,Unit,Comments
 AEROresist,74,NA,m.s-1,air resistance
 BACTtest,40000,BACT.test,CFU.mL-1,CONCENTRATION BACTERIA in test water
 beta.a ,2,NA,-,Dry deposition constant based on LOTEUR reference guide
@@ -7,6 +7,7 @@ C.OHrad.n,5.00E+05,C.OHrad,cm-3,OH radical concentration
 ContinentalInModerate,1,NA,boolean,Nesting of scales
 CORG.susp,0.1,,-,Standard suspended mass fraction organic carbon
 CorgStandard,0.02,CORG,-,Standard mass FRACTION organic carbon in soil/sediment
+DegApproach,Default,new,-,"Approach used to estimate degradation, implemented for polymer particles (Default, Kssdr, PlasticFADE)"
 Df,0.333333333,NA,-,fractal dimension of combined heteroagglomerate
 DynViscAirStandard,1.81E-05,DYNVISC.a,kg.m-1.s-1,Dynamic Viscosity of air
 DynViscWaterStandard,0.001002,DYNVISC.w,kg.m-1.s-1,Dynamic Viscosity of water

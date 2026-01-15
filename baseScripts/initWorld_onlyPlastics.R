@@ -19,12 +19,14 @@ World <- SBcore$new(ClassicStateModule)
 
 World$SetConst(DragMethod = "Original")
 World$SetConst(Test = "FALSE")
+World$SetConst(Test_surface_water = "FALSE")
+World$SetConst(Remove_global = "FALSE")
 AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 
 #call the particulate processes 
 Processes4SpeciesTp <- read.csv("data/Processes4SpeciesTp.csv")
-ParProcesses <- Processes4SpeciesTp$Process[grepl("[a-z,A-Z]", Processes4SpeciesTp$Plastic)]
+ParProcesses <- Processes4SpeciesTp$Process[grepl("[a-z,A-Z]", Processes4SpeciesTp$Particulate)]
 sapply(paste("k", ParProcesses, sep = "_"), World$NewProcess)
 
 #add all flows, they are all part of "Advection"
