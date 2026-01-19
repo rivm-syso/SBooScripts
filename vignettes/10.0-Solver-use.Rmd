@@ -25,10 +25,10 @@ deterministically or probabilistically.
 
 ## Requirements
 
-First, we will load the necessary packages and initialize the world for the default
-substance, which is a molecule. If you want to initialize the World for a different
-type of substance, specify the name of the substance (i.e. "microplastic") before
-sourcing the initWorld.R script. 
+First, we will load the necessary packages and initialize the world for
+the default substance, which is a molecule. If you want to initialize
+the World for a different type of substance, specify the name of the
+substance (i.e. "microplastic") before sourcing the initWorld.R script.
 
 ```{r Initialize World, warning=FALSE, message=FALSE}
 source("baseScripts/installRequirements.R")
@@ -233,6 +233,8 @@ solution = World$Masses()
 variable_values = World$VariableValues()
 concentration = World$Concentration()
 emission = World$Emissions()
+Kmatrices = World$K_matrix()
+
 ```
 
 Finally, we can plot the outcome using the predefined plot functions.
