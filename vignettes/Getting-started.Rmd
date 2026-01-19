@@ -41,7 +41,7 @@ mentioned in the column "Substance" in Substances.csv.
 substances <- read.csv("data/Substances.csv")
 
 # Assign a substance name from the Substance column to the variable "substance":
-chosen_substance <- "1-aminoanthraquinone"
+substance <- "1-aminoanthraquinone"
 ```
 
 ### Initialize the World object
@@ -50,35 +50,11 @@ The World object contains all variables and first order rate constants
 (k's) for the chosen substance. This object is needed later to calculate
 the masses in each compartment on each scale.
 
-To initialize the World object, one of three script is called:
-
--   initWorld_onlyMolec.R (used for molecules)
--   initWorld_onlyParticulate.R (used for particulates)
--   initWorld_onlyPlastics.R (used for microplastics)
-
-Choosing which script to use is dependent on the substance class of the
-chosen substance (see "ChemClass" column in the "substances" data
-frame). Each of these three classes require different initWorld scripts
-because different processes and variables are used to calculate the k's.
-With the chunk below, the correct initWorld script is automatically
-chosen and run based on the chosen substance:
+To initialize the World object, the 'initWorld.R' script is called after
+specifying a substance like was done in the previous chunk. 
 
 ```{r Initialize World, include=TRUE, warning=FALSE, message=FALSE}
-chemclass <- substances |>
-  filter(Substance == chosen_substance) |>
-  select(ChemClass)
-
-chemclass <- chemclass$ChemClass
-
-if(chosen_substance == "microplastic"){
-  source("baseScripts/initWorld_onlyPlastics.R")
-} else if (chemclass == "particle") {
-  source("baseScripts/initWorld_onlyParticulate.R")
-} else {
-  source("baseScripts/initWorld_onlyMolec.R")
-}
-
-World$substance <- chosen_substance
+source("baseScripts/initWorld.R")
 ```
 
 ## Access variables

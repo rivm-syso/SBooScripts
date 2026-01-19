@@ -14,9 +14,20 @@ the emission input which is by default in mass (kilograms) in each
 compartment. Several transformations of this output are possible some of
 which are already implemented for ease of use.
 
-These are calculation of:
+The most important is transforming masses into concentrations, but
+reading out other data can be gotten using:
 
-1.  Concentrations
+-   World\$Emissions()
+
+-   World\$Concentration()
+
+-   World\$Masses()
+
+-   World\$VariableValues()
+
+-   ... [Kmatrix]
+
+-   ...
 
 OVERALL WORK IN PROGRESS [documentation needs to be updated!].
 
@@ -44,6 +55,8 @@ This function is based on the `v_Mass2Conc` variable and the hard coded
 default conversions in the `R6SolverModule` in the function
 `ConcentrationToGrams`. No other units are supported at the moment, this
 is up to the user for further analysis and conversion.
+
+[... documentation on the exact units per compartment ]
 
 ```{r}
 

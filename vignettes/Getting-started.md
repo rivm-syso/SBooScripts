@@ -1,7 +1,7 @@
 Getting started
 ================
 Anne Hids
-2025-03-04
+2025-11-05
 
 This vignette demonstrates how to use SimpleBox Object-Oriented (SBoo).
 
@@ -28,7 +28,7 @@ mentioned in the column “Substance” in Substances.csv.
 substances <- read.csv("data/Substances.csv")
 
 # Assign a substance name from the Substance column to the variable "substance":
-chosen_substance <- "1-aminoanthraquinone"
+substance <- "1-aminoanthraquinone"
 ```
 
 ### Initialize the World object
@@ -37,35 +37,11 @@ The World object contains all variables and first order rate constants
 (k’s) for the chosen substance. This object is needed later to calculate
 the masses in each compartment on each scale.
 
-To initialize the World object, one of three script is called:
-
-- initWorld_onlyMolec.R (used for molecules)
-- initWorld_onlyParticulate.R (used for particulates)
-- initWorld_onlyPlastics.R (used for microplastics)
-
-Choosing which script to use is dependent on the substance class of the
-chosen substance (see “ChemClass” column in the “substances” data
-frame). Each of these three classes require different initWorld scripts
-because different processes and variables are used to calculate the k’s.
-With the chunk below, the correct initWorld script is automatically
-chosen and run based on the chosen substance:
+To initialize the World object, the ‘initWorld.R’ script is called after
+specifying a substance like was done in the previous chunk.
 
 ``` r
-chemclass <- substances |>
-  filter(Substance == chosen_substance) |>
-  select(ChemClass)
-
-chemclass <- chemclass$ChemClass
-
-if(chosen_substance == "microplastic"){
-  source("baseScripts/initWorld_onlyPlastics.R")
-} else if (chemclass == "particle") {
-  source("baseScripts/initWorld_onlyParticulate.R")
-} else {
-  source("baseScripts/initWorld_onlyMolec.R")
-}
-
-World$substance <- chosen_substance
+source("baseScripts/initWorld.R")
 ```
 
 ## Access variables
@@ -73,7 +49,7 @@ World$substance <- chosen_substance
 Now that the World is initialized, its variables and calculated flows
 can be accessed. To access these variables and k’s, first the names of
 the variables are needed. They can be accessed by using the code below.
-The first 10 variable names are printed, but there are 195 variables in
+The first 10 variable names are printed, but there are 202 variables in
 total.
 
 If you want to know more about the abbreviations of variables, their
@@ -354,82 +330,82 @@ knitr::kable(masses)
 | Abbr  |      Mass_kg |
 |:------|-------------:|
 | aRU   | 2.114600e+01 |
-| w1RU  | 1.007770e+04 |
-| w0RU  | 1.341523e+04 |
-| w2RU  | 5.355952e+02 |
-| sd1RU | 2.865373e+02 |
-| sd0RU | 1.104391e+01 |
-| sd2RU | 4.478242e+00 |
+| w1RU  | 9.978856e+03 |
+| w0RU  | 1.570335e+04 |
+| w2RU  | 5.303497e+02 |
+| sd1RU | 2.837269e+02 |
+| sd0RU | 1.292758e+01 |
+| sd2RU | 4.434383e+00 |
 | s1RU  | 6.655802e+02 |
 | s2RU  | 1.422221e+04 |
 | s3RU  | 2.465112e+02 |
 | aCU   | 1.337775e+01 |
-| w1CU  | 5.920031e+02 |
-| w0CU  | 1.385796e+03 |
-| w2CU  | 3.228415e+04 |
-| sd1CU | 1.683231e+01 |
-| sd0CU | 1.140910e+00 |
-| sd2CU | 1.349678e+01 |
+| w1CU  | 5.858949e+02 |
+| w0CU  | 1.622162e+03 |
+| w2CU  | 3.226585e+04 |
+| sd1CU | 1.665864e+01 |
+| sd0CU | 1.335507e+00 |
+| sd2CU | 1.348913e+01 |
 | s1CU  | 2.135451e+02 |
 | s2CU  | 9.894505e+02 |
 | s3CU  | 7.909077e+01 |
 | aAU   | 6.939440e-02 |
-| w2AU  | 2.482725e+04 |
-| w3AU  | 6.086643e+05 |
-| sd2AU | 1.697419e+01 |
+| w2AU  | 2.481839e+04 |
+| w3AU  | 6.084520e+05 |
+| sd2AU | 1.696828e+01 |
 | s1AU  | 1.058669e+01 |
 | aMU   | 1.636127e+00 |
-| w2MU  | 3.161333e+04 |
-| w3MU  | 9.246048e+05 |
-| sd2MU | 2.576948e+01 |
+| w2MU  | 3.160087e+04 |
+| w3MU  | 9.242532e+05 |
+| sd2MU | 2.575969e+01 |
 | s1MU  | 1.040952e+02 |
 | aTU   | 1.011232e-01 |
-| w2TU  | 3.455249e+04 |
-| w3TU  | 1.115822e+06 |
-| sd2TU | 3.106387e+01 |
+| w2TU  | 3.454314e+04 |
+| w3TU  | 1.115520e+06 |
+| sd2TU | 3.105546e+01 |
 | s1TU  | 2.049159e+00 |
 
 ``` r
 knitr::kable(concentrations)
 ```
 
-| Abbr  | Concentration | Unit    |
-|:------|--------------:|:--------|
-| aAU   |     0.0000000 | g/m3    |
-| aCU   |     0.0000000 | g/m3    |
-| aMU   |     0.0000000 | g/m3    |
-| aRU   |     0.0000000 | g/m3    |
-| aTU   |     0.0000000 | g/m3    |
-| s1AU  |     0.0000000 | g/kg dw |
-| s1CU  |     0.0000080 | g/kg dw |
-| s1MU  |     0.0000001 | g/kg dw |
-| s1RU  |     0.0001998 | g/kg dw |
-| s1TU  |     0.0000000 | g/kg dw |
-| s2CU  |     0.0000042 | g/kg dw |
-| s2RU  |     0.0004804 | g/kg dw |
-| s3CU  |     0.0000080 | g/kg dw |
-| s3RU  |     0.0001998 | g/kg dw |
-| sd0CU |     0.0000230 | g/kg dw |
-| sd0RU |     0.0017905 | g/kg dw |
-| sd1CU |     0.0000309 | g/kg dw |
-| sd1RU |     0.0042232 | g/kg dw |
-| sd2AU |     0.0000001 | g/kg dw |
-| sd2CU |     0.0000006 | g/kg dw |
-| sd2MU |     0.0000001 | g/kg dw |
-| sd2RU |     0.0004149 | g/kg dw |
-| sd2TU |     0.0000001 | g/kg dw |
-| w0CU  |     0.0000000 | g/L     |
-| w0RU  |     0.0000001 | g/L     |
-| w1CU  |     0.0000000 | g/L     |
-| w1RU  |     0.0000003 | g/L     |
-| w2AU  |     0.0000000 | g/L     |
-| w2CU  |     0.0000000 | g/L     |
-| w2MU  |     0.0000000 | g/L     |
-| w2RU  |     0.0000000 | g/L     |
-| w2TU  |     0.0000000 | g/L     |
-| w3AU  |     0.0000000 | g/L     |
-| w3MU  |     0.0000000 | g/L     |
-| w3TU  |     0.0000000 | g/L     |
+| Abbr  | Concentration | Unit   |
+|:------|--------------:|:-------|
+| aAU   |         0e+00 | g/m3   |
+| aCU   |         0e+00 | g/m3   |
+| aMU   |         0e+00 | g/m3   |
+| aRU   |         0e+00 | g/m3   |
+| aTU   |         0e+00 | g/m3   |
+| s1AU  |         0e+00 | g/kg w |
+| s1CU  |         0e+00 | g/kg w |
+| s1MU  |         0e+00 | g/kg w |
+| s1RU  |         1e-07 | g/kg w |
+| s1TU  |         0e+00 | g/kg w |
+| s2CU  |         0e+00 | g/kg w |
+| s2RU  |         2e-07 | g/kg w |
+| s3CU  |         0e+00 | g/kg w |
+| s3RU  |         1e-07 | g/kg w |
+| sd0CU |         0e+00 | g/kg w |
+| sd0RU |         3e-07 | g/kg w |
+| sd1CU |         0e+00 | g/kg w |
+| sd1RU |         6e-07 | g/kg w |
+| sd2AU |         0e+00 | g/kg w |
+| sd2CU |         0e+00 | g/kg w |
+| sd2MU |         0e+00 | g/kg w |
+| sd2RU |         1e-07 | g/kg w |
+| sd2TU |         0e+00 | g/kg w |
+| w0CU  |         0e+00 | g/L    |
+| w0RU  |         2e-07 | g/L    |
+| w1CU  |         0e+00 | g/L    |
+| w1RU  |         3e-07 | g/L    |
+| w2AU  |         0e+00 | g/L    |
+| w2CU  |         0e+00 | g/L    |
+| w2MU  |         0e+00 | g/L    |
+| w2RU  |         0e+00 | g/L    |
+| w2TU  |         0e+00 | g/L    |
+| w3AU  |         0e+00 | g/L    |
+| w3MU  |         0e+00 | g/L    |
+| w3TU  |         0e+00 | g/L    |
 
 We can now plot the masses and concentrations using the built-in plot
 functions. The functions are called by using `World$PlotMasses` for
