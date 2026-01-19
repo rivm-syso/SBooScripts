@@ -26,20 +26,18 @@ deterministically or probabilistically.
 
 ## Requirements
 
-First, we will load the necessary packages and initialize the world for
-molecules.
+First, we will load the necessary packages and initialize the world for the default
+substance, which is a molecule. If you want to initialize the World for a different
+type of substance, specify the name of the substance (i.e. "microplastic") before
+sourcing the initWorld.R script. 
 
 ```{r Initialize World, warning=FALSE, message=FALSE}
 source("baseScripts/installRequirements.R")
-source("baseScripts/initWorld_onlyMolec.R")
+
+substance <- "default substance"
+
+source("baseScripts/initWorld.R")
 ```
-
-If you would like to instead initialize the World for particulates or
-microplastics, use:
-
--   source("baseScripts/initWorld_onlyParticulate.R")
-
--   source("baseScripts/initWorld_onlyMicroplastics.R")
 
 # Steady state solver
 
@@ -146,7 +144,7 @@ names.
 
 ```{r Initialize World for SS probabilistic solve, warning=FALSE, message=FALSE}
 substance <- "microplastic"
-source('baseScripts/initWorld_onlyPlastics.R')
+source('baseScripts/initWorld.R')
 ```
 
 For the probabilistic steady state solver, the emissions need to be
@@ -282,7 +280,8 @@ this example, an example excel file will be read in containing the
 necessary parameters for the variables we want to vary.
 
 ```{r Get min, max and peak value of variable values, warning=FALSE, message=FALSE}
-source("baseScripts/initWorld_onlyPlastics.R")  
+substance <- "microplastic"
+source("baseScripts/initWorld.R")  
 
 # Load the Excel file containing example distributions for variablese 
 Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")  
@@ -344,7 +343,8 @@ variable emissions. To do this, one needs to use the DynamicSolver. This
 is demonstrated below or microplastics:
 
 ```{r Init world microplastics, warning=FALSE, message=FALSE}
-source('baseScripts/initWorld_onlyPlastics.R')
+substance <- "microplastic"
+source('baseScripts/initWorld.R')
 ```
 
 As in steady state, one can do dynamic analysis deterministically or
@@ -433,8 +433,8 @@ a dataframe with three columns:
 -   'RUN', which contains the run number of the emission.
 
 ```{r Prepare uncertain dynamic emissions, warning=FALSE, message=FALSE}
-
-source('baseScripts/initWorld_onlyPlastics.R')
+substance <- "microplastic"
+source('baseScripts/initWorld.R')
 
 load("data/Examples/example_uncertain_data.RData")
 
