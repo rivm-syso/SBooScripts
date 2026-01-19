@@ -103,6 +103,7 @@ compartment from the World object by using `World$Masses()` and
 solution <- World$Masses()
 emission <- World$Emissions()
 concentration <- World$Concentration()
+K_matrix <- World$K_matrix()
 ```
 
 Finally, we can plot the outcome using the predefined plot functions. If
@@ -234,7 +235,6 @@ variable_values = World$VariableValues()
 concentration = World$Concentration()
 emission = World$Emissions()
 Kmatrices = World$K_matrix()
-
 ```
 
 Finally, we can plot the outcome using the predefined plot functions.
@@ -400,6 +400,7 @@ World$Solve(emissions = emissions, tmax = tmax, tmin=tmin, nTIMES = nTIMES)
 solution <- World$Masses()
 emission <- World$Emissions()
 concentration <- World$Concentration()
+Kmatrices = World$K_matrix()
 ```
 
 Finally, we can plot the outcome using the predefined plot functions. If
