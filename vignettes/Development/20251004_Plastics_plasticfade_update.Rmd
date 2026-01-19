@@ -17,9 +17,19 @@ source("baseScripts/initWorld.R")
 
 # Explanation of update
 
-[To be explained]
+In this update, we introduce the PlasticFADE (Plastic Fragmentation And Degradation in the Environment) 
+degradation model, based on the work of Tang & Boulay (under review). PlasticFADE was developed as an 
+empirical model to predict polymer-specific rate constants in various environmental compartments.
 
-PlasticFADE (Plastic Fragmentation And Degradation in the Environment)
+For degradation, the model considers UV intensity and microbial concentration in the various environmental 
+compartments, as well as the polymer specific empirical constants, to compute k_deg. The empirical constants 
+for each polymer can be found in the original publication.
+
+with plasticFADE, the equation is:
+
+kdeg = deg_x * SAV^deg_tau * (deg_y * UVintensity^deg_theta + deg_z * MICROBconc^deg_eta) / (24*60*60)
+
+to derive kdeg in s-1. UVintensity and MICROBconc are defined in ScaleSubCompartData.csv 
 
 -   v_KdegDorC is changed to include the new plasticFADE input
     parameters.
@@ -30,13 +40,29 @@ relevant compartments based on seperately estimated half lifes.
 
 This is done using `World$SetConst(DegApproach = "Default")`.
 
-The plasticFADE model uses:
 
--   xxx
+-   Degrading_enzyme: Further, the update returns a 0 kdeg in compartments without UV intensity, only for
+polymers that do not have naturally occurring degrading enzymes. For example, the degradation of 
+polyolefins (PE, HDPE, LDPE, EPS, ...) cannot be initiated in the absence of UV, but it can for polymers,
+such as PET, PA, PU, etc. (Chow et al., 2023, doi.org/10.1111/1751-7915.14135). This represented with the 
+new boolean called "Degrading_ezyme" (TRUE or FALSE). TRUE means that degrading enzymes exist in the 
+environment, and therefore SBoo will compute kdeg (based on default, Kssdr, or plasticFADE). If FALSE,
+the degradation function will test for the presence of UV before returning 0 or computing kdeg.
 
-3 dec 2025: the script now compares to show nothing has changed, but
-verification of plasticFADE evaluation of data and comparison to
-expected kdeg half life outcomes is still needed.
+-   DegApproach = "Default", "Kssdr", or "PlasticFADE"
+
+
+The following code compares the kdeg of PET_sphere_example (defined in the Substances.csv file). 
+We use a PET spherical particles of 100um diameter as an example.
+For the PET example, the plasticFADE empirical constants are defined:
+deg_x=5.50E-03
+deg_tau=1.37E-02
+deg_y=1.72E-02
+deg_theta=7.05E-01
+deg_z=1.62E-05
+deg_eta=4.42E-01
+
+The SSDR is also defined.
 
 ```{R Specify directories, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 library(tidyverse)
@@ -48,12 +74,12 @@ library(tidyverse)
 #              Temp_Folder = "C:/Temp" # an existing folder where SimpleBox is to be installed
 # )
 
-InstallSBoo(Release_SBoo = NA, # tag for release use NA for branch
-            Release_SBooScripts = NA, # tag for release use NA for branch
-            devBranch_SBoo = "development",
-            devBranch_SBooScripts = "development",
-            Temp_Folder = NULL # an existing folder where SimpleBox is to be installed
-)
+#InstallSBoo(Release_SBoo = NA, # tag for release use NA for branch
+    #        Release_SBooScripts = NA, # tag for release use NA for branch
+   #         devBranch_SBoo = "development",
+  #          devBranch_SBooScripts = "development",
+ #           Temp_Folder = NULL # an existing folder where SimpleBox is to be installed
+#)
 
 ```
 
@@ -62,7 +88,7 @@ particles, we will test for these substances. To be sure nothing changed
 for the other substances, we will also test one other substance.
 
 ```{R Specify substance, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-substance_names <- c("microplastic", "TRWP", "1-aminoanthraquinone","nAg_10nm") 
+substance_names <- c("microplastic", "PET_sphere_example", "1-aminoanthraquinone","nAg_10nm") 
 substances <- read.csv("data/Substances.csv")
 substances <- substances |>
   filter(Substance %in% substance_names)
@@ -71,10 +97,22 @@ substances <- substances |>
 ```{R, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 this_kaas <- data.frame()
 # this_variables <- data.frame()
+#substance <- "microplastic"
 for(substanceK in substances$Substance){
   # Get the substance type
   substance <- substanceK
-      source("baseScripts/initWorld.R")
+  print(substance)
+  source("baseScripts/initWorld.R")
+  
+  if (substance == "PET_sphere_example") { #Use SSDR for PET
+    World$SetConst(DegApproach = "Kssdr")
+    PET_ssdr_df <- data.frame(varName = c("Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr"), 
+                          SubCompart = c("deepocean","river","sea","lake","marinesediment","freshwatersediment"
+                                         ,"lakesediment","naturalsoil","othersoil","agriculturalsoil"),
+                          Waarde = c(9.51E-15, 9.51E-15,9.51E-15,9.51E-15,9.51E-15,9.51E-15,9.51E-15,  1.88E-14 , 1.88E-14,1.88E-14)) 
+    World$mutateVars(PET_ssdr_df)
+    World$UpdateDirty(unique(PET_ssdr_df$varName))
+  }
 
   kaas <- World$kaas |>
     # filter(process == "k_Runoff") |>
@@ -95,7 +133,7 @@ Do the same for the other implementation.
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 ```
 
-```{R Run SB and get advection ks for FLux_work branch, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+```{R Run SB and get degradation rates using PlasticFADE, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 
 other_kaas <- data.frame()
   
@@ -103,7 +141,13 @@ for(substanceK in substances$Substance){
   Temp_Folder=NULL
   substance = substanceK
   
-  source("baseScripts/initWorldOther.R")
+  source("baseScripts/initWorld.R")
+  if (substance == "PET_sphere_example") { #Use plasticFADE for PET
+    World$SetConst(DegApproach = "PlasticFADE")
+    #World$UpdateKaas()
+    World$UpdateDirty("DegApproach")
+  }
+  
   
   kaas <- World$kaas |>
     # filter(process == "k_Runoff") |>
@@ -179,7 +223,7 @@ for(i in unique(all_diffs$Substance)){
     ) +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 1), 
-      panel.grid.major = element_line(size = 0.2, color = "gray90"),
+      panel.grid.major = element_line(linewidth = 0.2, color = "gray90"),
       panel.background = element_blank()  
     )
   print(reldif_plot)
