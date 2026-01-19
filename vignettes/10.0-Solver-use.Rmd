@@ -17,11 +17,10 @@ variability. There are basically two types of solvers to use here:
 
 1.  SteadyState solver for calculating the steady state mass at infinite
     time horizon (deterministic or probabilistic).
-2.  DynamicSolver for calculating the time explicit mass based on a
-    constant or time varying emission scenario (deterministic or
-    probabilistic).
+2.  DynamicSolver for calculating the time explicit mass based on a time
+    varying emission scenario (deterministic or probabilistic).
 
-Below is are examples of using the SteadyState or Dynamic solvers both
+Below are examples of using the SteadyState or Dynamic solvers both
 deterministically or probabilistically.
 
 ## Requirements
