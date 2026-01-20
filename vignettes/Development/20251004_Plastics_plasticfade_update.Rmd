@@ -17,19 +17,24 @@ source("baseScripts/initWorld.R")
 
 # Explanation of update
 
-In this update, we introduce the PlasticFADE (Plastic Fragmentation And Degradation in the Environment) 
-degradation model, based on the work of Tang & Boulay (under review). PlasticFADE was developed as an 
-empirical model to predict polymer-specific rate constants in various environmental compartments.
+In this update, we introduce the PlasticFADE (Plastic Fragmentation And
+Degradation in the Environment) degradation model, based on the work of
+Tang & Boulay (under review). PlasticFADE was developed as an empirical
+model to predict polymer-specific rate constants in various
+environmental compartments.
 
-For degradation, the model considers UV intensity and microbial concentration in the various environmental 
-compartments, as well as the polymer specific empirical constants, to compute k_deg. The empirical constants 
-for each polymer can be found in the original publication.
+For degradation, the model considers UV intensity and microbial
+concentration in the various environmental compartments, as well as the
+polymer specific empirical constants, to compute k_deg. The empirical
+constants for each polymer can be found in the original publication.
 
 with plasticFADE, the equation is:
 
-kdeg = deg_x * SAV^deg_tau * (deg_y * UVintensity^deg_theta + deg_z * MICROBconc^deg_eta) / (24*60*60)
+kdeg = deg_x \* SAV\^deg_tau \* (deg_y \* UVintensity\^deg_theta + deg_z
+\* MICROBconc\^deg_eta) / (24*60*60)
 
-to derive kdeg in s-1. UVintensity and MICROBconc are defined in ScaleSubCompartData.csv 
+to derive kdeg in s-1. UVintensity and MICROBconc are defined in
+ScaleSubCompartData.csv
 
 -   v_KdegDorC is changed to include the new plasticFADE input
     parameters.
@@ -40,27 +45,26 @@ relevant compartments based on seperately estimated half lifes.
 
 This is done using `World$SetConst(DegApproach = "Default")`.
 
-
--   Degrading_enzyme: Further, the update returns a 0 kdeg in compartments without UV intensity, only for
-polymers that do not have naturally occurring degrading enzymes. For example, the degradation of 
-polyolefins (PE, HDPE, LDPE, EPS, ...) cannot be initiated in the absence of UV, but it can for polymers,
-such as PET, PA, PU, etc. (Chow et al., 2023, doi.org/10.1111/1751-7915.14135). This represented with the 
-new boolean called "Degrading_ezyme" (TRUE or FALSE). TRUE means that degrading enzymes exist in the 
-environment, and therefore SBoo will compute kdeg (based on default, Kssdr, or plasticFADE). If FALSE,
-the degradation function will test for the presence of UV before returning 0 or computing kdeg.
+-   Degrading_enzyme: Further, the update returns a 0 kdeg in
+    compartments without UV intensity, only for polymers that do not
+    have naturally occurring degrading enzymes. For example, the
+    degradation of polyolefins (PE, HDPE, LDPE, EPS, ...) cannot be
+    initiated in the absence of UV, but it can for polymers, such as
+    PET, PA, PU, etc. (Chow et al., 2023,
+    doi.org/10.1111/1751-7915.14135). This represented with the new
+    boolean called "Degrading_ezyme" (TRUE or FALSE). TRUE means that
+    degrading enzymes exist in the environment, and therefore SBoo will
+    compute kdeg (based on default, Kssdr, or plasticFADE). If FALSE,
+    the degradation function will test for the presence of UV before
+    returning 0 or computing kdeg.
 
 -   DegApproach = "Default", "Kssdr", or "PlasticFADE"
 
-
-The following code compares the kdeg of PET_sphere_example (defined in the Substances.csv file). 
-We use a PET spherical particles of 100um diameter as an example.
-For the PET example, the plasticFADE empirical constants are defined:
-deg_x=5.50E-03
-deg_tau=1.37E-02
-deg_y=1.72E-02
-deg_theta=7.05E-01
-deg_z=1.62E-05
-deg_eta=4.42E-01
+The following code compares the kdeg of PET_sphere_example (defined in
+the Substances.csv file). We use a PET spherical particles of 100um
+diameter as an example. For the PET example, the plasticFADE empirical
+constants are defined: deg_x=5.50E-03 deg_tau=1.37E-02 deg_y=1.72E-02
+deg_theta=7.05E-01 deg_z=1.62E-05 deg_eta=4.42E-01
 
 The SSDR is also defined.
 
@@ -106,11 +110,11 @@ for(substanceK in substances$Substance){
   
   if (substance == "PET_sphere_example") { #Use SSDR for PET
     World$SetConst(DegApproach = "Kssdr")
-    PET_ssdr_df <- data.frame(varName = c("Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr"), 
-                          SubCompart = c("deepocean","river","sea","lake","marinesediment","freshwatersediment"
-                                         ,"lakesediment","naturalsoil","othersoil","agriculturalsoil"),
-                          Waarde = c(9.51E-15, 9.51E-15,9.51E-15,9.51E-15,9.51E-15,9.51E-15,9.51E-15,  1.88E-14 , 1.88E-14,1.88E-14)) 
-    World$mutateVars(PET_ssdr_df)
+    # PET_ssdr_df <- data.frame(varName = c("Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr"), 
+    #                       SubCompart = c("deepocean","river","sea","lake","marinesediment","freshwatersediment"
+    #                                      ,"lakesediment","naturalsoil","othersoil","agriculturalsoil"),
+    #                       Waarde = c(9.51E-15, 9.51E-15,9.51E-15,9.51E-15,9.51E-15,9.51E-15,9.51E-15,  1.88E-14 , 1.88E-14,1.88E-14)) 
+    # World$mutateVars(PET_ssdr_df)
     World$UpdateDirty(unique(PET_ssdr_df$varName))
   }
 
@@ -161,6 +165,7 @@ for(substanceK in substances$Substance){
 ## Verification of previous and new implementation
 
 ```{R Calculate the differences between ks, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+
 common_cols <- setdiff(intersect(colnames(this_kaas), colnames(other_kaas)), "k")
 
 kaas_comparison <- merge(this_kaas, other_kaas, by=common_cols, suffixes = c("_Old", "_New"))
@@ -210,7 +215,7 @@ for(i in unique(all_diffs$Substance)){
       panel.background = element_blank() 
     )
   
-  print(absdif_plot)
+  absdif_plot
   
   reldif_plot <- ggplot(diffs_substance, mapping = aes(x = toname, y = fromname, color = rel_diff)) + 
     geom_point() + 
@@ -226,6 +231,6 @@ for(i in unique(all_diffs$Substance)){
       panel.grid.major = element_line(linewidth = 0.2, color = "gray90"),
       panel.background = element_blank()  
     )
-  print(reldif_plot)
+  reldif_plot
 }
 ```
