@@ -11,7 +11,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 
-source("baseScripts/initWorld.R")
+
 
 ```
 
@@ -60,13 +60,53 @@ This is done using `World$SetConst(DegApproach = "Default")`.
 
 -   DegApproach = "Default", "Kssdr", or "PlasticFADE"
 
-The following code compares the kdeg of PET_sphere_example (defined in
-the Substances.csv file). We use a PET spherical particles of 100um
-diameter as an example. For the PET example, the plasticFADE empirical
-constants are defined: deg_x=5.50E-03 deg_tau=1.37E-02 deg_y=1.72E-02
-deg_theta=7.05E-01 deg_z=1.62E-05 deg_eta=4.42E-01
+The following code test the swithing between the different DegApproach
+variables for PET_sphere_example (defined in the Substances.csv file).
+We use a PET spherical particles of 100um diameter as an example. For
+the PET example, the plasticFADE empirical constants are defined:
+deg_x=5.50E-03 deg_tau=1.37E-02 deg_y=1.72E-02 deg_theta=7.05E-01
+deg_z=1.62E-05 deg_eta=4.42E-01
 
 The SSDR is also defined.
+
+```{r}
+
+substance = "PET_sphere_example"
+source("baseScripts/initWorld.R")
+
+kaas <- World$kaas |>
+    # filter(process == "k_Runoff") |>
+    mutate(DegApproach = World$fetchData("DegApproach"))
+
+ World$SetConst(DegApproach = "Kssdr")
+    # PET_ssdr_df <- data.frame(varName = c("Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr"), 
+    #                       SubCompart = c("deepocean","river","sea","lake","marinesediment","freshwatersediment"
+    #                                      ,"lakesediment","naturalsoil","othersoil","agriculturalsoil"),
+    #                       Waarde = c(9.51E-15, 9.51E-15,9.51E-15,9.51E-15,9.51E-15,9.51E-15,9.51E-15,  1.88E-14 , 1.88E-14,1.88E-14)) 
+    # World$mutateVars(PET_ssdr_df)
+ World$UpdateDirty(unique(PET_ssdr_df$varName))
+    
+kaas <-
+  kaas |> 
+  rbind (World$kaas |> mutate(DegApproach = World$fetchData("DegApproach")) )
+
+World$SetConst(DegApproach = "PlasticFADE")
+World$UpdateDirty("DegApproach")
+
+kaas <-
+  kaas |> 
+  rbind (World$kaas |> mutate(DegApproach = World$fetchData("DegApproach")) )
+
+kaas |> filter(process == "k_Degradation")
+
+kaas |> distinct(process)
+
+kaasw <- kaas |> 
+  pivot_wider(names_from = DegApproach, values_from = k) |> 
+  filter(process == "k_Degradation")
+
+
+```
 
 ```{R Specify directories, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 library(tidyverse)
@@ -78,12 +118,12 @@ library(tidyverse)
 #              Temp_Folder = "C:/Temp" # an existing folder where SimpleBox is to be installed
 # )
 
-#InstallSBoo(Release_SBoo = NA, # tag for release use NA for branch
-    #        Release_SBooScripts = NA, # tag for release use NA for branch
-   #         devBranch_SBoo = "development",
-  #          devBranch_SBooScripts = "development",
- #           Temp_Folder = NULL # an existing folder where SimpleBox is to be installed
-#)
+InstallSBoo(Release_SBoo = NA, # tag for release use NA for branch
+            Release_SBooScripts = NA, # tag for release use NA for branch
+            devBranch_SBoo = "development",
+            devBranch_SBooScripts = "development",
+            Temp_Folder = NULL # an existing folder where SimpleBox is to be installed
+)
 
 ```
 
