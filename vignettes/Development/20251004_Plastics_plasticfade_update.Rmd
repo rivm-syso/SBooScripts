@@ -10,8 +10,12 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-
-
+knitr::opts_chunk$set(
+	message = FALSE,
+	warning = FALSE,
+	include = FALSE
+)
+library(tidyverse)
 
 ```
 
@@ -37,7 +41,7 @@ to derive kdeg in s-1. UVintensity and MICROBconc are defined in
 ScaleSubCompartData.csv
 
 -   v_KdegDorC is changed to include the new plasticFADE input
-    parameters.
+parameters.
 
 There is now a choice of three types of degradation input to be used:
 Kssdr, plasticFADE and the Default by setting kdeg directly for all the
@@ -46,17 +50,17 @@ relevant compartments based on seperately estimated half lifes.
 This is done using `World$SetConst(DegApproach = "Default")`.
 
 -   Degrading_enzyme: Further, the update returns a 0 kdeg in
-    compartments without UV intensity, only for polymers that do not
-    have naturally occurring degrading enzymes. For example, the
-    degradation of polyolefins (PE, HDPE, LDPE, EPS, ...) cannot be
-    initiated in the absence of UV, but it can for polymers, such as
-    PET, PA, PU, etc. (Chow et al., 2023,
-    doi.org/10.1111/1751-7915.14135). This represented with the new
-    boolean called "Degrading_ezyme" (TRUE or FALSE). TRUE means that
-    degrading enzymes exist in the environment, and therefore SBoo will
-    compute kdeg (based on default, Kssdr, or plasticFADE). If FALSE,
-    the degradation function will test for the presence of UV before
-    returning 0 or computing kdeg.
+compartments without UV intensity, only for polymers that do not
+have naturally occurring degrading enzymes. For example, the
+degradation of polyolefins (PE, HDPE, LDPE, EPS, ...) cannot be
+initiated in the absence of UV, but it can for polymers, such as
+PET, PA, PU, etc. (Chow et al., 2023,
+doi.org/10.1111/1751-7915.14135). This represented with the new
+boolean called "Degrading_ezyme" (TRUE or FALSE). TRUE means that
+degrading enzymes exist in the environment, and therefore SBoo will
+compute kdeg (based on default, Kssdr, or plasticFADE). If FALSE,
+the degradation function will test for the presence of UV before
+returning 0 or computing kdeg.
 
 -   DegApproach = "Default", "Kssdr", or "PlasticFADE"
 
@@ -75,17 +79,17 @@ substance = "PET_sphere_example"
 source("baseScripts/initWorld.R")
 
 kaas <- World$kaas |>
-    # filter(process == "k_Runoff") |>
-    mutate(DegApproach = World$fetchData("DegApproach"))
+  # filter(process == "k_Runoff") |>
+  mutate(DegApproach = World$fetchData("DegApproach"))
 
- World$SetConst(DegApproach = "Kssdr")
-    # PET_ssdr_df <- data.frame(varName = c("Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr"), 
-    #                       SubCompart = c("deepocean","river","sea","lake","marinesediment","freshwatersediment"
-    #                                      ,"lakesediment","naturalsoil","othersoil","agriculturalsoil"),
-    #                       Waarde = c(9.51E-15, 9.51E-15,9.51E-15,9.51E-15,9.51E-15,9.51E-15,9.51E-15,  1.88E-14 , 1.88E-14,1.88E-14)) 
-    # World$mutateVars(PET_ssdr_df)
- World$UpdateDirty(unique(PET_ssdr_df$varName))
-    
+World$SetConst(DegApproach = "Kssdr")
+# PET_ssdr_df <- data.frame(varName = c("Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr"), 
+#                       SubCompart = c("deepocean","river","sea","lake","marinesediment","freshwatersediment"
+#                                      ,"lakesediment","naturalsoil","othersoil","agriculturalsoil"),
+#                       Waarde = c(9.51E-15, 9.51E-15,9.51E-15,9.51E-15,9.51E-15,9.51E-15,9.51E-15,  1.88E-14 , 1.88E-14,1.88E-14)) 
+# World$mutateVars(PET_ssdr_df)
+World$UpdateDirty("DegApproach")
+
 kaas <-
   kaas |> 
   rbind (World$kaas |> mutate(DegApproach = World$fetchData("DegApproach")) )
@@ -97,19 +101,24 @@ kaas <-
   kaas |> 
   rbind (World$kaas |> mutate(DegApproach = World$fetchData("DegApproach")) )
 
-kaas |> filter(process == "k_Degradation")
-
-kaas |> distinct(process)
-
 kaasw <- kaas |> 
   pivot_wider(names_from = DegApproach, values_from = k) |> 
-  filter(process == "k_Degradation")
+  filter(process == "k_Degradation") |> 
+  filter(fromSpecies == "Solid")
 
-
+kaasw
 ```
 
+The results show that the model correctly switches between DegApproach
+when setting this variable, as long as the input data was made available
+at initialisation.
+
+Furthermore we test below the difference between this new implementation
+of degradation in this branch compared to the current development branch
+( `r Sys.Date()`).
+
 ```{R Specify directories, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-library(tidyverse)
+
 
 # InstallSBoo (Release_SBoo = NA, # tag for release use NA for branch
 #              Release_SBooScripts = NA, # tag for release use NA for branch
@@ -132,7 +141,7 @@ particles, we will test for these substances. To be sure nothing changed
 for the other substances, we will also test one other substance.
 
 ```{R Specify substance, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-substance_names <- c("microplastic", "PET_sphere_example", "1-aminoanthraquinone","nAg_10nm") 
+substance_names <- c("microplastic", "1-aminoanthraquinone","nAg_10nm") 
 substances <- read.csv("data/Substances.csv")
 substances <- substances |>
   filter(Substance %in% substance_names)
@@ -141,34 +150,22 @@ substances <- substances |>
 ```{R, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 this_kaas <- data.frame()
 # this_variables <- data.frame()
-#substance <- "microplastic"
 for(substanceK in substances$Substance){
   # Get the substance type
   substance <- substanceK
-  print(substance)
+  substance
   source("baseScripts/initWorld.R")
   
-  if (substance == "PET_sphere_example") { #Use SSDR for PET
-    World$SetConst(DegApproach = "Kssdr")
-    # PET_ssdr_df <- data.frame(varName = c("Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr","Kssdr"), 
-    #                       SubCompart = c("deepocean","river","sea","lake","marinesediment","freshwatersediment"
-    #                                      ,"lakesediment","naturalsoil","othersoil","agriculturalsoil"),
-    #                       Waarde = c(9.51E-15, 9.51E-15,9.51E-15,9.51E-15,9.51E-15,9.51E-15,9.51E-15,  1.88E-14 , 1.88E-14,1.88E-14)) 
-    # World$mutateVars(PET_ssdr_df)
-    World$UpdateDirty(unique(PET_ssdr_df$varName))
-  }
-
   kaas <- World$kaas |>
     # filter(process == "k_Runoff") |>
     mutate(Substance = substance)
   
   # SetVel <- World$fetchData("SettlingVelocity") |> 
-    # mutate(Substance = substance)
+  # mutate(Substance = substance)
   # this_variables <- rbind(this_variables,SetVel)
   # this_variables <- cross_join(SetVel)
   this_kaas <- rbind(this_kaas, kaas)
 }
-
 ```
 
 Do the same for the other implementation.
@@ -180,18 +177,12 @@ rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 ```{R Run SB and get degradation rates using PlasticFADE, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 
 other_kaas <- data.frame()
-  
+
 for(substanceK in substances$Substance){
   Temp_Folder=NULL
   substance = substanceK
-  
-  source("baseScripts/initWorld.R")
-  if (substance == "PET_sphere_example") { #Use plasticFADE for PET
-    World$SetConst(DegApproach = "PlasticFADE")
-    #World$UpdateKaas()
-    World$UpdateDirty("DegApproach")
-  }
-  
+  substance
+  source("baseScripts/initWorldOther.R")
   
   kaas <- World$kaas |>
     # filter(process == "k_Runoff") |>
@@ -206,30 +197,27 @@ for(substanceK in substances$Substance){
 
 ```{R Calculate the differences between ks, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 
-common_cols <- setdiff(intersect(colnames(this_kaas), colnames(other_kaas)), "k")
+common_cols <- setdiff(intersect(colnames(other_kaas), colnames(this_kaas)), "k")
 
-kaas_comparison <- merge(this_kaas, other_kaas, by=common_cols, suffixes = c("_Old", "_New"))
+kaas_comparison <- merge(other_kaas, this_kaas, by=common_cols, suffixes = c("_Old", "_New"))
 
 kaas_comparison <- kaas_comparison |>
   mutate(diff = k_New-k_Old) |> # If this number is positive, the New_k is higher than the Old_k (higher advection rate with new method)
   mutate(rel_diff = diff/k_New)
 
 changed_kaas <- kaas_comparison |>
- filter(diff != 0) |>
-    # filter(abs(rel_diff) > 0.001) |>
+  filter(diff != 0) |>
+  # filter(abs(rel_diff) > 0.001) |>
   mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
 changed_kaas
 ```
 
 As can be seen in the figures below, the new degradation rate constants
-for `r paste(substances$Substance)[2]`, have a very large difference,
-max `r max(abs(unique(changed_kaas$rel_diff)))*(-100)` % larger compared
-to the previous default kdeg value's. The figures below also show this
-and and that the code still works as expected for the other compounds
-for which no Kssdr is defined. The larger degradation rates for
-microplastics is as expected due to the Kssdr implementation. Further
-examples should illustrate the validity of this modification, e.g.
-comparing to measuresments etc.
+for `r paste(unique(changed_kaas$Substance))`, have a very large
+difference, max `r max(abs(unique(changed_kaas$rel_diff)))*(-100)` %
+larger compared to the previous default kdeg value's. This is due to the
+difference in DegApproach, where in the previous development version
+kssdr is used when data is input and DegApproach could not be set.
 
 ```{R Plot the differences between ks, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 all_diffs <- changed_kaas |>
@@ -255,7 +243,7 @@ for(i in unique(all_diffs$Substance)){
       panel.background = element_blank() 
     )
   
-  absdif_plot
+  plot(absdif_plot)
   
   reldif_plot <- ggplot(diffs_substance, mapping = aes(x = toname, y = fromname, color = rel_diff)) + 
     geom_point() + 
@@ -271,6 +259,82 @@ for(i in unique(all_diffs$Substance)){
       panel.grid.major = element_line(linewidth = 0.2, color = "gray90"),
       panel.background = element_blank()  
     )
-  reldif_plot
+  plot(reldif_plot)
 }
 ```
+
+Now the difference should be gone when setting microplastics DegApproach
+to kssdr. We test this below.
+
+```{R message=FALSE, warning=FALSE, include=FALSE}
+
+rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
+this_kaas <- data.frame()
+# this_variables <- data.frame()
+for(substanceK in substances$Substance){
+  # Get the substance type
+  substance <- substanceK
+  
+  source("baseScripts/initWorld.R")
+  
+  if(substance == "microplastic"){  
+    
+    World$SetConst(DegApproach = "Kssdr")
+    World$UpdateDirty("DegApproach")
+  }
+  
+  
+  kaas <- World$kaas |>
+    # filter(process == "k_Runoff") |>
+    mutate(Substance = substance)
+  
+  # SetVel <- World$fetchData("SettlingVelocity") |> 
+  # mutate(Substance = substance)
+  # this_variables <- rbind(this_variables,SetVel)
+  # this_variables <- cross_join(SetVel)
+  this_kaas <- rbind(this_kaas, kaas)
+}
+```
+
+```{R message=FALSE, warning=FALSE, include=FALSE}
+rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
+```
+
+```{R message=FALSE, warning=FALSE, include=FALSE}
+
+other_kaas <- data.frame()
+
+for(substanceK in substances$Substance){
+  Temp_Folder=NULL
+  substance = substanceK
+  substance
+  source("baseScripts/initWorldOther.R")
+  
+  kaas <- World$kaas |>
+    # filter(process == "k_Runoff") |>
+    mutate(Substance = substance)
+  
+  other_kaas <- rbind(other_kaas, kaas)
+}
+
+```
+
+```{R message=FALSE, warning=FALSE, include=FALSE}
+
+common_cols <- setdiff(intersect(colnames(other_kaas), colnames(this_kaas)), "k")
+
+kaas_comparison <- merge(other_kaas, this_kaas, by=common_cols, suffixes = c("_Old", "_New"))
+
+kaas_comparison <- kaas_comparison |>
+  mutate(diff = k_New-k_Old) |> # If this number is positive, the New_k is higher than the Old_k (higher advection rate with new method)
+  mutate(rel_diff = diff/k_New)
+
+changed_kaas <- kaas_comparison |>
+  filter(diff != 0) |>
+  # filter(abs(rel_diff) > 0.001) |>
+  mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
+changed_kaas
+```
+
+The results show that a relative difference of exactly `r max(abs(unique(changed_kaas$rel_diff)))*(-100)`% is found. 
+This is caused by an error in the previous Kssdr implementation using the shortest_side (um) or diameter instead of the radius. This is now correct and thus results in the difference of `r max(abs(unique(changed_kaas$rel_diff)))*(-100)`%.

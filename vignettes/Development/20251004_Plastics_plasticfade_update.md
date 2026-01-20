@@ -1,7 +1,7 @@
 Comparison shape update
 ================
 Nadim Saadi, Anne Hids, Joris Quik
-2026-01-19
+2026-01-20
 
 # Explanation of update
 
@@ -46,25 +46,30 @@ This is done using `World$SetConst(DegApproach = "Default")`.
 
 - DegApproach = “Default”, “Kssdr”, or “PlasticFADE”
 
-The following code compares the kdeg of PET_sphere_example (defined in
-the Substances.csv file). We use a PET spherical particles of 100um
-diameter as an example. For the PET example, the plasticFADE empirical
-constants are defined: deg_x=5.50E-03 deg_tau=1.37E-02 deg_y=1.72E-02
-deg_theta=7.05E-01 deg_z=1.62E-05 deg_eta=4.42E-01
+The following code test the swithing between the different DegApproach
+variables for PET_sphere_example (defined in the Substances.csv file).
+We use a PET spherical particles of 100um diameter as an example. For
+the PET example, the plasticFADE empirical constants are defined:
+deg_x=5.50E-03 deg_tau=1.37E-02 deg_y=1.72E-02 deg_theta=7.05E-01
+deg_z=1.62E-05 deg_eta=4.42E-01
 
 The SSDR is also defined.
+
+The results show that the model correctly switches between DegApproach
+when setting this variable, as long as the input data was made available
+at initialisation.
+
+Furthermore we test below the difference between this new implementation
+of degradation in this branch compared to the current development branch
+( 2026-01-20).
+
+    ## [1] "Directory: SBzips created."
+
+    ## [1] "The SimpleBox model can be found in SimpleBox"
 
 As this update was only implemented for microplastics and tyre road wear
 particles, we will test for these substances. To be sure nothing changed
 for the other substances, we will also test one other substance.
-
-    ## [1] "1-aminoanthraquinone"
-
-    ## [1] "microplastic"
-
-    ## [1] "nAg_10nm"
-
-    ## [1] "PET_sphere_example"
 
 Do the same for the other implementation.
 
@@ -86,281 +91,263 @@ Do the same for the other implementation.
     ## 13 k_Degradation Continental   agriculturalsoil       Large Continental
     ## 14 k_Degradation Continental   agriculturalsoil       Small Continental
     ## 15 k_Degradation Continental   agriculturalsoil       Solid Continental
-    ## 16 k_Degradation Continental                air       Large Continental
-    ## 17 k_Degradation Continental                air       Small Continental
-    ## 18 k_Degradation Continental                air       Solid Continental
-    ## 19 k_Degradation Continental freshwatersediment       Large Continental
-    ## 20 k_Degradation Continental freshwatersediment       Small Continental
-    ## 21 k_Degradation Continental freshwatersediment       Solid Continental
-    ## 22 k_Degradation Continental               lake       Large Continental
-    ## 23 k_Degradation Continental               lake       Small Continental
-    ## 24 k_Degradation Continental               lake       Solid Continental
-    ## 25 k_Degradation Continental       lakesediment       Large Continental
-    ## 26 k_Degradation Continental       lakesediment       Small Continental
-    ## 27 k_Degradation Continental       lakesediment       Solid Continental
-    ## 28 k_Degradation Continental     marinesediment       Large Continental
-    ## 29 k_Degradation Continental     marinesediment       Small Continental
-    ## 30 k_Degradation Continental     marinesediment       Solid Continental
-    ## 31 k_Degradation Continental        naturalsoil       Large Continental
-    ## 32 k_Degradation Continental        naturalsoil       Small Continental
-    ## 33 k_Degradation Continental        naturalsoil       Solid Continental
-    ## 34 k_Degradation Continental          othersoil       Large Continental
-    ## 35 k_Degradation Continental          othersoil       Small Continental
-    ## 36 k_Degradation Continental          othersoil       Solid Continental
-    ## 37 k_Degradation Continental              river       Large Continental
-    ## 38 k_Degradation Continental              river       Small Continental
-    ## 39 k_Degradation Continental              river       Solid Continental
-    ## 40 k_Degradation Continental                sea       Large Continental
-    ## 41 k_Degradation Continental                sea       Small Continental
-    ## 42 k_Degradation Continental                sea       Solid Continental
-    ## 43 k_Degradation    Moderate          deepocean       Large    Moderate
-    ## 44 k_Degradation    Moderate          deepocean       Small    Moderate
-    ## 45 k_Degradation    Moderate          deepocean       Solid    Moderate
-    ## 46 k_Degradation    Moderate     marinesediment       Large    Moderate
-    ## 47 k_Degradation    Moderate     marinesediment       Small    Moderate
-    ## 48 k_Degradation    Moderate     marinesediment       Solid    Moderate
-    ## 49 k_Degradation    Moderate        naturalsoil       Large    Moderate
-    ## 50 k_Degradation    Moderate        naturalsoil       Small    Moderate
-    ## 51 k_Degradation    Moderate        naturalsoil       Solid    Moderate
-    ## 52 k_Degradation    Moderate                sea       Large    Moderate
-    ## 53 k_Degradation    Moderate                sea       Small    Moderate
-    ## 54 k_Degradation    Moderate                sea       Solid    Moderate
-    ## 55 k_Degradation    Regional   agriculturalsoil       Large    Regional
-    ## 56 k_Degradation    Regional   agriculturalsoil       Small    Regional
-    ## 57 k_Degradation    Regional   agriculturalsoil       Solid    Regional
-    ## 58 k_Degradation    Regional                air       Large    Regional
-    ## 59 k_Degradation    Regional                air       Small    Regional
-    ## 60 k_Degradation    Regional                air       Solid    Regional
-    ## 61 k_Degradation    Regional freshwatersediment       Large    Regional
-    ## 62 k_Degradation    Regional freshwatersediment       Small    Regional
-    ## 63 k_Degradation    Regional freshwatersediment       Solid    Regional
-    ## 64 k_Degradation    Regional               lake       Large    Regional
-    ## 65 k_Degradation    Regional               lake       Small    Regional
-    ## 66 k_Degradation    Regional               lake       Solid    Regional
-    ## 67 k_Degradation    Regional       lakesediment       Large    Regional
-    ## 68 k_Degradation    Regional       lakesediment       Small    Regional
-    ## 69 k_Degradation    Regional       lakesediment       Solid    Regional
-    ## 70 k_Degradation    Regional     marinesediment       Large    Regional
-    ## 71 k_Degradation    Regional     marinesediment       Small    Regional
-    ## 72 k_Degradation    Regional     marinesediment       Solid    Regional
-    ## 73 k_Degradation    Regional        naturalsoil       Large    Regional
-    ## 74 k_Degradation    Regional        naturalsoil       Small    Regional
-    ## 75 k_Degradation    Regional        naturalsoil       Solid    Regional
-    ## 76 k_Degradation    Regional          othersoil       Large    Regional
-    ## 77 k_Degradation    Regional          othersoil       Small    Regional
-    ## 78 k_Degradation    Regional          othersoil       Solid    Regional
-    ## 79 k_Degradation    Regional              river       Large    Regional
-    ## 80 k_Degradation    Regional              river       Small    Regional
-    ## 81 k_Degradation    Regional              river       Solid    Regional
-    ## 82 k_Degradation    Regional                sea       Large    Regional
-    ## 83 k_Degradation    Regional                sea       Small    Regional
-    ## 84 k_Degradation    Regional                sea       Solid    Regional
-    ## 85 k_Degradation      Tropic          deepocean       Large      Tropic
-    ## 86 k_Degradation      Tropic          deepocean       Small      Tropic
-    ## 87 k_Degradation      Tropic          deepocean       Solid      Tropic
-    ## 88 k_Degradation      Tropic     marinesediment       Large      Tropic
-    ## 89 k_Degradation      Tropic     marinesediment       Small      Tropic
-    ## 90 k_Degradation      Tropic     marinesediment       Solid      Tropic
-    ## 91 k_Degradation      Tropic        naturalsoil       Large      Tropic
-    ## 92 k_Degradation      Tropic        naturalsoil       Small      Tropic
-    ## 93 k_Degradation      Tropic        naturalsoil       Solid      Tropic
-    ## 94 k_Degradation      Tropic                sea       Large      Tropic
-    ## 95 k_Degradation      Tropic                sea       Small      Tropic
-    ## 96 k_Degradation      Tropic                sea       Solid      Tropic
-    ##          toSubCompart toSpecies          Substance     k_Old        k_New
-    ## 1           deepocean     Large PET_sphere_example 7.608e-10 0.000000e+00
-    ## 2           deepocean     Small PET_sphere_example 7.608e-10 0.000000e+00
-    ## 3           deepocean     Solid PET_sphere_example 7.608e-10 0.000000e+00
-    ## 4      marinesediment     Large PET_sphere_example 7.608e-10 0.000000e+00
-    ## 5      marinesediment     Small PET_sphere_example 7.608e-10 0.000000e+00
-    ## 6      marinesediment     Solid PET_sphere_example 7.608e-10 0.000000e+00
-    ## 7         naturalsoil     Large PET_sphere_example 1.504e-09 0.000000e+00
-    ## 8         naturalsoil     Small PET_sphere_example 1.504e-09 0.000000e+00
-    ## 9         naturalsoil     Solid PET_sphere_example 1.504e-09 0.000000e+00
-    ## 10                sea     Large PET_sphere_example 7.608e-10 0.000000e+00
-    ## 11                sea     Small PET_sphere_example 7.608e-10 0.000000e+00
-    ## 12                sea     Solid PET_sphere_example 7.608e-10 0.000000e+00
-    ## 13   agriculturalsoil     Large PET_sphere_example 1.504e-09 4.207419e-09
-    ## 14   agriculturalsoil     Small PET_sphere_example 1.504e-09 4.207419e-09
-    ## 15   agriculturalsoil     Solid PET_sphere_example 1.504e-09 4.207419e-09
-    ## 16                air     Large PET_sphere_example 0.000e+00 6.060346e-09
-    ## 17                air     Small PET_sphere_example 0.000e+00 6.060346e-09
-    ## 18                air     Solid PET_sphere_example 0.000e+00 6.060346e-09
-    ## 19 freshwatersediment     Large PET_sphere_example 7.608e-10 3.658739e-10
-    ## 20 freshwatersediment     Small PET_sphere_example 7.608e-10 3.658739e-10
-    ## 21 freshwatersediment     Solid PET_sphere_example 7.608e-10 3.658739e-10
-    ## 22               lake     Large PET_sphere_example 7.608e-10 6.333243e-09
-    ## 23               lake     Small PET_sphere_example 7.608e-10 6.333243e-09
-    ## 24               lake     Solid PET_sphere_example 7.608e-10 6.333243e-09
-    ## 25       lakesediment     Large PET_sphere_example 7.608e-10 3.658739e-10
-    ## 26       lakesediment     Small PET_sphere_example 7.608e-10 3.658739e-10
-    ## 27       lakesediment     Solid PET_sphere_example 7.608e-10 3.658739e-10
-    ## 28     marinesediment     Large PET_sphere_example 7.608e-10 3.658739e-10
-    ## 29     marinesediment     Small PET_sphere_example 7.608e-10 3.658739e-10
-    ## 30     marinesediment     Solid PET_sphere_example 7.608e-10 3.658739e-10
-    ## 31        naturalsoil     Large PET_sphere_example 1.504e-09 4.207419e-09
-    ## 32        naturalsoil     Small PET_sphere_example 1.504e-09 4.207419e-09
-    ## 33        naturalsoil     Solid PET_sphere_example 1.504e-09 4.207419e-09
-    ## 34          othersoil     Large PET_sphere_example 1.504e-09 4.207419e-09
-    ## 35          othersoil     Small PET_sphere_example 1.504e-09 4.207419e-09
-    ## 36          othersoil     Solid PET_sphere_example 1.504e-09 4.207419e-09
-    ## 37              river     Large PET_sphere_example 7.608e-10 6.333243e-09
-    ## 38              river     Small PET_sphere_example 7.608e-10 6.333243e-09
-    ## 39              river     Solid PET_sphere_example 7.608e-10 6.333243e-09
-    ## 40                sea     Large PET_sphere_example 7.608e-10 6.333243e-09
-    ## 41                sea     Small PET_sphere_example 7.608e-10 6.333243e-09
-    ## 42                sea     Solid PET_sphere_example 7.608e-10 6.333243e-09
-    ## 43          deepocean     Large PET_sphere_example 7.608e-10 0.000000e+00
-    ## 44          deepocean     Small PET_sphere_example 7.608e-10 0.000000e+00
-    ## 45          deepocean     Solid PET_sphere_example 7.608e-10 0.000000e+00
-    ## 46     marinesediment     Large PET_sphere_example 7.608e-10 0.000000e+00
-    ## 47     marinesediment     Small PET_sphere_example 7.608e-10 0.000000e+00
-    ## 48     marinesediment     Solid PET_sphere_example 7.608e-10 0.000000e+00
-    ## 49        naturalsoil     Large PET_sphere_example 1.504e-09 0.000000e+00
-    ## 50        naturalsoil     Small PET_sphere_example 1.504e-09 0.000000e+00
-    ## 51        naturalsoil     Solid PET_sphere_example 1.504e-09 0.000000e+00
-    ## 52                sea     Large PET_sphere_example 7.608e-10 0.000000e+00
-    ## 53                sea     Small PET_sphere_example 7.608e-10 0.000000e+00
-    ## 54                sea     Solid PET_sphere_example 7.608e-10 0.000000e+00
-    ## 55   agriculturalsoil     Large PET_sphere_example 1.504e-09 4.207419e-09
-    ## 56   agriculturalsoil     Small PET_sphere_example 1.504e-09 4.207419e-09
-    ## 57   agriculturalsoil     Solid PET_sphere_example 1.504e-09 4.207419e-09
-    ## 58                air     Large PET_sphere_example 0.000e+00 6.060346e-09
-    ## 59                air     Small PET_sphere_example 0.000e+00 6.060346e-09
-    ## 60                air     Solid PET_sphere_example 0.000e+00 6.060346e-09
-    ## 61 freshwatersediment     Large PET_sphere_example 7.608e-10 3.658739e-10
-    ## 62 freshwatersediment     Small PET_sphere_example 7.608e-10 3.658739e-10
-    ## 63 freshwatersediment     Solid PET_sphere_example 7.608e-10 3.658739e-10
-    ## 64               lake     Large PET_sphere_example 7.608e-10 6.333243e-09
-    ## 65               lake     Small PET_sphere_example 7.608e-10 6.333243e-09
-    ## 66               lake     Solid PET_sphere_example 7.608e-10 6.333243e-09
-    ## 67       lakesediment     Large PET_sphere_example 7.608e-10 3.658739e-10
-    ## 68       lakesediment     Small PET_sphere_example 7.608e-10 3.658739e-10
-    ## 69       lakesediment     Solid PET_sphere_example 7.608e-10 3.658739e-10
-    ## 70     marinesediment     Large PET_sphere_example 7.608e-10 3.658739e-10
-    ## 71     marinesediment     Small PET_sphere_example 7.608e-10 3.658739e-10
-    ## 72     marinesediment     Solid PET_sphere_example 7.608e-10 3.658739e-10
-    ## 73        naturalsoil     Large PET_sphere_example 1.504e-09 4.207419e-09
-    ## 74        naturalsoil     Small PET_sphere_example 1.504e-09 4.207419e-09
-    ## 75        naturalsoil     Solid PET_sphere_example 1.504e-09 4.207419e-09
-    ## 76          othersoil     Large PET_sphere_example 1.504e-09 4.207419e-09
-    ## 77          othersoil     Small PET_sphere_example 1.504e-09 4.207419e-09
-    ## 78          othersoil     Solid PET_sphere_example 1.504e-09 4.207419e-09
-    ## 79              river     Large PET_sphere_example 7.608e-10 6.333243e-09
-    ## 80              river     Small PET_sphere_example 7.608e-10 6.333243e-09
-    ## 81              river     Solid PET_sphere_example 7.608e-10 6.333243e-09
-    ## 82                sea     Large PET_sphere_example 7.608e-10 6.333243e-09
-    ## 83                sea     Small PET_sphere_example 7.608e-10 6.333243e-09
-    ## 84                sea     Solid PET_sphere_example 7.608e-10 6.333243e-09
-    ## 85          deepocean     Large PET_sphere_example 7.608e-10 0.000000e+00
-    ## 86          deepocean     Small PET_sphere_example 7.608e-10 0.000000e+00
-    ## 87          deepocean     Solid PET_sphere_example 7.608e-10 0.000000e+00
-    ## 88     marinesediment     Large PET_sphere_example 7.608e-10 0.000000e+00
-    ## 89     marinesediment     Small PET_sphere_example 7.608e-10 0.000000e+00
-    ## 90     marinesediment     Solid PET_sphere_example 7.608e-10 0.000000e+00
-    ## 91        naturalsoil     Large PET_sphere_example 1.504e-09 0.000000e+00
-    ## 92        naturalsoil     Small PET_sphere_example 1.504e-09 0.000000e+00
-    ## 93        naturalsoil     Solid PET_sphere_example 1.504e-09 0.000000e+00
-    ## 94                sea     Large PET_sphere_example 7.608e-10 0.000000e+00
-    ## 95                sea     Small PET_sphere_example 7.608e-10 0.000000e+00
-    ## 96                sea     Solid PET_sphere_example 7.608e-10 0.000000e+00
-    ##             diff   rel_diff
-    ## 1  -7.608000e-10       -Inf
-    ## 2  -7.608000e-10       -Inf
-    ## 3  -7.608000e-10       -Inf
-    ## 4  -7.608000e-10       -Inf
-    ## 5  -7.608000e-10       -Inf
-    ## 6  -7.608000e-10       -Inf
-    ## 7  -1.504000e-09       -Inf
-    ## 8  -1.504000e-09       -Inf
-    ## 9  -1.504000e-09       -Inf
-    ## 10 -7.608000e-10       -Inf
-    ## 11 -7.608000e-10       -Inf
-    ## 12 -7.608000e-10       -Inf
-    ## 13  2.703419e-09  0.6425362
-    ## 14  2.703419e-09  0.6425362
-    ## 15  2.703419e-09  0.6425362
-    ## 16  6.060346e-09  1.0000000
-    ## 17  6.060346e-09  1.0000000
-    ## 18  6.060346e-09  1.0000000
-    ## 19 -3.949261e-10 -1.0794050
-    ## 20 -3.949261e-10 -1.0794050
-    ## 21 -3.949261e-10 -1.0794050
-    ## 22  5.572443e-09  0.8798720
-    ## 23  5.572443e-09  0.8798720
-    ## 24  5.572443e-09  0.8798720
-    ## 25 -3.949261e-10 -1.0794050
-    ## 26 -3.949261e-10 -1.0794050
-    ## 27 -3.949261e-10 -1.0794050
-    ## 28 -3.949261e-10 -1.0794050
-    ## 29 -3.949261e-10 -1.0794050
-    ## 30 -3.949261e-10 -1.0794050
-    ## 31  2.703419e-09  0.6425362
-    ## 32  2.703419e-09  0.6425362
-    ## 33  2.703419e-09  0.6425362
-    ## 34  2.703419e-09  0.6425362
-    ## 35  2.703419e-09  0.6425362
-    ## 36  2.703419e-09  0.6425362
-    ## 37  5.572443e-09  0.8798720
-    ## 38  5.572443e-09  0.8798720
-    ## 39  5.572443e-09  0.8798720
-    ## 40  5.572443e-09  0.8798720
-    ## 41  5.572443e-09  0.8798720
-    ## 42  5.572443e-09  0.8798720
-    ## 43 -7.608000e-10       -Inf
-    ## 44 -7.608000e-10       -Inf
-    ## 45 -7.608000e-10       -Inf
-    ## 46 -7.608000e-10       -Inf
-    ## 47 -7.608000e-10       -Inf
-    ## 48 -7.608000e-10       -Inf
-    ## 49 -1.504000e-09       -Inf
-    ## 50 -1.504000e-09       -Inf
-    ## 51 -1.504000e-09       -Inf
-    ## 52 -7.608000e-10       -Inf
-    ## 53 -7.608000e-10       -Inf
-    ## 54 -7.608000e-10       -Inf
-    ## 55  2.703419e-09  0.6425362
-    ## 56  2.703419e-09  0.6425362
-    ## 57  2.703419e-09  0.6425362
-    ## 58  6.060346e-09  1.0000000
-    ## 59  6.060346e-09  1.0000000
-    ## 60  6.060346e-09  1.0000000
-    ## 61 -3.949261e-10 -1.0794050
-    ## 62 -3.949261e-10 -1.0794050
-    ## 63 -3.949261e-10 -1.0794050
-    ## 64  5.572443e-09  0.8798720
-    ## 65  5.572443e-09  0.8798720
-    ## 66  5.572443e-09  0.8798720
-    ## 67 -3.949261e-10 -1.0794050
-    ## 68 -3.949261e-10 -1.0794050
-    ## 69 -3.949261e-10 -1.0794050
-    ## 70 -3.949261e-10 -1.0794050
-    ## 71 -3.949261e-10 -1.0794050
-    ## 72 -3.949261e-10 -1.0794050
-    ## 73  2.703419e-09  0.6425362
-    ## 74  2.703419e-09  0.6425362
-    ## 75  2.703419e-09  0.6425362
-    ## 76  2.703419e-09  0.6425362
-    ## 77  2.703419e-09  0.6425362
-    ## 78  2.703419e-09  0.6425362
-    ## 79  5.572443e-09  0.8798720
-    ## 80  5.572443e-09  0.8798720
-    ## 81  5.572443e-09  0.8798720
-    ## 82  5.572443e-09  0.8798720
-    ## 83  5.572443e-09  0.8798720
-    ## 84  5.572443e-09  0.8798720
-    ## 85 -7.608000e-10       -Inf
-    ## 86 -7.608000e-10       -Inf
-    ## 87 -7.608000e-10       -Inf
-    ## 88 -7.608000e-10       -Inf
-    ## 89 -7.608000e-10       -Inf
-    ## 90 -7.608000e-10       -Inf
-    ## 91 -1.504000e-09       -Inf
-    ## 92 -1.504000e-09       -Inf
-    ## 93 -1.504000e-09       -Inf
-    ## 94 -7.608000e-10       -Inf
-    ## 95 -7.608000e-10       -Inf
-    ## 96 -7.608000e-10       -Inf
+    ## 16 k_Degradation Continental freshwatersediment       Large Continental
+    ## 17 k_Degradation Continental freshwatersediment       Small Continental
+    ## 18 k_Degradation Continental freshwatersediment       Solid Continental
+    ## 19 k_Degradation Continental               lake       Large Continental
+    ## 20 k_Degradation Continental               lake       Small Continental
+    ## 21 k_Degradation Continental               lake       Solid Continental
+    ## 22 k_Degradation Continental       lakesediment       Large Continental
+    ## 23 k_Degradation Continental       lakesediment       Small Continental
+    ## 24 k_Degradation Continental       lakesediment       Solid Continental
+    ## 25 k_Degradation Continental     marinesediment       Large Continental
+    ## 26 k_Degradation Continental     marinesediment       Small Continental
+    ## 27 k_Degradation Continental     marinesediment       Solid Continental
+    ## 28 k_Degradation Continental        naturalsoil       Large Continental
+    ## 29 k_Degradation Continental        naturalsoil       Small Continental
+    ## 30 k_Degradation Continental        naturalsoil       Solid Continental
+    ## 31 k_Degradation Continental          othersoil       Large Continental
+    ## 32 k_Degradation Continental          othersoil       Small Continental
+    ## 33 k_Degradation Continental          othersoil       Solid Continental
+    ## 34 k_Degradation Continental              river       Large Continental
+    ## 35 k_Degradation Continental              river       Small Continental
+    ## 36 k_Degradation Continental              river       Solid Continental
+    ## 37 k_Degradation Continental                sea       Large Continental
+    ## 38 k_Degradation Continental                sea       Small Continental
+    ## 39 k_Degradation Continental                sea       Solid Continental
+    ## 40 k_Degradation    Moderate          deepocean       Large    Moderate
+    ## 41 k_Degradation    Moderate          deepocean       Small    Moderate
+    ## 42 k_Degradation    Moderate          deepocean       Solid    Moderate
+    ## 43 k_Degradation    Moderate     marinesediment       Large    Moderate
+    ## 44 k_Degradation    Moderate     marinesediment       Small    Moderate
+    ## 45 k_Degradation    Moderate     marinesediment       Solid    Moderate
+    ## 46 k_Degradation    Moderate        naturalsoil       Large    Moderate
+    ## 47 k_Degradation    Moderate        naturalsoil       Small    Moderate
+    ## 48 k_Degradation    Moderate        naturalsoil       Solid    Moderate
+    ## 49 k_Degradation    Moderate                sea       Large    Moderate
+    ## 50 k_Degradation    Moderate                sea       Small    Moderate
+    ## 51 k_Degradation    Moderate                sea       Solid    Moderate
+    ## 52 k_Degradation    Regional   agriculturalsoil       Large    Regional
+    ## 53 k_Degradation    Regional   agriculturalsoil       Small    Regional
+    ## 54 k_Degradation    Regional   agriculturalsoil       Solid    Regional
+    ## 55 k_Degradation    Regional freshwatersediment       Large    Regional
+    ## 56 k_Degradation    Regional freshwatersediment       Small    Regional
+    ## 57 k_Degradation    Regional freshwatersediment       Solid    Regional
+    ## 58 k_Degradation    Regional               lake       Large    Regional
+    ## 59 k_Degradation    Regional               lake       Small    Regional
+    ## 60 k_Degradation    Regional               lake       Solid    Regional
+    ## 61 k_Degradation    Regional       lakesediment       Large    Regional
+    ## 62 k_Degradation    Regional       lakesediment       Small    Regional
+    ## 63 k_Degradation    Regional       lakesediment       Solid    Regional
+    ## 64 k_Degradation    Regional     marinesediment       Large    Regional
+    ## 65 k_Degradation    Regional     marinesediment       Small    Regional
+    ## 66 k_Degradation    Regional     marinesediment       Solid    Regional
+    ## 67 k_Degradation    Regional        naturalsoil       Large    Regional
+    ## 68 k_Degradation    Regional        naturalsoil       Small    Regional
+    ## 69 k_Degradation    Regional        naturalsoil       Solid    Regional
+    ## 70 k_Degradation    Regional          othersoil       Large    Regional
+    ## 71 k_Degradation    Regional          othersoil       Small    Regional
+    ## 72 k_Degradation    Regional          othersoil       Solid    Regional
+    ## 73 k_Degradation    Regional              river       Large    Regional
+    ## 74 k_Degradation    Regional              river       Small    Regional
+    ## 75 k_Degradation    Regional              river       Solid    Regional
+    ## 76 k_Degradation    Regional                sea       Large    Regional
+    ## 77 k_Degradation    Regional                sea       Small    Regional
+    ## 78 k_Degradation    Regional                sea       Solid    Regional
+    ## 79 k_Degradation      Tropic          deepocean       Large      Tropic
+    ## 80 k_Degradation      Tropic          deepocean       Small      Tropic
+    ## 81 k_Degradation      Tropic          deepocean       Solid      Tropic
+    ## 82 k_Degradation      Tropic     marinesediment       Large      Tropic
+    ## 83 k_Degradation      Tropic     marinesediment       Small      Tropic
+    ## 84 k_Degradation      Tropic     marinesediment       Solid      Tropic
+    ## 85 k_Degradation      Tropic        naturalsoil       Large      Tropic
+    ## 86 k_Degradation      Tropic        naturalsoil       Small      Tropic
+    ## 87 k_Degradation      Tropic        naturalsoil       Solid      Tropic
+    ## 88 k_Degradation      Tropic                sea       Large      Tropic
+    ## 89 k_Degradation      Tropic                sea       Small      Tropic
+    ## 90 k_Degradation      Tropic                sea       Solid      Tropic
+    ##          toSubCompart toSpecies    Substance        k_Old k_New          diff
+    ## 1           deepocean     Large microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 2           deepocean     Small microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 3           deepocean     Solid microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 4      marinesediment     Large microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 5      marinesediment     Small microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 6      marinesediment     Solid microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 7         naturalsoil     Large microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 8         naturalsoil     Small microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 9         naturalsoil     Solid microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 10                sea     Large microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 11                sea     Small microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 12                sea     Solid microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 13   agriculturalsoil     Large microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 14   agriculturalsoil     Small microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 15   agriculturalsoil     Solid microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 16 freshwatersediment     Large microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 17 freshwatersediment     Small microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 18 freshwatersediment     Solid microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 19               lake     Large microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 20               lake     Small microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 21               lake     Solid microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 22       lakesediment     Large microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 23       lakesediment     Small microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 24       lakesediment     Solid microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 25     marinesediment     Large microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 26     marinesediment     Small microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 27     marinesediment     Solid microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 28        naturalsoil     Large microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 29        naturalsoil     Small microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 30        naturalsoil     Solid microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 31          othersoil     Large microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 32          othersoil     Small microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 33          othersoil     Solid microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 34              river     Large microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 35              river     Small microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 36              river     Solid microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 37                sea     Large microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 38                sea     Small microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 39                sea     Solid microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 40          deepocean     Large microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 41          deepocean     Small microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 42          deepocean     Solid microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 43     marinesediment     Large microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 44     marinesediment     Small microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 45     marinesediment     Solid microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 46        naturalsoil     Large microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 47        naturalsoil     Small microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 48        naturalsoil     Solid microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 49                sea     Large microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 50                sea     Small microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 51                sea     Solid microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 52   agriculturalsoil     Large microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 53   agriculturalsoil     Small microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 54   agriculturalsoil     Solid microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 55 freshwatersediment     Large microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 56 freshwatersediment     Small microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 57 freshwatersediment     Solid microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 58               lake     Large microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 59               lake     Small microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 60               lake     Solid microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 61       lakesediment     Large microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 62       lakesediment     Small microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 63       lakesediment     Solid microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 64     marinesediment     Large microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 65     marinesediment     Small microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 66     marinesediment     Solid microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 67        naturalsoil     Large microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 68        naturalsoil     Small microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 69        naturalsoil     Solid microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 70          othersoil     Large microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 71          othersoil     Small microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 72          othersoil     Solid microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 73              river     Large microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 74              river     Small microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 75              river     Solid microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 76                sea     Large microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 77                sea     Small microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 78                sea     Solid microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 79          deepocean     Large microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 80          deepocean     Small microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 81          deepocean     Solid microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 82     marinesediment     Large microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 83     marinesediment     Small microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 84     marinesediment     Solid microplastic 2.244992e-08 3e-11 -2.241992e-08
+    ## 85        naturalsoil     Large microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 86        naturalsoil     Small microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 87        naturalsoil     Solid microplastic 3.031928e-07 3e-11 -3.031628e-07
+    ## 88                sea     Large microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 89                sea     Small microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ## 90                sea     Solid microplastic 4.186848e-08 1e-10 -4.176848e-08
+    ##       rel_diff
+    ## 1    -417.6848
+    ## 2    -417.6848
+    ## 3    -417.6848
+    ## 4    -747.3307
+    ## 5    -747.3307
+    ## 6    -747.3307
+    ## 7  -10105.4267
+    ## 8  -10105.4267
+    ## 9  -10105.4267
+    ## 10   -417.6848
+    ## 11   -417.6848
+    ## 12   -417.6848
+    ## 13 -10105.4267
+    ## 14 -10105.4267
+    ## 15 -10105.4267
+    ## 16   -747.3307
+    ## 17   -747.3307
+    ## 18   -747.3307
+    ## 19   -417.6848
+    ## 20   -417.6848
+    ## 21   -417.6848
+    ## 22   -747.3307
+    ## 23   -747.3307
+    ## 24   -747.3307
+    ## 25   -747.3307
+    ## 26   -747.3307
+    ## 27   -747.3307
+    ## 28 -10105.4267
+    ## 29 -10105.4267
+    ## 30 -10105.4267
+    ## 31 -10105.4267
+    ## 32 -10105.4267
+    ## 33 -10105.4267
+    ## 34   -417.6848
+    ## 35   -417.6848
+    ## 36   -417.6848
+    ## 37   -417.6848
+    ## 38   -417.6848
+    ## 39   -417.6848
+    ## 40   -417.6848
+    ## 41   -417.6848
+    ## 42   -417.6848
+    ## 43   -747.3307
+    ## 44   -747.3307
+    ## 45   -747.3307
+    ## 46 -10105.4267
+    ## 47 -10105.4267
+    ## 48 -10105.4267
+    ## 49   -417.6848
+    ## 50   -417.6848
+    ## 51   -417.6848
+    ## 52 -10105.4267
+    ## 53 -10105.4267
+    ## 54 -10105.4267
+    ## 55   -747.3307
+    ## 56   -747.3307
+    ## 57   -747.3307
+    ## 58   -417.6848
+    ## 59   -417.6848
+    ## 60   -417.6848
+    ## 61   -747.3307
+    ## 62   -747.3307
+    ## 63   -747.3307
+    ## 64   -747.3307
+    ## 65   -747.3307
+    ## 66   -747.3307
+    ## 67 -10105.4267
+    ## 68 -10105.4267
+    ## 69 -10105.4267
+    ## 70 -10105.4267
+    ## 71 -10105.4267
+    ## 72 -10105.4267
+    ## 73   -417.6848
+    ## 74   -417.6848
+    ## 75   -417.6848
+    ## 76   -417.6848
+    ## 77   -417.6848
+    ## 78   -417.6848
+    ## 79   -417.6848
+    ## 80   -417.6848
+    ## 81   -417.6848
+    ## 82   -747.3307
+    ## 83   -747.3307
+    ## 84   -747.3307
+    ## 85 -10105.4267
+    ## 86 -10105.4267
+    ## 87 -10105.4267
+    ## 88   -417.6848
+    ## 89   -417.6848
+    ## 90   -417.6848
     ##                                                                full_name
     ## 1                              From deepocean_Arctic to deepocean_Arctic
     ## 2                              From deepocean_Arctic to deepocean_Arctic
@@ -377,96 +364,87 @@ Do the same for the other implementation.
     ## 13     From agriculturalsoil_Continental to agriculturalsoil_Continental
     ## 14     From agriculturalsoil_Continental to agriculturalsoil_Continental
     ## 15     From agriculturalsoil_Continental to agriculturalsoil_Continental
-    ## 16                               From air_Continental to air_Continental
-    ## 17                               From air_Continental to air_Continental
-    ## 18                               From air_Continental to air_Continental
-    ## 19 From freshwatersediment_Continental to freshwatersediment_Continental
-    ## 20 From freshwatersediment_Continental to freshwatersediment_Continental
-    ## 21 From freshwatersediment_Continental to freshwatersediment_Continental
-    ## 22                             From lake_Continental to lake_Continental
-    ## 23                             From lake_Continental to lake_Continental
-    ## 24                             From lake_Continental to lake_Continental
-    ## 25             From lakesediment_Continental to lakesediment_Continental
-    ## 26             From lakesediment_Continental to lakesediment_Continental
-    ## 27             From lakesediment_Continental to lakesediment_Continental
-    ## 28         From marinesediment_Continental to marinesediment_Continental
-    ## 29         From marinesediment_Continental to marinesediment_Continental
-    ## 30         From marinesediment_Continental to marinesediment_Continental
-    ## 31               From naturalsoil_Continental to naturalsoil_Continental
-    ## 32               From naturalsoil_Continental to naturalsoil_Continental
-    ## 33               From naturalsoil_Continental to naturalsoil_Continental
-    ## 34                   From othersoil_Continental to othersoil_Continental
-    ## 35                   From othersoil_Continental to othersoil_Continental
-    ## 36                   From othersoil_Continental to othersoil_Continental
-    ## 37                           From river_Continental to river_Continental
-    ## 38                           From river_Continental to river_Continental
-    ## 39                           From river_Continental to river_Continental
-    ## 40                               From sea_Continental to sea_Continental
-    ## 41                               From sea_Continental to sea_Continental
-    ## 42                               From sea_Continental to sea_Continental
-    ## 43                         From deepocean_Moderate to deepocean_Moderate
-    ## 44                         From deepocean_Moderate to deepocean_Moderate
-    ## 45                         From deepocean_Moderate to deepocean_Moderate
-    ## 46               From marinesediment_Moderate to marinesediment_Moderate
-    ## 47               From marinesediment_Moderate to marinesediment_Moderate
-    ## 48               From marinesediment_Moderate to marinesediment_Moderate
-    ## 49                     From naturalsoil_Moderate to naturalsoil_Moderate
-    ## 50                     From naturalsoil_Moderate to naturalsoil_Moderate
-    ## 51                     From naturalsoil_Moderate to naturalsoil_Moderate
-    ## 52                                     From sea_Moderate to sea_Moderate
-    ## 53                                     From sea_Moderate to sea_Moderate
-    ## 54                                     From sea_Moderate to sea_Moderate
-    ## 55           From agriculturalsoil_Regional to agriculturalsoil_Regional
-    ## 56           From agriculturalsoil_Regional to agriculturalsoil_Regional
-    ## 57           From agriculturalsoil_Regional to agriculturalsoil_Regional
-    ## 58                                     From air_Regional to air_Regional
-    ## 59                                     From air_Regional to air_Regional
-    ## 60                                     From air_Regional to air_Regional
-    ## 61       From freshwatersediment_Regional to freshwatersediment_Regional
-    ## 62       From freshwatersediment_Regional to freshwatersediment_Regional
-    ## 63       From freshwatersediment_Regional to freshwatersediment_Regional
-    ## 64                                   From lake_Regional to lake_Regional
-    ## 65                                   From lake_Regional to lake_Regional
-    ## 66                                   From lake_Regional to lake_Regional
-    ## 67                   From lakesediment_Regional to lakesediment_Regional
-    ## 68                   From lakesediment_Regional to lakesediment_Regional
-    ## 69                   From lakesediment_Regional to lakesediment_Regional
-    ## 70               From marinesediment_Regional to marinesediment_Regional
-    ## 71               From marinesediment_Regional to marinesediment_Regional
-    ## 72               From marinesediment_Regional to marinesediment_Regional
-    ## 73                     From naturalsoil_Regional to naturalsoil_Regional
-    ## 74                     From naturalsoil_Regional to naturalsoil_Regional
-    ## 75                     From naturalsoil_Regional to naturalsoil_Regional
-    ## 76                         From othersoil_Regional to othersoil_Regional
-    ## 77                         From othersoil_Regional to othersoil_Regional
-    ## 78                         From othersoil_Regional to othersoil_Regional
-    ## 79                                 From river_Regional to river_Regional
-    ## 80                                 From river_Regional to river_Regional
-    ## 81                                 From river_Regional to river_Regional
-    ## 82                                     From sea_Regional to sea_Regional
-    ## 83                                     From sea_Regional to sea_Regional
-    ## 84                                     From sea_Regional to sea_Regional
-    ## 85                             From deepocean_Tropic to deepocean_Tropic
-    ## 86                             From deepocean_Tropic to deepocean_Tropic
-    ## 87                             From deepocean_Tropic to deepocean_Tropic
-    ## 88                   From marinesediment_Tropic to marinesediment_Tropic
-    ## 89                   From marinesediment_Tropic to marinesediment_Tropic
-    ## 90                   From marinesediment_Tropic to marinesediment_Tropic
-    ## 91                         From naturalsoil_Tropic to naturalsoil_Tropic
-    ## 92                         From naturalsoil_Tropic to naturalsoil_Tropic
-    ## 93                         From naturalsoil_Tropic to naturalsoil_Tropic
-    ## 94                                         From sea_Tropic to sea_Tropic
-    ## 95                                         From sea_Tropic to sea_Tropic
-    ## 96                                         From sea_Tropic to sea_Tropic
+    ## 16 From freshwatersediment_Continental to freshwatersediment_Continental
+    ## 17 From freshwatersediment_Continental to freshwatersediment_Continental
+    ## 18 From freshwatersediment_Continental to freshwatersediment_Continental
+    ## 19                             From lake_Continental to lake_Continental
+    ## 20                             From lake_Continental to lake_Continental
+    ## 21                             From lake_Continental to lake_Continental
+    ## 22             From lakesediment_Continental to lakesediment_Continental
+    ## 23             From lakesediment_Continental to lakesediment_Continental
+    ## 24             From lakesediment_Continental to lakesediment_Continental
+    ## 25         From marinesediment_Continental to marinesediment_Continental
+    ## 26         From marinesediment_Continental to marinesediment_Continental
+    ## 27         From marinesediment_Continental to marinesediment_Continental
+    ## 28               From naturalsoil_Continental to naturalsoil_Continental
+    ## 29               From naturalsoil_Continental to naturalsoil_Continental
+    ## 30               From naturalsoil_Continental to naturalsoil_Continental
+    ## 31                   From othersoil_Continental to othersoil_Continental
+    ## 32                   From othersoil_Continental to othersoil_Continental
+    ## 33                   From othersoil_Continental to othersoil_Continental
+    ## 34                           From river_Continental to river_Continental
+    ## 35                           From river_Continental to river_Continental
+    ## 36                           From river_Continental to river_Continental
+    ## 37                               From sea_Continental to sea_Continental
+    ## 38                               From sea_Continental to sea_Continental
+    ## 39                               From sea_Continental to sea_Continental
+    ## 40                         From deepocean_Moderate to deepocean_Moderate
+    ## 41                         From deepocean_Moderate to deepocean_Moderate
+    ## 42                         From deepocean_Moderate to deepocean_Moderate
+    ## 43               From marinesediment_Moderate to marinesediment_Moderate
+    ## 44               From marinesediment_Moderate to marinesediment_Moderate
+    ## 45               From marinesediment_Moderate to marinesediment_Moderate
+    ## 46                     From naturalsoil_Moderate to naturalsoil_Moderate
+    ## 47                     From naturalsoil_Moderate to naturalsoil_Moderate
+    ## 48                     From naturalsoil_Moderate to naturalsoil_Moderate
+    ## 49                                     From sea_Moderate to sea_Moderate
+    ## 50                                     From sea_Moderate to sea_Moderate
+    ## 51                                     From sea_Moderate to sea_Moderate
+    ## 52           From agriculturalsoil_Regional to agriculturalsoil_Regional
+    ## 53           From agriculturalsoil_Regional to agriculturalsoil_Regional
+    ## 54           From agriculturalsoil_Regional to agriculturalsoil_Regional
+    ## 55       From freshwatersediment_Regional to freshwatersediment_Regional
+    ## 56       From freshwatersediment_Regional to freshwatersediment_Regional
+    ## 57       From freshwatersediment_Regional to freshwatersediment_Regional
+    ## 58                                   From lake_Regional to lake_Regional
+    ## 59                                   From lake_Regional to lake_Regional
+    ## 60                                   From lake_Regional to lake_Regional
+    ## 61                   From lakesediment_Regional to lakesediment_Regional
+    ## 62                   From lakesediment_Regional to lakesediment_Regional
+    ## 63                   From lakesediment_Regional to lakesediment_Regional
+    ## 64               From marinesediment_Regional to marinesediment_Regional
+    ## 65               From marinesediment_Regional to marinesediment_Regional
+    ## 66               From marinesediment_Regional to marinesediment_Regional
+    ## 67                     From naturalsoil_Regional to naturalsoil_Regional
+    ## 68                     From naturalsoil_Regional to naturalsoil_Regional
+    ## 69                     From naturalsoil_Regional to naturalsoil_Regional
+    ## 70                         From othersoil_Regional to othersoil_Regional
+    ## 71                         From othersoil_Regional to othersoil_Regional
+    ## 72                         From othersoil_Regional to othersoil_Regional
+    ## 73                                 From river_Regional to river_Regional
+    ## 74                                 From river_Regional to river_Regional
+    ## 75                                 From river_Regional to river_Regional
+    ## 76                                     From sea_Regional to sea_Regional
+    ## 77                                     From sea_Regional to sea_Regional
+    ## 78                                     From sea_Regional to sea_Regional
+    ## 79                             From deepocean_Tropic to deepocean_Tropic
+    ## 80                             From deepocean_Tropic to deepocean_Tropic
+    ## 81                             From deepocean_Tropic to deepocean_Tropic
+    ## 82                   From marinesediment_Tropic to marinesediment_Tropic
+    ## 83                   From marinesediment_Tropic to marinesediment_Tropic
+    ## 84                   From marinesediment_Tropic to marinesediment_Tropic
+    ## 85                         From naturalsoil_Tropic to naturalsoil_Tropic
+    ## 86                         From naturalsoil_Tropic to naturalsoil_Tropic
+    ## 87                         From naturalsoil_Tropic to naturalsoil_Tropic
+    ## 88                                         From sea_Tropic to sea_Tropic
+    ## 89                                         From sea_Tropic to sea_Tropic
+    ## 90                                         From sea_Tropic to sea_Tropic
 
 As can be seen in the figures below, the new degradation rate constants
-for microplastic, have a very large difference, max - % larger compared
-to the previous default kdeg value’s. The figures below also show this
-and and that the code still works as expected for the other compounds
-for which no Kssdr is defined. The larger degradation rates for
-microplastics is as expected due to the Kssdr implementation. Further
-examples should illustrate the validity of this modification, e.g.
-comparing to measuresments etc.
+for microplastic, have a very large difference, max -1.0105427^{6} %
+larger compared to the previous default kdeg value’s. This is due to the
+difference in DegApproach, where in the previous development version
+kssdr is used when data is input and DegApproach could not be set.
 
 ``` r
 all_diffs <- changed_kaas |>
@@ -492,7 +470,7 @@ for(i in unique(all_diffs$Substance)){
       panel.background = element_blank() 
     )
   
-  print(absdif_plot)
+  plot(absdif_plot)
   
   reldif_plot <- ggplot(diffs_substance, mapping = aes(x = toname, y = fromname, color = rel_diff)) + 
     geom_point() + 
@@ -508,8 +486,16 @@ for(i in unique(all_diffs$Substance)){
       panel.grid.major = element_line(linewidth = 0.2, color = "gray90"),
       panel.background = element_blank()  
     )
-  print(reldif_plot)
+  plot(reldif_plot)
 }
 ```
 
 ![](20251004_Plastics_plasticfade_update_files/figure-gfm/Plot%20the%20differences%20between%20ks-1.png)<!-- -->![](20251004_Plastics_plasticfade_update_files/figure-gfm/Plot%20the%20differences%20between%20ks-2.png)<!-- -->
+
+Now the difference should be gone when setting microplastics DegApproach
+to kssdr. We test this below.
+
+The results show that a relative difference of exactly -50% is found.
+This is caused by an error in the previous Kssdr implementation using
+the shortest_side (um) or diameter instead of the radius. This is now
+correct and thus results in the difference of -50%.
