@@ -1,4 +1,4 @@
-VarName,Compartment,Substance,Waarde,Unit
+﻿VarName,Compartment,Substance,Waarde,Unit
 EF,air,microplastic,0.333333333,NA
 EF,air,nAg_10nm,0.333333333,NA
 EF,air,nC60_10nm,0.333333333,NA
@@ -3750,10 +3750,10 @@ kdeg,water,Xylenes,5.35e-7,NA
 kdeg,water,Zearalenone,2.14e-7,NA
 kdeg,water,Zn(II),1e-20,NA
 Kssdr,air,microplastic,0,m.s-1
-Kssdr,sediment,microplastic,2.80624e-13,m.s-1
-Kssdr,soil,microplastic,3.78991e-12,m.s-1
-Kssdr,water,microplastic,5.23356e-13,m.s-1
 Kssdr,air,PET_sphere_example,0,m.s-1
-Kssdr,sediment,PET_sphere_example,9.51E-15,m.s-1
-Kssdr,soil,PET_sphere_example,1.88E-14,m.s-1
-Kssdr,water,PET_sphere_example,9.51E-15,m.s-1
+Kssdr,sediment,microplastic,2.80624e-13,m.s-1
+Kssdr,sediment,PET_sphere_example,9.51e-15,m.s-1
+Kssdr,soil,microplastic,3.78991e-12,m.s-1
+Kssdr,soil,PET_sphere_example,1.88e-14,m.s-1
+Kssdr,water,microplastic,5.23356e-13,m.s-1
+Kssdr,water,PET_sphere_example,9.51e-15,m.s-1
