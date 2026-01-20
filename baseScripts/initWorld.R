@@ -107,6 +107,8 @@ if(ChemClass != "particle") {
 
 World$SetConst(DragMethod = "Original")
 World$SetConst(Test = "FALSE")
+World$SetConst(Test_surface_water = "FALSE")
+World$SetConst(Remove_global = "FALSE")
 AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 

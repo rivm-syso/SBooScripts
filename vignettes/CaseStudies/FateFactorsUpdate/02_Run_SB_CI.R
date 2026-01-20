@@ -18,7 +18,7 @@ regions <- regions |>
   rename(varName = Variable)
 
 # Initalize World
-source("baseScripts/initWorld_onlyPlastics.R")
+source("baseScripts/initWorld.R")
 
 #If Test FALSE: new version of SB, if True, then the old version (excel)
 #World$SetConst(Test = "TRUE")
@@ -26,6 +26,8 @@ World$SetConst(Test_surface_water = "TRUE")
 World$SetConst(Remove_global = "TRUE") #if true, remove flows to moderate, arctic and tropic
 World$SetConst(Remove_global = "TRUE") #if true, remove flows to moderate, arctic and tropic
 World$UpdateKaas(mergeExisting = FALSE)
+
+setup <- NULL
 
 # Change global landscape properties - make scales really small to remove them
 #In this case, the continental scale of SBoo IS USED AS THE GLOBAL -  and the regional is used as the continental
@@ -144,15 +146,6 @@ compartment_names <- c( #fully written names
 receiving_compartments <- c("aRS","w1RS","w0RS","w2RS", "w3RS","sd1RS","sd0RS","sd2RS","s1RS","s2RS",
                             "aCS","w1CS","w0CS","w2CS", "w3CS","sd1CS","sd0CS","sd2CS","s1CS","s2CS") 
 
-#Exposure and effect factors for microplastics in air, water, sediments and soil, expressed in PAF.m3/kg
-EEF_air = 0 #so far not quantified
-EEF_w = 1067.5 #Corella-Puertas et al. (2023) 
-EEF_sed = 16.17 #Saadi et al. 2025 
-EEF_s = 0.54 #Tunali & Nowack (2025) derived an EEF of chronic EC10 values of 0.79PAF.kg/g, which converts to 0.54 PAF.m3/kg using a soil density of 1460 kg/m3
-SF=1 #severity factor, PAF to PDF (Oginah et al., 2025)
-
-eef_compartments <- c(EEF_air, EEF_w, EEF_w, EEF_w, EEF_w, EEF_sed, EEF_sed, EEF_sed, EEF_s, EEF_s,
-                      EEF_air, EEF_w, EEF_w, EEF_w, EEF_w, EEF_sed, EEF_sed, EEF_sed, EEF_s, EEF_s)
 
 ### fraction of species in each compartment
 FracSpe_w_marine = 0.4458 #fraction of marine species feeding in water - Saadi et al., 2025
@@ -185,6 +178,109 @@ Xatt <- function(k_free_agg, k_free_att, k_agg_tot, k_att_tot) {
 }
 X_list <- c("aR", "cwR","w1R","w0R","w2R", "w3R","sd1R","sd0R","sd2R","s1R","s2R",    #careful, this list contains cw (to for the X matrix)
             "aC", "cwC","w1C","w0C","w2C", "w3C","sd1C","sd0C","sd2C","s1C","s2C") 
+# Pre-compute only the STRUCTURE (which cells to fill)
+setup_fill_patterns <- function(first_mat, X_list) {
+  comp_names <- rownames(first_mat)
+  
+  # Vectorized filtering (keep_idx - same for all)
+  keep_idx <- !grepl("[UMT]", comp_names)
+  name_len <- nchar(comp_names)
+  before_last <- ifelse(name_len >= 2,
+                        substr(comp_names, name_len - 1, name_len - 1),
+                        "")
+  keep_idx <- keep_idx & (before_last != "A") & !grepl("s3", comp_names, fixed = TRUE)
+  
+  filtered_names <- comp_names[keep_idx]
+  
+  # Create A matrix pattern (same for all - always 0 or 1)
+  A_mat <- matrix(0, nrow = length(X_list), ncol = length(filtered_names))
+  rownames(A_mat) <- X_list
+  colnames(A_mat) <- filtered_names
+  
+  # Fill A pattern (always 1 for S/A/P compartments)
+  for(prefix in X_list) {
+    for(suffix in c("S", "A", "P")) {
+      full_name <- paste0(prefix, suffix)
+      if(full_name %in% filtered_names) {
+        A_mat[prefix, full_name] <- 1
+      }
+    }
+  }
+  
+  # Return what we CAN pre-compute
+  return(list(
+    keep_idx = keep_idx,
+    filtered_names = filtered_names,
+    A_mat = A_mat,           # Always the same pattern
+    X_list = X_list,
+    # We also store which cells in X need filling
+    X_cells = lapply(X_list, function(prefix) {
+      list(
+        free = paste0(prefix, "S"),
+        agg = paste0(prefix, "A"),
+        att = paste0(prefix, "P")
+      )
+    })
+  ))
+}
+
+# Function to fill X matrix for a specific k_matrix
+fill_X_matrix <- function(k_mat_filtered, setup) {
+  # Create empty X matrix
+  X <- matrix(0, nrow = nrow(k_mat_filtered), ncol = length(setup$X_list))
+  colnames(X) <- setup$X_list
+  rownames(X) <- rownames(k_mat_filtered)
+  
+  # Fill X matrix using actual k_matrix values
+  for(prefix in setup$X_list) {
+    free <- paste0(prefix, "S")
+    agg <- paste0(prefix, "A")
+    att <- paste0(prefix, "P")
+    
+    # Check if all compartments exist in filtered matrix
+    if(all(c(free, agg, att) %in% rownames(k_mat_filtered))) {
+      # Get the actual values from THIS k_matrix
+      k_free_agg <- abs(k_mat_filtered[agg, free])
+      k_free_att <- abs(k_mat_filtered[att, free])
+      k_agg_tot <- abs(k_mat_filtered[agg, agg])
+      k_att_tot <- abs(k_mat_filtered[att, att])
+      
+      # Fill X matrix
+      X[free, prefix] <- Xfree(k_free_agg, k_free_att, k_agg_tot, k_att_tot)
+      X[agg, prefix] <- Xagg(k_free_agg, k_free_att, k_agg_tot, k_att_tot)
+      X[att, prefix] <- Xatt(k_free_agg, k_free_att, k_agg_tot, k_att_tot)
+    }
+  }
+  
+  return(X)
+}
+
+# Main processing function for one k_matrix
+process_single_matrix <- function(k_mat, setup) {
+  # Filter matrix
+  k_filtered <- k_mat[setup$keep_idx, setup$keep_idx, drop = FALSE]
+  
+  # Create X matrix (dynamic - uses actual k values)
+  X_mat <- fill_X_matrix(k_filtered, setup)
+  
+  # Compute K1X and K_final
+  K1X <- k_filtered %*% X_mat
+  K_final <- setup$A_mat %*% K1X
+  
+  # Invert and compute fate factors
+  ff_matrix <- (-1 / 86400) * solve(K_final)
+  rownames(ff_matrix) <- paste0(rownames(ff_matrix), "S")
+  
+  return(ff_matrix)
+}
+
+# Nested loops structure
+setup <- NULL
+
+
+
+
+
 
 
 fill_X <- function(prefix) {
@@ -213,6 +309,13 @@ fill_X <- function(prefix) {
     abs(k_matrix_filtered[att, att])      
   )
 }
+
+
+
+####Code for CFs uncertainty
+
+
+
 
 # Get the names and abbreviations of all compartments
 states <- World$states$asDataFrame
@@ -259,10 +362,572 @@ results_CF_end_PDF_m2_year  <- data.frame(elementary_flowname = character(),
                                           CF_end_PDF_m2_year = numeric()
 )
 
+####FUNCTIONS
+# Function to process FF statistics from Monte Carlo results
+process_ff_monte_carlo <- function(ff_matrices_list, setup, reg, pol, size, shape, 
+                                   emission_compartments, states, compartment_names,
+                                   volume_compartments, eef_compartments) {
+  
+  # Initialize results list
+  results_FF_all <- list()
+  
+  # Loop over emission compartments
+  for (emission_compartment in emission_compartments) {
+    
+    # Extract FF column for this emission compartment from ALL Monte Carlo samples
+    ff_columns_list <- lapply(ff_matrices_list, function(ff_mat) {
+      ff_mat[, emission_compartment, drop = FALSE]
+    })
+    
+    # Process each Monte Carlo sample to get grouped FFs
+    grouped_ff_list <- lapply(ff_columns_list, function(Masses) {
+      # Convert to data frame and process (same as your existing code)
+      Masses_df <- as.data.frame(Masses)
+      Masses_df$Abbr <- rownames(Masses_df)  # move rownames into Abbr column
+      
+      # CRITICAL: Get the column name - it might not be named after emission_compartment
+      # Use whatever column name exists
+      current_col_name <- colnames(Masses_df)[1]
+      colnames(Masses_df)[colnames(Masses_df) == current_col_name] <- "FF"
+      
+      Masses_grouped <- Masses_df |>
+        left_join(states, by = "Abbr") |>
+        group_by(Scale, SubCompart) |>
+        summarise(FF = sum(FF), .groups = "drop") |>
+        filter(!Scale %in% c("Arctic", "Moderate", "Tropic") & SubCompart != "othersoil") |>
+        
+        # Combine air + cloudwater separately for Regional and Continental
+        mutate(SubCompart = ifelse(Scale %in% c("Regional", "Continental") & SubCompart %in% c("air", "cloudwater"),
+                                   "air", SubCompart)) |>
+        group_by(Scale, SubCompart) |>
+        summarise(FF = sum(FF), .groups = "drop") |>
+        mutate(
+          Scale = factor(Scale, levels = c("Regional", "Continental")),
+          SubCompart = factor(SubCompart, levels = c("air","river","lake","sea","deepocean","freshwatersediment","lakesediment","marinesediment","naturalsoil","agriculturalsoil"))
+        ) |>
+        arrange(Scale, SubCompart) |>
+        mutate(Scale = recode(Scale, "Continental" = "Global", "Regional" = "Continental")) |>
+        mutate(region = reg) |>
+        mutate(polymer = pol) |>
+        mutate(size = size) |>
+        mutate(shape = shape) |>
+        mutate(emission_compartment = compartment_names[emission_compartment])
+      
+      return(Masses_grouped)
+    })
+    
+    # Combine all Monte Carlo results for this emission compartment
+    all_grouped <- bind_rows(grouped_ff_list, .id = "mc_iteration")
+    
+    # Calculate statistics for each receiving compartment
+    ff_stats <- all_grouped |>
+      group_by(Scale, SubCompart) |>
+      summarise(
+        ff_mean = mean(FF),                    # Arithmetic mean
+        ff_geom_mean = exp(mean(log(FF))),     # Geometric mean (for log-normal data)
+        ff_gsd = exp(sd(log(FF))),             # Geometric SD
+        ff_median = median(FF),                # Median
+        ff_sd = sd(FF),                        # Standard deviation
+        ff_cv = sd(FF) / mean(FF),             # Coefficient of variation
+        ff_ul = quantile(FF, 0.975, na.rm = TRUE),  # Upper limit (97.5%)
+        ff_ll = quantile(FF, 0.025, na.rm = TRUE),  # Lower limit (2.5%)
+        n_samples = n(),                       # Number of Monte Carlo samples
+        .groups = "drop"
+      ) |>
+      # Add metadata
+      mutate(
+        region = reg,
+        polymer = pol,
+        size = size,
+        shape = shape,
+        emission_compartment = compartment_names[emission_compartment],
+        receiving_compartment = paste(Scale, SubCompart)
+      ) |>
+      # Reformat receiving compartment names
+      mutate(
+        SubCompart = recode(SubCompart,
+                            "lake" = "lakewater",
+                            "river" = "riverwater",
+                            "sea" = "seawater surface",
+                            "deepocean" = "seawater column",
+                            "marinesediment" = "marine sediments",
+                            "lakesediment" = "lake sediments",
+                            "freshwatersediment" = "freshwater sediments",
+                            "agriculturalsoil" = "agricultural soil",
+                            "naturalsoil" = "natural soil"
+        ),
+        Scale = recode(Scale, "Continental" = "continental", "Global" = "global")
+      ) |>
+      mutate(receiving_compartment = paste(Scale, SubCompart)) |>
+      
+      # Select and order columns
+      dplyr::select(
+        region, polymer, size, shape, emission_compartment, receiving_compartment,
+        ff_mean, ff_geom_mean, ff_median, ff_gsd, ff_sd, ff_cv, ff_ll, ff_ul, n_samples,
+        Scale, SubCompart
+      )
+    
+    # Store results for this emission compartment
+    results_FF_all[[emission_compartment]] <- ff_stats
+  }
+  
+  # Combine all emission compartments
+  results_FF_combined <- bind_rows(results_FF_all)
+  
+  return(results_FF_combined)
+}
+
+
+
+
+
+
+# Generate EEF samples ONCE at the beginning
+
+
+
+
+
+# ====== PART 1: GLOBAL SETUP (RUN ONCE) ======
+
+# 1.1 Define EEF distributions
+generate_eef_samples <- function(n_samples = 10000) {
+  eef_params <- list(
+    EEF_w = list(meanlog = 6.973081061, sdlog = 0.557267175), 
+    EEF_sed = list(meanlog = 2.783343185, sdlog = 1.146282228),
+    EEF_s = list(meanlog = -0.503436938, sdlog = 0.59737721)
+  )
+  
+  eef_samples <- data.frame(
+    EEF_w = rlnorm(n_samples, eef_params$EEF_w$meanlog, eef_params$EEF_w$sdlog),
+    EEF_sed = rlnorm(n_samples, eef_params$EEF_sed$meanlog, eef_params$EEF_sed$sdlog),
+    EEF_s = rlnorm(n_samples, eef_params$EEF_s$meanlog, eef_params$EEF_s$sdlog),
+    EEF_air = rep(0, n_samples)  # Fixed at 0
+  )
+  
+  return(eef_samples)
+}
+
+# 1.2 Define SDF ecosystem columns 
+marine_cols <- c(4, 5, 7, 14, 15, 17)      # sw_ws_C, sw_wc_C, sw_sed_C, sw_ws_G, sw_wc_G, sw_sed_G
+freshwater_cols <- c(2, 3, 6, 8, 12, 13, 16, 18)  # fw_C, lw_C, fw_sed_C, lw_sed_C, fw_G, lw_G, fw_sed_G, lw_sed_G
+terrestrial_cols <- c(9, 10, 19, 20)       # nat_soil_C, agr_soil_C, nat_soil_G, agr_soil_G
+
+
+# 1.3 Generate EEF Monte Carlo samples
+n_samples <- 10  # Should match FF Monte Carlo samples
+eef_monte_carlo <- generate_eef_samples(n_samples)
+
+# 1.4 Initialize EMPTY results dataframes (outside ALL loops)
+results_FF <- data.frame()
+results_CF_mid_PAF_day <- data.frame()
+results_CF_end_PDF_year <- data.frame()
+results_CF_end_species_year <- data.frame()
+results_CF_end_PDF_m2_year <- data.frame()
+
+# 1.5 Helper functions
+get_elementary_flowname <- function(shape, pol, size, reg) {
+  switch(shape,
+         "Sphere" = paste0("Microsphere/fragment", " - ", pol, " (", size, " µm diameter), ", reg),
+         "Fiber"  = paste0("Microfiber/cylinder", " - ", pol, " (", size, " µm diameter), ", reg),
+         "Film"   = paste0("Microfilm/sheet", " - ", pol, " (", size, " µm thickness), ", reg),
+         paste0("Micro", tolower(shape), " - ", pol, ", ", reg)
+  )
+}
+
+
+
+# ====== PART 3: MAIN PROCESSING FUNCTION ======
+
+process_all_monte_carlo_for_combination <- function(ff_matrices_list, eef_samples, reg, pol, size, shape,
+                                                    emission_compartments, states, compartment_names,
+                                                    volume_compartments, areas_compartments,
+                                                    SDF, SF, list_tot_species,
+                                                    marine_cols, freshwater_cols, terrestrial_cols,
+                                                    FracSpe_wc_aqua, FracSpe_sed_aqua, 
+                                                    FracSpe_ws_marine, FracSpe_wc_marine, FracSpe_sed_marine) {
+  
+  # Determine sample size
+  n_ff_samples <- length(ff_matrices_list)
+  n_eef_samples <- nrow(eef_samples)
+  n_samples <- min(n_ff_samples, n_eef_samples)
+  
+  # Initialize results for this combination
+  ff_stats_list <- list()
+  cf_mid_list <- list()
+  cf_end_pdf_list <- list()
+  cf_end_species_list <- list()
+  cf_end_pdf_m2_list <- list()
+  
+  # Loop over emission compartments
+  for(emission_compartment in emission_compartments) {
+    
+    cat("Processing", compartment_names[emission_compartment], "for", reg, pol, size, shape, "\n")
+    
+    # Pre-extract FF values for this emission compartment
+    ff_columns_list <- lapply(ff_matrices_list[1:n_samples], function(ff_mat) {
+      ff_mat[, emission_compartment, drop = FALSE]
+    })
+    
+    # Process each Monte Carlo iteration
+    all_iterations_data <- lapply(1:n_samples, function(i) {
+      
+      # ----- A. Process FF data -----
+      Masses <- ff_columns_list[[i]]
+      Masses_df <- as.data.frame(Masses)
+      Masses_df$Abbr <- rownames(Masses_df)
+      colnames(Masses_df)[1] <- "FF"
+      
+      # ----- B. Get EEF for this iteration -----
+      eef_iter <- eef_samples[i, ]
+      
+      # ----- C. Process FF and combine with EEF -----
+      processed <- Masses_df |>
+        left_join(states, by = "Abbr") |>
+        group_by(Scale, SubCompart) |>
+        summarise(FF = sum(FF), .groups = "drop") |>
+        filter(!Scale %in% c("Arctic", "Moderate", "Tropic") & SubCompart != "othersoil") |>
+        mutate(SubCompart = ifelse(Scale %in% c("Regional", "Continental") & 
+                                     SubCompart %in% c("air", "cloudwater"),
+                                   "air", SubCompart)) |>
+        group_by(Scale, SubCompart) |>
+        summarise(FF = sum(FF), .groups = "drop") |>
+        mutate(
+          Scale = factor(Scale, levels = c("Regional", "Continental")),
+          SubCompart = factor(SubCompart, levels = c("air","river","lake","sea","deepocean",
+                                                     "freshwatersediment","lakesediment",
+                                                     "marinesediment","naturalsoil","agriculturalsoil"))
+        ) |>
+        arrange(Scale, SubCompart) |>
+        mutate(Scale = recode(Scale, "Continental" = "Global", "Regional" = "Continental")) |>
+        mutate(
+          eef = case_when(
+            SubCompart == "air" ~ eef_iter$EEF_air,
+            SubCompart %in% c("river", "lake", "sea", "deepocean") ~ eef_iter$EEF_w,
+            SubCompart %in% c("freshwatersediment", "lakesediment", "marinesediment") ~ eef_iter$EEF_sed,
+            SubCompart %in% c("naturalsoil", "agriculturalsoil") ~ eef_iter$EEF_s,
+            TRUE ~ 0
+          ),
+          volume = volume_compartments,
+          areas = areas_compartments,
+          CF_comp_PAF_m3_day = FF * eef,
+          CF_comp_PAF_day = CF_comp_PAF_m3_day / volume,
+          region = reg,
+          polymer = pol,
+          size = size,
+          shape = shape,
+          emission_compartment = compartment_names[emission_compartment],
+          mc_iteration = i
+        )
+      
+      return(processed)
+    })
+    
+    # Combine all iterations
+    all_mc_data <- bind_rows(all_iterations_data)
+    
+    # ----- D. Calculate FF Statistics -----
+    ff_stats <- all_mc_data |>
+      group_by(Scale, SubCompart) |>
+      summarise(
+        ff_mean = mean(FF),
+        ff_geom_mean = exp(mean(log(FF))),
+        ff_median = median(FF),
+        ff_sd = sd(FF),
+        ff_gsd = exp(sd(log(FF))),
+        ff_cv = sd(FF) / mean(FF),
+        ff_ll_95 = quantile(FF, 0.025),
+        ff_ul_95 = quantile(FF, 0.975),
+        ff_ll_90 = quantile(FF, 0.05),
+        ff_ul_90 = quantile(FF, 0.95),
+        n_samples = n(),
+        .groups = "drop"
+      ) |>
+      mutate(
+        region = reg,
+        polymer = pol,
+        size = size,
+        shape = shape,
+        emission_compartment = compartment_names[emission_compartment],
+        receiving_compartment = paste(Scale, SubCompart)
+      ) |>
+      dplyr::select(region, polymer, size, shape, emission_compartment, receiving_compartment,
+                    ff_mean, ff_geom_mean, ff_median, ff_sd, ff_gsd, ff_cv,
+                    ff_ll_95, ff_ul_95, ff_ll_90, ff_ul_90, n_samples)
+    
+    ff_stats_list[[emission_compartment]] <- ff_stats
+    
+    # ----- E. Calculate CFs for each iteration -----
+    cf_iter_results <- lapply(1:n_samples, function(i) {
+      iter_data <- all_mc_data %>% filter(mc_iteration == i)
+      cf_comp_matrix <- as.matrix(iter_data$CF_comp_PAF_day)
+      
+      # Calculate ecosystem contributions
+      cf_marine <- sum(as.matrix(SDF[, marine_cols]) %*% cf_comp_matrix)
+      cf_freshwater <- sum(as.matrix(SDF[, freshwater_cols]) %*% cf_comp_matrix)
+      cf_terrestrial <- sum(as.matrix(SDF[, terrestrial_cols]) %*% cf_comp_matrix)
+      cf_total <- cf_marine + cf_freshwater + cf_terrestrial
+      
+      # Calculate PDF·m²·year for each ecosystem
+      cf_pdf_m2_marine <- calculate_pdf_m2_ecosystem(iter_data, "marine", SF,
+                                                     FracSpe_ws_marine, FracSpe_wc_marine, 
+                                                     FracSpe_sed_marine)
+      cf_pdf_m2_freshwater <- calculate_pdf_m2_ecosystem(iter_data, "freshwater", SF,
+                                                         FracSpe_wc_aqua, FracSpe_sed_aqua, 
+                                                         NA)
+      cf_pdf_m2_terrestrial <- calculate_pdf_m2_ecosystem(iter_data, "terrestrial", SF,
+                                                          NA, NA, NA)
+      cf_pdf_m2_total <- cf_pdf_m2_marine + cf_pdf_m2_freshwater + cf_pdf_m2_terrestrial
+      
+      # Return ONE ROW with ALL CF values for this iteration
+      return(list(
+        # Metadata
+        elementary_flowname = get_elementary_flowname(shape, pol, size, reg),
+        region = reg,
+        polymer = pol,
+        size = size,
+        shape = shape,
+        emission_compartment = compartment_names[emission_compartment],
+        mc_iteration = i,
+        
+        # Midpoint CFs (PAF·day)
+        CF_mid_PAF_day_marine = cf_marine,
+        CF_mid_PAF_day_freshwater = cf_freshwater,
+        CF_mid_PAF_day_terrestrial = cf_terrestrial,
+        CF_mid_PAF_day_total = cf_total,
+        
+        # Endpoint CFs (PDF·year)
+        CF_end_PDF_year_marine = cf_marine * SF / 365,
+        CF_end_PDF_year_freshwater = cf_freshwater * SF / 365,
+        CF_end_PDF_year_terrestrial = cf_terrestrial * SF / 365,
+        CF_end_PDF_year_total = cf_total * SF / 365,
+        
+        # Endpoint CFs (species·year)
+        CF_end_species_year_marine = sum(as.matrix(list_tot_species[, marine_cols]) * 
+                                           as.matrix(SDF[, marine_cols]) %*% cf_comp_matrix) * SF / 365,
+        CF_end_species_year_freshwater = sum(as.matrix(list_tot_species[, freshwater_cols]) * 
+                                               as.matrix(SDF[, freshwater_cols]) %*% cf_comp_matrix) * SF / 365,
+        CF_end_species_year_terrestrial = sum(as.matrix(list_tot_species[, terrestrial_cols]) * 
+                                                as.matrix(SDF[, terrestrial_cols]) %*% cf_comp_matrix) * SF / 365,
+        CF_end_species_year_total = (cf_end_species_year_marine + 
+                                       cf_end_species_year_freshwater + 
+                                       cf_end_species_year_terrestrial),
+        
+        # Ecosystem CFs (PDF·m²·year)
+        CF_end_PDF_m2_year_marine = cf_pdf_m2_marine,
+        CF_end_PDF_m2_year_freshwater = cf_pdf_m2_freshwater,
+        CF_end_PDF_m2_year_terrestrial = cf_pdf_m2_terrestrial,
+        CF_end_PDF_m2_year_total = cf_pdf_m2_total
+      ))
+    })
+    
+    # Combine all Monte Carlo iterations
+    cf_all_iterations <- bind_rows(lapply(cf_iter_results, as.data.frame))
+    
+    # ----- F. Calculate statistics for EACH CF type -----
+    
+    # CF_mid_PAF_day statistics
+    cf_mid_stats <- cf_all_iterations |>
+      summarise(
+        CF_mid_PAF_day_marine_mean = mean(CF_mid_PAF_day_marine),
+        CF_mid_PAF_day_marine_ll = quantile(CF_mid_PAF_day_marine, 0.025),
+        CF_mid_PAF_day_marine_ul = quantile(CF_mid_PAF_day_marine, 0.975),
+        CF_mid_PAF_day_marine_gsd = exp(sd(log(CF_mid_PAF_day_marine))),
+        
+        CF_mid_PAF_day_freshwater_mean = mean(CF_mid_PAF_day_freshwater),
+        CF_mid_PAF_day_freshwater_ll = quantile(CF_mid_PAF_day_freshwater, 0.025),
+        CF_mid_PAF_day_freshwater_ul = quantile(CF_mid_PAF_day_freshwater, 0.975),
+        CF_mid_PAF_day_freshwater_gsd = exp(sd(log(CF_mid_PAF_day_freshwater))),
+        
+        CF_mid_PAF_day_terrestrial_mean = mean(CF_mid_PAF_day_terrestrial),
+        CF_mid_PAF_day_terrestrial_ll = quantile(CF_mid_PAF_day_terrestrial, 0.025),
+        CF_mid_PAF_day_terrestrial_ul = quantile(CF_mid_PAF_day_terrestrial, 0.975),
+        CF_mid_PAF_day_terrestrial_gsd = exp(sd(log(CF_mid_PAF_day_terrestrial))),
+        
+        CF_mid_PAF_day_total_mean = mean(CF_mid_PAF_day_total),
+        CF_mid_PAF_day_total_ll = quantile(CF_mid_PAF_day_total, 0.025),
+        CF_mid_PAF_day_total_ul = quantile(CF_mid_PAF_day_total, 0.975),
+        CF_mid_PAF_day_total_gsd = exp(sd(log(CF_mid_PAF_day_total))),
+        
+        n_samples = n()
+      ) |>
+      mutate(
+        elementary_flowname = get_elementary_flowname(shape, pol, size, reg),
+        region = reg,
+        polymer = pol,
+        size = size,
+        shape = shape,
+        emission_compartment = compartment_names[emission_compartment]
+      )
+    
+    # CF_end_PDF_year statistics
+    cf_end_pdf_stats <- cf_all_iterations |>
+      summarise(
+        CF_end_PDF_year_marine_mean = mean(CF_end_PDF_year_marine),
+        CF_end_PDF_year_marine_ll = quantile(CF_end_PDF_year_marine, 0.025),
+        CF_end_PDF_year_marine_ul = quantile(CF_end_PDF_year_marine, 0.975),
+        CF_end_PDF_year_marine_gsd = exp(sd(log(CF_end_PDF_year_marine))),
+        
+        CF_end_PDF_year_freshwater_mean = mean(CF_end_PDF_year_freshwater),
+        CF_end_PDF_year_freshwater_ll = quantile(CF_end_PDF_year_freshwater, 0.025),
+        CF_end_PDF_year_freshwater_ul = quantile(CF_end_PDF_year_freshwater, 0.975),
+        CF_end_PDF_year_freshwater_gsd = exp(sd(log(CF_end_PDF_year_freshwater))),
+        
+        CF_end_PDF_year_terrestrial_mean = mean(CF_end_PDF_year_terrestrial),
+        CF_end_PDF_year_terrestrial_ll = quantile(CF_end_PDF_year_terrestrial, 0.025),
+        CF_end_PDF_year_terrestrial_ul = quantile(CF_end_PDF_year_terrestrial, 0.975),
+        CF_end_PDF_year_terrestrial_gsd = exp(sd(log(CF_end_PDF_year_terrestrial))),
+        
+        CF_end_PDF_year_total_mean = mean(CF_end_PDF_year_total),
+        CF_end_PDF_year_total_ll = quantile(CF_end_PDF_year_total, 0.025),
+        CF_end_PDF_year_total_ul = quantile(CF_end_PDF_year_total, 0.975),
+        CF_end_PDF_year_total_gsd = exp(sd(log(CF_end_PDF_year_total))),
+        
+        n_samples = n()
+      ) |>
+      mutate(
+        elementary_flowname = get_elementary_flowname(shape, pol, size, reg),
+        region = reg,
+        polymer = pol,
+        size = size,
+        shape = shape,
+        emission_compartment = compartment_names[emission_compartment]
+      )
+    
+    # CF_end_species_year statistics
+    cf_end_species_stats <- cf_all_iterations |>
+      summarise(
+        CF_end_species_year_marine_mean = mean(CF_end_species_year_marine),
+        CF_end_species_year_marine_ll = quantile(CF_end_species_year_marine, 0.025),
+        CF_end_species_year_marine_ul = quantile(CF_end_species_year_marine, 0.975),
+        CF_end_species_year_marine_gsd = exp(sd(log(CF_end_species_year_marine))),
+        
+        CF_end_species_year_freshwater_mean = mean(CF_end_species_year_freshwater),
+        CF_end_species_year_freshwater_ll = quantile(CF_end_species_year_freshwater, 0.025),
+        CF_end_species_year_freshwater_ul = quantile(CF_end_species_year_freshwater, 0.975),
+        CF_end_species_year_freshwater_gsd = exp(sd(log(CF_end_species_year_freshwater))),
+        
+        CF_end_species_year_terrestrial_mean = mean(CF_end_species_year_terrestrial),
+        CF_end_species_year_terrestrial_ll = quantile(CF_end_species_year_terrestrial, 0.025),
+        CF_end_species_year_terrestrial_ul = quantile(CF_end_species_year_terrestrial, 0.975),
+        CF_end_species_year_terrestrial_gsd = exp(sd(log(CF_end_species_year_terrestrial))),
+        
+        CF_end_species_year_total_mean = mean(CF_end_species_year_total),
+        CF_end_species_year_total_ll = quantile(CF_end_species_year_total, 0.025),
+        CF_end_species_year_total_ul = quantile(CF_end_species_year_total, 0.975),
+        CF_end_species_year_total_gsd = exp(sd(log(CF_end_species_year_total))),
+        
+        n_samples = n()
+      ) |>
+      mutate(
+        elementary_flowname = get_elementary_flowname(shape, pol, size, reg),
+        region = reg,
+        polymer = pol,
+        size = size,
+        shape = shape,
+        emission_compartment = compartment_names[emission_compartment]
+      )
+    
+    # CF_end_PDF_m2_year statistics
+    cf_end_pdf_m2_stats <- cf_all_iterations |>
+      summarise(
+        CF_end_PDF_m2_year_marine_mean = mean(CF_end_PDF_m2_year_marine),
+        CF_end_PDF_m2_year_marine_ll = quantile(CF_end_PDF_m2_year_marine, 0.025),
+        CF_end_PDF_m2_year_marine_ul = quantile(CF_end_PDF_m2_year_marine, 0.975),
+        CF_end_PDF_m2_year_marine_gsd = exp(sd(log(CF_end_PDF_m2_year_marine))),
+        
+        CF_end_PDF_m2_year_freshwater_mean = mean(CF_end_PDF_m2_year_freshwater),
+        CF_end_PDF_m2_year_freshwater_ll = quantile(CF_end_PDF_m2_year_freshwater, 0.025),
+        CF_end_PDF_m2_year_freshwater_ul = quantile(CF_end_PDF_m2_year_freshwater, 0.975),
+        CF_end_PDF_m2_year_freshwater_gsd = exp(sd(log(CF_end_PDF_m2_year_freshwater))),
+        
+        CF_end_PDF_m2_year_terrestrial_mean = mean(CF_end_PDF_m2_year_terrestrial),
+        CF_end_PDF_m2_year_terrestrial_ll = quantile(CF_end_PDF_m2_year_terrestrial, 0.025),
+        CF_end_PDF_m2_year_terrestrial_ul = quantile(CF_end_PDF_m2_year_terrestrial, 0.975),
+        CF_end_PDF_m2_year_terrestrial_gsd = exp(sd(log(CF_end_PDF_m2_year_terrestrial))),
+        
+        CF_end_PDF_m2_year_total_mean = mean(CF_end_PDF_m2_year_total),
+        CF_end_PDF_m2_year_total_ll = quantile(CF_end_PDF_m2_year_total, 0.025),
+        CF_end_PDF_m2_year_total_ul = quantile(CF_end_PDF_m2_year_total, 0.975),
+        CF_end_PDF_m2_year_total_gsd = exp(sd(log(CF_end_PDF_m2_year_total))),
+        
+        n_samples = n()
+      ) |>
+      mutate(
+        elementary_flowname = get_elementary_flowname(shape, pol, size, reg),
+        region = reg,
+        polymer = pol,
+        size = size,
+        shape = shape,
+        emission_compartment = compartment_names[emission_compartment]
+      )
+    
+    # Store in lists
+    cf_mid_list[[emission_compartment]] <- cf_mid_stats
+    cf_end_pdf_list[[emission_compartment]] <- cf_end_pdf_stats
+    cf_end_species_list[[emission_compartment]] <- cf_end_species_stats
+    cf_end_pdf_m2_list[[emission_compartment]] <- cf_end_pdf_m2_stats
+    
+  } # End emission compartment loop
+  
+  # Return ALL results for this combination
+  return(list(
+    ff_stats = bind_rows(ff_stats_list),
+    cf_mid_paf_day = bind_rows(cf_mid_list),
+    cf_end_pdf_year = bind_rows(cf_end_pdf_list),
+    cf_end_species_year = bind_rows(cf_end_species_list),
+    cf_end_pdf_m2_year = bind_rows(cf_end_pdf_m2_list)
+  ))
+}
+
+# Helper function for PDF·m²·year calculation
+calculate_pdf_m2_ecosystem <- function(iter_data, ecosystem, SF, frac_ws = NA, frac_wc = NA, frac_sed = NA) {
+  
+  if(ecosystem == "marine") {
+    filtered <- iter_data |>
+      filter(SubCompart %in% c("sea", "deepocean", "marinesediment")) |>
+      mutate(
+        CF_comp_PDF_m2_year = CF_comp_PAF_day * areas * SF / 365,
+        CF_comp_PDF_m2_year = case_when(
+          SubCompart == "sea" ~ CF_comp_PDF_m2_year * frac_ws,
+          SubCompart == "deepocean" ~ CF_comp_PDF_m2_year * frac_wc,
+          SubCompart == "marinesediment" ~ CF_comp_PDF_m2_year * frac_sed,
+          TRUE ~ CF_comp_PDF_m2_year
+        )
+      )
+  } else if(ecosystem == "freshwater") {
+    filtered <- iter_data |>
+      filter(SubCompart %in% c("river", "lake", "freshwatersediment", "lakesediment")) |>
+      mutate(
+        CF_comp_PDF_m2_year = CF_comp_PAF_day * areas * SF / 365,
+        CF_comp_PDF_m2_year = case_when(
+          SubCompart %in% c("river", "lake") ~ CF_comp_PDF_m2_year * frac_wc,
+          SubCompart %in% c("freshwatersediment", "lakesediment") ~ CF_comp_PDF_m2_year * frac_sed,
+          TRUE ~ CF_comp_PDF_m2_year
+        )
+      )
+  } else if(ecosystem == "terrestrial") {
+    filtered <- iter_data |>
+      filter(SubCompart %in% c("naturalsoil", "agriculturalsoil")) |>
+      mutate(
+        CF_comp_PDF_m2_year = CF_comp_PAF_day * areas * SF / 365
+      )
+  } else {
+    return(0)
+  }
+  
+  return(sum(filtered$CF_comp_PDF_m2_year, na.rm = TRUE))
+}
+
+
+
+
 #####Loading bar
 n <- length(region_names) * length(polymer_names) * length(sizes) * length(shapes) * length(emission_compartments)
 pb <- txtProgressBar(min = 0, max = n, style = 3)
 count <- 0
+
+
 
 #####TEST
 #Variables to test
@@ -480,71 +1145,105 @@ for(reg in region_names){
         World$UpdateDirty(vars_to_update)
         
         #solve
-        n_samples <- 1000
         #emissions <- data.frame(Abbr = c("aRS"), Emis = 1/3600/24) #emission of 1kg/d input in kg/s - resulting steady state masses (kg) can be divided by 1 (kg/d) to get FF (d)
         emissions <- data.frame(Abbr = c("aRS"), Emis = 1/3600/24, RUN = (1:n_samples)) #emission of 1kg/d input in kg/s - resulting steady state masses (kg) can be divided by 1 (kg/d) to get FF (d)
         World$NewSolver("SteadyStateSolver")
         World$Solve(emissions = emissions, var_box_df = degradation_CI, var_invFun = varFuns, nRUNs = n_samples)
         
-        #Masses <- World$Masses()
-        k_matrix = World$exportEngineR()
+        Masses <- World$Masses()
+        #k_matrix = World$exportEngineR()
+        k_matrix = World$K_matrix() #New in SBoo: this returns a list of matrix for the probabilistic solver
         k_detailed = World$fetchData("kaas")
         
-        # Assume k_matrix has rownames and colnames
-        keep_idx <- sapply(rownames(k_matrix), function(nm) {
-          # Rule 1: remove if contains U, M, T -> ignore Unbound, moderate and tropic
-          if (grepl("[UMT]", nm)) return(FALSE)
-          # Rule 2: remove if the before-last letter is "A" -> ignore arctic
-          # Check length first
-          if (nchar(nm) >= 2) {
-            letters <- strsplit(nm, "")[[1]]
-            if (letters[nchar(nm)-1] == "A") return(FALSE)
-          }
-          #Rule 3: remove other soil
-          if (grepl("s3", nm)) return(FALSE)
-          
-          TRUE  # keep otherwise
+        
+        
+        
+        
+        ########NEW
+        # Setup on first iteration (only structure)
+        if(is.null(setup)) {
+          first_mat <- k_matrix[[1]]
+          setup <- setup_fill_patterns(first_mat, X_list)
+        }
+        
+        # Process all Monte Carlo samples
+        ff_matrices_list <- lapply(k_matrix, function(k_mat) {
+          process_single_matrix(k_mat, setup)
         })
         
-        # Filter both rows and columns
-        k_matrix_filtered <- k_matrix[keep_idx, keep_idx]
         
-        ##### X Matrix (Salieri et al. 2019)
-        #1. X matrix - Create a matrix of zeros
-        tab_X <- matrix(0, nrow = length(X_list)*3, ncol = length(X_list))
-        # Convert to dataframe with X_list as row names
-        X <- as.data.frame(tab_X)
-        colnames(X) <- X_list
-        rownames(X) <- rownames(k_matrix_filtered)
-        for(prefix in X_list){
-          fill_X(prefix)
-        }
         
-        #2. A matrix (transposed size of X)
-        tab_A <- matrix(0, nrow = length(X_list), ncol = length(X_list)*3)
-        A <- as.data.frame(tab_A)
-        rownames(A) <- X_list
-        colnames(A) <- rownames(k_matrix_filtered)
-        for(prefix in X_list){
-          A[prefix,paste0(prefix,"S")] <- 1
-          A[prefix,paste0(prefix,"A")] <- 1
-          A[prefix,paste0(prefix,"P")] <- 1
-        }
         
-        #3. Dot mulitply (K1.X)
-        K1X <- k_matrix_filtered %*% as.matrix(X)
+        # #Process FF statistics
+        # ff_stats_df <- process_ff_monte_carlo(
+        #   ff_matrices_list = ff_results,
+        #   setup = setup,
+        #   reg = reg,
+        #   pol = pol,  # Assuming polymer is defined somewhere
+        #   size = size,
+        #   shape = shape,
+        #   emission_compartments = emission_compartments,
+        #   states = states,
+        #   compartment_names = compartment_names,
+        #   volume_compartments = volume_compartments,
+        #   eef_compartments = eef_compartments
+        # )
+        # 
+        # # Append to overall results
+        # results_FF <- bind_rows(results_FF, ff_stats_df)
+        # 
         
-        #4. Dot mulitply A.K1X
-        K_final <- as.matrix(A) %*% K1X
         
-        k_matrix_inv <- solve(K_final) 
-        ff_matrix <- -1*k_matrix_inv/86400 #Fate factors are the negative of the inverse of the k matrix (s-1), converted to days
-        rownames(ff_matrix) <- paste0(rownames(ff_matrix), "S") #add "S" back for SB to find the write compartments
         
+        
+        # ===== 2.2 Process ALL Monte Carlo samples for this combination =====
+        # This function processes ALL emission compartments and returns list of dataframes
+        all_results <- process_all_monte_carlo_for_combination(
+          ff_matrices_list = ff_matrices_list,
+          eef_samples = eef_monte_carlo,
+          reg = reg,
+          pol = pol,
+          size = size,
+          shape = shape,
+          emission_compartments = emission_compartments,
+          states = states,
+          compartment_names = compartment_names,
+          volume_compartments = volume_compartments,
+          areas_compartments = areas_compartments,
+          SDF = SDF,
+          SF = SF,
+          list_tot_species = list_tot_species,
+          marine_cols = marine_cols,
+          freshwater_cols = freshwater_cols,
+          terrestrial_cols = terrestrial_cols,
+          FracSpe_wc_aqua = FracSpe_wc_aqua,
+          FracSpe_sed_aqua = FracSpe_sed_aqua,
+          FracSpe_ws_marine = FracSpe_ws_marine,
+          FracSpe_wc_marine = FracSpe_wc_marine,
+          FracSpe_sed_marine = FracSpe_sed_marine
+        )
+        
+        # ===== 2.3 Append results to respective dataframes =====
+        results_FF <- bind_rows(results_FF, all_results$ff_stats)
+        results_CF_mid_PAF_day <- bind_rows(results_CF_mid_PAF_day, all_results$cf_mid_paf_day)
+        results_CF_end_PDF_year <- bind_rows(results_CF_end_PDF_year, all_results$cf_end_pdf_year)
+        results_CF_end_species_year <- bind_rows(results_CF_end_species_year, all_results$cf_end_species_year)
+        results_CF_end_PDF_m2_year <- bind_rows(results_CF_end_PDF_m2_year, all_results$cf_end_pdf_m2_year)
+        
+        
+        
+        
+
         #loop over emission compartments
         for (emission_compartment in emission_compartments) {
+          
+          
+          
+          
+          
+          
           #define the emission, solve and retrieve steady state masses
-          Masses <- ff_matrix[, emission_compartment, drop = FALSE]
+          Masses <- ff_matrix_1[, emission_compartment, drop = FALSE]
           Masses_df <- as.data.frame(Masses)
           Masses_df$Abbr <- rownames(Masses_df)  # move rownames into Abbr column
           colnames(Masses_df)[colnames(Masses_df) == emission_compartment] <- "FF"
