@@ -19,7 +19,8 @@ regions <- regions |>
   rename(varName = Variable)
 
 # Initalize World
-source("baseScripts/initWorld_onlyPlastics.R")
+#source("baseScripts/initWorld_onlyPlastics.R")
+source("baseScripts/initWorld.R")
 
 #If Test FALSE: new version of SB, if True, then the old version (excel)
 #World$SetConst(Test = "TRUE")
@@ -480,7 +481,8 @@ for(reg in region_names){
         World$Solve(emissions = emissions)
         
         #Masses <- World$Masses()
-        k_matrix = World$exportEngineR()
+        #k_matrix = World$exportEngineR()
+        k_matrix = World$K_matrix() #New in SBoo: this returns a list of matrix for the probabilistic solver
         k_detailed = World$fetchData("kaas")
         
         # Assume k_matrix has rownames and colnames
