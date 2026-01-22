@@ -270,7 +270,7 @@ count <- 0
 #Variables to test
 #reg = "Ocenia"
 reg = "North America"
-pol = "EPS"
+pol = "HDPE"
 size = 1
 shape = "Sphere"
 emission_compartment = "w2RS"
