@@ -9,6 +9,7 @@ CORG.susp,0.1,,-,Standard suspended mass fraction organic carbon
 CorgStandard,0.02,CORG,-,Standard mass FRACTION organic carbon in soil/sediment
 DegApproach,Default,new,-,"Approach used to estimate degradation, implemented for polymer particles (Default, Kssdr, PlasticFADE)"
 Df,0.333333333,NA,-,fractal dimension of combined heteroagglomerate
+DragMethod,Original,new,-,"The particle drag method to use in calculation of settling velocities. Options are: Original, Dioguardi or Default, Swamee, Stokes, Bagheri."
 DynViscAirStandard,1.81E-05,DYNVISC.a,kg.m-1.s-1,Dynamic Viscosity of air
 DynViscWaterStandard,0.001002,DYNVISC.w,kg.m-1.s-1,Dynamic Viscosity of water
 Ea.OHrad,6000,Ea.OHrad,J.mol-1,activation OH radical energy
@@ -32,4 +33,5 @@ relevant_depth_s,0,missing,m,used in the correction factor for soil processes (0
 RhoNuc,1300,RhoNuc,[kg.m-3],Density of Nucleation mode aerosol particles
 t_half_Escape,60,k.esc.a,yr-1,Half life time in air for escape to stratosphere
 T25,298,NA,K,Temperature for normalised circumstances
+Test,FALSE,new,boolean,Variable that in previous versions allowed comparison to xlsx version of SimpleBox for testing.
 Tm_default,274,Tm,K,Default melting temperature

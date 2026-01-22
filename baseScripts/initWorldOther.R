@@ -43,19 +43,81 @@
     World$filterStates <- list(SpeciesName = "Molecular")
     # To proceed with testing we set
     if(is.na(World$fetchData("kdis"))) {
-      warning("kdis is missing, setting kdis = 0")
-      World$SetConst(kdis = 0)
+      message(paste0("initWorld: For ", substance," kdis is missing (substance not a particle), setting kdis = NA"))
+      World$SetConst(kdis = NA)
+    }
+    if(is.na(World$fetchData("Kssdr"))) {
+      message(paste0("initWorld: For " ,substance," kssdr is missing (substance not a particle), setting kssdr = 0"))
+      World$SetConst(Kssdr = 0)
     }
     
-    if (World$fetchData("ChemClass")==("")) {
-      warning("ChemClass is needed but missing, setting to neutral")
+    if(World$fetchData("ChemClass")==("")) {
+      warning(paste0("initWorld: For " ,substance," ChemClass is needed but missing, setting to neutral"), call. = FALSE)
       World$SetConst(ChemClass = "neutral")
     }
     
+  } else {
+    if(anyNA(World$fetchData("kdis"))) {
+      warning(paste0("initWorld: For " ,substance," kdis is missing, setting kdis = 0"), call. = FALSE)
+      message("initWorld: Please set kdis in SubstanceCompartments.csv")
+      World$SetConst(kdis = 0)
+    }
+    if(anyNA(World$fetchData("kfrag"))) {
+      warning(paste0("initWorld: For " ,substance," kfrag is missing, setting kfrag = 0"), call. = FALSE)
+      World$SetConst(kfrag = 0)
+    }
+    if(anyNA(World$fetchData("kdeag"))) {
+      warning(paste0("initWorld: For " ,substance," kdeag is missing, setting kdeag = 0"), call. = FALSE)
+      World$SetConst(kdeag = 0)
+    }
+    if(anyNA(World$fetchData("MinSettVel"))) {
+      message(paste0("initWorld: For ", substance," MinSettVel is missing, setting to 0"))
+      World$SetConst(MinSettVel = 0)
+    }
+    
+    ##### Sorting out degradation #####  
+    if(anyNA(World$fetchData("DegApproach"))){
+      warning("initWorld: DegApproach not set, using Default", call. = FALSE)
+      World$SetConst(DegApproach = "Default")
+    }
+    message(paste0("initWorld: Degradation calculation for particles uses ",World$fetchData("DegApproach")," approach."))
+    message(paste0("initWorld: Drag method for calculation of particle settling velocities uses ",World$fetchData("DragMethod")," approach."))
+    
+    if(anyNA(World$fetchData("kdeg"))) {
+      warning(paste0("initWorld: k_degradation - For " ,substance," kdeg is missing, setting default kdeg = 1e-20."))
+      World$SetConst(kdeg = 1e-20)
+    }
+    
+    
+    
+    # if(!anyNA(World$fetchData("kdeg"))) {
+    #   if(!anyNA(World$fetchData("Kssdr"))) {
+    #     message(paste0("initWorld: For " ,substance," Kssdr is being used instead of kdeg"))
+    #   }
+    # }
+    if(anyNA(World$fetchData("Kssdr"))) {
+      message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
+      # message("Plese set Kssdr in SubstanceCompartments.csv")
+      World$SetConst(Kssdr = NA)
+    }
+    
+    if(anyNA(World$fetchData("alpha"))) {
+      warning(paste0("initWorld: For " ,substance," alpha is missing, setting alpha = 0.1"))
+      message("initWorld: Plese set alpha in SubstanceCompartments.csv")
+      World$SetConst(alpha = 0.1)
+    }
+    if(anyNA(World$fetchData("RadS")) && anyNA(World$fetchData("Shortest_side"))){
+      stop(paste0("initWorld ERROR: For ",substance ," RadS or Shortest_side needed for running SimpleBox for particles"))
+    }
   }
   
-  World$SetConst(DragMethod = "Original")
-  World$SetConst(Test = "FALSE")
+  if(anyNA(World$fetchData("DragMethod"))){
+    World$SetConst(DragMethod = "Original")
+  }
+  
+  if(anyNA(World$fetchData("Test"))){
+    World$SetConst(Test = "FALSE")
+  }
   AllF <- ls() %>% sapply(FUN = get)
   ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
   

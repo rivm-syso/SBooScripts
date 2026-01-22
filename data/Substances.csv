@@ -1,4 +1,4 @@
-Substance,ChemClass,pKa,MW,Tm,Pvap25,Sol25,Kaw25,Kow,Ksw,Kp.col,Kp.susp,Kp.sed,Kp.soil,RadS,RhoS,hamakerSP.w,Shape,Shortest_side,Intermediate_side,Longest_side,MinSettVel,CorFacSSA,deg_x,deg_tau,deg_y,deg_theta,deg_z,deg_eta,Degrading_enzyme
+﻿Substance,ChemClass,pKa,MW,Tm,Pvap25,Sol25,Kaw25,Kow,Ksw,Kp.col,Kp.susp,Kp.sed,Kp.soil,RadS,RhoS,hamakerSP.w,Shape,Shortest_side,Intermediate_side,Longest_side,MinSettVel,CorFacSSA,deg_x,deg_tau,deg_y,deg_theta,deg_z,deg_eta,Degrading_enzyme
 (4-chloro-2-methylphenoxy)acetic acid,,NA,201,118,2.7e-4,320000,NA,600,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 (4-Chloro-2-methylphenoxy)acetic acid compd. with N-Methylmethanamine (1:1),acid,3.13,200.62,NA,7.87e-4,630,NA,1778.27941,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 "[1,1'-Biphenyl]-4,4'-diamine, 3,3'-dimethoxy-, dihydrochloride",base,3.7,317.22,NA,2.77e-14,3178,NA,3.715352291,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
@@ -894,6 +894,7 @@ pentane,,NA,72,-50,68000,38,NA,2500,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 PENTANOCHLOR,neutral,NA,239.75,NA,0.001142667,8.5,NA,20417.37945,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 "PENTANOIC ACID, 2-METHYL-",acid,4.79,116.16,NA,57.19999999,15000,NA,63.09573445,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 Pentanol,neutral,NA,88.15,NA,814.6666665,44600,NA,15.48816619,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+PET_sphere_example,particle,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,1300,2e-21,Sphere,100,NA,NA,0,1,0.0055,0.0137,0.0172,0.705,1.62e-5,0.442,TRUE
 PHENKAPTON,neutral,NA,377.3,NA,1.01e-4,0.04357,NA,691830.9709,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 Phenobarbital,base,7.3,232.24,NA,1.81e-9,1110,NA,29.51209227,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 phenol,,NA,94,41,20,88000,NA,31,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
