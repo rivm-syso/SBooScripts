@@ -3,130 +3,510 @@ title: "PFAS_prob"
 output: html_document
 ---
 
-### Use the dynamic solver probabilistically
+Met oude code proberen
 
-For the dynamic deterministic solver, the emissions need to be given as
-a dataframe with three columns:
+```{r initiate warnings=FALSE, message=FALSE}
+check_and_install <- function(package) {
+  tryCatch({
+    # Load the package
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "is already installed and loaded."))
+  }, error = function(e) {
+    # If an error occurs, install the package
+    message(paste("Package", package, "is not installed. Installing now..."))
+    install.packages(package, dependencies = TRUE)
+    library(package, character.only = TRUE)
+    message(paste("Package", package, "has been successfully installed and loaded."))
+  })
+}
 
--   'Abbr', which contains the abbreviations for the compartments
-
--   'Emis', which contains the emissions to the compartments, in kg/s
-
--   'Time', which contains the time of the emission in seconds,
-
--   'RUN', which contains the run number of the emission.
-
-```{r Prepare uncertain dynamic emissions, warning=FALSE, message=FALSE}
-
-substance <- "Trifluoroacetic"
-source('baseScripts/initWorld.R')
-
-source("AdjustModelRhine.R")
-
-load("data/Examples/example_uncertain_data.RData")
-MW = World$fetchData("MW")
-emissions <- expand.grid(
-  Emis = 1000,
-  Abbr = c('aRU', 's2RU', 's1RU', 's3RU', 'w0RU', 'w1RU', 'w2RU', 'w3RU'),
-  Time = 1:5,
-  RUN = c(1:20)
-)
-
-emissions <- emissions %>%
-   mutate(Time = Time*(365.25*24*60*60)) |> # Convert time from y to s
-    ungroup() |>
-    mutate(Emis = Emis*1000/(MW*365*24*60*60)) |> #MW =500 # convert 1 t/y to si units: kg/s
-    full_join(expand.grid(Abbr=unique(emissions$Abbr),
-                          RUN = c(1:20)) |>
-                mutate(Time = 0,
-                       Emis = 0))
-
-# example_data <- 
-#   example_data |>
-#   dplyr::select(To_Compartment, `2020`, `2021`,`2022`, `2023`, RUN) |>
-#   pivot_longer(!c(To_Compartment, RUN), names_to = "year", values_to = "Emis") |>
-#   mutate(Abbr = case_when(
-#     To_Compartment == "Agricultural soil (micro)" ~ "s2RU",
-#     To_Compartment == "Residential soil (micro)" ~ "s3RU",
-#     To_Compartment == "Surface water (micro)" ~ "w1RU"
-#   )) |>
-#   dplyr::select(-To_Compartment) |>
-#   mutate(Time = ((as.numeric(year))*365.25*24*3600)) |>
-#   mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> # Convert kt/year to kg/s
-#   dplyr::select(-year)
-# 
-# # The raw emission data from 2020 to 2023 will not solve due to instability in the intital state starting at 0. This can be solved by starting at t=0 and mass=0 see below:
-# 
-# example_data <-
-#   example_data |> 
-#   mutate(Time = Time - 2019*365.25*24*3600) |> # converting to 0 being one year before 2020
-#   full_join(expand.grid(Abbr = unique(example_data$Abbr), 
-#                         RUN = c(1:20)) |> 
-#               mutate(Time = 0,
-#                      Emis = 0))
+# Install the required packages
+check_and_install("patchwork")
+check_and_install("ggplot2")
+check_and_install("tidyverse")
+check_and_install("constants")
+check_and_install("deSolve")
+check_and_install("knitr")
+check_and_install("dplyr")
+check_and_install("zyp")
+check_and_install("slider")
+check_and_install("readxl")
+check_and_install("Kendall")
+check_and_install("ggpubr")
+check_and_install("ncdf4")
+check_and_install("raster")
+check_and_install("sf")
+check_and_install("exactextractr")
+check_and_install("here")
+check_and_install("reshape2")
+check_and_install("scales")
+check_and_install("readxl")
+check_and_install("dplyr")
+check_and_install("stringr")
+check_and_install("dplyr")
+check_and_install("here")
+check_and_install("lhs")
+check_and_install("tidyverse")
+check_and_install("treemapify")
+check_and_install("gridExtra")
+library(RColorBrewer)
 
 ```
 
-Prepare the variables the same way as used for the variables in the
-steady state probabilistic solver.
+```{r rekenen, message=FALSE, warning=FALSE}
+## Loop om per PFAS resultaat te krijgen:
+## Resultaat: dataframe met aantal jaren tot X% verwijdering, gevisualiseerd in een violin plots
+## Functies:  initiate() start wereld en past wereld aan voor modelstudie
+##            sb_emission_df() maakt emissie dataframe met scenario uit studie Joris Meesters
+##
 
-```{r Prepare variable df and functions dyn, warning=FALSE, message=FALSE}
+#Input
+start_year = 2020                     #Start jaartal
+EmissionDuration <- 5                #Aantal jaar met emissies
+runtime <- 80 + EmissionDuration     #Looptijd van het model
+#runtime <- 20 + EmissionDuration
+end_year = start_year + runtime       #Eind jaartal
+tmax <- runtime*365.25*24*60*60       #Eind in seconden
+nTIMES <- runtime+1                   #Number of timesteps, e.g. yearly, 2-year
+ReductionDuration <- 15
+Wereldwijd = TRUE 
+nruns <- 75 #jq ~ 1000  runs
 
-# Load the Excel file containing example distributions for variablese
-Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")
+#Gekozen PFAS-stof namen en scenarios van Joris Meesters
+stoffen <- c("Perfluorobutane_sulfonic", "Perfluorobutanoic", 
+                      "Perfluoropentanoic", "Perfluoroheptanoic", 
+                      "Perfluorooctanoic", "Trifluoroacetic", "Perfluorohexanoic")
+mapping <-  c("Perfluorobutane_sulfonic" = "PFBS", "Perfluorobutanoic" = "PFBA", 
+              "Perfluoropentanoic" = "PFPeA", "Perfluoroheptanoic" = "PFHpA", 
+              "Perfluorooctanoic" = "PFOA", "Trifluoroacetic" = "TFA", 
+              "Perfluorohexanoic" = "PFHxA")
 
-varFuns <- World$makeInvFuns(Example_vars)
+#ReductionDuration, TotalReduction, ReductionSteps, ReductionFractions, PlotTitle
+scenarios <- list(list(15, 100, 15, 'equal', "1) Volledig reduceren van emissies"), 
+               list(15, 95, 15, 'equal', "2) REACH restrictie"), 
+               list(20, 95, 20, c(rep(0.05, times=10), rep(0.045, times=10)), "3) REACH restrictie met derogaties"))#,
+               #list('-', 0, 0, 0, "4) Geen restricties"))
+scenarios <- list(
+               list(15, 96, 15, 'equal', "1) Volledig implementatie restricties"), 
+               list(22, 83, 22, c(rep(0.03846154, times=13), 0.03666667, times=9), "2) Restrictie met derogaties"),
+               list(33, 96, 33, c(rep(0.15, times=2), rep(0.01538462, times=13), rep(0.0255556, times=18)), "3) Extra Rijn scenario 30% reductie")
+                ) #sb heeft tijdsstap 1 jaar dus 18 maanden?
 
-```
-
-`World$Solve` needs the following variables to solve steady state
-probabilistically:
-
--   emissions: the emissions dataframe
-
--   var_box_df: a dataframe with the example variables
-
--   var_invFun: the functions created from the var_box_df in a list
-
--   nRUNs: the number of runs (should match the number of RUNs in the
-    emissions dataframe provided)
-
--   tmax: the end time for running the solver, in seconds
-
--   nTIMES: the number of calculation time steps.
-
-Now we can solve and get the solution, variable values, concentration
-and emissions. NOTE: These calculations take a bit longer than the
-previous calculations.
-
-```{r Solve dyn probabilistic, warning=FALSE, message=FALSE}
-World$NewSolver("DynamicSolver")
-
-
-tmax <- max(unique(emissions$Time))
-tmin <- min(unique(emissions$Time))
-nTIMES <- length(seq(0, tmax, length.out = 10))
-
-World$Solve(emissions = emissions, 
+data_list = list()
+barplot_list = list()
+emissie_plots = list()
+for (catchment in c("Maas", "Rijn")) {
+  
+  #Resultaten dataframe
+  data <- expand.grid(
+    run = seq(nruns),
+    verwijdering = c("99.9% verwijdering", "95% verwijdering", "75% verwijdering", "50% verwijdering"),
+    scenario = unlist(lapply(scenarios, function(x) x[[5]])),
+    stof = stoffen
+    )
+  waardes <- c()
+  #Loop door stoffen, start SB-wereld, Loop door scenario's, per scenario resultaten berekenen.
+  for (index in seq_len(length(stoffen))) {
+    substance = stoffen[index]
+    print(substance)
+    #Start Wereld
+    source('baseScripts/initWorld.R')
+    if(catchment == "Rijn"){ 
+      source("AdjustModelRhine.R")
+    } else if (catchment == "Maas") {
+      source("AdjustModelMeuse.R")
+    }
+    source("EmissionFunction.R")
+    
+    # spreiding in variabele
+    if (is.numeric(nruns)) {
+      path = "/rivm/n/jansont/Documents/Werk - Lokaal/SimpleBox PFAS/Uncertainty/uncertain_variables.xlsx"
+      # path = "/rivm/n/jansont/Documents/Werk - Lokaal/SimpleBox PFAS/Uncertainty/Example_uncertain_variables (3).xlsx"
+      Example_vars <- head(readxl::read_xlsx(path, sheet = "Variable_data"), 12)
+      #Example_vars[4, "SubCompart"] =  'Water'
+      print(paste0("onzekerheid toevoegen bij: ", unique(Example_vars$varName)))
+      varFuns <- World$makeInvFuns(Example_vars)
+      Correlations <- readxl::read_xlsx(path, sheet = "Correlation")
+      
+    }
+    
+    #Loop door Joris Meesters emissie scenario's
+    for (scenario in scenarios) {
+      print(scenario[[5]])
+      #scenario = scenarios[[2]]
+      World$NewSolver("DynamicSolver")
+      
+      #Gebruik EmissionFunction om Emissie dataframe te maken
+      result = sb_emission_df(GlobalEmission = 457.2, SelectScales=c("A", "M", "T", "R", "C"),
+                              time_steps= nTIMES, EmissionDuration = EmissionDuration, start_year = start_year, 
+                              TotalRuntime = runtime,ReductionDuration = scenario[[1]], TotalReduction = scenario[[2]], 
+                              ReductionSteps =scenario[[3]], StepDuration = 'equal', ReductionFractions = scenario[[4]], 
+                              PlotTitle = scenario[[5]], number_runs=nruns)
+      
+      #emissie_plots[[length(emissie_plots) + 1]] <- result$plot_25j
+      
+      
+      #Solve
+      emissions = result$emissions
+      tmax <- max(unique(emissions$Time))
+      tmin <- min(unique(emissions$Time))
+      if (is.numeric(nruns)) {
+        World$Solve(emissions = emissions, 
             var_box_df = Example_vars, 
             var_invFun = varFuns, 
-            nRUNs = length(unique(example_data$RUN)), 
+            nRUNs = length(unique(emissions$RUN)), 
             tmin = tmin,
             tmax = tmax, 
-            nTIMES = nTIMES)
+            nTIMES = nTIMES,
+            correlations = Correlations)
+      } else if (!is.numeric(nruns)) {
+        World$Solve(emissions = emissions,
+                    tmax=tmax,
+                    nTIMES = nTIMES)
+      }
+      
+      # kMatrix <- World$K_matrix() 
+      # all_ks <- sapply(kMatrix, function(mat) mat['w1RU', 'w1CU'])
+      # volume = World$fetchData("Volume") %>% 
+      #   filter(Scale == 'Continental', SubCompart == 'river') %>%
+      #   summarise(volume = sum(Volume, na.rm = TRUE)) %>% pull(volume)
+      # discharges <- all_ks * volume
+      
+      concentration_data <- World$Concentration() 
+      # solution = World$Masses()
+      # emission = World$Emissions()
+      # variable_values = World$VariableValues()
 
-solution = World$Masses()
-emission = World$Emissions()
-variable_values = World$VariableValues()
-concentrations = World$Concentration()
+      # Check verdeling flows:
+      # Kaas = World$kaas %>%
+      #   filter(fromSubCompart == 'river', process=='k_Advection', fromScale=='Continental', toScale=='Regional') %>%
+      #   pull(k)
+      
+      
+      # area <- World$fetchData("TotalArea") %>%
+      #   filter(Scale == 'Continental') %>%
+      #   pull(TotalArea)
+      # 
+      # discharge_hand <- Kaas * volume
+      
+      # print(World$fetchData("x_ContRiver2Reg"))
+      # print(World$fetchData("x_RiverDischarge"))
+      
+      #Bereken voor Regional River hoe lang het duurt tot de concentratie X% lager is
+      subcompart = 'w1'
+      concentration_data <- concentration_data %>%
+          filter(grepl("R", Abbr) & grepl(subcompart, Abbr)) %>%
+          mutate(year = floor(start_year + as.numeric(time) / 31557600))
+      
+      
+      last_high <- mean(concentration_data[concentration_data$year == start_year +EmissionDuration, ]$Concentration)
+      #Bepaal thresholds
+      concentratie_thresholds <- c(
+        threshold_concentratie_50 = last_high * 0.5, 
+        threshold_concentratie_75 = last_high * 0.25,
+        threshold_concentratie_95 = last_high * 0.05,
+        threshold_concentratie_99 = last_high * 0.01 #99.9%
+        )
+      
+      #Filter de concentratie data op thresholds
+      x50 <- concentration_data %>%
+        filter(Concentration < (concentratie_thresholds[1])) %>%
+        filter(year > (start_year + EmissionDuration)) %>%
+        group_by(RUNs) %>%
+        slice_min(order_by = year, n = 1) %>%     
+        ungroup() %>%
+        dplyr::select(RUNs, year, Concentration)  
+      x75 <- concentration_data %>%
+        filter(Concentration < (concentratie_thresholds[2])) %>%
+        filter(year > (start_year + EmissionDuration)) %>%
+        group_by(RUNs) %>%
+        slice_min(order_by = year, n = 1) %>%     
+        ungroup() %>%
+        dplyr::select(RUNs, year, Concentration)  
+      x95 <- concentration_data %>%
+        filter(Concentration < (concentratie_thresholds[3])) %>%
+        filter(year > (start_year + EmissionDuration)) %>%
+        group_by(RUNs) %>%
+        slice_min(order_by = year, n = 1) %>%     
+        ungroup() %>%
+        dplyr::select(RUNs, year, Concentration)  
+      x99 <- concentration_data %>%
+        filter(Concentration < (concentratie_thresholds[4])) %>%
+        filter(year > (start_year + EmissionDuration)) %>%
+        group_by(RUNs) %>%
+        slice_min(order_by = year, n = 1) %>%     
+        ungroup() %>%
+        dplyr::select(RUNs, year, Concentration)  
+      
+      pad_series <- function(series, nruns) {
+        if (length(series) == 0) {
+          # If the series is empty, return a vector of NAs of max_length
+          return(rep(NA, nruns))
+        } else {
+          # Otherwise, pad with NAs to reach max_length
+          return(c(series, rep(NA, nruns - length(series))))
+        }
+      }
+      waardes <- c(waardes,pad_series(x99$year, nruns) - (start_year+EmissionDuration))
+      waardes <- c(waardes,pad_series(x95$year, nruns) - (start_year+EmissionDuration))
+      waardes <- c(waardes,pad_series(x75$year, nruns) - (start_year+EmissionDuration))
+      waardes <- c(waardes,pad_series(x50$year, nruns) - (start_year+EmissionDuration))
+      
+    }
+  }
+  write.csv(data, "~/my_scratch_dir/output23012026.csv")
+  #voeg toe aan resultaten dataframe
+  data$waarde <- waardes
+  data$afkorting <- mapping[data$stof]
+  mapping_procent <- c("99.9% verwijdering" = "-99.9%", "95% verwijdering" = "-95%", "75% verwijdering" = "-75%", "50% verwijdering" = "-50%")
+  data$kort_procent <- mapping_procent[data$verwijdering]
+  
+  ## Plot stof op een as
+  violin_colors <- c(
+  "-99.9%" = "#A6CEE3",
+  "-95%"   = "#B2DF8A",
+  "-75%"   = "#FB9A99",
+  "-50%"   = "#FDBF6F"
+  )
+  mean_colors <- c(
+    "-99.9%" = "#1F78B4",
+    "-95%"   = "#33A02C",
+    "-75%"   = "#E31A1C",
+    "-50%"   = "#FF7F00"
+  )
+  subset1 <- data[data$scenario==scenarios[[1]][[5]], ]
+  p1 <- ggplot(data, aes(x = afkorting, y = waarde, fill = kort_procent)) +
+          geom_violin(alpha = 0.5, position = "identity", scale="width") +
+          stat_summary(
+            aes(color = kort_procent, color=kort_procent),
+            fun = mean,
+            geom = "point",
+            position = position_identity(),
+            size = 3,
+            shape=21,
+            stroke=1.2
+          ) +
+          coord_flip() +
+          scale_fill_manual(values = violin_colors) +
+          scale_color_manual(values = mean_colors) +
+          scale_y_continuous(limits = c(0, 60)) +
+          labs(
+            title = "Aantal jaren tot 99.9, 95, 75 & 50% reductie in concentraties - Rijn",
+            x = "",
+            y = "Jaren",
+            fill = "Reductie",   # <-- legend title for fill
+            color = "Reductie"   # <-- legend title for color
+          ) +
+          theme_linedraw() +
+          facet_wrap(~ scenario, nrow=1)
+  
+  
+}
+
+
 ```
 
-Finally, we can plot the outcome using the predefined plot functions. If
-there is no scale specified, the Regional scale will be selected. If
-there is no subcompart specified, "agriculturalsoil" will be selected.
+```{r fig.height=15, fig.width=20}
+p1 + theme(
+  plot.title = element_text(size=18, face="bold"),
+  strip.text = element_text(size = 16, face = "bold"),     # Facet labels
+  axis.title.x = element_text(size = 14, face = "bold"),   # X axis title
+  axis.title.y = element_text(size = 14, face = "bold"),   # Y axis title
+  axis.text.x  = element_text(size = 12),                  # X axis tick labels
+  axis.text.y  = element_text(size = 12),                  # Y axis tick labels
+  legend.title = element_text(size = 13, face = "bold"),   # Legend title
+  legend.text  = element_text(size = 12)                   # Legend labels
+)
+ggsave("onzeker_violin_a4.png", plot = p1, width = 297, height = 210, units = "mm", dpi = 300)
+```
 
-```{r Plot outcome with uncertainty, warning=FALSE, message=FALSE}
-World$PlotConcentration(scale = "Regional", subcompart = "agriculturalsoil")
 
-World$PlotMasses(scale = "Regional", subcompart = "agriculturalsoil")
+```{r overig}
+scenario_cols <- names(waardes)[str_detect(names(waardes), "REACH restrictie met derogaties")]
+
+long_data <- waardes %>%
+  dplyr::select(id, scenario_cols) %>%
+  pivot_longer(
+    cols = -id,
+    names_to = "variable",
+    values_to = "value"
+  )  %>%
+  group_by(variable) %>%
+  summarise(
+    mean = mean(value, na.rm=TRUE),
+    sd = sd(value, na.rm=TRUE)
+  )
+
+
+%>%
+  mutate(
+    substance = str_extract(variable, "PFBS|PFBA|PFPeA|PFHpA|PFOA|TFA|PFHxA"),
+    percentile = str_extract(variable, "\\d+"),
+    percentile = factor(percentile, levels = c("99", "95", "75", "50")),
+    aantal_jaar = value - start_year
+  ) %>%
+  filter(!is.na(value)) # Remove NAs
+
+
+p1<-ggplot(long_data, aes(x = substance, y = aantal_jaar, fill = percentile, alpha = percentile)) +
+  geom_violin(position = position_dodge(width = 0.8), trim = FALSE) +
+  # Voeg de gemiddelde waarde toe als stip:
+  stat_summary(
+    fun = mean,
+    geom = "point",
+    position = position_dodge(width = 0.8),
+    shape = 21,
+    size = 3,
+    color = "black",
+    fill = "white"
+  ) +
+  scale_fill_brewer(palette = "Blues") +
+  scale_alpha_manual(values = c(0.7, 0.5, 0.3, 0.2)) +
+  labs(
+    x = "Substance",
+    y = "Value",
+    title = "Percentile Distributions per Substance (Volledig reduceren van emissies)"
+  ) +
+  theme_minimal()
+
+
+check <- long_data %>%
+  filter(substance == "PFBA", percentile == "50")
+```
+
+```{r}
+World$PlotConcentration(scale = "Regional", subcompart = "river")
+World$PlotMasses(scale = "Continental", "river")
+
+variable_values = World$VariableValues()
+
+```
+
+```{r bereken spreiding PFAS_generiek, warning=FALSE, message=FALSE} 
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(pracma)
+substances <-tail(read.csv("data/Substances.csv"), 8)
+
+result <- substances %>%
+  dplyr::select(pKa:Ksw) %>%
+  summarise_all(list(min = min, max = max, median=median), na.rm = TRUE) %>%
+  pivot_longer(everything(),
+               names_to = c("variable", "statistic"),
+               names_sep = "_") %>%
+  pivot_wider(names_from = statistic, values_from = value)
+
+summ <- summary(substances$pKa)
+sd(substances$pKa)
+set.seed(42)
+samples <- rtri_custom(1000, a = summ[[1]], b = summ[[3]], c = summ[[5]])
+hist(samples, main = "Triangular Distribution", xlab = "Value")
+
+# substance = 'Trifluoroacetic'
+# source('baseScripts/initWorld.R') 
+# source("AdjustModelRhine.R")
+# World$NewSolver("DynamicSolver")
+# emission <- result$emissions
+# World$Solve(emissions = emission,tmax=tmax,nTIMES = nTIMES)
+# mass_noProb <- World$Masses() %>%
+#   filter(str_detect(Abbr, "C|R"))
+# sum(mass_noProb$Mass_kg, na.rm=TRUE)
+# #298597.4 kg of Total mass 
+
+
+substance <- 'PFAS_generiek'
+onzekere_eigenschappen <- data.frame(
+  varName = names(substances)[c(3:10)],
+  Scale = NA,
+  SubCompart = NA,
+  Species = NA,
+  Distribution = 'uniform',
+  a = result$median*0.75,
+  b= result$median*1.25,
+  c=NA,
+  'Data Source' = NA,
+  check.names = FALSE
+)
+onzekere_eigenschappen <- rbind(head(Example_vars, 2), onzekere_eigenschappen)
+
+emissions <- ...
+tmin
+tmax
+
+Correlations <- readxl::read_xlsx(path, sheet = "Correlation")
+source('baseScripts/initWorld.R') 
+source("AdjustModelRhine.R")
+for (var in result$variable) {
+  uncertain_it <- rbind(head(onzekere_eigenschappen, 2), onzekere_eigenschappen[onzekere_eigenschappen$varName==var, ])
+  varFuns <- World$makeInvFuns(uncertain_it)
+  World$NewSolver("DynamicSolver")
+  World$Solve(emissions = emissions, 
+              var_box_df = uncertain_it, 
+              var_invFun = varFuns, 
+              nRUNs = length(unique(emissions$RUN)), 
+              tmin = tmin,
+              tmax = tmax, 
+              nTIMES = nTIMES)
+  
+  concentration_data <- World$Concentration() 
+  masses_matrix <- World$Masses() %>%
+    filter(str_detect(Abbr, "C")) %>%
+    mutate(year = start_year + as.numeric(time) / 31557600) %>%
+    group_by(time, RUNs) %>%
+    summarise(Mass_kg = sum(Mass_kg, na.rm=TRUE),
+              year = first(year),
+              .groups = "drop") %>%
+    pivot_wider(names_from= RUNs, values_from = Mass_kg) %>%
+    arrange(year) 
+  print(var)
+  deviate = apply(masses_matrix %>%dplyr::select(-time, -year), 1, sd)
+  print(mean(deviate))
+  plot(deviate)
+  print(trapz(deviate))
+}
+   
+  
+  masses <- World$Masses() %>%
+    filter(str_detect(Abbr, "C")) %>%
+    group_by(time, Abbr) %>%
+    summarise(
+      sum_mass = sum(Mass_kg[is.finite(Mass_kg)]),
+      min_mass = min(Mass_kg, na.rm=TRUE),
+      max_mass = max(Mass_kg, na.rm=TRUE),
+      mean_mass = mean(Mass_kg, na.rm=TRUE),
+      median_mass = median(Mass_kg, na.rm=TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(year = start_year + as.numeric(time) / 31557600) %>%
+    group_by(year) %>%
+    summarise(
+      sum_annual_mass = sum(sum_mass, na.rm=TRUE),
+      min_annual_mass = sum(min_mass, na.rm=TRUE),
+      max_annual_mass = sum(max_mass, na.rm=TRUE),
+      mean_annual_mass = sum(mean_mass, na.rm=TRUE),
+      median_annual_mass = sum(median_mass, na.rm=TRUE),
+    )
+  Total_min_Mass = sum(masses$min_annual_mass[is.finite(masses$min_annual_mass)], na.rm=TRUE)
+  Total_max_Mass = sum(masses$max_annual_mass[is.finite(masses$max_annual_mass)], na.rm=TRUE)
+  range_val = Total_max_Mass - Total_min_Mass
+  
+  print(var)
+  print(range_val)
+  # #bereken een maat van variabiliteit
+  # maat <- concentration_data %>%
+  #   group_by(time, Abbr) %>%
+  #   summarise(
+  #     sd_concentration = sd(Concentration, na.rm=TRUE),
+  #     .groups = "drop"
+  #   ) %>%
+  #   mutate(year = start_year + as.numeric(time) / 31557600) %>%
+  #   group_by(year) %>%
+  #   summarise(
+  #     mean_sd_concentration = mean(sd_concentration, na.rm=TRUE),
+  #     median_sd_concentration = median(sd_concentration, na.rm=TRUE)
+  #   )
+}
+plot(maat$year, maat$mean_sd_concentration)
+plot(maat$year, maat$median_sd_concentration, type='l')
 ```
