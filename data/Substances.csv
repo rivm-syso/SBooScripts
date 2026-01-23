@@ -1,4 +1,4 @@
-﻿Substance,ChemClass,pKa,MW,Tm,Pvap25,Sol25,Kaw25,Kow,Ksw,Kp.col,Kp.susp,Kp.sed,Kp.soil,RadS,RhoS,hamakerSP.w,Shape,Shortest_side,Intermediate_side,Longest_side,MinSettVel,CorFacSSA,deg_x,deg_tau,deg_y,deg_theta,deg_z,deg_eta,Degrading_enzyme
+Substance,ChemClass,pKa,MW,Tm,Pvap25,Sol25,Kaw25,Kow,Ksw,Kp.col,Kp.susp,Kp.sed,Kp.soil,RadS,RhoS,hamakerSP.w,Shape,Shortest_side,Intermediate_side,Longest_side,MinSettVel,CorFacSSA,degx,degtau,degy,degtheta,degz,degeta,Degrading_enzyme
 (4-chloro-2-methylphenoxy)acetic acid,,NA,201,118,2.7e-4,320000,NA,600,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 (4-Chloro-2-methylphenoxy)acetic acid compd. with N-Methylmethanamine (1:1),acid,3.13,200.62,NA,7.87e-4,630,NA,1778.27941,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 "[1,1'-Biphenyl]-4,4'-diamine, 3,3'-dimethoxy-, dihydrochloride",base,3.7,317.22,NA,2.77e-14,3178,NA,3.715352291,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA

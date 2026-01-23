@@ -853,7 +853,7 @@ count <- 0
 #Variables to test
 #reg = "Ocenia"
 reg = "North America"
-pol = "HDPE"
+pol = "EPS"
 size = 1
 shape = "Sphere"
 emission_compartment = "aRS"
@@ -1071,7 +1071,7 @@ for(reg in region_names){
         #k_matrix = World$exportEngineR()
         k_matrix = World$K_matrix() #New in SBoo: this returns a list of matrix for the probabilistic solver
         #k_detailed = World$fetchData("kaas")
-        
+        k_matrix_1 = k_matrix[[1]]
         
         
         
@@ -1131,7 +1131,8 @@ close(pb)
 library(openxlsx)
 
 # Path
-out_file <- "vignettes/CaseStudies/FateFactorsUpdate/results_FF_CF.xlsx"
+
+out_file <- "vignettes/CaseStudies/FateFactorsUpdate/results_FF_CF_CI.xlsx"
 
 # Load workbook if it exists, otherwise create a new one
 wb <- if (file.exists(out_file)) {
