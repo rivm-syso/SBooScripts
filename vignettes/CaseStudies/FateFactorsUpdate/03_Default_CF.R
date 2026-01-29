@@ -1,16 +1,37 @@
+rm(list = ls())  # Removes all objects from environment
+
 library(openxlsx)
 library(dplyr)
 `%notin%` <- Negate(`%in%`)
 
 file <- "vignettes/CaseStudies/FateFactorsUpdate/results_FF_CF.xlsx"
 
-# Named list of sheets and their corresponding data frames
-sheets_list <- list(
-  "results_CF_mid_PAF_day"       = results_CF_mid_PAF_day,
-  "results_CF_end_PDF_year"      = results_CF_end_PDF_year,
-  "results_CF_end_species_year"  = results_CF_end_species_year,
-  "results_CF_end_PDF_m2_year"   = results_CF_end_PDF_m2_year
+# Load workbook
+wb <- loadWorkbook(file)
+
+# Get sheet names from the workbook
+sheet_names <- getSheetNames(file)
+
+# Read all sheets into a list of data frames
+sheets_list <- list()
+for (sheet in sheet_names) {
+  sheets_list[[sheet]] <- readWorkbook(wb, sheet = sheet, detectDates = TRUE)
+}
+
+# OR using lapply for a more concise approach:
+# sheets_list <- lapply(sheet_names, function(x) readWorkbook(wb, sheet = x, detectDates = TRUE))
+# names(sheets_list) <- sheet_names
+
+# Filter to only include the sheets you want to process
+target_sheets <- c(
+  "results_CF_mid_PAF_day",
+  "results_CF_end_PDF_year", 
+  "results_CF_end_species_year",
+  "results_CF_end_PDF_m2_year"
 )
+
+# Optional: Filter sheets_list to only include target sheets
+sheets_list <- sheets_list[names(sheets_list) %in% target_sheets]
 
 ###########
 # World average CFs
@@ -35,8 +56,6 @@ global_compartments <- c(
   "global marine sediments"
 )
 
-# Load workbook
-wb <- loadWorkbook(file)
 
 for (sheet_name in names(sheets_list)) {
   
@@ -116,7 +135,7 @@ for (sheet_name in names(sheets_list)) {
   }
   
   # Bind with original non-World rows (now filtered)
-  df_out <- bind_rows(df, df_world)
+df_out <- bind_rows(df, df_world)
   
   # Write updated sheet
   if (sheet_name %in% names(wb)) removeWorksheet(wb, sheet_name)
@@ -124,8 +143,11 @@ for (sheet_name in names(sheets_list)) {
   writeData(wb, sheet_name, df_out, withFilter = TRUE)
 }
 
+for (sheet_name in names(sheets_list)) {
+  sheets_list[[sheet_name]] <- readWorkbook(wb, sheet = sheet_name, detectDates = TRUE)
+}
 # Save workbook
-saveWorkbook(wb, file, overwrite = TRUE)
+#saveWorkbook(wb, file, overwrite = TRUE)
 
 ###########
 # Unknown polymers default CFs per density 
@@ -160,34 +182,34 @@ default_patterns <- c(
 
 # Size mappings for shapes - as numeric values
 size_mappings <- list(
-  "sphere" = 1000,
+  #"sphere" = 1000,
   "Sphere" = 1000,
-  "fragment" = 1000, 
-  "Fragment" = 1000,
-  "microsphere" = 1000,
-  "Microsphere" = 1000,
-  "fiber" = 10,
+  #"fragment" = 1000, 
+  #"Fragment" = 1000,
+  #"microsphere" = 1000,
+  #"Microsphere" = 1000,
+  #"fiber" = 10,
   "Fiber" = 10,
-  "fibre" = 10,
-  "Fibre" = 10,
-  "cylinder" = 10,  # Added cylinder
-  "Cylinder" = 10,
-  "film" = 100,
+  #"fibre" = 10,
+  #"Fibre" = 10,
+  #"cylinder" = 10,  # Added cylinder
+  #"Cylinder" = 10,
+  #"film" = 100,
   "Film" = 100
 )
 
-# helper for %notin%
-`%notin%` <- Negate(`%in%`)
 
 # start workbook
-wb <- loadWorkbook(file)
+#wb <- loadWorkbook(file)
 
 for (sheet in names(sheets_list)) {
+  message("\n=== Processing sheet: ", sheet, " COUNT: ", 
+          which(names(sheets_list) == sheet)[1], "/", length(sheets_list), " ===")
   message("\n=== Processing sheet: ", sheet, " ===")
   
   # read sheet (original names may contain duplicates)
-  df_orig <- readWorkbook(wb, sheet = sheet, detectDates = TRUE)
-  
+  #df_orig <- readWorkbook(wb, sheet = sheet, detectDates = TRUE)
+  df_orig <- sheets_list[[sheet]]
   # 1) FIRST: Remove ALL existing default rows from original data
   # Find the polymer column in original data
   polymer_col_orig <- names(df_orig)[tolower(names(df_orig)) == "polymer"][1]
@@ -253,7 +275,7 @@ for (sheet in names(sheets_list)) {
       # 4) Identify grouping columns - ALL non-numeric, non-polymer columns
       group_cols <- setdiff(
         names(df), 
-        c(polymer_col, numeric_cols, "..poly_weight")
+        c(polymer_col, numeric_cols, "..poly_weight", elem_col)
       )
       
       message("  Rows available for calculation: ", nrow(df))
@@ -391,7 +413,7 @@ for (sheet in names(sheets_list)) {
           
           # Find rows with EXACT shape match 
           shape_rows <- default_df %>%
-            filter(.data[[shape_tmp]] == shape_pattern)
+            filter(tolower(.data[[shape_tmp]]) == tolower(shape_pattern))
           
           if (nrow(shape_rows) > 0) {
             message("      Found ", nrow(shape_rows), " rows with shape '", shape_pattern, "'")
@@ -585,7 +607,8 @@ for (sheet in names(sheets_list)) {
   message("  Final row count: ", nrow(df_out))
 }
 
+file_out <- "vignettes/CaseStudies/FateFactorsUpdate/results_FF_CF_World_Default.xlsx"
 # save workbook after loop
-saveWorkbook(wb, file, overwrite = TRUE)
+saveWorkbook(wb, file_out, overwrite = TRUE)
 
 message("\n=== Processing complete ===")

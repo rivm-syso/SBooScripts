@@ -26,7 +26,6 @@ source("baseScripts/initWorld.R")
 #World$SetConst(Test = "TRUE")
 World$SetConst(Test_surface_water = "TRUE")
 World$SetConst(Remove_global = "TRUE") #if true, remove flows to moderate, arctic and tropic
-World$SetConst(Remove_global = "TRUE") #if true, remove flows to moderate, arctic and tropic
 World$UpdateKaas(mergeExisting = FALSE)
 
 setup <- NULL
@@ -278,7 +277,7 @@ process_single_matrix <- function(k_mat, setup) {
 
 # Nested loops structure
 setup <- NULL
-n_samples <- 10
+n_samples <- 100
 
 
 
@@ -998,6 +997,7 @@ for(reg in region_names){
     
     #loop over size
     for (size in sizes) {
+      print(size)
       size_df <- data.frame(varName = "RadS",
                             Waarde = size/2*1000) #convert D to R and convert um to nm (SBoo takes RadS as nm)
       
@@ -1030,8 +1030,8 @@ for(reg in region_names){
           Intermediate_side <- Shortest_side #equal for fibers
           if (Shortest_side == 1 ) {
             Longest_side <- Shortest_side*50 
-          } else if (Shortest_side == 1000) {
-            Longest_side <- Shortest_side*5 #stay in the microplastics range
+          } else if (Shortest_side == 1000 || Shortest_side == 5000) { #microfiber range is defined with respect to the diameter <5000, not the length
+            Longest_side <- Shortest_side*5 
           } else{
             Longest_side <- Shortest_side*10
           }
@@ -1071,7 +1071,7 @@ for(reg in region_names){
         #k_matrix = World$exportEngineR()
         k_matrix = World$K_matrix() #New in SBoo: this returns a list of matrix for the probabilistic solver
         #k_detailed = World$fetchData("kaas")
-        k_matrix_1 = k_matrix[[1]]
+        #k_matrix_1 = k_matrix[[1]]
         
         
         
@@ -1088,7 +1088,7 @@ for(reg in region_names){
           process_single_matrix(k_mat, setup)
         })
         
-        ff_1 <- ff_matrices_list[[1]]
+        #ff_1 <- ff_matrices_list[[1]]
         
         
         # Process ALL Monte Carlo samples for this combination
@@ -1132,7 +1132,7 @@ library(openxlsx)
 
 # Path
 
-out_file <- "vignettes/CaseStudies/FateFactorsUpdate/results_FF_CF_CI.xlsx"
+out_file <- "vignettes/CaseStudies/FateFactorsUpdate/results_FF_CF_CI_3.xlsx"
 
 # Load workbook if it exists, otherwise create a new one
 wb <- if (file.exists(out_file)) {

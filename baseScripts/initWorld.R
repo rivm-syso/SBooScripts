@@ -34,8 +34,6 @@ message(paste("Running SimpleBox for",substance))
 
 SBooDataLocation <- paste0(Temp_Folder)
 
-World$SetConst(Test_surface_water = "FALSE")
-World$SetConst(Remove_global = "FALSE")
 
 #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
 ClassicStateModule <- ClassicNanoWorld$new(paste0(SBooDataLocation,"data"), substance)
@@ -45,6 +43,9 @@ World <- SBcore$new(ClassicStateModule)
 
 ChemClass = World$fetchData("ChemClass")
 
+
+World$SetConst(Test_surface_water = "FALSE")
+World$SetConst(Remove_global = "FALSE")
 if(ChemClass != "particle") {
   World$filterStates <- list(SpeciesName = "Molecular")
   # To proceed with testing we set
