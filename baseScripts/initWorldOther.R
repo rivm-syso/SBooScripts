@@ -122,7 +122,7 @@
   ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
   
   #call the particulate processes 
-  Processes4SpeciesTp <- read.csv("data/Processes4SpeciesTp.csv")
+  Processes4SpeciesTp <- read.csv(paste0(SBooDataLocation,"data/Processes4SpeciesTp.csv"))
   
   ifelse(ChemClass != "particle",
          {
