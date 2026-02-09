@@ -223,6 +223,8 @@ start_time <-Sys.time()
 for (catchment in c("Maas", "Rijn")) {
   dirs<-create_dirs(catchment, disk_path)
   
+  ##maas heeft ander afvoer verloop 
+  
   #Resultaten dataframe per stroomgebied
   data <- expand.grid(
     run = seq(nruns),
@@ -250,7 +252,7 @@ for (catchment in c("Maas", "Rijn")) {
     if (is.numeric(nruns)) {
       Example_vars <- uncertain_variables(substance, suffix=uncertainty_suffix)
       varFuns <- World$makeInvFuns(Example_vars)
-      Correlations <- readxl::read_xlsx(path_to_uncertainty, sheet = "Correlation")
+      correlations <- readxl::read_xlsx(path_to_uncertainty, sheet = "Correlation")
     }
     #Loop door emissie scenario's
     for (scenario in scenarios) {
@@ -271,18 +273,19 @@ for (catchment in c("Maas", "Rijn")) {
       tmin <- min(unique(emissions$Time))
       cat("\n\nSolving...")
       if (is.numeric(nruns)) {
-        start_time <-Sys.time()
-        World$Solve(emissions = emissions, 
-            var_box_df = Example_vars, 
-            var_invFun = varFuns, 
-            nRUNs = length(unique(emissions$RUN)), 
-            tmin = tmin,
-            tmax = tmax, 
-            nTIMES = nTIMES,
-            correlations = Correlations)
-        end_time <- Sys.time()
+        #zonde parallel
+        # start_time <-Sys.time()
+        # World$Solve(emissions = emissions, 
+        #     var_box_df = Example_vars, 
+        #     var_invFun = varFuns, 
+        #     nRUNs = length(unique(emissions$RUN)), 
+        #     tmin = tmin,
+        #     tmax = tmax, 
+        #     nTIMES = nTIMES,
+        #     correlations = correlations)
+        # end_time <- Sys.time()
         
-        start_time_parallel <-Sys.time()
+        #Solve, LHS opslaan voor parallel functie
         World$Solve(emissions = NULL, 
             var_box_df = Example_vars, 
             var_invFun = varFuns, 
@@ -290,23 +293,16 @@ for (catchment in c("Maas", "Rijn")) {
             tmin = tmin,
             tmax = tmax, 
             nTIMES = nTIMES,
-            correlations = Correlations,
+            correlations = correlations,
             ParallelPreparation=T)
-        
+        #Parallel functie
         Solution <- solveInParallelDynamic(nCores = nCores,
                        max_runs_per_batch = max_runs_per_batch,
                        emissions_data = emissions,
+                       correlations = correlations,
                        tmin = tmin,
                        tmax = tmax,
                        nTIMES = nTIMES)
-        end_time_parallel <- Sys.time()
-        duration <- end_time - start_time
-        duration_parallel <- end_time_parallel - start_time_parallel
-
-        print("duration non parallel:")
-        print(duration)
-        print("duration parallel:")
-        print(duration_parallel)
         
       } else if (!is.numeric(nruns)) {
         World$Solve(emissions = emissions,
@@ -779,7 +775,7 @@ emissions <- ...
 tmin
 tmax
 
-Correlations <- readxl::read_xlsx(path, sheet = "Correlation")
+correlations <- readxl::read_xlsx(path, sheet = "Correlation")
 source('baseScripts/initWorld.R') 
 source("AdjustModelRhine.R")
 for (var in result$variable) {
