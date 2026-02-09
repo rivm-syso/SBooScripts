@@ -3,7 +3,7 @@ title: "PFAS_prob"
 output: html_document
 ---
 
-Met oude code proberen
+Probabilistisch rekenen
 
 ```{r initiate warnings=FALSE, message=FALSE}
 check_and_install <- function(package) {
@@ -50,6 +50,114 @@ check_and_install("tidyverse")
 check_and_install("treemapify")
 check_and_install("gridExtra")
 library(RColorBrewer)
+library(sensitivity)
+library(ks)
+library(randomForest)
+source("baseScripts/installRequirements.R")
+```
+
+```{r}
+#Function to create uncertain_variables
+uncertain_variables <- function(substance, suffix='', path) {
+  substances <-read.csv("data/Substances.csv")
+  #Todo optie op Stof specifieke data in te laden vanuti aparte sheets
+  
+  path = "/rivm/n/jansont/Documents/Werk - Lokaal/SimpleBox PFAS/Uncertainty/uncertain_variables.xlsx"
+  Example_vars <- readxl::read_xlsx(path, sheet = paste0("Variable_data",suffix))
+
+  #create empty df
+  if (substance == 'PFAS_generiek') {
+    result <- substances %>%
+      dplyr::select(pKa:Ksw) %>%
+      summarise_all(list(min = min, max = max, median=median), na.rm = TRUE) %>%
+      pivot_longer(everything(),
+                   names_to = c("variable", "statistic"),
+                   names_sep = "_") %>%
+      pivot_wider(names_from = statistic, values_from = value)
+    onzekere_eigenschappen <- data.frame(
+      varName = names(substances)[c(3:10)],Scale = NA,SubCompart = NA,Species = NA,
+      Distribution = 'triangular',
+      a = result$min,b= result$median,c= result$max,
+      'Data Source' = NA,check.names = FALSE
+    )
+    Example_vars <- rbind(Example_vars, onzekere_eigenschappen)
+  }
+  print(paste("onzekerheid toevoegen bij: ", paste(unique(Example_vars$varName), collapse = ' - ')))
+  #kable(Example_vars)
+  return(Example_vars)
+}
+
+## Functie om randomforest of f-divergence analyse te doen
+sensitivity <- function(x, y, nboot = 0, conf = 0.95, fdiv="TV", write_to_scratch = FALSE, type, path) {
+  # if (exists("World")) {
+  #   cat("\nGevoeligheidsanalyse uitvoeren...\n")
+  # } else {
+  #   return("Object World bestaat niet")
+  # }
+  require(sensitivity)
+  require(ks)
+  require(ggplot2)
+  
+  x <- x %>%
+    mutate(var = paste0(varName, "_", SubCompart)) %>%
+    filter(is.na(Scale) | Scale != 'Continental') %>%
+    pivot_wider(id_cols = RUNs,names_from = var,values_from = Waarde) %>%
+    dplyr::select(-RUNs)
+  # y <- y %>%
+  #   dplyr::select(waarde) %>%
+  #   pull(waarde)
+  
+  #Na in y moet ook uit x
+  idx <- which(!is.na(y))
+  x <- x[idx,]
+  y <- y[idx]
+  #x_sub <- x[, c("RAINrate_NA", "FRACrun_NA")]
+  
+  #run global sensitivity analysis
+  x_df <- as.data.frame(x)
+  y_vec <- as.numeric(y)
+  set.seed(123)  # voor reproduceerbaarheid
+  rf_model <- randomForest(x = x_df, y = y_vec, importance = TRUE, ntree = 500)
+  rf <- data.frame(importance(rf_model))
+  rf <- rownames_to_column(rf, var = "variable")
+  
+  # m <- sensiFdiv(model = NULL, X=log(data.matrix(x)+100), fdiv = "TV", nboot = nboot, conf = conf,   scale = TRUE)
+  # sensi <- tell(m, y = log(data.matrix(y)))
+
+  # df <- data.frame(
+  #   variable = colnames(x_sub),
+  #   sensitivity = sensi$S$original
+  # )
+  # 
+  # p1 <- ggplot(df, aes(x = reorder(variable, sensitivity), y = sensitivity)) +
+  # geom_col(fill = "steelblue") +
+  # coord_flip() +
+  # labs(x = "Variabele", y = "Sensitiviteit", title = "Sensitiviteitsindex per variabele") +
+  # theme_minimal()
+  sensi=NULL
+  p1=NULL
+  
+  if (write_to_scratch) {
+    #path = '~/my_scratch_dir/SimpleBox/PFAS_A2/output/sensitivity/'
+    write.csv(df, paste0(path, "sensitivity_",substance, "_",scenario[[5]],"_",type,"_", catchment,"_",Sys.Date(), ".csv"))
+  }
+  
+  return(list(sensi=sensi, rf=rf, plot=p1, df=df))
+}
+
+#Functie om met input 'disk_path' directories te maken en als variabele op te slaan in dirs$..
+create_dirs <- function(catchment, disk_path) {
+  dirs <- c(paste0(disk_path,"/", catchment, "/jaren_data/"),
+          paste0(disk_path,"/", catchment, "/sensitivity/"),
+          paste0(disk_path,"/", catchment, "/variable_values/"))
+
+  for (d in dirs) {
+    if (!dir.exists(d)) {
+      dir.create(d, recursive = TRUE)
+    }
+  }
+  return(list(jaren_data=dirs[[1]], sensitivity=dirs[[2]], variable_values=dirs[[3]]))
+}
 
 ```
 
@@ -60,19 +168,32 @@ library(RColorBrewer)
 ##            sb_emission_df() maakt emissie dataframe met scenario uit studie Joris Meesters
 ##
 
-#Input
+##----------------------
+##Input
+##----------------------
 start_year = 2020                     #Start jaartal
 EmissionDuration <- 5                #Aantal jaar met emissies
-runtime <- 80 + EmissionDuration     #Looptijd van het model
+runtime <- 195 + EmissionDuration     #Looptijd van het model
 #runtime <- 20 + EmissionDuration
 end_year = start_year + runtime       #Eind jaartal
 tmax <- runtime*365.25*24*60*60       #Eind in seconden
 nTIMES <- runtime+1                   #Number of timesteps, e.g. yearly, 2-year
-ReductionDuration <- 15
-Wereldwijd = TRUE 
-nruns <- 75 #jq ~ 1000  runs
+ReductionDuration <- 15               #Hoelang duurt reductie periode
+Wereldwijd = TRUE                     #Parameter voor in SB_emissions_func
+nruns <- 400                          #jq ~ 1000  runs
+uncertainty_suffix = "_kdeg_uniform"  #specifieke sheet uit uncertainty_variables in laden, leeg laten voor basis
+nCores <- 4
+max_runs_per_batch <- 3
 
-#Gekozen PFAS-stof namen en scenarios van Joris Meesters
+#Paden naar uncertainty variables en directory om naar te schrijven
+path_to_uncertainty <-  "/rivm/n/jansont/Documents/Werk - Lokaal/SimpleBox PFAS/Uncertainty/uncertain_variables.xlsx"  #uncertainty spreadsheet
+disk_path = "~/my_scratch_dir/SimpleBox/PFAS_A2/output"     ##locatie waar naar wordt geschreven
+
+#SB data
+substances <-tail(read.csv("data/Substances.csv"), 8) 
+units <- read.csv("data/Units.csv")
+
+#Gekozen PFAS-stof namen en scenarios met afkortingen in mappings
 stoffen <- c("Perfluorobutane_sulfonic", "Perfluorobutanoic", 
                       "Perfluoropentanoic", "Perfluoroheptanoic", 
                       "Perfluorooctanoic", "Trifluoroacetic", "Perfluorohexanoic")
@@ -82,34 +203,41 @@ mapping <-  c("Perfluorobutane_sulfonic" = "PFBS", "Perfluorobutanoic" = "PFBA",
               "Perfluorohexanoic" = "PFHxA")
 
 #ReductionDuration, TotalReduction, ReductionSteps, ReductionFractions, PlotTitle
+#Deze lijsten zijn input voor SB_emission_function om tijdseries te maken in Loop
 scenarios <- list(list(15, 100, 15, 'equal', "1) Volledig reduceren van emissies"), 
                list(15, 95, 15, 'equal', "2) REACH restrictie"), 
                list(20, 95, 20, c(rep(0.05, times=10), rep(0.045, times=10)), "3) REACH restrictie met derogaties"))#,
                #list('-', 0, 0, 0, "4) Geen restricties"))
-scenarios <- list(
-               list(15, 96, 15, 'equal', "1) Volledig implementatie restricties"), 
-               list(22, 83, 22, c(rep(0.03846154, times=13), 0.03666667, times=9), "2) Restrictie met derogaties"),
-               list(33, 96, 33, c(rep(0.15, times=2), rep(0.01538462, times=13), rep(0.0255556, times=18)), "3) Extra Rijn scenario 30% reductie")
-                ) #sb heeft tijdsstap 1 jaar dus 18 maanden?
 
-data_list = list()
-barplot_list = list()
-emissie_plots = list()
+# scenarios <- list(
+#                list(15, 96, 15, 'equal', "1) Volledig implementatie restricties"), 
+#                list(19, 96, 19, c(rep(0.03846154, times=13), rep(0.07666667, times=6)), "2) Restrictie met derogaties"),
+#                list(19, 96, 19, c(rep(0.15, times=2), rep(0.01818182, times=11), rep(0.0575, times=8)), "3) Extra Rijn scenario 30% reductie")
+#                ) #sb heeft tijdsstap 1 jaar dus 18 maanden?
+
+##----------------------
+##Loop
+##----------------------
+#emissie_plots = list()   #Eventuele emissie plots opslaan in lijst
+start_time <-Sys.time()
 for (catchment in c("Maas", "Rijn")) {
+  dirs<-create_dirs(catchment, disk_path)
   
-  #Resultaten dataframe
+  #Resultaten dataframe per stroomgebied
   data <- expand.grid(
     run = seq(nruns),
     verwijdering = c("99.9% verwijdering", "95% verwijdering", "75% verwijdering", "50% verwijdering"),
     scenario = unlist(lapply(scenarios, function(x) x[[5]])),
     stof = stoffen
     )
+  #lege vector vormt rij in data ^
   waardes <- c()
+  
   #Loop door stoffen, start SB-wereld, Loop door scenario's, per scenario resultaten berekenen.
   for (index in seq_len(length(stoffen))) {
     substance = stoffen[index]
-    print(substance)
-    #Start Wereld
+    cat(substance, "\n")
+    #Start Wereld en pas aan op stroomgebied
     source('baseScripts/initWorld.R')
     if(catchment == "Rijn"){ 
       source("AdjustModelRhine.R")
@@ -118,21 +246,15 @@ for (catchment in c("Maas", "Rijn")) {
     }
     source("EmissionFunction.R")
     
-    # spreiding in variabele
+    # spreiding in variabele TODO if maas -> andere gekalibreerde runoff lowbound
     if (is.numeric(nruns)) {
-      path = "/rivm/n/jansont/Documents/Werk - Lokaal/SimpleBox PFAS/Uncertainty/uncertain_variables.xlsx"
-      # path = "/rivm/n/jansont/Documents/Werk - Lokaal/SimpleBox PFAS/Uncertainty/Example_uncertain_variables (3).xlsx"
-      Example_vars <- head(readxl::read_xlsx(path, sheet = "Variable_data"), 12)
-      #Example_vars[4, "SubCompart"] =  'Water'
-      print(paste0("onzekerheid toevoegen bij: ", unique(Example_vars$varName)))
+      Example_vars <- uncertain_variables(substance, suffix=uncertainty_suffix)
       varFuns <- World$makeInvFuns(Example_vars)
-      Correlations <- readxl::read_xlsx(path, sheet = "Correlation")
-      
+      Correlations <- readxl::read_xlsx(path_to_uncertainty, sheet = "Correlation")
     }
-    
-    #Loop door Joris Meesters emissie scenario's
+    #Loop door emissie scenario's
     for (scenario in scenarios) {
-      print(scenario[[5]])
+      cat("\n", scenario[[5]])
       #scenario = scenarios[[2]]
       World$NewSolver("DynamicSolver")
       
@@ -142,15 +264,14 @@ for (catchment in c("Maas", "Rijn")) {
                               TotalRuntime = runtime,ReductionDuration = scenario[[1]], TotalReduction = scenario[[2]], 
                               ReductionSteps =scenario[[3]], StepDuration = 'equal', ReductionFractions = scenario[[4]], 
                               PlotTitle = scenario[[5]], number_runs=nruns)
-      
       #emissie_plots[[length(emissie_plots) + 1]] <- result$plot_25j
-      
-      
       #Solve
       emissions = result$emissions
       tmax <- max(unique(emissions$Time))
       tmin <- min(unique(emissions$Time))
+      cat("\n\nSolving...")
       if (is.numeric(nruns)) {
+        start_time <-Sys.time()
         World$Solve(emissions = emissions, 
             var_box_df = Example_vars, 
             var_invFun = varFuns, 
@@ -159,45 +280,55 @@ for (catchment in c("Maas", "Rijn")) {
             tmax = tmax, 
             nTIMES = nTIMES,
             correlations = Correlations)
+        end_time <- Sys.time()
+        
+        start_time_parallel <-Sys.time()
+        World$Solve(emissions = NULL, 
+            var_box_df = Example_vars, 
+            var_invFun = varFuns, 
+            nRUNs = length(unique(emissions$RUN)), 
+            tmin = tmin,
+            tmax = tmax, 
+            nTIMES = nTIMES,
+            correlations = Correlations,
+            ParallelPreparation=T)
+        
+        Solution <- solveInParallelDynamic(nCores = nCores,
+                       max_runs_per_batch = max_runs_per_batch,
+                       emissions_data = emissions,
+                       tmin = tmin,
+                       tmax = tmax,
+                       nTIMES = nTIMES)
+        end_time_parallel <- Sys.time()
+        duration <- end_time - start_time
+        duration_parallel <- end_time_parallel - start_time_parallel
+
+        print("duration non parallel:")
+        print(duration)
+        print("duration parallel:")
+        print(duration_parallel)
+        
       } else if (!is.numeric(nruns)) {
         World$Solve(emissions = emissions,
                     tmax=tmax,
                     nTIMES = nTIMES)
       }
       
-      # kMatrix <- World$K_matrix() 
-      # all_ks <- sapply(kMatrix, function(mat) mat['w1RU', 'w1CU'])
-      # volume = World$fetchData("Volume") %>% 
-      #   filter(Scale == 'Continental', SubCompart == 'river') %>%
-      #   summarise(volume = sum(Volume, na.rm = TRUE)) %>% pull(volume)
-      # discharges <- all_ks * volume
-      
+      #Lees resultaten en sla variabele input op
       concentration_data <- World$Concentration() 
-      # solution = World$Masses()
-      # emission = World$Emissions()
-      # variable_values = World$VariableValues()
-
-      # Check verdeling flows:
-      # Kaas = World$kaas %>%
-      #   filter(fromSubCompart == 'river', process=='k_Advection', fromScale=='Continental', toScale=='Regional') %>%
-      #   pull(k)
+      variable_values = World$VariableValues()
+      write.csv(variable_values, 
+                paste0(dirs$variable_values, "var_vals_", 
+                       substance, "_", scenario[[5]], "_",catchment,"_",Sys.Date(),".csv"))
       
-      
-      # area <- World$fetchData("TotalArea") %>%
-      #   filter(Scale == 'Continental') %>%
-      #   pull(TotalArea)
-      # 
-      # discharge_hand <- Kaas * volume
-      
-      # print(World$fetchData("x_ContRiver2Reg"))
-      # print(World$fetchData("x_RiverDischarge"))
       
       #Bereken voor Regional River hoe lang het duurt tot de concentratie X% lager is
       subcompart = 'w1'
+      cat("\nSolved, jaren berekenen in regional:\n")
+      cat(subcompart, "\n")
       concentration_data <- concentration_data %>%
           filter(grepl("R", Abbr) & grepl(subcompart, Abbr)) %>%
           mutate(year = floor(start_year + as.numeric(time) / 31557600))
-      
       
       last_high <- mean(concentration_data[concentration_data$year == start_year +EmissionDuration, ]$Concentration)
       #Bepaal thresholds
@@ -238,6 +369,7 @@ for (catchment in c("Maas", "Rijn")) {
         ungroup() %>%
         dplyr::select(RUNs, year, Concentration)  
       
+      #Functie om NA toe te voegen zodra threshold niet bereikt wordt
       pad_series <- function(series, nruns) {
         if (length(series) == 0) {
           # If the series is empty, return a vector of NAs of max_length
@@ -247,18 +379,34 @@ for (catchment in c("Maas", "Rijn")) {
           return(c(series, rep(NA, nruns - length(series))))
         }
       }
+      #Voeg toe aan vector
       waardes <- c(waardes,pad_series(x99$year, nruns) - (start_year+EmissionDuration))
       waardes <- c(waardes,pad_series(x95$year, nruns) - (start_year+EmissionDuration))
       waardes <- c(waardes,pad_series(x75$year, nruns) - (start_year+EmissionDuration))
       waardes <- c(waardes,pad_series(x50$year, nruns) - (start_year+EmissionDuration))
       
+      #Sensitivity analysis uitvoeren en schrijven naar disk
+      #substance, scenario, 4 percentages 
+      tryCatch({sensitivity(World$VariableValues(), pad_series(x75$year, nruns) - (start_year+EmissionDuration), 
+                          write_to_scratch = TRUE, type="75%", path=dirs$sensitivity)
+               }, error = function(e) {
+                message("Er is een fout opgetreden: ", e$message)
+              })
+      
     }
-  }
-  write.csv(data, "~/my_scratch_dir/output23012026.csv")
-  #voeg toe aan resultaten dataframe
+  } #for single catchment run up until here
+  end_time <- Sys.time()
+  duration <- end_time - start_time
+  print(duration)
   data$waarde <- waardes
+  write.csv(data, paste0(dirs$jaren_data, 
+                         catchment,"_",nruns,"_",Sys.Date(), "_dur_",duration, ".csv"))
+  
+  #Plotting
+  #kolommen toevoegen voor plot
   data$afkorting <- mapping[data$stof]
-  mapping_procent <- c("99.9% verwijdering" = "-99.9%", "95% verwijdering" = "-95%", "75% verwijdering" = "-75%", "50% verwijdering" = "-50%")
+  mapping_procent <- c("99.9% verwijdering" = "-99.9%", "95% verwijdering" = "-95%", 
+                       "75% verwijdering" = "-75%", "50% verwijdering" = "-50%")
   data$kort_procent <- mapping_procent[data$verwijdering]
   
   ## Plot stof op een as
@@ -274,7 +422,9 @@ for (catchment in c("Maas", "Rijn")) {
     "-75%"   = "#E31A1C",
     "-50%"   = "#FF7F00"
   )
+  #Evt subset
   subset1 <- data[data$scenario==scenarios[[1]][[5]], ]
+  #Violin plot
   p1 <- ggplot(data, aes(x = afkorting, y = waarde, fill = kort_procent)) +
           geom_violin(alpha = 0.5, position = "identity", scale="width") +
           stat_summary(
@@ -307,6 +457,7 @@ for (catchment in c("Maas", "Rijn")) {
 ```
 
 ```{r fig.height=15, fig.width=20}
+#Plots plus extra opties en bredere figuur in R-studio
 p1 + theme(
   plot.title = element_text(size=18, face="bold"),
   strip.text = element_text(size = 16, face = "bold"),     # Facet labels
@@ -317,11 +468,205 @@ p1 + theme(
   legend.title = element_text(size = 13, face = "bold"),   # Legend title
   legend.text  = element_text(size = 12)                   # Legend labels
 )
-ggsave("onzeker_violin_a4.png", plot = p1, width = 297, height = 210, units = "mm", dpi = 300)
+ggsave("onzeker_violin_a4_30-1.png", plot = p1, width = 410, height = 210, units = "mm", dpi = 300)
+```
+
+```{r}
+# sensitivity maken of inladen
+catchment = 'Rijn'
+dirs = create_dirs(catchment, disk_path = disk_path)
+identifier = '2026-01-30'
+files <- list.files(path = dirs$sensitivity, pattern = identifier, full.names = TRUE)
+if (length(files) != (length(stoffen)*length(scenarios))) {
+  cat("\nAantal bestanden komt niet overeen met aantal stoffen x scenario")
+}
+
+#Voer evt sensitivity uit
+# var_vars <- read.csv(paste0(dirs$variable_values, "var_vals_Trifluoroacetic_1) Volledig reduceren van emissies_Rijn_2026-01-30.csv"))
+# series_jaar <- read.csv("~/my_scratch_dir/SimpleBox/PFAS_A2/output/Rijn/jaren_data/Rijn_200_2026-01-30_dur_4.18921203467581.csv") %>%
+#   filter(verwijdering == "75% verwijdering", scenario=="1) Volledig reduceren van emissies", stof=="Trifluoroacetic")
+# sensitivity(var_vars, series_jaar$waarde, write_to_scratch = TRUE, type="75%", path=dirs$sensitivity)
+
+#Variabelen uitlezen waarvoor onzekerheid is opgegeven
+varNames <-uncertain_variables(substance, suffix=uncertainty_suffix) %>%
+  mutate(pasted = paste0(varName, "_",SubCompart)) %>%
+  filter(is.na(Scale) | Scale != 'Continental')
+#Long format maken met varNames als een kolom
+long_sensi <- expand_grid(
+  stof = stoffen,
+  scenario = unlist(lapply(scenarios, function(x) x[[5]])),
+  verwijdering = c("99.9% verwijdering", "95% verwijdering", "75% verwijdering", "50% verwijdering"),
+  uncertain_vars = sort(unique(varNames$pasted))
+)
+
+#Datum om bestanden terug te vinden, staat in bestandsnaam
+date = "2026-01-30"
+scores <- c()
+#Longformat uit grote loop inladen, handmatig doen.
+longformat_jaren <- read.csv("~/my_scratch_dir/SimpleBox/PFAS_A2/output/Rijn/jaren_data/Rijn_200_2026-01-30_dur_4.18921203467581.csv")
+
+#Loop door stof, scenario en threshold en voer sensitivity functie (boven aan script) uit om random forest of f-divergence indices te krijgen
+for (stof_x in stoffen) {
+  cat("\n", stof_x)
+  for (scenario in scenarios) {
+    cat("\n", scenario[[5]])
+    #Voor scenario variable_values inlezen
+    var_path <- paste0(dirs$variable_values, "var_vals_", stof_x, "_", scenario[[5]], "_",catchment,"_",date,".csv")
+    var_vars <- read.csv(var_path)
+    
+    for (threshold in c("99.9% verwijdering", "95% verwijdering", "75% verwijdering", "50% verwijdering")) {
+      #Per threshold, scenario en stof een subset van de longformat uit grote loop halen
+      threshold_short <- gsub(" verwijdering", "",threshold)
+      scenario_naam <- as.character(scenario[[5]])
+      series_jaar <- longformat_jaren %>%
+        filter(verwijdering == threshold & scenario==scenario_naam & stof==stof_x)
+      if (nrow(series_jaar) > 200) {
+        print("Error Series jaar langer dan 200")
+        break
+      }
+      #Functie runnen
+      sensi <- tryCatch({
+        tmp <- sensitivity(var_vars, series_jaar$waarde, write_to_scratch = FALSE, type = threshold_short, path = dirs$sensitivity)
+        out <- left_join(varNames, tmp$rf, by = c("pasted" = "variable"))
+        out <- out[order(out$pasted), ]
+        out
+      }, error = function(e) {
+        
+        # Maak een dataframe met dezelfde structuur als bij succes, maar met NA's in de sensitivity kolom
+        cat("\n Error in sensitivity", e$message)
+        na_df <- data.frame(variable = varNames$pasted, X.IncMSE = NA_real_)
+        out <- left_join(varNames, na_df, by = c("pasted" = "variable"))
+        out <- out[order(out$pasted), ]
+        out
+      })
+      #Scores in vector zetten
+      scores <- c(scores, sensi$X.IncMSE)
+    }
+  }
+}
+#vector in long_format
+long_sensi$waarde = scores
+
+#Wat bewerkingen voor plots
+long_sensi <- long_sensi %>%
+  mutate(waarde_capped = pmin(waarde, 5),
+         waarde_log = log(waarde))
+write.csv(long_sensi, paste0(dirs$sensitivity, "long_format_rf.csv"))
+
+threshold_mean <- long_sensi %>%
+  group_by(stof, scenario, uncertain_vars) %>%
+  summarise(log_median_waarde = log(median(waarde, na.rm=TRUE)),
+            median_waarde = median(waarde, na.rm=TRUE),
+            mean_waarde = mean(waarde, na.rm=TRUE),
+            .groups = "drop")
+
+#Bekijk of 50, 75 enz andere resultaten opleveren anders mean(thresholds)
+#Bekijk verschillen stoffen
+#Bekijk verschillen scenario's
 ```
 
 
-```{r overig}
+```{r fig.height=5, fig.width=10}
+# long_sensi <- long_sensi %>%
+#   mutate(waarde_capped = pmin(waarde, 5),
+#          waarde_log = log(waarde))
+
+
+## Plotten met verschillende kolommen en subsets
+p1 <- ggplot(long_sensi, aes(x = uncertain_vars, y = verwijdering, fill = waarde)) +
+        geom_tile() +
+        facet_grid(stof ~ scenario) +
+        scale_fill_viridis_c(option = "plasma") +
+        labs(x = "Onzekere variabele", y = "Verwijdering", fill = "Waarde") +
+        theme_minimal()+
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p2 <- ggplot(threshold_mean, aes(x = uncertain_vars, y = stof, fill = median_waarde)) +
+  geom_tile() +
+  facet_wrap(~ scenario) +
+  scale_fill_viridis_c(option = "plasma") +
+  labs(x = "Onzekere variabele", y = "Scenario", fill = "Gemiddelde waarde") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p3 <- ggplot(threshold_mean, aes(x=mean_waarde, y = uncertain_vars, fill=stof))+
+  geom_col(position = "dodge") +
+  facet_wrap(~ scenario) +
+  labs(x = "Onzekere variabele", y = "Gemiddelde waarde", fill = "Scenario") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_fill_brewer(palette = "Paired")
+
+p4 <- ggplot(threshold_mean, aes(x=median_waarde, y = uncertain_vars, fill=stof))+
+  geom_col(position = "dodge") +
+  facet_wrap(~ scenario) +
+  labs(x = "Onzekere variabele", y = "Gemiddelde waarde", fill = "Scenario") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_fill_brewer(palette = "Paired")
+
+p5 <- ggplot(long_sensi, aes(x=waarde, y = uncertain_vars, fill=stof))+
+  geom_col(position = "dodge") +
+  facet_wrap(~scenario) +
+  labs(x = "Onzekere variabele", y = "Gemiddelde waarde", fill = "Scenario") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_fill_brewer(palette = "Paired")
+
+for (scenario_x in scenarios) {
+  scenario_x <- scenario_x[[5]]
+  for (stof_x in stoffen) {
+    subset <- long_sensi%>%filter(scenario==scenario_x & stof == stof_x)
+    p6 <- ggplot(subset, aes(x = waarde, y = uncertain_vars, fill = verwijdering)) +
+            geom_bar(stat = "identity", position = "dodge") +
+            labs(title = paste0("Random Forest: ", stof_x, " - ", scenario_x),
+                 x = "%IncMSE", y = "Variabele") +
+            theme_minimal()
+    ggsave(paste0("~/my_scratch_dir/SimpleBox/RandomForest plots/",stof_x,"_",scenario_x, ".jpg"), width = 300, height = 150, units = "mm", plot = p6,dpi = 300)
+  }
+}
+
+p1 
+p2  
+p3
+ggsave("SA_logIndices_fdiv.png", plot = p1, width = 410, height = 210, units = "mm", dpi = 300)
+ggsave("SA_logmedianIndices_verwijdering_fdiv.png", plot = p2, width = 410, height = 210, units = "mm", dpi = 300)
+ggsave("SA_staaf_meanIndices_verwijdering_fdiv.png", plot = p3, width = 410, height = 210, units = "mm", dpi = 300)
+ggsave("SA_staaf_medianIndices_verwijdering_fdiv.png", plot = p3, width = 410, height = 210, units = "mm", dpi = 300)
+```
+
+
+```{r overig code}
+
+#Hier overbodige code plakken
+
+# kMatrix <- World$K_matrix()
+      # all_ks <- sapply(kMatrix, function(mat) mat['w1RU', 'w1CU'])
+      # volume = World$fetchData("Volume") %>%
+      #   filter(Scale == 'Continental', SubCompart == 'river') %>%
+      #   summarise(volume = sum(Volume, na.rm = TRUE)) %>% pull(volume)
+      # discharges <- all_ks * volume
+
+# hist(variable_values[variable_values$Scale =='Regional' & variable_values$varName =='RAINrate', ]$Waarde)
+      # hist(variable_values[variable_values$varName =='FRACrun', ]$Waarde)
+      # 
+      # Check verdeling flows:
+      # Kaas = World$kaas %>%
+      #   filter(fromSubCompart == 'river', process=='k_Advection', fromScale=='Continental', toScale=='Regional') %>%
+      #   pull(k)
+      
+      
+      # area <- World$fetchData("TotalArea") %>%
+      #   filter(Scale == 'Continental') %>%
+      #   pull(TotalArea)
+      # 
+      # discharge_hand <- Kaas * volume
+      
+      # print(World$fetchData("x_ContRiver2Reg"))
+      # print(World$fetchData("x_RiverDischarge"))
+
+
+
 scenario_cols <- names(waardes)[str_detect(names(waardes), "REACH restrictie met derogaties")]
 
 long_data <- waardes %>%
@@ -509,4 +854,46 @@ for (var in result$variable) {
 }
 plot(maat$year, maat$mean_sd_concentration)
 plot(maat$year, maat$median_sd_concentration, type='l')
+```
+
+```{r onzekerheidsanalyse met sensitivity warning=FALSE, message=FALSE}
+#matrix met variable values maken?
+#https://github.com/rivm-syso/dynamic-era-energy/blob/d42bc3b1b673d85d47edbd9f348cc3befb7da158/Figures_III_V_v01.Rmd#L414
+#Output TFA is 100 run, 75%, scenario 2
+
+library(sensitivity)
+library(ks)
+input_X <- World$VariableValues() %>%
+  mutate(
+    var = paste0(varName, SubCompart)
+  ) %>%
+  filter(Scale != 'Continental') 
+  pivot_wider(
+    id_cols = RUNs,
+    names_from = var,
+    values_from = Waarde
+  )
+output_Y <- read.csv("~/my_scratch_dir/output_tfa270126.csv") %>%
+  # filter(verwijdering == '99.9% verwijdering',
+  #        scenario == '1) Volledig reduceren van emissies',
+  #        stof == 'Perfluorobutane_sulfonic') %>%
+  dplyr::select(waarde) %>%
+  pull(waarde)
+
+#logtransform data to avoid error
+# probX = log(data.matrix(probX)+100)
+# probY = log(data.matrix(probY))
+
+#run global sensitivity analysis
+m <- sensiFdiv(model = NULL, X=input_X, fdiv = "TV", nboot = 0, conf = 0.95,   scale = TRUE)
+
+n <- 100
+X <- data.frame(matrix(runif(8 * n), nrow = n))
+x <- sensiFdiv(model = sobol.fun, X = X, fdiv = c("TV","KL"), nboot=30)
+print(x)
+library(ggplot2)
+ggplot(x)
+tell(x, y = ...)
+
+
 ```

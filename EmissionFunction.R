@@ -20,8 +20,9 @@ sb_emission_df <- function(GlobalEmission, EuropeFraction =NULL, SelectScales=c(
                            TotalRuntime, SubCompartments = c('a', 's2', 's1', 's3', 'w0', 'w1', 'w2', 'w3'),
                            ReductionDuration, TotalReduction, ReductionSteps, StepDuration='equal', ReductionFractions='equal',
                            rc = NULL, PlotTitle = "Emissies op alle schalen", number_runs=FALSE) {
-  print("Emissie dataframe maken met afbouwend scenario op basis van gegeven input")
-  print("GlobalEmission wordt naar oppervlakte over de schalen verspreidt, binnen een schaal gaat 1/3 naar zowel bodem, lucht en water")
+  cat("[EmissionFunction.R]...")
+  cat("\nEmissie dataframe maken met afbouwend scenario op basis van gegeven input")
+  cat("\nGlobalEmission wordt naar oppervlakte over de schalen verspreidt, binnen een schaal gaat 1/3 naar zowel bodem, lucht en water")
   #prob runnen:
   if (is.numeric(number_runs)){
     prob = TRUE
@@ -83,8 +84,8 @@ sb_emission_df <- function(GlobalEmission, EuropeFraction =NULL, SelectScales=c(
   }
   areas <- areas %>%
     mutate(TotalArea = TotalArea/sum(areas$TotalArea)) 
-  print("Area fractions:")
-  print(areas)
+  #print("Area fractions:")
+  #print(areas)
   
   subcompartments_data <- read.csv("data/SubCompartSheet.csv") |>
     dplyr::select(SubCompartName, AbbrC) |>
@@ -104,7 +105,7 @@ sb_emission_df <- function(GlobalEmission, EuropeFraction =NULL, SelectScales=c(
     EmissieSchaal = GlobalEmission * EmissieSchaal$TotalArea
     check = 0
     
-    cat(paste0("Schaal: ", schaal," - ", GlobalEmission,"/",round(EmissieSchaal,2), "\t(", round((EmissieSchaal*100/GlobalEmission),5),"%)\n"))
+    #cat(paste0("Schaal: ", schaal," - ", GlobalEmission,"/",round(EmissieSchaal,2), "\t(", round((EmissieSchaal*100/GlobalEmission),5),"%)\n"))
     for (subcompartment in SubCompartments) {
       #Bepaal voor subcompartiment het aandeel van GlobalEmissions
       location = paste0(subcompartment, schaal, 'U')
@@ -157,7 +158,7 @@ sb_emission_df <- function(GlobalEmission, EuropeFraction =NULL, SelectScales=c(
   #Frame om toekomst aan toe te voegen
   Hist_Futu_emissions <- emissions
   #Exponentiele reeks staat al goed voor vermenigvuldiging met startwaarde, dit ook doen voor fractions
-  print(ReductionFractions)
+  #print(ReductionFractions)
   if (any(ReductionDuration != '-')) {
     if (!exponential) {
       #Omzetten naar fracties op startwaarde
@@ -165,7 +166,7 @@ sb_emission_df <- function(GlobalEmission, EuropeFraction =NULL, SelectScales=c(
       if (abs(sum(ReductionFractions) - (TotalReduction/100)) < tol) {
         Fraction_same_as_TotalReduction = TRUE
       } else {
-        print("Waarschuwing: TotalReduction niet hetzelfde als totaal van ReductionFractions")
+        print(paste0("Waarschuwing: TotalReduction [",TotalReduction/100, "] niet hetzelfde als totaal van ReductionFractions [",sum(ReductionFractions), "]"))
         Fraction_same_as_TotalReduction = FALSE
       }
       ReductionFractions = cumsum(ReductionFractions)
