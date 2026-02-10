@@ -13,7 +13,6 @@
 # sboo and sbooscripts are installed in the current working directory
 SBInstallFolder <- NULL
 
-SBInstallFolder <- "/rivm/n/hidsa/Documents/Temp"
 # you can specify a tag
 # tag <- "2025.04.0"
 # or if
