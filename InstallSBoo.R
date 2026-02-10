@@ -5,14 +5,15 @@
 # folder of your choosing.                                                     #
 #                                                                              #
 # Authors: Anne Hids and Joris Quik                                            #
-# Last updated: 18-08-2025                                                      # 
+# Last updated: 10-02-2026                                                     # 
 ################################################################################
 
 # Specify where the downloaded versions of sboo and sbooscripts should be saved to --
-# this is the only change you need to make to this script. 
-# SBInstallFolder <- NULL
+# this is the only change you need to make to this script. If SBInstallFolder is NULL,
+# sboo and sbooscripts are installed in the current working directory
+SBInstallFolder <- NULL
 
-
+SBInstallFolder <- "/rivm/n/hidsa/Documents/Temp"
 # you can specify a tag
 # tag <- "2025.04.0"
 # or if
@@ -25,6 +26,15 @@ InstallSBoo <- function(Release = "2025.04.0", # tag for release use NA for bran
                         devBranch = "development",
                         Temp_Folder = "C:/Temp" # an existing folder where SimpleBox is to be installed
 ){
+  
+  # check if directory is NULL or ends with a "/"
+  if (is.null(Temp_Folder) || is.na(Temp_Folder)) {
+    Temp_Folder <- NULL
+  } else if (is.character(Temp_Folder)) {
+    if (!endsWith(Temp_Folder, "/")) {
+      Temp_Folder <- paste0(Temp_Folder, "/")
+    }
+  }
   
   # prepare directories:
   
@@ -106,9 +116,12 @@ InstallSBoo <- function(Release = "2025.04.0", # tag for release use NA for bran
   
   # Remove SB zip files
   unlink(paste0(Temp_Folder, "SBzips"), recursive = TRUE)
-  
-  return(paste0("The SimpleBox model can be found in ", destination))
+  if(is.null(Temp_Folder)){
+    return(paste0("The SimpleBox model can be found in ", getwd(), "/", destination))
+  } else {
+    return(paste0("The SimpleBox model can be found in ", destination))
+  }
 }
 
-# InstallSBoo(Release = NA,
-#                  Temp_Folder = SBInstallFolder)
+InstallSBoo(Release = NA,
+                 Temp_Folder = NA)
