@@ -4,12 +4,12 @@ library(MASS)
 library(Rmpfr)
 setwd("~/Documents/GitHub/SBooScripts")
 # Read csvs
-plastic_values <- read.xlsx("vignettes/CaseStudies/FateFactorsUpdate/SI_3_Fate.xlsx", sheet = "Polymer_list") 
-regions <- read.xlsx("vignettes/CaseStudies/FateFactorsUpdate/SI_3_Fate.xlsx", sheet = "4.1.Regio_param") 
+plastic_values <- read.xlsx("vignettes/CaseStudies/FateFactorsUpdate/SI_B.xlsx", sheet = "3.2.polymer_list") 
+regions <- read.xlsx("vignettes/CaseStudies/FateFactorsUpdate/SI_B.xlsx", sheet = "3.1.regional_data") 
 colnames(regions) <- regions[2,]
 regions_rows = nrow(regions)
-degradation_CI_all <- readxl::read_xlsx("vignettes/CaseStudies/FateFactorsUpdate/SI_3_Fate.xlsx", 
-                                    sheet = "polymer_data_CI")[, 1:9]
+degradation_CI_all <- readxl::read_xlsx("vignettes/CaseStudies/FateFactorsUpdate/SI_B.xlsx", 
+                                    sheet = "3.3.polymer_data_CI")[, 1:9]
 #Import the data with regionalization. Some variables are left as the default input of SBoo
 #If no variable is provided in the regio sheet, the default value is kept
 regions <- regions |>
@@ -1132,7 +1132,7 @@ library(openxlsx)
 
 # Path
 
-out_file <- "vignettes/CaseStudies/FateFactorsUpdate/results_FF_CF_CI_3.xlsx"
+out_file <- "vignettes/CaseStudies/FateFactorsUpdate/results_FF_CF_CI_4.xlsx"
 
 # Load workbook if it exists, otherwise create a new one
 wb <- if (file.exists(out_file)) {
