@@ -6,14 +6,15 @@ setwd("~/Documents/GitHub/SBooScripts")
 # Read csvs
 plastic_values <- read.xlsx("vignettes/CaseStudies/FateFactorsUpdate/SI_B.xlsx", sheet = "3.2.polymer_list") 
 regions <- read.xlsx("vignettes/CaseStudies/FateFactorsUpdate/SI_B.xlsx", sheet = "3.1.regional_data") 
-colnames(regions) <- regions[2,]
+trackmpd <- read.xlsx("vignettes/CaseStudies/FateFactorsUpdate/SI_B.xlsx", sheet = "3.5.trackmpd_input") 
+colnames(regions) <- regions[3,]
 regions_rows = nrow(regions)
 degradation_CI_all <- readxl::read_xlsx("vignettes/CaseStudies/FateFactorsUpdate/SI_B.xlsx", 
                                     sheet = "3.3.polymer_data_CI")[, 1:9]
 #Import the data with regionalization. Some variables are left as the default input of SBoo
 #If no variable is provided in the regio sheet, the default value is kept
 regions <- regions |>
-  slice(3:regions_rows)|>
+  slice(4:regions_rows)|>
   filter(!is.na(Variable)) |>
   dplyr::select(Variable, Scale, SubCompart, `North America`, `Latin America`, Europe, 
                 `Africa & Middle East`, `Central Asia`, `Southeast Asia`, `Northern regions`, `Oceania`) |>
@@ -269,7 +270,7 @@ process_single_matrix <- function(k_mat, setup) {
   K_final <- setup$A_mat %*% K1X
   
   # Invert and compute fate factors
-  ff_matrix <- (-1 / 86400) * solve(K_final)
+  ff_matrix <- (-1 / 86400) * solve(K_final) #seconds to day 
   rownames(ff_matrix) <- paste0(rownames(ff_matrix), "S")
   
   return(ff_matrix)
@@ -277,7 +278,7 @@ process_single_matrix <- function(k_mat, setup) {
 
 # Nested loops structure
 setup <- NULL
-n_samples <- 100
+n_samples <- 10
 
 
 
@@ -852,7 +853,7 @@ count <- 0
 #Variables to test
 #reg = "Ocenia"
 reg = "North America"
-pol = "EPS"
+pol = "PET"
 size = 1
 shape = "Sphere"
 emission_compartment = "aRS"
@@ -1043,9 +1044,10 @@ for(reg in region_names){
           return("Invalid shape! Please choose from Sphere, Ellipsoid, Cube, Box, Cylindric - circular, or Cylindric - elliptic.")
         }
         
-        if (Shortest_side > 5000 || Intermediate_side > 5000 || Longest_side > 5000) {
-          next  # Skip if one of the dimensions exceeds the microplastics range
-        }
+        if (Shortest_side > 5000 || Intermediate_side > 5000 ) {
+          next  # Skip if one dimension exceeds 5000, except for microfibers, which can have length >5000um 
+                #(Scientific Coalition for an Effective Plastic Treaty). Therefore, Longest_side is not part of the check.
+        } #Microfiber
         
         shape_df <- data.frame(varName = "Shape", Waarde = as.character(shape))
         dimensions_df <- data.frame(
@@ -1059,7 +1061,20 @@ for(reg in region_names){
         vars_to_update <- c(vars_to_update,unique(shape_df$varName),unique(dimensions_df$varName))
         
         #UpdateDirty with the names of all variables that were changed, in all the loops
+        #World$UpdateDirty(vars_to_update)
+        filtered_trackmpd_data <- trackmpd %>%
+          filter(region == reg, 
+                 polymer == pol, 
+                 size == !!size, 
+                 shape == !!shape)
+        
+        
+        World$mutateVars(filtered_trackmpd_data)
+        vars_to_update <- c(vars_to_update,unique(filtered_trackmpd_data$varName))
+        
+        #UpdateDirty with the names of all variables that were changed, in all the loops
         World$UpdateDirty(vars_to_update)
+        k_detailed = World$fetchData("kaas")
         
         #solve
         #emissions <- data.frame(Abbr = c("aRS"), Emis = 1/3600/24) #emission of 1kg/d input in kg/s - resulting steady state masses (kg) can be divided by 1 (kg/d) to get FF (d)
@@ -1070,8 +1085,8 @@ for(reg in region_names){
         #Masses <- World$Masses()
         #k_matrix = World$exportEngineR()
         k_matrix = World$K_matrix() #New in SBoo: this returns a list of matrix for the probabilistic solver
-        #k_detailed = World$fetchData("kaas")
-        #k_matrix_1 = k_matrix[[1]]
+        k_detailed = World$fetchData("kaas")
+        k_matrix_1 = k_matrix[[1]]
         
         
         
@@ -1088,7 +1103,7 @@ for(reg in region_names){
           process_single_matrix(k_mat, setup)
         })
         
-        #ff_1 <- ff_matrices_list[[1]]
+        ff_1 <- ff_matrices_list[[1]]
         
         
         # Process ALL Monte Carlo samples for this combination
@@ -1121,7 +1136,7 @@ for(reg in region_names){
         results_CF_end_species_year <- bind_rows(results_CF_end_species_year, all_results$cf_end_species_stats)
         results_CF_end_PDF_m2_year <- bind_rows(results_CF_end_PDF_m2_year, all_results$cf_end_pdf_m2_stats)
         
-        
+        vars_to_update = c() #reset to avoid recomputing vars that have not changed and making vars_to_update excessively long
       }
     }
   }

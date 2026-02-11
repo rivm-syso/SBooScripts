@@ -1,4 +1,5 @@
 VarName,Unit,ToSI,table,Description
+AdvInput,s-1,,ScaleSubCompartData,Input trasnfer rate derived from other sources used to replace the advection calculations of SB
 AEROresist,s.m-1,,CONSTANTS,Aerodynamic resistance
 AEROSOLdeprate,m.s-1,,ScaleSheet,deposition aerosol particles
 alpha,-,,SubstanceSubCompartSpeciesData,Attachment efficiency of ENPs
@@ -121,6 +122,7 @@ TotalArea,m2,,ScaleSheet,"Area of the scale, including possibly nested scales"
 twet,day,twet*3600*24,ScaleSheet,Duration wet episode (6% of time in NL > 0.3mm rain)
 Udarcy,m.s-1,,SubcompartSheet,Darcy velocity of particle
 UVintensity,W.m-2,,ScaleSubCompartData,UV intensity in the subcompartment
+VelInput,m.s-1,,ScaleSubCompartData,Input velocity derived from other sources used to replace the settling velocity calculations of SB
 VegInterceptFrac,-,,SubCompartSheet,Fraction of particles intercepted by vegetation as estimated by Hahn et al. 2022
 VertDistance,m,,ScaleSubCompartData,depth or height of the subcompartment
 WINDspeed,m.s-1,,ScalesSheet,Average windspeed per scale
