@@ -678,25 +678,27 @@ calculate_ff_statistics <- function(ff_data) {
   ff_stats <- ff_data |>
     group_by(region, polymer, size, shape, emission_compartment, Scale, SubCompart) |>
     summarise(
-      ff_mean = mean(FF, na.rm = TRUE),
+      #ff_mean = mean(FF, na.rm = TRUE),
       ff_geom_mean = exp(mean(log(FF), na.rm = TRUE)),
-      ff_median = median(FF, na.rm = TRUE),
-      ff_sd = sd(FF, na.rm = TRUE),
+      #ff_median = median(FF, na.rm = TRUE),
+      #ff_sd = sd(FF, na.rm = TRUE),
       ff_gsd = exp(sd(log(FF), na.rm = TRUE)),
-      ff_cv = ff_sd / ff_mean,
+      #ff_cv = ff_sd / ff_mean,
       ff_ll_95 = quantile(FF, 0.025, na.rm = TRUE),
       ff_ul_95 = quantile(FF, 0.975, na.rm = TRUE),
-      ff_ll_90 = quantile(FF, 0.05, na.rm = TRUE),
-      ff_ul_90 = quantile(FF, 0.95, na.rm = TRUE),
+      #ff_ll_90 = quantile(FF, 0.05, na.rm = TRUE),
+      #ff_ul_90 = quantile(FF, 0.95, na.rm = TRUE),
       n_samples = n(),
       .groups = "drop"
     ) |>
     mutate(SubCompart = recode(SubCompart, "lake" = "lakewater", "river" = "riverwater", "sea"="seawater surface", "deepocean"="seawater column", "marinesediment"="marine sediments", "lakesediment" = "lake sediments", "freshwatersediment" = "freshwater sediments", "agriculturalsoil" = "agricultural soil", "naturalsoil" = "natural soil"))|>
     mutate(Scale = recode(Scale, "Continental" = "continental", "Global" = "global"))|>
     mutate(receiving_compartment = paste(Scale, SubCompart))|>
+    #dplyr::select(region, polymer, size, shape, emission_compartment, receiving_compartment,
+    #              ff_mean, ff_geom_mean, ff_median, ff_sd, ff_gsd, ff_cv,
+    #              ff_ll_95, ff_ul_95, ff_ll_90, ff_ul_90, n_samples)
     dplyr::select(region, polymer, size, shape, emission_compartment, receiving_compartment,
-                  ff_mean, ff_geom_mean, ff_median, ff_sd, ff_gsd, ff_cv,
-                  ff_ll_95, ff_ul_95, ff_ll_90, ff_ul_90, n_samples)
+                ff_geom_mean, ff_gsd, ff_ll_95, ff_ul_95, n_samples)
   
   return(ff_stats)
 }
@@ -715,65 +717,67 @@ calculate_cf_statistics <- function(cf_data, cf_prefix) {
     group_by(elementary_flowname, region, polymer, size, shape, emission_compartment) %>%
     summarise(
       # Marine statistics
-      marine_mean = mean(.data[[marine_col]], na.rm = TRUE),
+      #marine_mean = mean(.data[[marine_col]], na.rm = TRUE),
       marine_geom_mean = exp(mean(log(.data[[marine_col]]), na.rm = TRUE)),
-      marine_median = median(.data[[marine_col]], na.rm = TRUE),
-      marine_sd = sd(.data[[marine_col]], na.rm = TRUE),
+      #marine_median = median(.data[[marine_col]], na.rm = TRUE),
+      #marine_sd = sd(.data[[marine_col]], na.rm = TRUE),
       marine_gsd = exp(sd(log(.data[[marine_col]]), na.rm = TRUE)),
-      marine_cv = marine_sd / marine_mean,
+      #marine_cv = marine_sd / marine_mean,
       marine_ll_95 = quantile(.data[[marine_col]], 0.025, na.rm = TRUE),
       marine_ul_95 = quantile(.data[[marine_col]], 0.975, na.rm = TRUE),
-      # Replace the shapiro test with this SAFE version:
-      marine_shapiro_p = {
-        # Get the data
-        x <- .data[[marine_col]]
-        
-        # Check for valid data
-        if(length(x) < 3 || any(is.na(x)) || any(is.infinite(x)) || 
-           sd(x, na.rm = TRUE) == 0 || all(x <= 0)) {
-          NA_real_
-        } else if(length(x) > 5000) {
-          # Too large for Shapiro-Wilk, sample it
-          sample_x <- sample(x, size = 1000, replace = FALSE)
-          if(sd(sample_x, na.rm = TRUE) == 0 || all(sample_x <= 0)) {
-            NA_real_
-          } else {
-            shapiro.test(log(sample_x))$p.value
-          }
-        } else {
-          # Regular test
-          shapiro.test(log(x))$p.value
-        }
-      },
-      marine_is_lognormal = marine_shapiro_p > 0.05 & !is.na(marine_shapiro_p),
       
+      # Shapiro test
+      
+      # marine_shapiro_p = {
+      #   # Get the data
+      #   x <- .data[[marine_col]]
+      #   
+      #   # Check for valid data
+      #   if(length(x) < 3 || any(is.na(x)) || any(is.infinite(x)) || 
+      #      sd(x, na.rm = TRUE) == 0 || all(x <= 0)) {
+      #     NA_real_
+      #   } else if(length(x) > 5000) {
+      #     # Too large for Shapiro-Wilk, sample it
+      #     sample_x <- sample(x, size = 1000, replace = FALSE)
+      #     if(sd(sample_x, na.rm = TRUE) == 0 || all(sample_x <= 0)) {
+      #       NA_real_
+      #     } else {
+      #       shapiro.test(log(sample_x))$p.value
+      #     }
+      #   } else {
+      #     # Regular test
+      #     shapiro.test(log(x))$p.value
+      #   }
+      # },
+      # marine_is_lognormal = marine_shapiro_p > 0.05 & !is.na(marine_shapiro_p),
+      # 
       # Freshwater statistics
-      freshwater_mean = mean(.data[[freshwater_col]], na.rm = TRUE),
+      #freshwater_mean = mean(.data[[freshwater_col]], na.rm = TRUE),
       freshwater_geom_mean = exp(mean(log(.data[[freshwater_col]]), na.rm = TRUE)),
-      freshwater_median = median(.data[[freshwater_col]], na.rm = TRUE),
-      freshwater_sd = sd(.data[[freshwater_col]], na.rm = TRUE),
+      #freshwater_median = median(.data[[freshwater_col]], na.rm = TRUE),
+      #freshwater_sd = sd(.data[[freshwater_col]], na.rm = TRUE),
       freshwater_gsd = exp(sd(log(.data[[freshwater_col]]), na.rm = TRUE)),
-      freshwater_cv = freshwater_sd / freshwater_mean,
+      #freshwater_cv = freshwater_sd / freshwater_mean,
       freshwater_ll_95 = quantile(.data[[freshwater_col]], 0.025, na.rm = TRUE),
       freshwater_ul_95 = quantile(.data[[freshwater_col]], 0.975, na.rm = TRUE),
       
       # Terrestrial statistics
-      terrestrial_mean = mean(.data[[terrestrial_col]], na.rm = TRUE),
+      #terrestrial_mean = mean(.data[[terrestrial_col]], na.rm = TRUE),
       terrestrial_geom_mean = exp(mean(log(.data[[terrestrial_col]]), na.rm = TRUE)),
-      terrestrial_median = median(.data[[terrestrial_col]], na.rm = TRUE),
-      terrestrial_sd = sd(.data[[terrestrial_col]], na.rm = TRUE),
+      #terrestrial_median = median(.data[[terrestrial_col]], na.rm = TRUE),
+      #terrestrial_sd = sd(.data[[terrestrial_col]], na.rm = TRUE),
       terrestrial_gsd = exp(sd(log(.data[[terrestrial_col]]), na.rm = TRUE)),
-      terrestrial_cv = terrestrial_sd / terrestrial_mean,
+      #terrestrial_cv = terrestrial_sd / terrestrial_mean,
       terrestrial_ll_95 = quantile(.data[[terrestrial_col]], 0.025, na.rm = TRUE),
       terrestrial_ul_95 = quantile(.data[[terrestrial_col]], 0.975, na.rm = TRUE),
       
       # Total statistics
-      total_mean = mean(.data[[total_col]], na.rm = TRUE),
+      #total_mean = mean(.data[[total_col]], na.rm = TRUE),
       total_geom_mean = exp(mean(log(.data[[total_col]]), na.rm = TRUE)),
-      total_median = median(.data[[total_col]], na.rm = TRUE),
-      total_sd = sd(.data[[total_col]], na.rm = TRUE),
+      #total_median = median(.data[[total_col]], na.rm = TRUE),
+      #total_sd = sd(.data[[total_col]], na.rm = TRUE),
       total_gsd = exp(sd(log(.data[[total_col]]), na.rm = TRUE)),
-      total_cv = total_sd / total_mean,
+      #total_cv = total_sd / total_mean,
       total_ll_95 = quantile(.data[[total_col]], 0.025, na.rm = TRUE),
       total_ul_95 = quantile(.data[[total_col]], 0.975, na.rm = TRUE),
       
@@ -852,7 +856,7 @@ count <- 0
 #####TEST
 #Variables to test
 #reg = "Ocenia"
-reg = "North America"
+reg = "Northern regions"
 pol = "PET"
 size = 1
 shape = "Sphere"
