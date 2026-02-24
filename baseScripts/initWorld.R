@@ -3,7 +3,7 @@ library(ggdag) #for plotting DAG graphs
 library(R6)
 library(rlang)
 #path to the SBoo package
-Temp_Folder <- NULL
+SBInstallFolder <- NULL
 
 Path2PackageSource <- paste0("..","/SBoo")
 
@@ -32,7 +32,7 @@ if (!exists("substance")) {
 
 message(paste("Running SimpleBox for",substance))
 
-SBooDataLocation <- paste0(Temp_Folder)
+SBooDataLocation <- paste0(SBInstallFolder)
 
 #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
 ClassicStateModule <- ClassicNanoWorld$new(paste0(SBooDataLocation,"data"), substance)
