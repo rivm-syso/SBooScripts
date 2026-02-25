@@ -3781,3 +3781,7 @@ kdeg,air,PFAS_generiek,2.20E-08,NA
 kdeg,soil,PFAS_generiek,1.10E-10,NA
 kdeg,water,PFAS_generiek,2.20E-10,NA
 kdeg,sediment,PFAS_generiek,2.20e-10,NA
+kdeg,air,oldPerfluorooctanoic,2.20E-08,NA
+kdeg,soil,oldPerfluorooctanoic,1.10E-10,NA
+kdeg,water,oldPerfluorooctanoic,2.20E-10,NA
+kdeg,sediment,oldPerfluorooctanoic,2.20e-10,NA

@@ -96,6 +96,9 @@ sb_emission_df <- function(GlobalEmission, EuropeFraction =NULL, SelectScales=c(
   
   #1 Dataframe met historische emissies obv GlobalEmission
   ##Verdeling van GlobalEmission: 1/3 naar zowel bodem, lucht als water
+  # The total PFOA volume of 444-2517 t emitted in Western Europe between 1951-2050 (Figure 4) is
+  # mainly directed to air (46-48% ) and surface water (37-40%). A minor fraction is emitted to soil (14-15%).
+  verdeling <- list('a' = 0.47, 's'=0.14, 'w'=0.39)
   emissions <- data.frame()
   
   for (schaal in SelectScales) {
@@ -115,16 +118,17 @@ sb_emission_df <- function(GlobalEmission, EuropeFraction =NULL, SelectScales=c(
         To_Filter = paste0(substr(subcompartment, 1,1), "[0-9]")
       }
       emi = filter(SubCompartArea, substr(Scale, 1, 1) == schaal) %>%
-        filter(grepl(To_Filter, Abbreviation))
+        filter(grepl(To_Filter, Abbreviation)) %>%
+        filter(Abbreviation != 'w2') #PFAS emissie vrijwel nooit direct in zee
       
       if ((nrow(emi) == 1) & any((emi$Abbreviation == subcompartment))) {
-        emi_value = EmissieSchaal / 3
+        emi_value = EmissieSchaal * as.numeric(verdeling[substr(subcompartment,1,1)])
       } else if ((nrow(emi) > 1) & (subcompartment %in% emi$Abbreviation)) {
         summed = sum(emi$Area)
         emi <- emi %>%
           filter(Abbreviation == subcompartment) %>%
           mutate(AreaFraction = Area / summed)
-        emi_value = EmissieSchaal / 3* emi$AreaFraction
+        emi_value = (EmissieSchaal * as.numeric(verdeling[substr(subcompartment,1,1)])) * emi$AreaFraction
         emi_value <- sum(emi_value)
       } else {
         next
