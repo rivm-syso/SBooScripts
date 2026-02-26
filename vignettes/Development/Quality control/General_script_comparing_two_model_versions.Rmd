@@ -88,13 +88,7 @@ for(i in 1:nrow(substances)){
   substance <- subst_row$Substance
   cc <- subst_row$ChemClass
   
-  if(substance == 'microplastic' | substance == "TRWP"){
-    source("baseScripts/initWorld_onlyPlastics.R")
-  } else if(cc == "particle"){
-    source("baseScripts/initWorld_onlyParticulate.R")
-  } else{
-    source("baseScripts/initWorld_onlyMolec.R")
-  }
+  source("baseScripts/initWorld.R")
   
   kaas <- World$kaas |>
     mutate(Substance = substance)
@@ -123,13 +117,7 @@ for(i in 1:nrow(substances)){
   substance <- subst_row$Substance
   cc <- subst_row$ChemClass
   
-  if(substance == 'microplastic' | substance == "TRWP"){
-    source("baseScripts/initWorld_onlyPlastics.R")
-  } else if(cc == "particle"){
-    source("baseScripts/initWorld_onlyParticulate.R")
-  } else{
-    source("baseScripts/initWorld_onlyMolec.R")
-  }
+  source("baseScripts/initWorld.R")
   
   kaas <- World$kaas |>
     mutate(Substance = substance)
