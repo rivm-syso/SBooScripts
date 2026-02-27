@@ -12,7 +12,7 @@ editor_options:
 This script shows how to solve probabilistically in steady state and
 dynamically in parallel.
 
-```{R Load packages, warning=FALSE, message=FALSE}
+```{R Load packages, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 source("baseScripts/installRequirements.R")
 ```
 
@@ -84,7 +84,7 @@ Also specify the maximum number of runs per batch. There is also a
 minimum of 2 runs per slice, which cannot be changed.
 
 ```{R Specify number of cores SS, warning=FALSE, message=FALSE}
-nCores <- 3
+nCores <- 2
 max_runs_per_batch <- 3
 ```
 
@@ -98,14 +98,14 @@ Solution <- solveInParallelSteadyState(nCores = nCores,
                            emissions_data = emissions)
 
 # Save the outcome
-saveRDS(Solution, "data/Solution.RData")
+# saveRDS(Solution, "data/Solution.RData")
 ```
 
 Plot the outcome for the Regional scale
 
 ```{R Plot SS outcome}
-solution <- readRDS("data/Solution.RData")
-concentrations <- solution$Concentrations
+# Solution <- readRDS("data/Solution.RData")
+concentrations <- Solution$Concentrations
 
 # Get the concentrations
 concentration <- merge(concentrations, World$states$asDataFrame, by = "Abbr")
@@ -246,14 +246,14 @@ Solution <- solveInParallelDynamic(nCores = nCores,
                        nTIMES = nTIMES)
 
 # Save the outcome
-saveRDS(Solution, "data/Solution.RData")
+# saveRDS(Solution, "data/Solution.RData")
 ```
 
 Plot the outcome
 
 ```{R Plot Dyn outcome}
-solution <- readRDS("data/Solution.RData")
-concentrations <- solution$Concentrations
+# solution <- readRDS("data/Solution.RData")
+concentrations <- Solution$Concentrations
 
 # Get the concentration
 concentration <- merge(concentrations, World$states$asDataFrame, by = "Abbr")
