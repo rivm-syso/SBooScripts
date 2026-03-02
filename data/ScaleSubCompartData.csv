@@ -1,6 +1,6 @@
 VarName,Scale,SubCompart,Waarde,SB4N_name,Unit
-AdvInput,Regional,sea,0,AdvInput.w2R,s-1
-AdvInput,Regional,deepocean,0,AdvInput.w3R,s-1
+AdvInput,Regional,sea,NA,AdvInput.w2R,s-1
+AdvInput,Regional,deepocean,NA,AdvInput.w3R,s-1
 landFRAC,Continental,agriculturalsoil,0.6,FRACagsoil,[-]
 landFRAC,Continental,lake,0.0025,FRAClake,[-]
 landFRAC,Continental,naturalsoil,0.27,FRACnatsoil,[-]
