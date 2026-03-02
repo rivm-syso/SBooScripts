@@ -14,7 +14,7 @@ knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct s
 ```
 
 ### Sedimentation from water to sediment 
-Transport from water to sediment is solely driven by the sedimentatio rate. The net exchange between water and sediment is also dependent on resuspension, for this see 7.1.4. 
+Transport from water to sediment is solely driven by the sedimentation rate. The net exchange between water and sediment is also dependent on resuspension, for this see 7.1.4. 
 Sedimentation rate depends on the settling velocity of the particle, which is calculated according the functions given below. 
 ```{r initiate, message=FALSE, warning=FALSE}
 
