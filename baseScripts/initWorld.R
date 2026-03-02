@@ -43,9 +43,12 @@ World <- SBcore$new(ClassicStateModule)
 
 ChemClass = World$fetchData("ChemClass")
 
-
+# This constant turns deepocean at Regional and Continental scale on and off
 World$SetConst(Test_surface_water = "FALSE")
+
+# This constant turns the Arctic, Moderate and Tropic scales on and off
 World$SetConst(Remove_global = "FALSE")
+
 if(ChemClass != "particle") {
   World$filterStates <- list(SpeciesName = "Molecular")
   # To proceed with testing we set
