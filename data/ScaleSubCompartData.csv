@@ -171,10 +171,10 @@ UVintensity,Tropic,deepocean,0,UVintensity.w3T,W.m-2
 UVintensity,Tropic,marinesediment,0,UVintensity.sdT,W.m-2
 UVintensity,Tropic,naturalsoil,0,UVintensity.sT,W.m-2
 UVintensity,Tropic,sea,20,UVintensity.w2T,W.m-2
-VelInput,Regional,sea,0,VelInput.w2R,m.s-1
-VelInput,Regional,deepocean,0,VelInput.w3R,m.s-1
-VelInput,Continental,sea,0,VelInput.w2C,m.s-1
-VelInput,Continental,deepocean,0,VelInput.w3C,m.s-1
+VelInput,Regional,sea,NA,VelInput.w2R,m.s-1
+VelInput,Regional,deepocean,NA,VelInput.w3R,m.s-1
+VelInput,Continental,sea,NA,VelInput.w2C,m.s-1
+VelInput,Continental,deepocean,NA,VelInput.w3C,m.s-1
 VertDistance,Arctic,air,1000,HEIGHT.aA,m
 VertDistance,Arctic,cloudwater,1000,HEIGHT.aA,m
 VertDistance,Arctic,deepocean,3000,DEPTH.w3A,m
