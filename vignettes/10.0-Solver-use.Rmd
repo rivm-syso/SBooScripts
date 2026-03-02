@@ -469,6 +469,8 @@ example_data <-
 Prepare the variables the same way as used for the variables in the
 steady state probabilistic solver.
 
+This is done usin the 'World$makeInvFuns' function which uses a table with a column named "Distribution" and the parameters for the different distributions given as, a, b, c and/or d. 
+
 ```{r Prepare variable df and functions dyn, warning=FALSE, message=FALSE}
 
 # Load the Excel file containing example distributions for variablese
@@ -491,7 +493,7 @@ probabilistically:
 
 -   tmax: the end time for running the solver, in seconds
 
--   nTIMES: the number of calculation time steps.
+-   nTIMES: the number of times output is wanted for. It is used to create the times argument in the ode solver based seq(tmin,tmax,length.out = nTIMES)
 
 Now we can solve and get the solution, variable values, concentration
 and emissions. NOTE: These calculations take a bit longer than the
