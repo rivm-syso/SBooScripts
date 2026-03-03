@@ -1,5 +1,4 @@
 ---
-"2026-02-25" output: github_document editor_options: chunk_output_type: console
 title: "Comparison marine currents" 
 author: "Anne Hids, Joris Quik" 
 date: "2026-02-25" 
@@ -27,7 +26,7 @@ Setting this variable to TRUE removes the advection flows to, from and within th
 \- As an alternative to calculating advection flows within SBoo, there is an option to provide advection rates directly with the **AdvInput** variable.
 If values for this variable are given, the advection flows are not calculated for these flows.
 
-\- When the **Test_surface_water** variable is set to TRUE, the deepocean subcompartment at Regional and Continental scale is introduced.
+\- When the **Regional_and_Continental_deepocean** variable is set to TRUE, the deepocean subcompartment at Regional and Continental scale is introduced.
 This means the following:
 
 \- The deaggregation function is turned off for deepocean at Regional and Continental scale.
@@ -39,9 +38,9 @@ This means the following:
 
 There are a few comparisons to be made to test these changes:
 
-\- Compare marine_currents_clean with Remove_global = TRUE and Test_surface_water = TRUE to development branch
+\- Compare marine_currents_clean with Remove_global = TRUE and Regional_and_Continental_deepocean = TRUE to development branch
 
-\- Compare marine_currents_clean with Remove_global = FALSE and Test_surface_water = FALSE to development.
+\- Compare marine_currents_clean with Remove_global = FALSE and Regional_and_Continental_deepocean = FALSE to development.
 
 \# Compare marine_currents_clean with new variables as TRUE to development
 
@@ -126,7 +125,7 @@ for(i in 1:nrow(substances)){
   substance <- subst_row$Substance
   cc <- subst_row$ChemClass
   source("baseScripts/initWorld.R")
-  World$SetConst(Test_surface_water = "TRUE") # Add deepocean to Regional and Continental scale
+  World$SetConst(Regional_and_Continental_deepocean = "TRUE") # Add deepocean to Regional and Continental scale
   World$SetConst(Remove_global = "TRUE") #if true, remove flows to moderate, arctic and tropic
   World$UpdateKaas(mergeExisting = FALSE)
   kaas <- World$kaas |>
@@ -248,7 +247,7 @@ for(i in 1:nrow(substances)){
   source("baseScripts/initWorld.R")
   # The code below is not necessary because the default values are FALSE
   
-  # World$SetConst(Test_surface_water = "FALSE") # If true, add deepocean to Regional and Continental scale
+  # World$SetConst(Regional_and_Continental_deepocean = "FALSE") # If true, add deepocean to Regional and Continental scale
   # World$SetConst(Remove_global = "FALSE") #if true, remove flows to moderate, arctic and tropic
   # World$UpdateKaas(mergeExisting = FALSE)
   

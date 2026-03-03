@@ -115,7 +115,7 @@ TAUsea,d,,ScaleSheet,RESIDENCE TIME of water
 tdry,day,tdry*3600*24,ScaleSheet,"Duration dry episode (Joilliet and Hauschild, 2005)"
 Temp,K ,,ScaleSheet,Temperature in Kelvin
 Test,-,,CONSTANTS,Variable that in previous versions allowed comparison to xlsx version of SimpleBox for testing.
-Test_surface_water,-,,CONSTANTS,add the deepcoean compartment at regional and continental scale.
+Regional_and_Continental_deepocean,-,,CONSTANTS,add the deepcoean compartment at regional and continental scale.
 Tm,Celsius,Tm+273,Substances,melting temperature of the substance
 Tm_default,K,,CONSTANTS,Default melting point
 TotalArea,m2,,ScaleSheet,"Area of the scale, including possibly nested scales"

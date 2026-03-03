@@ -35,5 +35,5 @@ RhoNuc,1300,RhoNuc,[kg.m-3],Density of Nucleation mode aerosol particles
 t_half_Escape,60,k.esc.a,yr-1,Half life time in air for escape to stratosphere
 T25,298,NA,K,Temperature for normalised circumstances
 Test,FALSE,new,boolean,Variable that in previous versions allowed comparison to xlsx version of SimpleBox for testing.
-Test_surface_water,FALSE,NA,boolean,add the deepcoean compartment at regional and continental scale.
+Regional_and_Continental_deepocean,FALSE,NA,boolean,add the deepcoean compartment at regional and continental scale.
 Tm_default,274,Tm,K,Default melting temperature

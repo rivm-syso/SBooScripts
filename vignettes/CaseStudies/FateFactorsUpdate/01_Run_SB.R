@@ -21,7 +21,7 @@ source("baseScripts/initWorld_onlyPlastics.R")
 
 #If Test FALSE: new version of SB, if True, then the old version (excel)
 #World$SetConst(Test = "TRUE")
-World$SetConst(Test_surface_water = "TRUE")
+World$SetConst(Regional_and_Continental_deepocean = "TRUE")
 World$SetConst(Remove_global = "TRUE") #if true, remove flows to moderate, arctic and tropic
 World$UpdateKaas(mergeExisting = FALSE)
 
