@@ -1,7 +1,13 @@
 ---
-title: "Comparison marine currents" author: "Anne Hids, Joris Quik" date:
 "2026-02-25" output: github_document editor_options: chunk_output_type: console
-markdown: wrap: 72
+title: "Comparison marine currents" 
+author: "Anne Hids, Joris Quik" 
+date: "2026-02-25" 
+output: github_document 
+editor_options: 
+chunk_output_type: console
+markdown: 
+wrap: 72
 ---
 
 ```{r setup, include=FALSE}
@@ -83,15 +89,15 @@ cc_substances <- substances |>
   select(Substance, ChemClass)
 ```
 
-## Calculate first order rate constants for the main
+## Calculate first order rate constants for the development
 
-```{R}
+```{R Calculate ks development, echo=TRUE, message=FALSE, warning=FALSE}
 # Save the original working directory for later
 original_wd <- getwd()
-# Change the wd to the wd of the main branches
+# Change the wd to the wd of the development branches
 setwd(paste0(folderpaths[1], "/SBooScripts"))
 # Calculate the kaas
-main_kaas <- data.frame()
+development_kaas <- data.frame()
 for(i in 1:nrow(substances)){
   # Get the substance type
   subst_row <- substances[i, ]
@@ -100,18 +106,18 @@ for(i in 1:nrow(substances)){
   source("baseScripts/initWorld.R")
   kaas <- World$kaas |>
     mutate(Substance = substance)
-  main_kaas <- rbind(main_kaas, kaas)
+  development_kaas <- rbind(development_kaas, kaas)
 }
 ```
 
 ## Calculate the first order rate constants for the test branches
 
-```{R Clean environment again, include=FALSE}
+```{R Clean environment deveopment, include=FALSE}
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 ```
 
-```{R Run SB and get advection ks for marine_currents_clean branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
-# Change the wd to the wd of the main branches
+```{R Run SB and get advection ks for marine_currents_clean when test is true, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+# Change the wd to the wd of the development branches
 setwd(paste0(folderpaths[2], "/SBooScripts"))
 test_true_kaas <- data.frame()
 for(i in 1:nrow(substances)){
@@ -131,11 +137,11 @@ for(i in 1:nrow(substances)){
 
 ## Compare the k values for each of the substances
 
-```{R Calculate the differences between ks, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
-common_cols <- setdiff(intersect(colnames(main_kaas), colnames(test_true_kaas)), "k")
-kaas_comparison <- merge(main_kaas, test_true_kaas, by=common_cols, suffixes = c("_Old", "_New"))
+```{R Calculate the differences between ks development and marine currents when test is true, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+common_cols <- setdiff(intersect(colnames(development_kaas), colnames(test_true_kaas)), "k")
+kaas_comparison <- merge(development_kaas, test_true_kaas, by=common_cols, suffixes = c("_Old", "_New"))
 kaas_comparison <- full_join(
-  main_kaas,
+  development_kaas,
   test_true_kaas,
   by = common_cols,
   suffix = c("_Old", "_New")
@@ -148,7 +154,7 @@ changed_kaas <- kaas_comparison |>
   mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
 ```
 
-```{R Plot the differences between ks, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+```{R Plot the differences between ks between development and marine currents when test is true, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 diffs <- kaas_comparison |>
   mutate(fromname = paste0(process, "_", fromSubCompart, "_", fromScale)) |>
   mutate(toname = paste0(process, "_", toSubCompart, "_", toScale)) |>
@@ -217,21 +223,21 @@ for(chemclass in unique(diffs$ChemClass)){
 
 ## Discussion
 
-From the plots we can see the following: - The marine_currents_clean branch turns the advection flow from Regional sea to Continental sea off for all species - All deposition rates from air to water and soil compartments are slightly different for molecules (neutral, no class, base, acid, metal) v_Otherkair is a variable used in k_Deposition.
-Otherkair is always NA for particulates, but for molecules Otherkair equals the sum of all k's from the same Scale-Species combination where the SubCompart is air.
-Because changes in Advection processes (removal of global scales) changes the other k's to the air compartment at global and continental scales, this causes changes in k_Deposition.
+From the plots we can see the following: 
+- The marine_currents_clean branch turns the advection flow from Regional sea to Continental sea off for all species 
+- All deposition rates from air to water and soil compartments are slightly different for molecules (neutral, no class, base, acid, metal) v_Otherkair is a variable used in k_Deposition. Otherkair is always NA for particulates, but for molecules Otherkair equals the sum of all k's from the same Scale-Species combination where the SubCompart is air. Because changes in Advection processes (removal of global scales) changes the other k's to the air compartment at global and continental scales, this causes changes in k_Deposition.
 
 # Compare marine_currents_clean with new variables as FALSE to development
 
-There is no need to run SB again for the main, we already have the main k's for the substances we want to compare.
+There is no need to run SB again for the development, we already have the development k's for the substances we want to compare.
 ## Calculate the first order rate constants for the test branches
 
-```{R Clean environment again, include=FALSE}
+```{R Clean environment again for test is false, include=FALSE}
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 ```
 
-```{R Run SB and get advection ks for marine_currents_clean branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
-# Change the wd to the wd of the main branches
+```{R Run SB and get advection ks for marine_currents_clean branch when test is false, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+# Change the wd to the wd of the development branches
 setwd(paste0(folderpaths[2], "/SBooScripts"))
 test_false_kaas <- data.frame()
 for(i in 1:nrow(substances)){
@@ -240,9 +246,12 @@ for(i in 1:nrow(substances)){
   substance <- subst_row$Substance
   cc <- subst_row$ChemClass
   source("baseScripts/initWorld.R")
-  World$SetConst(Test_surface_water = "FALSE") # If true, add deepocean to Regional and Continental scale
-  World$SetConst(Remove_global = "FALSE") #if true, remove flows to moderate, arctic and tropic
-  World$UpdateKaas(mergeExisting = FALSE)
+  # The code below is not necessary because the default values are FALSE
+  
+  # World$SetConst(Test_surface_water = "FALSE") # If true, add deepocean to Regional and Continental scale
+  # World$SetConst(Remove_global = "FALSE") #if true, remove flows to moderate, arctic and tropic
+  # World$UpdateKaas(mergeExisting = FALSE)
+  
   kaas <- World$kaas |>
     mutate(Substance = substance)
   test_false_kaas <- rbind(test_false_kaas, kaas)
@@ -251,10 +260,10 @@ for(i in 1:nrow(substances)){
 
 ## Compare the k values for each of the substances
 
-```{R Calculate the differences between ks, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
-common_cols <- setdiff(intersect(colnames(main_kaas), colnames(test_false_kaas)), "k")
+```{R Calculate the differences between ks when test is false, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+common_cols <- setdiff(intersect(colnames(development_kaas), colnames(test_false_kaas)), "k")
 kaas_comparison <- merge(
-  main_kaas,
+  development_kaas,
   test_false_kaas,
   by = common_cols,
   all = TRUE,
@@ -268,7 +277,7 @@ changed_kaas <- kaas_comparison |>
   mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
 ```
 
-```{R Plot the differences between ks, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+```{R Plot the differences between ks when test is false, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 diffs <- kaas_comparison |>
   mutate(fromname = paste0(process, "_", fromSubCompart, "_", fromScale)) |>
   mutate(toname = paste0(process, "_", toSubCompart, "_", toScale)) |>
@@ -337,30 +346,30 @@ for(chemclass in unique(diffs$ChemClass)){
 
 ### Check if deepocean at Regional and Continental scale disappear
 
-```{R}
-main_combo <- main_kaas %>% distinct(fromScale, fromSubCompart)
+```{R Check if deepocean at regional and continental scale disappear when test is false, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+development_combo <- development_kaas %>% distinct(fromScale, fromSubCompart)
 test_combo <- test_false_kaas %>% distinct(fromScale, fromSubCompart)
 
-main_combo <- main_combo %>% mutate(source = "main")
+development_combo <- development_combo %>% mutate(source = "development")
 test_combo <- test_combo %>% mutate(source = "test")
 
-all_combos <- bind_rows(main_combo, test_combo)
+all_combos <- bind_rows(development_combo, test_combo)
 
-# Tel per combinatie hoe vaak deze voorkomt (in main, test, of beide)
+# Tel per combinatie hoe vaak deze voorkomt (in development, test, of beide)
 combo_check <- all_combos %>%
   group_by(fromScale, fromSubCompart) %>%
   summarise(
-    in_main = any(source == "main"),
+    in_development = any(source == "development"),
     in_test = any(source == "test"),
     .groups = "drop"
   )
 
-#Alleen in main:
-only_in_main <- combo_check %>% filter(in_main & !in_test)
+#Alleen in development:
+only_in_development <- combo_check %>% filter(in_development & !in_test)
 #Alleen in test:
-only_in_test <- combo_check %>% filter(!in_main & in_test)
+only_in_test <- combo_check %>% filter(!in_development & in_test)
 #In beide:
-in_both <- combo_check %>% filter(in_main & in_test)
+in_both <- combo_check %>% filter(in_development & in_test)
 
 extra_compartment_check_from <- kaas_comparison |> 
   filter(fromSubCompart %in% only_in_test$fromSubCompart & fromScale %in% only_in_test$fromScale) 
@@ -372,9 +381,11 @@ extra_compartment_check <- rbind(extra_compartment_check_from, extra_compartment
   filter(!is.na(k_New))
 
 functions_to_be_altered <- unique(extra_compartment_check$process)
+
+print(functions_to_be_altered)
 ```
 
-Exceptions should be added to the functions printed above. 
+There are no remaining functions to which exceptions should be added. 
 
 ### Check if the connection from sea to marinesediment reappears
 
@@ -388,3 +399,6 @@ marine_sediment_check <- kaas_comparison |>
 It does not, because exceptions were added to the k_Sedimentation and k_Resuspension functions.
 
 ## Discussion
+When both test values are turned off in the marine_currents_clean branch, the 
+results are the same as in the development. 
+
