@@ -10,9 +10,6 @@ wrap: 72
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..","..","..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot)
 library(tidyverse)
 ```
 
