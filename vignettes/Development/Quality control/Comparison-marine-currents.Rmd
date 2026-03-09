@@ -150,7 +150,7 @@ changed_kaas <- kaas_comparison |>
   mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
 ```
 
-```{R Plot the differences between ks between development and marine currents when test is true, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+```{R Plots development and marine currents with vars as true, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 diffs <- kaas_comparison |>
   mutate(fromname = paste0(process, "_", fromSubCompart, "_", fromScale)) |>
   mutate(toname = paste0(process, "_", toSubCompart, "_", toScale)) |>
@@ -273,7 +273,7 @@ changed_kaas <- kaas_comparison |>
   mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
 ```
 
-```{R Plot the differences between ks when test is false, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+```{R Plots development and marine currents with vars as false, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 diffs <- kaas_comparison |>
   mutate(fromname = paste0(process, "_", fromSubCompart, "_", fromScale)) |>
   mutate(toname = paste0(process, "_", toSubCompart, "_", toScale)) |>
