@@ -208,7 +208,7 @@ for(chemclass in unique(diffs$ChemClass)){
 }
 ```
 
-![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20between%20development%20and%20marine%20currents%20when%20test%20is%20true-1.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20between%20development%20and%20marine%20currents%20when%20test%20is%20true-2.png)<!-- -->
+![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-1.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-2.png)<!-- -->
 
     ## 
     ## 
@@ -267,7 +267,7 @@ for(chemclass in unique(diffs$ChemClass)){
     ## |Tropic      |air            |Tropic      |naturalsoil      |isopropylamine             | 0.0e+00| 0.0e+00|-1.0e-21 |-6.5e-07 |
     ## |Tropic      |air            |Tropic      |sea              |isopropylamine             | 0.0e+00| 0.0e+00|-2.4e-21 |-6.5e-07 |
 
-![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20between%20development%20and%20marine%20currents%20when%20test%20is%20true-3.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20between%20development%20and%20marine%20currents%20when%20test%20is%20true-4.png)<!-- -->
+![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-3.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-4.png)<!-- -->
 
     ## 
     ## 
@@ -334,7 +334,7 @@ for(chemclass in unique(diffs$ChemClass)){
     ## |Tropic      |air            |Tropic      |naturalsoil      |PHENYLEPHRINE HCL       | 2.4e-06| 2.5e-06|3.0e-08 |1.2e-02  |
     ## |Tropic      |air            |Tropic      |sea              |PHENYLEPHRINE HCL       | 5.7e-06| 5.7e-06|7.0e-08 |1.2e-02  |
 
-![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20between%20development%20and%20marine%20currents%20when%20test%20is%20true-5.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20between%20development%20and%20marine%20currents%20when%20test%20is%20true-6.png)<!-- -->
+![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-5.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-6.png)<!-- -->
 
     ## 
     ## 
@@ -401,7 +401,7 @@ for(chemclass in unique(diffs$ChemClass)){
     ## |Tropic      |air            |Tropic      |naturalsoil      |alpha-Naphthylamine     | 2.5e-06| 2.5e-06|-2.6e-09 |-1.0e-03 |
     ## |Tropic      |air            |Tropic      |sea              |alpha-Naphthylamine     | 5.8e-06| 5.8e-06|-6.0e-09 |-1.0e-03 |
 
-![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20between%20development%20and%20marine%20currents%20when%20test%20is%20true-7.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20between%20development%20and%20marine%20currents%20when%20test%20is%20true-8.png)<!-- -->
+![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-7.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-8.png)<!-- -->
 
     ## 
     ## 
@@ -468,7 +468,7 @@ for(chemclass in unique(diffs$ChemClass)){
     ## |Tropic      |air            |Tropic      |naturalsoil      |Cr(III)   | 2.4e-06| 2.5e-06|3.0e-08 |1.2e-02  |
     ## |Tropic      |air            |Tropic      |sea              |Cr(III)   | 5.7e-06| 5.7e-06|7.0e-08 |1.2e-02  |
 
-![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20between%20development%20and%20marine%20currents%20when%20test%20is%20true-9.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20between%20development%20and%20marine%20currents%20when%20test%20is%20true-10.png)<!-- -->
+![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-9.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-10.png)<!-- -->
 
     ## 
     ## 
@@ -535,7 +535,7 @@ for(chemclass in unique(diffs$ChemClass)){
     ## |Tropic      |air            |Tropic      |naturalsoil      |1-pentanol                                | 0.0e+00| 0.0e+00|3.4e-12  |1.3e-04  |
     ## |Tropic      |air            |Tropic      |sea              |1-pentanol                                | 1.0e-07| 1.0e-07|8.0e-12  |1.3e-04  |
 
-![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20between%20development%20and%20marine%20currents%20when%20test%20is%20true-11.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20between%20development%20and%20marine%20currents%20when%20test%20is%20true-12.png)<!-- -->
+![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-11.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-12.png)<!-- -->
 
     ## 
     ## 
@@ -669,42 +669,42 @@ for(chemclass in unique(diffs$ChemClass)){
 }
 ```
 
-![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20when%20test%20is%20false-1.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20when%20test%20is%20false-2.png)<!-- -->
+![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-1.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-2.png)<!-- -->
 
     ## 
     ## 
     ## |fromScale |fromSubCompart |toScale |toSubCompart |Substance | k_Old| k_New|diff |rel_diff |
     ## |:---------|:--------------|:-------|:------------|:---------|-----:|-----:|:----|:--------|
 
-![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20when%20test%20is%20false-3.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20when%20test%20is%20false-4.png)<!-- -->
+![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-3.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-4.png)<!-- -->
 
     ## 
     ## 
     ## |fromScale |fromSubCompart |toScale |toSubCompart |Substance | k_Old| k_New|diff |rel_diff |
     ## |:---------|:--------------|:-------|:------------|:---------|-----:|-----:|:----|:--------|
 
-![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20when%20test%20is%20false-5.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20when%20test%20is%20false-6.png)<!-- -->
+![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-5.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-6.png)<!-- -->
 
     ## 
     ## 
     ## |fromScale |fromSubCompart |toScale |toSubCompart |Substance | k_Old| k_New|diff |rel_diff |
     ## |:---------|:--------------|:-------|:------------|:---------|-----:|-----:|:----|:--------|
 
-![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20when%20test%20is%20false-7.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20when%20test%20is%20false-8.png)<!-- -->
+![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-7.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-8.png)<!-- -->
 
     ## 
     ## 
     ## |fromScale |fromSubCompart |toScale |toSubCompart |Substance | k_Old| k_New|diff |rel_diff |
     ## |:---------|:--------------|:-------|:------------|:---------|-----:|-----:|:----|:--------|
 
-![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20when%20test%20is%20false-9.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20when%20test%20is%20false-10.png)<!-- -->
+![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-9.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-10.png)<!-- -->
 
     ## 
     ## 
     ## |fromScale |fromSubCompart |toScale |toSubCompart |Substance | k_Old| k_New|diff |rel_diff |
     ## |:---------|:--------------|:-------|:------------|:---------|-----:|-----:|:----|:--------|
 
-![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20when%20test%20is%20false-11.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plot%20the%20differences%20between%20ks%20when%20test%20is%20false-12.png)<!-- -->
+![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-11.png)<!-- -->![](Comparison-marine-currents_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-12.png)<!-- -->
 
     ## 
     ## 
