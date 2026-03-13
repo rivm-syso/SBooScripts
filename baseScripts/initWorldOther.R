@@ -95,7 +95,16 @@
       World$SetConst(kdeg = 1e-20)
     }
     
-    
+    if(anyNA(World$fetchData("Koc"))) {
+      # message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
+      # message("Plese set Kssdr in SubstanceCompartments.csv")
+      World$SetConst(Koc = 0)
+    }
+    if(anyNA(World$fetchData("KocAlt"))) {
+      # message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
+      # message("Plese set Kssdr in SubstanceCompartments.csv")
+      World$SetConst(KocAlt = 0)
+    }
     
     # if(!anyNA(World$fetchData("kdeg"))) {
     #   if(!anyNA(World$fetchData("Kssdr"))) {
