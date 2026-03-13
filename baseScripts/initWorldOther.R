@@ -4,7 +4,14 @@
   library(R6)
   library(rlang)
   #path to the SBoo package
+  
   Path2PackageSource <- paste0(SBInstallFolder,"SimpleBox/SBoo")
+  SBooDataLocation <- paste0(SBInstallFolder,"SimpleBox/SBooScripts/")
+  if(exists("SBdev")){
+    if(SBdev){   
+    Path2PackageSource <- paste0(SBInstallFolder,"/SBoo")
+    SBooDataLocation <- paste0(SBInstallFolder,"/SBooScripts/")  
+  }}
   
   #source all R files and load data from the package
   Dfiles <- list.files(paste(Path2PackageSource, "data", sep = "/"), pattern = "\\.rda$")
@@ -29,7 +36,7 @@
     substance <- "microplastic"
   }
   
-  SBooDataLocation <- paste0(SBInstallFolder,"SimpleBox/SBooScripts/")
+
   
   #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
   ClassicStateModule <- ClassicNanoWorld$new(paste0(SBooDataLocation,"data"), substance)
