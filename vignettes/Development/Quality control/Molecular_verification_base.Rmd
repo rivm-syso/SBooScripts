@@ -37,7 +37,7 @@ Potential_substances <- c(
 
 substance <- Potential_substances[3]
 
-source("baseScripts/initWorld_onlyMolec.R")
+source("baseScripts/initWorld.R")
 
 World$substance <- substance
 ```
