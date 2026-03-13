@@ -63,6 +63,13 @@
       World$SetConst(ChemClass = "neutral")
     }
     
+    if(anyNA(World$fetchData("Koc"))) {
+      World$SetConst(Koc = NA)
+    }
+    if(anyNA(World$fetchData("KocAlt"))) {
+      World$SetConst(KocAlt = NA)
+    }
+    
   } else {
     if(anyNA(World$fetchData("kdis"))) {
       warning(paste0("initWorld: For " ,substance," kdis is missing, setting kdis = 0"), call. = FALSE)
@@ -96,14 +103,10 @@
     }
     
     if(anyNA(World$fetchData("Koc"))) {
-      # message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
-      # message("Plese set Kssdr in SubstanceCompartments.csv")
-      World$SetConst(Koc = 0)
+      World$SetConst(Koc = NA)
     }
     if(anyNA(World$fetchData("KocAlt"))) {
-      # message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
-      # message("Plese set Kssdr in SubstanceCompartments.csv")
-      World$SetConst(KocAlt = 0)
+      World$SetConst(KocAlt = NA)
     }
     
     # if(!anyNA(World$fetchData("kdeg"))) {
