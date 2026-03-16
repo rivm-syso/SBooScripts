@@ -35,7 +35,7 @@ Potential_substances <- c(
 
 substance <- Potential_substances[1]
 
-source("baseScripts/initWorld_onlyMolec.R")
+source("baseScripts/initWorld.R")
 
 World$substance <- substance
 ```
@@ -488,7 +488,7 @@ difference in k's between excel and R can be tested again:
 ```{r comparison_2, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 
 VerificationSBoo = TRUE
-source("baseScripts/initWorld_onlyMolec.R")
+source("baseScripts/initWorld.R")
 VerificationSBoo = FALSE # with testing make sure to change back to false
 
 

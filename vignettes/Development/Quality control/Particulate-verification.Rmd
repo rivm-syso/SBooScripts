@@ -22,7 +22,7 @@ between the models to not exceed 0.1%.
 ```{r Initialize,include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 substance <- "nAg_10nm"
 
-source("baseScripts/initWorld_onlyParticulate.R")
+source("baseScripts/initWorld.R")
 
 World$substance <- substance
 ```
