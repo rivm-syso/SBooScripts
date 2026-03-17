@@ -133,8 +133,8 @@ for(i in 1:nrow(substances)){
     mutate(Substance = substance)
   test_true_kaas <- rbind(test_true_kaas, kaas)
 }
-setwd(original_wd)
 
+setwd(original_wd)
 ```
 
 ## Compare the k values for each of the substances
@@ -239,7 +239,7 @@ rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 ```
 
 ```{R Run SB and get advection ks for marine_currents_clean branch when test is false, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
-# Change the wd to the wd of the development branches
+# Change the wd to the wd of the test branches
 setwd(paste0(folderpaths[2], "/SBooScripts"))
 test_false_kaas <- data.frame()
 for(i in 1:nrow(substances)){
@@ -258,6 +258,7 @@ for(i in 1:nrow(substances)){
     mutate(Substance = substance)
   test_false_kaas <- rbind(test_false_kaas, kaas)
 }
+setwd(original_wd)
 ```
 
 ## Compare the k values for each of the substances
@@ -286,6 +287,7 @@ diffs <- kaas_comparison |>
   mutate(diff = ifelse(diff == 0, NaN, diff)) |>
   left_join(cc_substances, by = "Substance")
 chemclass <- "metal"
+
 for(chemclass in unique(diffs$ChemClass)){
   changed <- diffs |>
     filter(rel_diff != 0) |>
