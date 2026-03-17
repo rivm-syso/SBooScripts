@@ -13,7 +13,7 @@ This script shows how to solve probabilistically in steady state and
 dynamically in parallel.
 
 ```{R Load packages, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
-source("baseScripts/installRequirements.R")
+# library("doParallel")
 ```
 
 # Solve steady state in parallel
@@ -24,7 +24,7 @@ by assigning "microplastic" the the variable substance before calling
 the initWorld.R script.
 
 ```{R init World SS, warning=FALSE, message=FALSE}
-substance <- "microplastic"
+substance <- "microplastic" #just for this example
 source('baseScripts/initWorld.R')
 ```
 
@@ -80,12 +80,12 @@ Specify how many cores you have available for calculations. If you are
 calculating on your own computer, use a maximum of all available cores -
 1.
 
-Also specify the maximum number of runs per batch. There is also a
+Also specify the maximum number of runs per slice. There is also a
 minimum of 2 runs per slice, which cannot be changed.
 
 ```{R Specify number of cores SS, warning=FALSE, message=FALSE}
 nCores <- 2
-max_runs_per_batch <- 3
+max_runs_per_slice <- 3
 ```
 
 Now the script for solving steady state in parallel can be called. After
@@ -94,16 +94,22 @@ this script finishes running the outcomes are in the list named
 
 ```{R Solve SS in parallel, warning=FALSE, message=FALSE}
 Solution <- solveInParallelSteadyState(nCores = nCores,
-                           max_runs_per_batch = max_runs_per_batch,
+                           max_runs_per_slice = max_runs_per_slice,
                            emissions_data = emissions)
 
 # Save the outcome
 # saveRDS(Solution, "data/Solution.RData")
 ```
 
-Plot the outcome for the Regional scale
+## Plotting
 
-```{R Plot SS outcome}
+Plot the outcome for the Regional scale. For this you need to manually
+create a plot using the `Solution` that was created above object. Here
+we cannot use the build in `World$PlotConcentration` as the data is now
+stored in Solution and does exist in the `World` object. Below is an
+example script for creating such a plot.
+
+```{R Plot SS outcome, warning=FALSE}
 # Solution <- readRDS("data/Solution.RData")
 concentrations <- Solution$Concentrations
 
@@ -226,11 +232,11 @@ Specify how many cores you have available for calculations. If you are
 calculating on your own computer, use a maximum of all available cores -
 1.
 
-Also specify the maximum number of runs per batch.
+Also specify the maximum number of runs per slice.
 
 ```{R Specify number of cores Dyn, warning=FALSE, message=FALSE}
 nCores <- 3
-max_runs_per_batch <- 3
+max_runs_per_slice <- 3
 ```
 
 Now the script for solving steady state in parallel can be called. After
@@ -239,7 +245,7 @@ this script finishes running the outcomes are in the list named
 
 ```{R Solve Dyn in parallel, warning=FALSE, message=FALSE}
 Solution <- solveInParallelDynamic(nCores = nCores,
-                       max_runs_per_batch = max_runs_per_batch,
+                       max_runs_per_slice = max_runs_per_slice,
                        emissions_data = emissions,
                        tmin = tmin,
                        tmax = tmax,
@@ -249,10 +255,17 @@ Solution <- solveInParallelDynamic(nCores = nCores,
 # saveRDS(Solution, "data/Solution.RData")
 ```
 
-Plot the outcome
+## Plotting
 
-```{R Plot Dyn outcome}
+Plot the outcome. For this you need to manually create a plot using the
+`Solution` that was created above object. Here we cannot use the build
+in `World$PlotConcentration` as the data is now stored in Solution and
+does exist in the `World` object. Below is an example script for
+creating such a plot.
+
+```{R Plot Dyn outcome, warning=FALSE}
 # solution <- readRDS("data/Solution.RData")
+
 concentrations <- Solution$Concentrations
 
 # Get the concentration
