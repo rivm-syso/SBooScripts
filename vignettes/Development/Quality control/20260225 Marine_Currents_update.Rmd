@@ -106,6 +106,8 @@ for(i in 1:nrow(substances)){
     mutate(Substance = substance)
   development_kaas <- rbind(development_kaas, kaas)
 }
+
+setwd(original_wd)
 ```
 
 ## Calculate the first order rate constants for the test branches
@@ -131,6 +133,8 @@ for(i in 1:nrow(substances)){
     mutate(Substance = substance)
   test_true_kaas <- rbind(test_true_kaas, kaas)
 }
+setwd(original_wd)
+
 ```
 
 ## Compare the k values for each of the substances
