@@ -80,12 +80,12 @@ Specify how many cores you have available for calculations. If you are
 calculating on your own computer, use a maximum of all available cores -
 1.
 
-Also specify the maximum number of runs per batch. There is also a
+Also specify the maximum number of runs per slice. There is also a
 minimum of 2 runs per slice, which cannot be changed.
 
 ```{R Specify number of cores SS, warning=FALSE, message=FALSE}
 nCores <- 2
-max_runs_per_batch <- 3
+max_runs_per_slice <- 3
 ```
 
 Now the script for solving steady state in parallel can be called. After
@@ -94,7 +94,7 @@ this script finishes running the outcomes are in the list named
 
 ```{R Solve SS in parallel, warning=FALSE, message=FALSE}
 Solution <- solveInParallelSteadyState(nCores = nCores,
-                           max_runs_per_batch = max_runs_per_batch,
+                           max_runs_per_slice = max_runs_per_slice,
                            emissions_data = emissions)
 
 # Save the outcome
@@ -226,11 +226,11 @@ Specify how many cores you have available for calculations. If you are
 calculating on your own computer, use a maximum of all available cores -
 1.
 
-Also specify the maximum number of runs per batch.
+Also specify the maximum number of runs per slice.
 
 ```{R Specify number of cores Dyn, warning=FALSE, message=FALSE}
 nCores <- 3
-max_runs_per_batch <- 3
+max_runs_per_slice <- 3
 ```
 
 Now the script for solving steady state in parallel can be called. After
@@ -239,7 +239,7 @@ this script finishes running the outcomes are in the list named
 
 ```{R Solve Dyn in parallel, warning=FALSE, message=FALSE}
 Solution <- solveInParallelDynamic(nCores = nCores,
-                       max_runs_per_batch = max_runs_per_batch,
+                       max_runs_per_slice = max_runs_per_slice,
                        emissions_data = emissions,
                        tmin = tmin,
                        tmax = tmax,
