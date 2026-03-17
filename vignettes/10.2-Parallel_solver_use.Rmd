@@ -109,7 +109,7 @@ we cannot use the build in `World$PlotConcentration` as the data is now
 stored in Solution and does exist in the `World` object. Below is an
 example script for creating such a plot.
 
-```{R Plot SS outcome}
+```{R Plot SS outcome, warning=FALSE}
 # Solution <- readRDS("data/Solution.RData")
 concentrations <- Solution$Concentrations
 
@@ -263,7 +263,7 @@ in `World$PlotConcentration` as the data is now stored in Solution and
 does exist in the `World` object. Below is an example script for
 creating such a plot.
 
-```{R Plot Dyn outcome}
+```{R Plot Dyn outcome, warning=FALSE}
 # solution <- readRDS("data/Solution.RData")
 
 concentrations <- Solution$Concentrations
