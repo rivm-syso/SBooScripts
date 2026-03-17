@@ -13,7 +13,7 @@ This script shows how to solve probabilistically in steady state and
 dynamically in parallel.
 
 ```{R Load packages, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
-source("baseScripts/installRequirements.R")
+# library("doParallel")
 ```
 
 # Solve steady state in parallel
@@ -24,7 +24,7 @@ by assigning "microplastic" the the variable substance before calling
 the initWorld.R script.
 
 ```{R init World SS, warning=FALSE, message=FALSE}
-substance <- "microplastic"
+substance <- "microplastic" #just for this example
 source('baseScripts/initWorld.R')
 ```
 
@@ -101,7 +101,13 @@ Solution <- solveInParallelSteadyState(nCores = nCores,
 # saveRDS(Solution, "data/Solution.RData")
 ```
 
-Plot the outcome for the Regional scale
+## Plotting
+
+Plot the outcome for the Regional scale. For this you need to manually
+create a plot using the `Solution` that was created above object. Here
+we cannot use the build in `World$PlotConcentration` as the data is now
+stored in Solution and does exist in the `World` object. Below is an
+example script for creating such a plot.
 
 ```{R Plot SS outcome}
 # Solution <- readRDS("data/Solution.RData")
@@ -249,10 +255,17 @@ Solution <- solveInParallelDynamic(nCores = nCores,
 # saveRDS(Solution, "data/Solution.RData")
 ```
 
-Plot the outcome
+## Plotting
+
+Plot the outcome. For this you need to manually create a plot using the
+`Solution` that was created above object. Here we cannot use the build
+in `World$PlotConcentration` as the data is now stored in Solution and
+does exist in the `World` object. Below is an example script for
+creating such a plot.
 
 ```{R Plot Dyn outcome}
 # solution <- readRDS("data/Solution.RData")
+
 concentrations <- Solution$Concentrations
 
 # Get the concentration
