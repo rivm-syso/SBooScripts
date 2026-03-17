@@ -1,7 +1,7 @@
 ---
 title: "Comparison shape update"
 author: "Nadim Saadi, Valerie de Rijk, Anne Hids, Joris Quik"
-date: "`r Sys.Date()`"
+date: "26-08-2025"
 output: github_document
 editor_options: 
   chunk_output_type: console
@@ -293,9 +293,9 @@ original and Bagheri drag methods. This affects the
 
 From the above table it can be seen, that also the Ag 10 nm nanomaterial
 is affected with an
-`r``round(max(abs(unique(changed_kaas$rel_diff)))*100, 1)` decrease in
-k_sedimentation. It is (for now) advised to not use the Bagheri drag
-method for nanomaterials.
+``` r``round(max(abs(unique(changed_kaas$rel_diff)))*100, 1) ```
+decrease in k_sedimentation. It is (for now) advised to not use the
+Bagheri drag method for nanomaterials.
 
 ```{R echo=FALSE, fig.height=8, fig.width=12, message=FALSE, warning=FALSE}
 all_diffs <- kaas_comparison |>

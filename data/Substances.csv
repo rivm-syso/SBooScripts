@@ -770,7 +770,7 @@ microplastic,particle,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,25000,1300,2e-21,NA,NA
 microplastic_cube,particle,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,1300,2e-21,Cube,25,150,250,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA
 microplastic_ellipsoid,particle,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,1300,2e-21,Ellipsoid,25,150,250,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA
 microplastic_fiber,particle,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,1300,2e-21,Fiber,5,NA,250,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA
-microplastic_fiber_elips,particle,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,1300,2e-21,Cylindric - elliptic,5,NA,250,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA
+microplastic_fiber_elips,particle,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,1300,2e-21,Cylindric - elliptic,5,15,250,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA
 microplastic_sphere,particle,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,1300,2e-21,Sphere,250,NA,NA,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA
 MISOPROSTOL,neutral,NA,382.55,NA,6.05e-10,0.5951,NA,29512.09227,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 Mn(II),metal,NA,54.94,NA,NA,NA,1e-20,NA,2890.71539,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA

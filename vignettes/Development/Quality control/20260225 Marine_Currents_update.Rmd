@@ -1,9 +1,10 @@
 ---
 title: "Comparison marine currents" 
-author: "Anne Hids, Joris Quik" 
+author: "Nadim Saadi, Anne Hids, Joris Quik" 
 date: "2026-02-25" 
 output: github_document 
 editor_options: 
+  chunk_output_type: console
 chunk_output_type: console
 markdown: 
 wrap: 72
@@ -17,35 +18,36 @@ library(tidyverse)
 
 In the marine_currents_clean branch the following changes were made:
 
-\- There is now a variable to remove the global scale: **Remove_global**.
-Setting this variable to TRUE removes the advection flows to, from and within the global scale.
+-   There is now a variable to remove the global scale: **Remove_global**.
+    Setting this variable to TRUE removes the advection flows to, from and within the global scale.
 
-\- As an alternative to calculating advection flows within SBoo, there is an option to provide advection rates directly with the **AdvInput** variable.
-If values for this variable are given, the advection flows are not calculated for these flows.
+-   As an alternative to calculating advection flows within SBoo, there is an option to provide advection rates directly with the **AdvInput** variable.
+    If values for this variable are given, the advection flows are not calculated for these flows.
 
-\- When the **Regional_and_Continental_deepocean** variable is set to TRUE, the deepocean subcompartment at Regional and Continental scale is introduced.
-This means the following:
+-   When the **Regional_and_Continental_deepocean** variable is set to TRUE, the deepocean subcompartment at Regional and Continental scale is introduced.
+    This also means the following:
 
-\- The deaggregation function is turned off for deepocean at Regional and Continental scale.
-- The area for deepocean at Regional and Continental scale is set to the area of the sea subcompartment at the same scale.
+    -   The deaggregation function is turned off for deepocean at Regional and Continental scale.
 
-\- The variable **VelInput** allows the user to provide a settling velocity instead of the settling velocity being calculated in SBoo.
+    -   The area for deepocean at Regional and Continental scale is set to the area of the sea subcompartment at the same scale.
 
-\## Comparisons setup
+-   The variable **VelInput** allows the user to provide a settling velocity instead of the settling velocity being calculated in SBoo.
+
+# Comparisons setup
 
 There are a few comparisons to be made to test these changes:
 
-\- Compare marine_currents_clean with Remove_global = TRUE and Regional_and_Continental_deepocean = TRUE to development branch
+-   Compare marine_currents_clean with Remove_global = TRUE and Regional_and_Continental_deepocean = TRUE with the development branch
 
-\- Compare marine_currents_clean with Remove_global = FALSE and Regional_and_Continental_deepocean = FALSE to development.
+-   Compare marine_currents_clean with Remove_global = FALSE and Regional_and_Continental_deepocean = FALSE to development.
 
-\# Compare marine_currents_clean with new variables as TRUE to development
+## Compare marine_currents_clean with new variables as TRUE to development
 
 The below scripts should be run to compare two versions of SBoo.
 
 ```{R Specify temporary directory, include = FALSE}
 # Specify where the downloaded versions of sboo and sbooscripts should be saved to
-dest_folder <- "/rivm/n/hidsa/Documents/Temp"
+dest_folder <- "SimpleBox"
 ```
 
 ```{R Specify which tag and branch to compare}
@@ -219,9 +221,9 @@ for(chemclass in unique(diffs$ChemClass)){
 
 ## Discussion
 
-From the plots we can see the following: 
-- The marine_currents_clean branch turns the advection flow from Regional sea to Continental sea off for all species 
-- All deposition rates from air to water and soil compartments are slightly different for molecules (neutral, no class, base, acid, metal) v_Otherkair is a variable used in k_Deposition. Otherkair is always NA for particulates, but for molecules Otherkair equals the sum of all k's from the same Scale-Species combination where the SubCompart is air. Because changes in Advection processes (removal of global scales) changes the other k's to the air compartment at global and continental scales, this causes changes in k_Deposition.
+From the plots we can see the following: - The marine_currents_clean branch turns the advection flow from Regional sea to Continental sea off for all species - All deposition rates from air to water and soil compartments are slightly different for molecules (neutral, no class, base, acid, metal) v_Otherkair is a variable used in k_Deposition.
+Otherkair is always NA for particulates, but for molecules Otherkair equals the sum of all k's from the same Scale-Species combination where the SubCompart is air.
+Because changes in Advection processes (removal of global scales) changes the other k's to the air compartment at global and continental scales, this causes changes in k_Deposition.
 
 # Compare marine_currents_clean with new variables as FALSE to development
 
@@ -381,7 +383,7 @@ functions_to_be_altered <- unique(extra_compartment_check$process)
 print(functions_to_be_altered)
 ```
 
-There are no remaining functions to which exceptions should be added. 
+There are no remaining functions to which exceptions should be added.
 
 ### Check if the connection from sea to marinesediment reappears
 
@@ -395,6 +397,5 @@ marine_sediment_check <- kaas_comparison |>
 It does not, because exceptions were added to the k_Sedimentation and k_Resuspension functions.
 
 ## Discussion
-When both test values are turned off in the marine_currents_clean branch, the 
-results are the same as in the development. 
 
+When both test values are turned off in the marine_currents_clean branch, the results are the same as in the development.
