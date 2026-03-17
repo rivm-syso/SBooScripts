@@ -29,25 +29,28 @@ Potential_substances <- c("1-aminoanthraquinone", # no class
 ## Function for checking mass balance
 ```{R}
 Check_mass_balance <- function(substance){ 
+  source("baseScripts/initWorld.R")
   # Initialize the correct World
-  chemclass <- substances |>
-    filter(Substance == substance) |>
-    select(ChemClass)
-  
-  chemclass <- chemclass$ChemClass
-  
-  if(substance == "microplastic"){
-    source("baseScripts/initWorld_onlyPlastics.R")
-  } else if (chemclass == "particle") {
-    source("baseScripts/initWorld_onlyParticulate.R")
-  } else {
-    source("baseScripts/initWorld_onlyMolec.R")
-  }
-  
+  # chemclass <- substances |>
+  #   filter(Substance == substance) |>
+  #   select(ChemClass)
+  # 
+  # chemclass <- chemclass$ChemClass
+  # 
+  # if(substance == "microplastic"){
+  #   source("baseScripts/initWorld.R")
+  # } else if (chemclass == "particle") {
+  #   source("baseScripts/initWorld.R")
+  # } else {
+  #   source("baseScripts/initWorld.R")
+  # }
+  # 
   World$substance <- substance
   
   # Solve steady state
   World$NewSolver("SteadyStateSolver")
+  
+  chemclass = World$fetchData("ChemClass")
   
   if(chemclass == "particle"){
     emissions <- data.frame(Abbr = c("aRS", "s2RS", "w1RS","s1AS"), Emis = c(10000, 10000, 10000,100)) # convert 1 t/y to si units: kg/s

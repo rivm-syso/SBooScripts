@@ -1,5 +1,5 @@
 ---
-title: "Dependencies in R"
+title: "Dependencies of SBoo in R"
 author: "Valerie de Rijk"
 date: "`r Sys.Date()`"
 output: github_document
@@ -21,11 +21,11 @@ Just like in Excel, we can trace the dependencies of processes and variables. Fo
 ### Generating nodes
 
 ```{r Initializing World, warning = FALSE}
-source("baseScripts/initWorld_onlyMolec.R")
+source("baseScripts/initWorld.R")
 allnodes <- World$nodelist
 head(allnodes)
 filtered_nodelist <- World$nodelist[World$nodelist$Calc == "k_Adsorption", ]
-filtered_nodelist <- World$nodelist[World$nodelist$Calc == "FRingas", ]
+# filtered_nodelist <- World$nodelist[World$nodelist$Calc == "FRingas", ]
 filtered_nodelist_sea <- World$nodelist[World$nodelist$Calc == "AreaSea",]
 print(filtered_nodelist)
 ```

@@ -664,7 +664,7 @@ kdeg,air,Malathion,5.81e-5,NA
 kdeg,air,MALEIC HYDRAZIDE,9.94e-6,NA
 kdeg,air,MANCOZEB,1.59276e-4,NA
 kdeg,air,MCPB,1.52e-5,NA
-kdeg,air,MEBENDAZOLE,0.00010202200000000001,NA
+kdeg,air,MEBENDAZOLE,0.000102022,NA
 kdeg,air,mecoprop,1.3e-5,NA
 kdeg,air,Mecoprop-P,1.3e-5,NA
 kdeg,air,median substance SimpleBox vs 3,3.5e-6,NA
@@ -3757,3 +3757,35 @@ Kssdr,soil,microplastic,3.78991e-12,m.s-1
 Kssdr,soil,PET_sphere_example,1.88e-14,m.s-1
 Kssdr,water,microplastic,5.23356e-13,m.s-1
 Kssdr,water,PET_sphere_example,9.51e-15,m.s-1
+kdeg,air,Perfluorobutane_sulfonic,2.20E-08,s-1
+kdeg,soil,Perfluorobutane_sulfonic,1.10E-10,s-1
+kdeg,water,Perfluorobutane_sulfonic,2.20E-10,s-1
+kdeg,sediment,Perfluorobutane_sulfonic,2.20e-10,s-1
+kdeg,air,Perfluoropentanoic,2.20E-08,s-1
+kdeg,soil,Perfluoropentanoic,1.10E-10,s-1
+kdeg,water,Perfluoropentanoic,2.20E-10,s-1
+kdeg,sediment,Perfluoropentanoic,2.20e-10,s-1
+kdeg,air,Perfluoroheptanoic,2.20E-08,s-1
+kdeg,soil,Perfluoroheptanoic,1.10E-10,s-1
+kdeg,water,Perfluoroheptanoic,2.20E-10,s-1
+kdeg,sediment,Perfluoroheptanoic,2.20e-10,s-1
+kdeg,air,Perfluorooctanoic,2.20E-08,s-1
+kdeg,soil,Perfluorooctanoic,1.10E-10,s-1
+kdeg,water,Perfluorooctanoic,2.20E-10,s-1
+kdeg,sediment,Perfluorooctanoic,2.20e-10,s-1
+kdeg,air,Trifluoroacetic,2.20E-08,s-1
+kdeg,soil,Trifluoroacetic,1.10E-10,s-1
+kdeg,water,Trifluoroacetic,2.20E-10,s-1
+kdeg,sediment,Trifluoroacetic,2.20e-10,s-1
+kdeg,air,Perfluorobutanoic,2.20E-08,s-1
+kdeg,soil,Perfluorobutanoic,1.10E-10,s-1
+kdeg,water,Perfluorobutanoic,2.20E-10,s-1
+kdeg,sediment,Perfluorobutanoic,2.20e-10,s-1
+kdeg,air,Perfluorohexanoic,2.20E-08,s-1
+kdeg,soil,Perfluorohexanoic,1.10E-10,s-1
+kdeg,water,Perfluorohexanoic,2.20E-10,s-1
+kdeg,sediment,Perfluorohexanoic,2.20e-10,s-1
+kdeg,air,PFAS_generiek,2.20E-08,s-1
+kdeg,soil,PFAS_generiek,1.10E-10,s-1
+kdeg,water,PFAS_generiek,2.20E-10,s-1
+kdeg,sediment,PFAS_generiek,2.20e-10,s-1

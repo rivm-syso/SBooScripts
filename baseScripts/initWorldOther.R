@@ -4,7 +4,14 @@
   library(R6)
   library(rlang)
   #path to the SBoo package
-  Path2PackageSource <- paste0(Temp_Folder,"SimpleBox/SBoo")
+  
+  Path2PackageSource <- paste0(SBInstallFolder,"SimpleBox/SBoo")
+  SBooDataLocation <- paste0(SBInstallFolder,"SimpleBox/SBooScripts/")
+  if(exists("SBdev")){
+    if(SBdev){   
+    Path2PackageSource <- paste0(SBInstallFolder,"/SBoo")
+    SBooDataLocation <- paste0(SBInstallFolder,"/SBooScripts/")  
+  }}
   
   #source all R files and load data from the package
   Dfiles <- list.files(paste(Path2PackageSource, "data", sep = "/"), pattern = "\\.rda$")
@@ -29,7 +36,7 @@
     substance <- "microplastic"
   }
   
-  SBooDataLocation <- paste0(Temp_Folder,"SimpleBox/SBooScripts/")
+
   
   #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
   ClassicStateModule <- ClassicNanoWorld$new(paste0(SBooDataLocation,"data"), substance)
@@ -54,6 +61,13 @@
     if(World$fetchData("ChemClass")==("")) {
       warning(paste0("initWorld: For " ,substance," ChemClass is needed but missing, setting to neutral"), call. = FALSE)
       World$SetConst(ChemClass = "neutral")
+    }
+    
+    if(anyNA(World$fetchData("Koc"))) {
+      World$SetConst(Koc = NA)
+    }
+    if(anyNA(World$fetchData("KocAlt"))) {
+      World$SetConst(KocAlt = NA)
     }
     
   } else {
@@ -88,7 +102,12 @@
       World$SetConst(kdeg = 1e-20)
     }
     
-    
+    if(anyNA(World$fetchData("Koc"))) {
+      World$SetConst(Koc = NA)
+    }
+    if(anyNA(World$fetchData("KocAlt"))) {
+      World$SetConst(KocAlt = NA)
+    }
     
     # if(!anyNA(World$fetchData("kdeg"))) {
     #   if(!anyNA(World$fetchData("Kssdr"))) {
@@ -122,7 +141,7 @@
   ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
   
   #call the particulate processes 
-  Processes4SpeciesTp <- read.csv("data/Processes4SpeciesTp.csv")
+  Processes4SpeciesTp <- read.csv(paste0(SBooDataLocation,"data/Processes4SpeciesTp.csv"))
   
   ifelse(ChemClass != "particle",
          {

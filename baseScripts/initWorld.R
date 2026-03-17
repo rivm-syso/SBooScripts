@@ -3,7 +3,7 @@ library(ggdag) #for plotting DAG graphs
 library(R6)
 library(rlang)
 #path to the SBoo package
-Temp_Folder <- NULL
+SBInstallFolder <- NULL
 
 Path2PackageSource <- paste0("..","/SBoo")
 
@@ -32,7 +32,7 @@ if (!exists("substance")) {
 
 message(paste("Running SimpleBox for",substance))
 
-SBooDataLocation <- paste0(Temp_Folder)
+SBooDataLocation <- paste0(SBInstallFolder)
 
 
 #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
@@ -64,6 +64,17 @@ if(ChemClass != "particle") {
   if(World$fetchData("ChemClass")==("")) {
     warning(paste0("initWorld: For " ,substance," ChemClass is needed but missing, setting to neutral"), call. = FALSE)
     World$SetConst(ChemClass = "neutral")
+  }
+  
+  if(anyNA(World$fetchData("Koc"))) {
+    # message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
+    # message("Plese set Kssdr in SubstanceCompartments.csv")
+    World$SetConst(Koc = NA)
+  }
+  if(anyNA(World$fetchData("KocAlt"))) {
+    # message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
+    # message("Plese set Kssdr in SubstanceCompartments.csv")
+    World$SetConst(KocAlt = NA)
   }
   
 } else {
@@ -98,7 +109,16 @@ if(ChemClass != "particle") {
     World$SetConst(kdeg = 1e-20)
   }
   
-  
+  if(anyNA(World$fetchData("Koc"))) {
+    # message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
+    # message("Plese set Kssdr in SubstanceCompartments.csv")
+    World$SetConst(Koc = NA)
+  }
+  if(anyNA(World$fetchData("KocAlt"))) {
+    # message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
+    # message("Plese set Kssdr in SubstanceCompartments.csv")
+    World$SetConst(KocAlt = NA)
+  }
   
   # if(!anyNA(World$fetchData("kdeg"))) {
   #   if(!anyNA(World$fetchData("Kssdr"))) {

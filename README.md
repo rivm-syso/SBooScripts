@@ -70,7 +70,7 @@ vignette](vignettes/Getting-started.md) for the first time.
 If you intend to use the model without changing its functions, read/run
 the following markdown files to get started:
 
-- [Getting Started](vignettes/Getting-started.Rmd) : this Rmarkdown file
+- [Getting Started](vignettes/Getting-started.md) : this Rmarkdown file
   includes all basics for users (not necessarily developers) to use
   SimpleBox. It includes:
 

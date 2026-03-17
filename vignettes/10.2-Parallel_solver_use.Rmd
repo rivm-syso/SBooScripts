@@ -12,18 +12,19 @@ editor_options:
 This script shows how to solve probabilistically in steady state and
 dynamically in parallel.
 
-```{R Load packages, warning=FALSE, message=FALSE}
-source("baseScripts/installRequirements.R")
+```{R Load packages, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# library("doParallel")
 ```
 
 # Solve steady state in parallel
 
 Firstly, initialize the World you want to use for your calculations. In
-this case we want to initialize the World for microplastics. We do this by assigning
-"microplastic" the the variable substance before calling the initWorld.R script. 
+this case we want to initialize the World for microplastics. We do this
+by assigning "microplastic" the the variable substance before calling
+the initWorld.R script.
 
 ```{R init World SS, warning=FALSE, message=FALSE}
-substance <- "microplastic"
+substance <- "microplastic" #just for this example
 source('baseScripts/initWorld.R')
 ```
 
@@ -37,8 +38,8 @@ probabilistic solver:
 
 -   var_invFun: the functions created from the var_box_df in a list.
 
-**The emissions dataframe must be named 'emissions' for the
-parallel calculations to work!**
+**The emissions dataframe must be named 'emissions' for the parallel
+calculations to work!**
 
 ```{R Define variables SS, warning=FALSE, message=FALSE}
 var_box_df <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")
@@ -59,13 +60,15 @@ emissions <- example_data |>
   select(-To_Compartment)
 ```
 
-Now call World$Solve() as below: with emissions = NULL and ParallelPreparation = T. 
-In addition the variable functions, the variable dataframe and the number of runs
-Have to be given to the solve function. 
+Now call World\$Solve() as below: with emissions = NULL and
+ParallelPreparation = T. In addition the variable functions, the
+variable dataframe and the number of runs Have to be given to the solve
+function.
 
-Running the solve function in this manner will do two things:
-- pull and scale the LHS samples for variables, and then save the matrix in the SBooScripts/data folder
-- Save a copy of the current World object, for use in parallel solving.
+Running the solve function in this manner will do two things: - pull and
+scale the LHS samples for variables, and then save the matrix in the
+SBooScripts/data folder - Save a copy of the current World object, for
+use in parallel solving.
 
 ```{R Save LHS matrix and World using WorldSolve() SS, warning=FALSE, message=FALSE}
 # Call the steady state solver
@@ -73,33 +76,42 @@ World$NewSolver("SteadyStateSolver")
 World$Solve(emissions = NULL, var_box_df = var_box_df, var_invFun = var_invFun, nRUNs = length(unique(emissions$RUN)), ParallelPreparation = T)
 ```
 
-Specify how many cores you have available for calculations. If you are calculating
-on your own computer, use a maximum of all available cores - 1.
+Specify how many cores you have available for calculations. If you are
+calculating on your own computer, use a maximum of all available cores -
+1.
 
-Also specify the maximum number of runs per batch.
+Also specify the maximum number of runs per slice. There is also a
+minimum of 2 runs per slice, which cannot be changed.
 
 ```{R Specify number of cores SS, warning=FALSE, message=FALSE}
-nCores <- 3
-max_runs_per_batch <- 3
+nCores <- 2
+max_runs_per_slice <- 3
 ```
 
-Now the script for solving steady state in parallel can be called. After this 
-script finishes running the outcomes are in the list named 'Solution'. You can 
-save the outcome as an RData file.
+Now the script for solving steady state in parallel can be called. After
+this script finishes running the outcomes are in the list named
+'Solution'. You can save the outcome as an RData file.
 
 ```{R Solve SS in parallel, warning=FALSE, message=FALSE}
 Solution <- solveInParallelSteadyState(nCores = nCores,
-                           max_runs_per_batch = max_runs_per_batch,
+                           max_runs_per_slice = max_runs_per_slice,
                            emissions_data = emissions)
 
 # Save the outcome
-saveRDS(Solution, "data/Solution.RData")
+# saveRDS(Solution, "data/Solution.RData")
 ```
 
-Plot the outcome for the Regional scale
-```{R Plot SS outcome}
-solution <- readRDS("data/Solution.RData")
-concentrations <- solution$Concentrations
+## Plotting
+
+Plot the outcome for the Regional scale. For this you need to manually
+create a plot using the `Solution` that was created above object. Here
+we cannot use the build in `World$PlotConcentration` as the data is now
+stored in Solution and does exist in the `World` object. Below is an
+example script for creating such a plot.
+
+```{R Plot SS outcome, warning=FALSE}
+# Solution <- readRDS("data/Solution.RData")
+concentrations <- Solution$Concentrations
 
 # Get the concentrations
 concentration <- merge(concentrations, World$states$asDataFrame, by = "Abbr")
@@ -159,9 +171,9 @@ probabilistic solver:
 
 -   nTIMES: the number of calculation time steps.
 
-**The names given to each of the variables must be the ones given in
-the list above ('emissions', 'tmax', 'nTIMES') for the
-parallel calculations to work!**
+**The names given to each of the variables must be the ones given in the
+list above ('emissions', 'tmax', 'nTIMES') for the parallel calculations
+to work!**
 
 ```{R Define variables Dyn, warning=FALSE, message=FALSE}
 var_box_df <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")
@@ -200,13 +212,15 @@ tmax <- max(emissions$Time)
 nTIMES <- 10
 ```
 
-Now call World$Solve() as below: with emissions = NULL and ParallelPreparation = T. 
-In addition the variable functions, the variable dataframe and the number of runs
-Have to be given to the solve function. 
+Now call World\$Solve() as below: with emissions = NULL and
+ParallelPreparation = T. In addition the variable functions, the
+variable dataframe and the number of runs Have to be given to the solve
+function.
 
-Running the solve function in this manner will do two things:
-- pull and scale the LHS samples for variables, and then save the matrix in the SBooScripts/data folder
-- Save a copy of the current World object, for use in parallel solving.
+Running the solve function in this manner will do two things: - pull and
+scale the LHS samples for variables, and then save the matrix in the
+SBooScripts/data folder - Save a copy of the current World object, for
+use in parallel solving.
 
 ```{R Save LHS matrix and World using WorldSolve() Dyn, warning=FALSE, message=FALSE}
 # Call the dynamic solver
@@ -214,36 +228,45 @@ World$NewSolver("DynamicSolver")
 World$Solve(emissions = NULL, var_box_df = var_box_df, var_invFun = var_invFun, nRUNs = 20, ParallelPreparation = T)
 ```
 
-Specify how many cores you have available for calculations. If you are calculating
-on your own computer, use a maximum of all available cores - 1.
+Specify how many cores you have available for calculations. If you are
+calculating on your own computer, use a maximum of all available cores -
+1.
 
-Also specify the maximum number of runs per batch.
+Also specify the maximum number of runs per slice.
 
 ```{R Specify number of cores Dyn, warning=FALSE, message=FALSE}
 nCores <- 3
-max_runs_per_batch <- 3
+max_runs_per_slice <- 3
 ```
 
-Now the script for solving steady state in parallel can be called. After this 
-script finishes running the outcomes are in the list named 'Solution'. You can 
-save the outcome as an RData file.
+Now the script for solving steady state in parallel can be called. After
+this script finishes running the outcomes are in the list named
+'Solution'. You can save the outcome as an RData file.
 
 ```{R Solve Dyn in parallel, warning=FALSE, message=FALSE}
 Solution <- solveInParallelDynamic(nCores = nCores,
-                       max_runs_per_batch = max_runs_per_batch,
+                       max_runs_per_slice = max_runs_per_slice,
                        emissions_data = emissions,
                        tmin = tmin,
                        tmax = tmax,
                        nTIMES = nTIMES)
 
 # Save the outcome
-saveRDS(Solution, "data/Solution.RData")
+# saveRDS(Solution, "data/Solution.RData")
 ```
 
-Plot the outcome
-```{R Plot Dyn outcome}
-solution <- readRDS("data/Solution.RData")
-concentrations <- solution$Concentrations
+## Plotting
+
+Plot the outcome. For this you need to manually create a plot using the
+`Solution` that was created above object. Here we cannot use the build
+in `World$PlotConcentration` as the data is now stored in Solution and
+does exist in the `World` object. Below is an example script for
+creating such a plot.
+
+```{R Plot Dyn outcome, warning=FALSE}
+# solution <- readRDS("data/Solution.RData")
+
+concentrations <- Solution$Concentrations
 
 # Get the concentration
 concentration <- merge(concentrations, World$states$asDataFrame, by = "Abbr")
