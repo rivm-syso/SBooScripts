@@ -83,9 +83,14 @@ calculating on your own computer, use a maximum of all available cores -
 Also specify the maximum number of runs per slice. There is also a
 minimum of 2 runs per slice, which cannot be changed.
 
+SBooDataLocation is the path to the SBooScripts directory. If
+SBooScripts is your current working directory, SBooDataLocation should
+be NULL. Otherwise provide the path to SBooScripts.
+
 ```{R Specify number of cores SS, warning=FALSE, message=FALSE}
 nCores <- 2
 max_runs_per_slice <- 3
+SBooDataLocation = NULL
 ```
 
 Now the script for solving steady state in parallel can be called. After
@@ -95,7 +100,8 @@ this script finishes running the outcomes are in the list named
 ```{R Solve SS in parallel, warning=FALSE, message=FALSE}
 Solution <- solveInParallelSteadyState(nCores = nCores,
                            max_runs_per_slice = max_runs_per_slice,
-                           emissions_data = emissions)
+                           emissions_data = emissions,
+                           SBooDataLocation = SBooDataLocation)
 
 # Save the outcome
 # saveRDS(Solution, "data/Solution.RData")
@@ -234,9 +240,14 @@ calculating on your own computer, use a maximum of all available cores -
 
 Also specify the maximum number of runs per slice.
 
-```{R Specify number of cores Dyn, warning=FALSE, message=FALSE}
-nCores <- 3
+SBooDataLocation is the path to the SBooScripts directory. If
+SBooScripts is your current working directory, SBooDataLocation should
+be NULL. Otherwise provide the path to SBooScripts.
+
+```{R Specify number of cores SS, warning=FALSE, message=FALSE}
+nCores <- 2
 max_runs_per_slice <- 3
+SBooDataLocation = NULL
 ```
 
 Now the script for solving steady state in parallel can be called. After
@@ -249,7 +260,8 @@ Solution <- solveInParallelDynamic(nCores = nCores,
                        emissions_data = emissions,
                        tmin = tmin,
                        tmax = tmax,
-                       nTIMES = nTIMES)
+                       nTIMES = nTIMES,
+                       SBooDataLocation = SBooDataLocation)
 
 # Save the outcome
 # saveRDS(Solution, "data/Solution.RData")
