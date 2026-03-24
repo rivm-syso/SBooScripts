@@ -19,7 +19,7 @@ Sedimentation rate depends on the settling velocity of the particle, which is ca
 ```{r initiate, message=FALSE, warning=FALSE}
 
 source("baseScripts/initWorld_onlyParticulate.R")
-
+# source("baseScripts/initWorld_onlyMolec.R")
 
 ```
 
@@ -37,22 +37,32 @@ For particulates, we can fetch the Settling Velocity. This is dependent on multi
 Different approximations for settling velocities are available, of which Stokes is the original and default value. Other approximations (Dietrich, Dioguardi and Swamee) require different inputs. These alternative approximations also require information on the Reynolds Regime and/or shape characteristics. These are then used to calculate new drag coefficients and numerically solved. A solver can be chosen through setConst: 
 
 ```{r solver}
+World$fetchData("DragMethod")
 World$SetConst(DragMethod = "Original")
 ```
 
 ```{r other variables}
-World$NewCalcVariable("rho_species")
-World$CalcVar("rho_species" )
-World$NewCalcVariable("rad_species")
-World$CalcVar("rad_species" )
-World$NewCalcVariable("SettlingVelocity")
-World$CalcVar("SettlingVelocity" )
+World$fetchData("SettlingVelocity")
+
+World$fetchData("rho_species")
+World$fetchData("rad_species")
+
+World$fetchData("DynViscWaterStandard")
+World$fetchData("DynViscAirStandard")
+World$fetchData("Shape")
+World$fetchData("Longest_side")
+World$fetchData("Intermediate_side")
+World$fetchData("Shortest_side")
+
 ```
 
 Sedimentation is directly to the sediment below. Its rate is thus dependent on the vertical depth, resulting in k_sedimentation = SettlingVelocity/Vertical depth for particulates. For molecules, we correct for the fact that some molecular species will be dissolved in the water column and thus not attached to suspended matter. As such, the sedimentation rate is divided by (1- FRofmoleculesdissolved.)
 
 
 ```{r message=FALSE, warning=FALSE}
+World$fetchData("SpeciesName")
+World$FromDataAndTo(processName = "k_Sedimentation")
+
 test1 <- World$NewProcess("k_Sedimentation")
 test1$execute()
 

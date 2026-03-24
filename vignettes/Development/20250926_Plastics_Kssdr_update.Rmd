@@ -1,0 +1,227 @@
+---
+title: "Comparison shape update"
+author: "Nadim Saadi, Valerie de Rijk, Anne Hids, Joris Quik"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+
+source("baseScripts/initWorld.R")
+
+
+```
+
+# Explanation of update
+
+This update introduces the Surface Specific Degradation Rate (SSDR)
+approach of Maga et al. (2022)
+(<https://doi.org/10.1007/s11367-022-02040-1>) and adapted by
+Corella-Puertas et al. (2023)
+(<https://doi.org/10.1016/j.jclepro.2023.138197>) to account for
+degradation of microplastics in the environment. The approach considers
+multiple parameters to derive a degradation rate (kdeg [yr-1]).
+
+Further, this update introduces MinSettVel, as a place holder settling
+velocity for low and medium density microplastics to account for
+biofouling. In fact, SBoo used to compute a settling velocity of 0 m/s
+for particles with density smaller than that of water. However, this
+approach ignores the change in density of particles due to the formation
+of a biofilm on the surface of microplastics, which can increase the
+density and lead to the (slow) sedimentation of low and medium density
+microplastics. MinSettVel is implemented using sedimentation rate values
+from Corella-Puertas et al. (2023) to account for this.
+
+-   v_KdegDorC is changed to include the new Kssdr input parameter
+    instead of just kdeg
+
+    -   The Kssdr approach uses
+
+        -   ShapeFac: A factor to consider the shape 2 for films/boxes,
+            3 for fibers/cylinders, 4 for spheres\
+            (Corella-Puertas et al., 2023)
+
+        -   CorFacSSA: A surface area correction factor, which accounts
+            for polymer surface roughness and porosity.
+
+        -   Shortest_side: The characteristic dimension through which
+            degradation occurs. The degradation is assumed to mainly
+            occur perpendicular to the largest surface, along the
+            shortest_side axis.
+
+        -   KSSDR: The specific surface degradation rate (SSDR) in
+            [m/second]. KSSDR can be found in the literature for
+            different polymers (Maga et al., 2022)
+
+        -   kdeg = ShapeFac \* KSSDR \* CorFacSSA / Shortest_side
+
+-   v_SettlingVelocity is changed
+
+    -   MinSettVel added when the density of the particle is smaller
+        than that of water, to avoid a null settling velocity.
+
+```{R Specify directories, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+
+# InstallSBoo (Release_SBoo = NA, # tag for release use NA for branch
+#              Release_SBooScripts = NA, # tag for release use NA for branch
+#              devBranch_SBoo = "Runoff_update_clean",
+#              devBranch_SBooScripts = "Runoff_MPinterception",
+#              Temp_Folder = "C:/Temp" # an existing folder where SimpleBox is to be installed
+# )
+
+InstallSBoo(Release_SBoo = NA, # tag for release use NA for branch
+            Release_SBooScripts = NA, # tag for release use NA for branch
+            devBranch_SBoo = "Shape_setvel",
+            devBranch_SBooScripts = "Shape_setvel",
+            Temp_Folder = NULL # an existing folder where SimpleBox is to be installed
+)
+
+```
+
+As this update was only implemented for microplastics and tyre road wear
+particles, we will test for these substances. To be sure nothing changed
+for the other substances, we will also test one other substance.
+
+```{R Specify substance, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+substance_names <- c("microplastic", "TRWP", "1-aminoanthraquinone","nAg_10nm") 
+substances <- read.csv("data/Substances.csv")
+substances <- substances |>
+  filter(Substance %in% substance_names)
+```
+
+```{R, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+this_kaas <- data.frame()
+this_variables <- data.frame()
+for(substanceK in substances$Substance){
+  # Get the substance type
+  substance <- substanceK
+      source("baseScripts/initWorld.R")
+
+  kaas <- World$kaas |>
+    # filter(process == "k_Runoff") |>
+    mutate(Substance = substance)
+  
+  # SetVel <- World$fetchData("SettlingVelocity") |> 
+    # mutate(Substance = substance)
+  # this_variables <- rbind(this_variables,SetVel)
+  # this_variables <- cross_join(SetVel)
+  this_kaas <- rbind(this_kaas, kaas)
+}
+
+```
+
+Do the same for the other implementation.
+
+```{R Clean environment again, include=FALSE}
+rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
+```
+
+```{R Run SB and get advection ks for FLux_work branch, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+
+other_kaas <- data.frame()
+  
+for(substanceK in substances$Substance){
+  Temp_Folder=NULL
+  substance = substanceK
+  
+  source("baseScripts/initWorldOther.R")
+  
+  kaas <- World$kaas |>
+    # filter(process == "k_Runoff") |>
+    mutate(Substance = substance)
+  
+  other_kaas <- rbind(other_kaas, kaas)
+}
+
+```
+
+## Verification of previous and new implementation
+
+```{R Calculate the differences between ks, include=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+common_cols <- setdiff(intersect(colnames(this_kaas), colnames(other_kaas)), "k")
+
+kaas_comparison <- merge(this_kaas, other_kaas, by=common_cols, suffixes = c("_Old", "_New"))
+
+kaas_comparison <- kaas_comparison |>
+  mutate(diff = k_New-k_Old) |> # If this number is positive, the New_k is higher than the Old_k (higher advection rate with new method)
+  mutate(rel_diff = diff/k_New)
+
+changed_kaas <- kaas_comparison |>
+ filter(diff != 0) |>
+    # filter(abs(rel_diff) > 0.001) |>
+  mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
+changed_kaas
+```
+
+As can be seen in the figures below, the new degradation rate constants
+for `r paste(substances$Substance)[2]`, have a very large difference,
+max `r max(abs(unique(changed_kaas$rel_diff)))*(-100)` % larger compared
+to the previous default kdeg value's. The figures below also show this
+and and that the code still works as expected for the other compounds
+for which no Kssdr is defined. The larger degradation rates for
+microplastics is as expected due to the Kssdr implementation. Further
+examples should illustrate the validity of this modification, e.g.
+comparing to measuresments etc.
+
+```{R Plot the differences between ks, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+all_diffs <- kaas_comparison |>
+  mutate(fromname = paste0(fromSubCompart, "_", fromScale)) |>
+  mutate(toname = paste0(toSubCompart, "_", toScale))
+
+for(i in unique(all_diffs$Substance)){
+  diffs_substance <- all_diffs |>
+    filter(Substance == i)
+  
+  absdif_plot <- ggplot(diffs_substance, mapping = aes(x = toname, y = fromname, color = diff)) + 
+    geom_point() + 
+    labs(
+      title = "Difference between old and new k's",
+      subtitle = i,
+      x = "To",  
+      y = "From",  
+      color = "Difference"  
+    ) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1), 
+      panel.grid.major = element_line(linewidth = 0.2, color = "gray90"),  
+      panel.background = element_blank() 
+    )
+  
+  print(absdif_plot)
+  
+  reldif_plot <- ggplot(diffs_substance, mapping = aes(x = toname, y = fromname, color = rel_diff)) + 
+    geom_point() + 
+    labs(
+      title = "Relative difference between old and new k's",
+      subtitle = i,
+      x = "To",  
+      y = "From",  
+      color = "Relative difference"  
+    ) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1), 
+      panel.grid.major = element_line(size = 0.2, color = "gray90"),
+      panel.background = element_blank()  
+    )
+  print(reldif_plot)
+}
+```
+
+## Quantify and illustrate changes specific to kssdr
+
+[TODO] script showing the effects of different drag methods and shapes
+on particle settling velicities and rate constants.
+
+```{r}
+
+rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
+source("baseScripts/initWorld.R")
+
+# to be added, script showing for the effects of different drag methods and shapes on particle settling velicities and rate constants.
+
+```

@@ -10,20 +10,13 @@ editor_options:
 
 #### Properties of molecules
 
-```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
-
 Properties related to the substance directly are all contained in csv files that serve as the input data for SimpleBox. These can be accessed after initializing the SimpleBox world. Each property is accessed by a key, which is dependent on the amount of detail that is required for the property of the substance (e.g. a property that is dependent on both the SubCompartment and the Scale would need both of these keys to be accessesed). First, let's initialize the World object:
 
 ```{r initiate, echo=TRUE, message=FALSE, warning=FALSE}
 #we choose a random molecule to initialize the world 
 substance <- "1-aminoanthraquinone" 
 #different worlds exist representing the processes for molecules, particulates and plastics. In this instance we create a world for molecules. 
-source("baseScripts/initWorld_onlyMolec.R")
+source("baseScripts/initWorld.R")
 ```
 
 All substance data, as mentioned before, is saved in csv files. An example of this is the substances csv, where global substance-specific data is located. Here, we filter on a specifical Chemical Class (*Acid*)

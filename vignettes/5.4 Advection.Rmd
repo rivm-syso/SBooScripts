@@ -1,5 +1,5 @@
 ---
-title: "Advection"
+title: "5.4 Advection"
 author: "Jaap Slootweg, Joris Quik, Valerie de Rijk"
 date: "`r Sys.Date()`"
 output: github_document
@@ -9,92 +9,82 @@ editor_options:
     wrap: 72
 ---
 
-### Advection
+## 5.4 Advection
 
-```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
+Here the implementation of the advective flows of air and water in SBoo
+are illustrated. An advective flow in the context of SB is the massflow
+of a matrix (air, water ) from one box to another, where either the
+subcompartment or scale is different.
 
-This vignette demonstrates the implementation of the advective flows of
-air and water in SimpleBox (SB). An advective flow in the context of SB
-is the massflow of a matrix (air, water ) from one box to another,
-where either the subcompartment or scale is different.
-
-```{r initialize}
+```{r initialize, include=FALSE}
 source("baseScripts/initWorld_onlyMolec.R")
 ```
 
-#### Data and variables
+For calculating the rate constants for advection there is data needed on
+several parameters such as wind speeds, discharges, residence times etc.
+All the different fluxes or flows of air or water are calculated after
+which these flows can be converted to rate constants. All default data
+are stored in csv files and the values can be read using
+'World\$fetchData("...")'. They can be adjusted using
+'World\$mutateVars(...)' and then the World can be updated for
+downstream variable updates using: 'WorldUpdateDirty(unique(...))'.
+Examples can be found in the case studies.
 
-For calculating the rate constants for advection there is data needed
-on: - Windspeed Together with the variables: -
+Here we illustrate all the flow processes defined.
 
-```{r}
-SBvars <- c("AreaLand",
-            "AreaSea",
-            "Area",
-            "Volume"
-            )
+### Air flow
 
-for (x in SBvars) {
-  World$NewCalcVariable(x)
-  World$CalcVar(x)
-}
-```
+The air flow rate is calculated in two steps.
 
-#### Air flow
-
-We calculate AirFlow in two steps. The first is the application of a
-simple model of air circulation depending on windspeed; The mean
-residence time in the region is according the f_TAU function.
-The AirFlow function calculates the amount that would enter/leave the
-region; namely the volume divided by the residence time. Notice that
-f_TAU is a normal function, but AirFlow will be used as a variable
-defining function. After the call to World\$CalcVar("AirFlow") this
-property is stored in the data within World. This provides
-the overal airflow within a compartment which affects the flow from this
-compartment or scale to the next. Currently air only flows between
-scales.
-
-```{r f tau}
-f_TAU
-``` 
+First the AirFlow is calculated based on the residence time of air:
 
 ```{r}
 World$fetchData("Volume")
 World$fetchData("Area")
 World$fetchData("WINDspeed")
-World$NewCalcVariable("AirFlow")
-World$CalcVar("AirFlow")
+World$fetchData("SubCompartName")
+
+f_TAU
+
+AirFlow
+
+World$fetchData("AirFlow")
+
 ```
 
-#### flow mass balance
+The mean residence time in the region is calculated according the f_TAU
+function.
+
+The AirFlow function calculates the amount that would enter/leave the
+region; namely the volume divided by the residence time. Notice that
+f_TAU is a normal function, but AirFlow will be used as a variable
+defining function. This provides the overall airflow within a
+compartment which affects the flow from this compartment or scale to the
+next. Currently air only flows between scales.
+
+Second, from the AirFlow the flows are actually connected to each other.
+
+```{r}
+x_Advection_Air
+# AdvAir <- World$NewFlow("x_Advection_Air")
+# AdvAir$execute(debugAt = list(toScale = "Continental"))
+World$CalcVar("x_Advection_Air")
+```
 
 To ensure mass balance in the model the amount from one scale to the
 next would need to be equal to the amount flowing the opposite way! To
 honor the mass balance we give priority to the amount calculated for the
 smallest volume to calculate the actual flows. This means that for
-nested scales we need to know their 'place' in the world. This brings a new
-challenge; we need to know properties of the scale the flow is going to,
-or possibly the scale where it is coming from. Because of the nesting,
-we need to know even properties of scale not directly related to the to-
-or from- the scale! To accommodate this use of the "to.", the "from." and
-the "all." preposition is made available. The to- and from scaleName are
-atomic (a single string) but the "all." prepositions provides a full
-table of the variable and its dimensions (in this case only across
-Scales). If you want to see what is really going on in the function
-calls you can use the debug parameter.
-
-```{r}
-x_Advection_Air
-AdvAir <- World$NewFlow("x_Advection_Air")
-#AdvAir$execute(debugAt = list(toScale = "Continental"))
-World$CalcVar("x_Advection_Air")
-
-```
+nested scales we need to know their 'place' in the world. This brings a
+new challenge; we need to know properties of the scale the flow is going
+to, or possibly the scale where it is coming from. Because of the
+nesting, we need to know even properties of scale not directly related
+to the to- or from- the scale! To accommodate this use of the "to.", the
+"from." and the "all." preposition is made available. The to- and from
+scaleName are atomic (a single string) but the "all." prepositions
+provides a full table of the variable and its dimensions (in this case
+only across Scales). If you want to see what is really going on in the
+function calls you can use the debug parameter.
 
 This provides the air flows. To test if they add up and give the same
 amount flowing to and from each scale we do the following calculation:
@@ -103,52 +93,61 @@ amount flowing to and from each scale we do the following calculation:
 AirFlows <- World$fetchData("x_Advection_Air")
 ToFlow <- aggregate(flow~toScale, data = AirFlows, FUN = sum)
 FromFlow <- aggregate(flow~fromScale, data = AirFlows, FUN = sum)
-merge(FromFlow, ToFlow, by.x = "fromScale", by.y = "toScale", suffixes = c("_from", "_to"))
+merge(FromFlow, ToFlow, by.x = "fromScale", by.y = "toScale", suffixes = c("_from", "_to")) 
+merge(FromFlow, ToFlow, by.x = "fromScale", by.y = "toScale", suffixes = c("_from", "_to")) |> mutate(from_to_Diff = flow_from-flow_to)
+
 ```
 
-#### Water flow
-All flows dealing with advective processes are denoted by x_files in SBOO.
-Different dimensions are relevant for computing the water flows:
+### Water flow
+
+All flows dealing with advective processes are denoted by x_files in
+SBOO. Different dimensions are relevant for computing the water flows:
 subcompartments and scale. This relates to water flowing from lake,
-through the river compartment to the sea, after which  the sea flows between
-scales. This is defined in the following x_flow. The order of calculation matters
-(for regional and continental scale function x 1-5) !
+through the river compartment to the sea, after which the sea flows
+between scales. This is defined in the following x_flow. The order of
+calculation matters (for regional and continental scale function x 1-5).
 
-*1. x_ContRiver2Reg*
+![Overview of water flows between Regional and Continental scale.
+<!--# origin: SBcoreModules.pptx -->](Figures_Custom/x_Reg_Cont_flow_overview.png)
 
-x_ContRiver2Reg: based on Runoff calculates the flow from contintental
-river to regional river subcompartment (not usually relevant, thus often
-0).
+![Overview of water flows at Global scale.
+<!--# origin: SBcoreModules.pptx -->](Figures_Custom/x_GlobalScale.png)
+
+#### 1. x_ContRiver2Reg: Continental to Regional Fresh water (w1)
+
+x_ContRiver2Reg calculates based on the fraction of discharge of fresh
+water to the regional scale the amount of fresh water flowing from
+continental to regional scale. This function also depends on the
+different contributors to continental discharge. These are: Runoff (see
+description in section [7.3
+OtherIntermedia](vigenttes/7.3%20OtherIntermedia.md)) and
+RainOnFreshwater for both freshwater compartments (w0 and w1). In the
+default scenario where the regional scale coincides with a watershed
+this is 0, but when e.g. country boundaries are taken this becomes
+relevant as there could be inflow of freshwater across the border. The
+main driving variable is 'dischargeFRAC' which indicates the fraction of
+freshwater outflow at continental scale flowing to regional scale (set
+for Cont. Scale). The rest of the freshwater is discharged to
+continental sea.
 
 ```{r}
 x_ContRiver2Reg
+World$fetchData("dischargeFRAC")
 
-World$NewCalcVariable("Runoff")
-World$CalcVar("Runoff")
-
-World$NewCalcVariable("RainOnFreshwater")
-World$CalcVar("RainOnFreshwater")
-
+World$fetchData("Runoff")
+World$fetchData("RainOnFreshwater")
 World$fetchData("ScaleName")
 World$fetchData("SubCompartName")
 
-World$fetchData("dischargeFRAC")
-World$fetchData("LakeFracRiver")
-World$fetchData("Runoff")
-World$fetchData("Area")
+World$fetchData("LakeFracRiver") # needs to be cleanup after basing on area fraction.
 
-World$fetchData("LakeFracRiver")
-
-flow1 <- World$NewFlow("x_ContRiver2Reg")
-
-flow1$FromAndTo
-flow1$execute()
-World$CalcVar("x_ContRiver2Reg")
+World$fetchData("x_ContRiver2Reg")
 ```
 
-*2. x_RiverDischarge*
+#### 2. x_RiverDischarge: Freshwater (w1) to sea water (w2).
 
 ```{r}
+x_RiverDischarge
 
 World$fetchData("Runoff")
 
@@ -157,59 +156,88 @@ World$fetchData("RainOnFreshwater")
 World$fetchData("dischargeFRAC")
 World$fetchData("x_ContRiver2Reg")
 World$fetchData("ScaleName")
-
-flow2 <- World$NewFlow("x_RiverDischarge")
-
-flow2$FromAndTo
-flow2$execute()
-World$CalcVar("x_RiverDischarge")
+World$fetchData("x_RiverDischarge")
+# World$CalcVar("x_RiverDischarge")
 ```
 
-*3. x_LakeOutflow*
+#### 3. x_LakeOutflow: isolated freshwater/lake (w0) to fresh water (w1)
+
+The Lake compartment (w0) is an upstream compartment within a Scale that
+has outflow to fresh water (w1). The outflow is dependent on the
+fraction runoff going to lake and the direct Rain on lake fresh water.
 
 ```{r}
-World$fetchData("x_RiverDischarge")
-World$fetchData("x_ContRiver2Reg")
-World$fetchData("LakeFracRiver")
+
+x_LakeOut
+
+World$fetchData("RainOnFreshwater")
+World$fetchData("RunoffFlow")
+
+mutLandFrac <- World$fetchData("landFRAC")
+mutLandFrac$landFRAC <- c(0.6000, 0.0050, 0.2700, 0.1000, 0.0250, 0.6000, 0.0050, 0.2700, 0.1000, 0.0250)
+mutLandFrac <-
+  mutLandFrac |> pivot_longer(cols = "landFRAC",
+                            names_to = "varName",
+                            values_to = "Waarde")
+World$mutateVars(mutLandFrac)
+
+World$fetchData("landFRAC")
+FracROWatComp
+World$fetchData("FracROWatComp")
 World$fetchData("ScaleName")
+World$fetchData("x_LakeOut")
 
-flow3 <- World$NewFlow("x_LakeOutflow")
-
-flow3$FromAndTo
-flow3$execute()
-World$CalcVar("x_LakeOutflow")
+# flow = World$NewCalcVariable("x_LakeOut")
+# flow$execute()
+# flow$execute(debugAt = list(assembly=NA))
 
 ```
 
-*4. x_ContSea2Reg*
+#### 4. x_ContSea2Reg: Continental sea water (w2) to Regional sea water (w2)
+
+x_ContSea2Reg calculates the flow from the sea at continental scale to
+the sea at regional scale. It is now the default approach which is a
+flow 9 times higher than the river discharge at regional scale. This
+coincides with the regional sea mixing being 10 times the river
+discharge into the sea.
+<!--# A change could be implemented here based on a residence time of sea at regional scale as the river flow is not always relevant for the contribution to this flow, e.g. depending on the type of sea and location one is trying to model. -->
 
 ```{r}
+x_ContSea2Reg
 World$fetchData("LakeFracRiver")
 World$fetchData("x_RiverDischarge")
+World$fetchData("x_ContSea2Reg")
+# 
+# flow4 <- World$NewFlow("x_ContSea2Reg")
+# 
+# flow4$FromAndTo
+# flow4$execute()
+# World$CalcVar("x_ContSea2Reg")
+# World$fetchData("x_ContSea2Reg")
+# World$fetchDataUnits("x_ContSea2Reg")
 
-flow4 <- World$NewFlow("x_ContSea2Reg")
-
-flow4$FromAndTo
-flow4$execute()
-World$CalcVar("x_ContSea2Reg")
 ```
 
-*5. x_RegSea2Cont*
+#### 5. x_RegSea2Cont: Regional sea water (w2) to Continental sea water (w2)
+
+x_RegSea2Cont is the sea water flow from regional to continental scale.
+It is assumed to be 10 times the discharge flow from the river.
 
 ```{r}
 
 World$fetchData("LakeFracRiver")
 World$fetchData("x_RiverDischarge")
+World$fetchData("x_RegSea2Cont")
 
-flow5 <- World$NewFlow("x_RegSea2Cont")
-
-flow5$FromAndTo
-flow5$execute()
-World$CalcVar("x_RegSea2Cont")
+# flow5 <- World$NewFlow("x_RegSea2Cont")
+# 
+# flow5$FromAndTo
+# flow5$execute()
+# World$CalcVar("x_RegSea2Cont")
 
 ```
 
-*6. x_ToModerateWater*
+#### 6. x_ToModerateWater: Ocean currents flowing to Moderate scale (w2 and w3)
 
 Advection of continental sea, Tropic and Arctic sea compartments to sea
 and deepocean at Moderate scale.
@@ -219,68 +247,85 @@ and deepocean at Moderate scale.
 World$fetchData("Volume")
 World$fetchData("TAUsea")
 World$fetchData("x_RegSea2Cont")
+World$fetchData("x_ToModerateWater")
 
-
-flow6 <- World$NewFlow("x_ToModerateWater")
-
-flow6$FromAndTo
-flow6$execute()
-World$CalcVar("x_ToModerateWater")
+# flow6 <- World$NewFlow("x_ToModerateWater")
+# 
+# flow6$FromAndTo
+# flow6$execute()
+# World$CalcVar("x_ToModerateWater")
 
 ```
 
-### Water flow from Moderate Scale
+#### 7. x_FromModerate2TropWater: flow from Moderate to Tropic deep ocean (w3)
 
-*7. x_FromModerate2TropWater*
-
-Separated in different flows based on the to Scale
+Moderate scale waters flow into Tropical scale through deep ocean
+currents based on a set ocean current of
+`r World$fetchData("OceanCurrent")/(60*60*24)` m3/day.
 
 ```{r}
+x_FromModerate2TropWater
 
-World$fetchData("Volume")
-World$fetchData("TAUsea")
 World$fetchData("OceanCurrent")
-World$fetchData("x_RegSea2Cont")
-World$fetchData("ScaleName")
+World$fetchData("x_FromModerate2TropWater")
 
-flow <- World$NewFlow("x_FromModerate2TropWater")
+# flow <- World$NewFlow("x_FromModerate2TropWater")
 # flow$execute(debugAt = list())
-flow$FromAndTo
-flow$execute()
-World$CalcVar("x_FromModerate2TropWater")
+# flow$FromAndTo
+# flow$execute()
+# World$CalcVar("x_FromModerate2TropWater")
+
 ```
 
-*8. x_FromModerate2ArctWater*
+#### 8. x_FromModerate2ArctWater: flow from Moderate to Arctic sea water (w2)
+
+Moderate scale waters flow into Arctic scale through surface ocean
+currents based on a set ocean current of
+`r World$fetchData("OceanCurrent")/(60*60*24)` m3/day.
 
 ```{r}
+x_FromModerate2ArctWater
 World$fetchData("OceanCurrent")
 World$fetchData("ScaleName")
+World$fetchData("x_FromModerate2ArctWater")
 
-flow <- World$NewFlow("x_FromModerate2ArctWater")
-# flow$execute(debugAt = list())
-flow$FromAndTo
-flow$execute()
-World$CalcVar("x_FromModerate2ArctWater")
+# flow <- World$NewFlow("x_FromModerate2ArctWater")
+# # flow$execute(debugAt = list())
+# flow$FromAndTo
+# flow$execute()
+# World$CalcVar("x_FromModerate2ArctWater")
 ```
 
-*9. x_FromModerate2ContWater*
+#### 9. x_FromModerate2ContWater: from from Continental to Moderate sea water (w2)
+
+Moderate scale waters flow into Contentental scale through surface ocean
+currents based on the residence time of sea water at the continental
+scale minus the inflow of regional sea water to continental scale.
 
 ```{r}
+x_FromModerate2ContWater
 # required data:
 World$fetchData("Volume")
 World$fetchData("TAUsea")
 World$fetchData("OceanCurrent")
 World$fetchData("x_RegSea2Cont")
 World$fetchData("ScaleName")
+World$fetchData("x_FromModerate2ContWater")
 
-flow <- World$NewFlow("x_FromModerate2ContWater")
-# flow$execute(debugAt = list())
-flow$FromAndTo
-flow$execute()
-World$CalcVar("x_FromModerate2ContWater")
+# flow <- World$NewFlow("x_FromModerate2ContWater")
+# # flow$execute(debugAt = list())
+# flow$FromAndTo
+# flow$execute()
+# World$CalcVar("x_FromModerate2ContWater")
+
 ```
 
-*10. x_OceanMixing2Deep*
+#### 10. x_OceanMixing2Deep: mixing of surface sea to deep ocean (w2 to w3)
+
+As illustrated in the figures above there are not only currents
+affecting the advection of sea water between scales, but also mixing of
+the surface water and deep ocean layers at global scales. This is
+calculated for both directions.
 
 ```{r}
 x_OceanMixing2Deep
@@ -289,16 +334,17 @@ World$fetchData("Volume")
 World$fetchData("TAUsea")
 World$fetchData("OceanCurrent")
 World$fetchData("SubCompartName")
+World$fetchData("x_OceanMixing2Deep")
 
-flow <- World$NewFlow("x_OceanMixing2Deep")
-
-flow$FromAndTo
-flow$execute()
-World$CalcVar("x_OceanMixing2Deep")
+# flow <- World$NewFlow("x_OceanMixing2Deep")
+# 
+# flow$FromAndTo
+# flow$execute()
+# World$CalcVar("x_OceanMixing2Deep")
 
 ```
 
-*11. x_OceanMixing2Sea*
+#### 11. x_OceanMixing2Sea: mixing of deep ocean surface sea (w3 to w2)
 
 ```{r}
 x_OceanMixing2Sea
@@ -307,20 +353,22 @@ World$fetchData("Volume")
 World$fetchData("TAUsea")
 World$fetchData("OceanCurrent")
 World$fetchData("SubCompartName")
+World$fetchData("x_OceanMixing2Sea")
 
-flow <- World$NewFlow("x_OceanMixing2Sea")
-
-flow$FromAndTo
-flow$execute()
-World$CalcVar("x_OceanMixing2Sea")
+# flow <- World$NewFlow("x_OceanMixing2Sea")
+# 
+# flow$FromAndTo
+# flow$execute()
+# World$CalcVar("x_OceanMixing2Sea")
 ```
 
 #### Overview of water flows
 
 Overview of flows included above (excludes surface - deep ocean mixing
-and ocean currents at global scales)
+and ocean currents at global scales). All to and from water flows should
+be equal, e.g. the differences is 0.
 
-```{r}
+```{r testing table}
 flows = World$moduleList[["k_Advection"]]$WithFlow
 
 flux2Test <- World$fetchData("Flows")
@@ -338,12 +386,23 @@ flux2Test$frows <- do.call(paste, c(flux2Test[c("toScale", "toSubCompart")], sep
 table1 <- pivot_wider(flux2Test[f2Torder,c("frows","fcolumns","flow")],
             id_cols = frows, names_from = fcolumns, values_from = flow)
 
-print(table1, n=40)
 
+toFlows <- data.frame(Compartment = table1$frows,
+                      tFlow = rowSums(as.data.frame(table1[,-1],),na.rm = TRUE))
+froFlows <- data.frame(Compartment = colnames(table1[,-1]),
+                       fFlow = colSums(as.data.frame(table1[,-1],),na.rm = TRUE))
+
+tfFlows <- merge(toFlows,froFlows, all=TRUE) 
+
+if(c(sum(tfFlows$tFlow,na.rm = TRUE)-sum(tfFlows$fFlow)) != 0){
+  warning("Water flows are not in balance!")
+  }
+
+print(table1, n=40)
 
 ```
 
-#### Advection rate constant
+### Advection rate constant
 
 This process is only one step beyond the calculation of the relevant
 flows, see the function f_Advection. All flows are by default associated
@@ -354,16 +413,16 @@ different from other k's. See below:
 
 ```{r}
 World$fetchData("Flows")
- 
+ k_Advection
 # Don't create a new process like: World$FromDataAndTo("k_Advection")
 # find the existing one like this:
-testProc <- World$moduleList[["k_Advection"]]
+# testProc <- World$moduleList[["k_Advection"]]
 # FromDataAndTo is from and to from the data, ultimately the property is used
 # which can derived from the flows for Advection
-FAT <- testProc$FromAndTo
+# FAT <- testProc$FromAndTo
 # the data frmae to be calculated:
-left_join(rename(FAT, "Scale" = "fromScale", "SubCompart" = "fromSubCompart"), World$fetchData("Volume"))
+# left_join(rename(FAT, "Scale" = "fromScale", "SubCompart" = "fromSubCompart"), World$fetchData("Volume"))
 #for testing use:
-testProc$execute()
+World$kaas |> filter(process == "k_Advection")
 
 ```

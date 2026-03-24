@@ -1,97 +1,170 @@
-#This script initialises a standard test (global) environment
+library(tidyverse)
+library(ggdag) #for plotting DAG graphs
+library(R6)
+library(rlang)
+#path to the SBoo package
+SBInstallFolder <- NULL
 
-#script to faking the future library(SBoo)
-source("baseScripts/fakeLib.R")
+Path2PackageSource <- paste0("..","/SBoo")
 
-#to run the script with another selection of substance / excel reference,
-#set the variables substance and excelReference before sourcing this script, like substance = "nAg_10nm"
+#source all R files and load data from the package
+Dfiles <- list.files(paste(Path2PackageSource, "data", sep = "/"), pattern = "\\.rda$")
+Rded <- lapply(Dfiles, function(x) {
+  Dfilename <- paste(Path2PackageSource, "data", x, sep = "/")
+  if (exists("verbose") && verbose) cat(Dfilename, "\n")
+  load(Dfilename, envir = global_env())
+})
+Rfiles <- list.files(paste(Path2PackageSource, "R", sep = "/"), pattern = "\\.R$")
+sourced <- lapply(Rfiles, function(x) {
+  Rfilename <- paste(Path2PackageSource, "R", x, sep = "/")
+  if (exists("verbose") && verbose) cat(Rfilename, "\n")
+  source(Rfilename)
+})
+
+# ifelse(Type=="onlyPlastics",print("ok"),
+# stop("function not yet implemented for this Type"))
+
+#to run the script with another selection of substance / excel reference, #
+#set the variables substance
 if (!exists("substance")) {
-  substance <- "default substance"
+  substance <- "microplastic"
 }
 
+message(paste("Running SimpleBox for",substance))
+
+SBooDataLocation <- paste0(SBInstallFolder)
+
 #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
-ClassicStateModule <- ClassicNanoWorld$new("data", substance)
+ClassicStateModule <- ClassicNanoWorld$new(paste0(SBooDataLocation,"data"), substance)
 
 #with this data we create an instance of the central "core" object,
 World <- SBcore$new(ClassicStateModule)
 
-# To proceed with testing we set
+ChemClass = World$fetchData("ChemClass")
 
-if (is.na(World$fetchData("pKa"))) {
-  warning("pKa is needed but missing, setting pKa=7")
-  World$SetConst(pKa = 7)
-}
-
-if (World$fetchData("ChemClass")==("")) {
-  warning("ChemClass is needed but missing, setting to neutral")
-  World$SetConst(ChemClass = "neutral")
-}
-
-
-#TODO put Ksw in th substance data
-
-World$SetConst(Ksw = 47500)
-if (is.na(World$fetchData("Ksw"))) {
-  warning("Ksw is needed but missing; set by f_Ksw()")
-  AllRho <- World$fetchData("rhoMatrix")
-  RHOsolid = AllRho$rhoMatrix[AllRho$SubCompart == "othersoil"]
-  Ksw = f_Ksw(Kow = World$fetchData("Kow"),
-              pKa = World$fetchData("pKa"),
-              CorgStandard = World$fetchData("CorgStandard"),
-              a = World$fetchData("a"),
-              b = World$fetchData("b"),
-              ChemClass = World$fetchData("ChemClass"),
-              RHOsolid = RHOsolid,
-              alt_form = F,
-              Ksw_orig = NA
-  )
-  World$SetConst(Ksw = Ksw)
+if(ChemClass != "particle") {
+  World$filterStates <- list(SpeciesName = "Molecular")
+  # To proceed with testing we set
+  if(is.na(World$fetchData("kdis"))) {
+    message(paste0("initWorld: For ", substance," kdis is missing (substance not a particle), setting kdis = NA"))
+    World$SetConst(kdis = NA)
+  }
+  if(is.na(World$fetchData("Kssdr"))) {
+    message(paste0("initWorld: For " ,substance," kssdr is missing (substance not a particle), setting kssdr = 0"))
+    World$SetConst(Kssdr = 0)
+  }
   
+  if(World$fetchData("ChemClass")==("")) {
+    warning(paste0("initWorld: For " ,substance," ChemClass is needed but missing, setting to neutral"), call. = FALSE)
+    World$SetConst(ChemClass = "neutral")
+  }
+  
+  if(anyNA(World$fetchData("Koc"))) {
+    # message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
+    # message("Plese set Kssdr in SubstanceCompartments.csv")
+    World$SetConst(Koc = NA)
+  }
+  if(anyNA(World$fetchData("KocAlt"))) {
+    # message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
+    # message("Plese set Kssdr in SubstanceCompartments.csv")
+    World$SetConst(KocAlt = NA)
+  }
+  
+} else {
+  if(anyNA(World$fetchData("kdis"))) {
+    warning(paste0("initWorld: For " ,substance," kdis is missing, setting kdis = 0"), call. = FALSE)
+    message("initWorld: Please set kdis in SubstanceCompartments.csv")
+    World$SetConst(kdis = 0)
+  }
+  if(anyNA(World$fetchData("kfrag"))) {
+    warning(paste0("initWorld: For " ,substance," kfrag is missing, setting kfrag = 0"), call. = FALSE)
+    World$SetConst(kfrag = 0)
+  }
+  if(anyNA(World$fetchData("kdeag"))) {
+    warning(paste0("initWorld: For " ,substance," kdeag is missing, setting kdeag = 0"), call. = FALSE)
+    World$SetConst(kdeag = 0)
+  }
+  if(anyNA(World$fetchData("MinSettVel"))) {
+    message(paste0("initWorld: For ", substance," MinSettVel is missing, setting to 0"))
+    World$SetConst(MinSettVel = 0)
+  }
+
+  ##### Sorting out degradation #####  
+  if(anyNA(World$fetchData("DegApproach"))){
+    warning("initWorld: DegApproach not set, using Default", call. = FALSE)
+    World$SetConst(DegApproach = "Default")
+  }
+  message(paste0("initWorld: Degradation calculation for particles uses ",World$fetchData("DegApproach")," approach."))
+  message(paste0("initWorld: Drag method for calculation of particle settling velocities uses ",World$fetchData("DragMethod")," approach."))
+
+  if(anyNA(World$fetchData("kdeg"))) {
+    warning(paste0("initWorld: k_degradation - For " ,substance," kdeg is missing, setting default kdeg = 1e-20."))
+    World$SetConst(kdeg = 1e-20)
+  }
+  
+  if(anyNA(World$fetchData("Koc"))) {
+    # message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
+    # message("Plese set Kssdr in SubstanceCompartments.csv")
+    World$SetConst(Koc = NA)
+  }
+  if(anyNA(World$fetchData("KocAlt"))) {
+    # message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
+    # message("Plese set Kssdr in SubstanceCompartments.csv")
+    World$SetConst(KocAlt = NA)
+  }
+  
+  # if(!anyNA(World$fetchData("kdeg"))) {
+  #   if(!anyNA(World$fetchData("Kssdr"))) {
+  #     message(paste0("initWorld: For " ,substance," Kssdr is being used instead of kdeg"))
+  #   }
+  # }
+    if(anyNA(World$fetchData("Kssdr"))) {
+      message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
+      # message("Plese set Kssdr in SubstanceCompartments.csv")
+      World$SetConst(Kssdr = NA)
+    }
+
+  if(anyNA(World$fetchData("alpha"))) {
+    warning(paste0("initWorld: For " ,substance," alpha is missing, setting alpha = 0.1"))
+    message("initWorld: Plese set alpha in SubstanceCompartments.csv")
+    World$SetConst(alpha = 0.1)
+  }
+  if(anyNA(World$fetchData("RadS")) && anyNA(World$fetchData("Shortest_side"))){
+    stop(paste0("initWorld ERROR: For ",substance ," RadS or Shortest_side needed for running SimpleBox for particles"))
+  }
 }
 
-#We can calculate variables and fluxes available (fakeLib provided the functions:)
-VarDefFunctions <- c("AirFlow", "AreaSea", "AreaLand", "Area", "Volume",
-                "D", "FRACa", "FRACs", "FRACw", "FRinaers",
-                "FRinaerw","FRingas","FRins","FRinw",
-                "FRorig", "FRorig_spw", "Kacompw", "Kaers", "Kaerw", "KdegDorC",
-                "Kp", "KpCOL", "Kscompw", "Ksdcompw", "Ksw.alt", "MasConc_Otherparticle",
-                "MTC_2a", "MTC_2s", "MTC_2sd", "MTC_2w", "OtherkAir",
-                "rad_species", "RainOnFreshwater", "Runoff", "rho_species", "SettlingVelocity",
-                "Tempfactor")
+if(anyNA(World$fetchData("DragMethod"))){
+  World$SetConst(DragMethod = "Original")
+}
 
-lapply(VarDefFunctions, function(FuName){
-  World$NewCalcVariable(FuName)
-})
-FluxDefFunctions <- c("x_Advection_Air", "x_ContRiver2Reg", "x_ContSea2Reg",
-                      "x_FromModerate2ArctWater", "x_FromModerate2ContWater", "x_FromModerate2TropWater",
-                      "x_LakeOutflow", "x_OceanMixing2Deep", "x_OceanMixing2Sea",
-                      "x_RegSea2Cont", "x_RiverDischarge", "x_ToModerateWater"
-)
+if(anyNA(World$fetchData("Test"))){
+  World$SetConst(Test = "FALSE")
+}
 
-lapply(FluxDefFunctions, function(FuName){
-  World$NewFlow(FuName)
-  #World$CalcVar(FuName) #only needed if you want to debug or force an order; UpdateKaas finds the DAG
-})
+AllF <- ls() %>% sapply(FUN = get)
+ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 
-#and the processes, that calculate kaas
-ProcessDefFunctions <- c("k_Adsorption", "k_Advection", "k_Burial",
-                         "k_HeteroAgglomeration.a", "k_HeteroAgglomeration.wsd",
-                         "k_CWscavenging", "k_Degradation", "k_Deposition", "k_Desorption",
-                         "k_DryDeposition", "k_Erosion", "k_Escape", 
-                         "k_Leaching", "k_Resuspension", "k_Runoff", "k_Sedimentation", 
-                         "k_Volatilisation", "k_WetDeposition")
+#call the particulate processes 
+Processes4SpeciesTp <- read.csv("data/Processes4SpeciesTp.csv")
 
-lapply(ProcessDefFunctions, function(FuName){
-  World$NewProcess(FuName)
-  #World$CalcVar(FuName) #only needed if you want to force an order; UpdateKaas finds the DAG
-})
+ifelse(ChemClass != "particle",
+       {
+         ParProcesses <- Processes4SpeciesTp$Process[grepl("[a-z,A-Z]", Processes4SpeciesTp$Molecular)]
+       },
+       {
+         ParProcesses <- Processes4SpeciesTp$Process[grepl("[a-z,A-Z]", Processes4SpeciesTp$Particulate)]
+       })
 
-World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
+sapply(paste("k", ParProcesses, sep = "_"), World$NewProcess)
 
-#verbose = T
-#kex = World$NewCalcVariable("rad_species")
-#kex$execute(debugAt = list(SubCompartName = "air"))
-verbose = T
+#add all flows, they are all part of "Advection"
+FluxDefFunctions <- names(AllF) %>% startsWith("x_")
+sapply(names(AllF)[FluxDefFunctions], World$NewFlow)
+
+#derive needed variables
+World$VarsFromprocesses()
+
+if(ChemClass != "particle") World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
+
 World$UpdateKaas()
-
-

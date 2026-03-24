@@ -1,0 +1,324 @@
+---
+title: "10.2 Parallel solver use"
+author: "Anne Hids"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+This script shows how to solve probabilistically in steady state and
+dynamically in parallel.
+
+# Solve steady state in parallel
+
+First, initialize the World you want to use for your calculations. In
+this case we want to initialize the World for microplastics. We do this
+by assigning "microplastic" the the variable `substance` before calling
+the initWorld.R script.
+
+```{R init World SS, warning=FALSE, message=FALSE}
+substance <- "microplastic" #just for this example
+source('baseScripts/initWorld.R')
+```
+
+Define the variables needed for solving steady state probabilistically.
+These are the same variables needed for the regular steady state
+probabilistic solver:
+
+-   emissions: the emissions dataframe
+
+-   var_box_df: a dataframe with the example variables
+
+-   var_invFun: the functions created from the var_box_df in a list.
+
+**The emissions dataframe must be named 'emissions' for the parallel
+calculations to work!**
+
+```{R Define variables SS, warning=FALSE, message=FALSE}
+var_box_df <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")
+
+var_invFun <- World$makeInvFuns(var_box_df)
+
+load("data/Examples/example_uncertain_data.RData")
+
+emissions <- example_data |>
+  select(To_Compartment, `2023`, RUN) |>
+  rename("Emis" = `2023`) |>
+  mutate(Abbr = case_when(
+    To_Compartment == "Agricultural soil (micro)" ~ "s2RS",
+    To_Compartment == "Residential soil (micro)" ~ "s3RS",
+    To_Compartment == "Surface water (micro)" ~ "w1RS"
+  )) |>
+  mutate(Emis = (Emis*1000)/(365.25*24*3600)) |> # Convert t/y to kg/s
+  select(-To_Compartment)
+```
+
+Now call World\$Solve() as below: with emissions = NULL and
+ParallelPreparation = T. In addition the variable functions, the
+variable dataframe and the number of runs Have to be given to the solve
+function.
+
+Running the solve function in this manner will do two things: - pull and
+scale the LHS samples for variables, and then save the matrix in the
+SBooScripts/data folder - Save a copy of the current World object, for
+use in parallel solving.
+
+```{R Save LHS matrix and World using WorldSolve() SS, warning=FALSE, message=FALSE}
+# Call the steady state solver
+World$NewSolver("SteadyStateSolver")
+World$Solve(emissions = NULL, var_box_df = var_box_df, var_invFun = var_invFun, nRUNs = length(unique(emissions$RUN)), ParallelPreparation = T)
+```
+
+Specify how many cores you have available for calculations. If you are
+calculating on your own computer, use a maximum of all available cores -
+1.
+
+Also specify the maximum number of runs per slice. There is also a
+minimum of 2 runs per slice, which cannot be changed.
+
+SBooDataLocation is the path to the SBooScripts directory. If
+SBooScripts is your current working directory, SBooDataLocation should
+be NULL. Otherwise provide the path to SBooScripts.
+
+```{R Specify number of cores SS, warning=FALSE, message=FALSE}
+nCores <- 2
+max_runs_per_slice <- 3
+SBooDataLocation = NULL
+```
+
+Now the script for solving steady state in parallel can be called. After
+this script finishes running the outcomes are in the list named
+'Solution'. You can save the outcome as an RData file.
+
+```{R Solve SS in parallel, warning=FALSE, message=FALSE}
+Solution <- solveInParallelSteadyState(nCores = nCores,
+                           max_runs_per_slice = max_runs_per_slice,
+                           emissions_data = emissions,
+                           SBooDataLocation = SBooDataLocation)
+
+# Save the outcome
+# saveRDS(Solution, "data/Solution.RData")
+```
+
+## Plotting
+
+Plot the outcome for the Regional scale. For this you need to manually
+create a plot using the `Solution` that was created above object. Here
+we cannot use the build in `World$PlotConcentration` as the data is now
+stored in Solution and does exist in the `World` object. Below is an
+example script for creating such a plot.
+
+```{R Plot SS outcome, warning=FALSE}
+# Solution <- readRDS("data/Solution.RData")
+concentrations <- Solution$Concentrations
+
+# Get the concentrations
+concentration <- merge(concentrations, World$states$asDataFrame, by = "Abbr")
+concentration <- concentration[c('SubCompart', 'Scale', 'Species', 'RUNs', 'Concentration', 'Unit')]
+
+scale <- "Regional"
+
+# Aggregate over species
+cnames <- names(concentration)
+cnames <- cnames[!cnames %in% c("Species", "Concentration")]
+formula <- as.formula(paste("Concentration ~", paste(cnames, collapse = " + ")))
+concentration <- aggregate(formula, data = concentration, sum)
+
+if (!is.null(scale)) {
+  concentration <- concentration[concentration$Scale %in% scale, ]
+} else {
+  concentration <- concentration
+}
+
+concentration$SubCompartUnit <- paste0(concentration$SubCompart, " (", concentration$Unit, ")")
+
+ggplot(concentration, aes(x = SubCompartUnit, y = Concentration, fill = SubCompart)) +
+  geom_violin()+
+  theme_bw() +
+  labs(title = paste0("Steady state concentration at ", tolower(scale), " scale"),
+       x = "",
+       y = paste0("Concentration of ", World$substance)) +
+  scale_y_log10(
+    breaks = scales::trans_breaks("log10", function(x) 10^x, n = 10),
+    labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+  scale_fill_discrete() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# Solve dynamically in parallel
+
+Firstly, initialize the World you want to use for your calculations in
+case you have not done so, see above.
+
+Second, define the variables needed for solving steady state
+probabilistically. These are the same variables needed for the regular
+steady state probabilistic solver:
+
+-   emissions: the emissions dataframe
+
+-   var_box_df: a dataframe with the example variables
+
+-   var_invFun: the functions created from the var_box_df in a list
+
+-   tmax: the end time for running the solver, in seconds
+
+-   nTIMES: the number of calculation time steps.
+
+**The names given to each of the variables must be the ones given in the
+list above ('emissions', 'tmax', 'nTIMES') for the parallel calculations
+to work!**
+
+```{R Define variables Dyn, warning=FALSE, message=FALSE}
+var_box_df <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xlsx", sheet = "Variable_data")
+
+var_invFun <- World$makeInvFuns(var_box_df)
+
+load("data/Examples/example_uncertain_data.RData")
+
+example_data <- 
+  example_data |>
+  select(To_Compartment, `2020`, `2021`,`2022`, `2023`, RUN) |>
+  pivot_longer(!c(To_Compartment, RUN), names_to = "year", values_to = "Emis") |>
+  mutate(Abbr = case_when(
+    To_Compartment == "Agricultural soil (micro)" ~ "s2RS",
+    To_Compartment == "Residential soil (micro)" ~ "s3RS",
+    To_Compartment == "Surface water (micro)" ~ "w1RS"
+  )) |>
+  select(-To_Compartment) |>
+  mutate(Time = ((as.numeric(year))*365.25*24*3600)) |>
+  mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> # Convert kt/year to kg/s
+  select(-year)
+
+# The raw emission data from 2020 to 2023 will not solve due to instability in the intital state starting at 0. This can be solved by starting at t=0 and mass=0 see below:
+
+emissions <-
+  example_data |> 
+  mutate(Time = Time - 2019*365.25*24*3600) |> # converting to 0 being one year before 2020
+  full_join(expand.grid(Abbr = unique(example_data$Abbr), 
+                        RUN = c(1:20)) |> 
+              mutate(Time = 0,
+                     Emis = 0))
+
+tmin <- min(emissions$Time)
+tmax <- max(emissions$Time)
+
+nTIMES <- 10
+```
+
+Now call World\$Solve() as below: with emissions = NULL and
+ParallelPreparation = T. In addition the variable functions, the
+variable dataframe and the number of runs Have to be given to the solve
+function.
+
+Running the solve function in this manner will do two things: - pull and
+scale the LHS samples for variables, and then save the matrix in the
+SBooScripts/data folder - Save a copy of the current World object, for
+use in parallel solving.
+
+```{R Save LHS matrix and World using WorldSolve() Dyn, warning=FALSE, message=FALSE}
+# Call the dynamic solver
+World$NewSolver("DynamicSolver")
+World$Solve(emissions = NULL, var_box_df = var_box_df, var_invFun = var_invFun, nRUNs = 20, ParallelPreparation = T)
+```
+
+Specify how many cores you have available for calculations. If you are
+calculating on your own computer, use a maximum of all available cores -
+1.
+
+Also specify the maximum number of runs per slice.
+
+SBooDataLocation is the path to the SBooScripts directory. If
+SBooScripts is your current working directory, SBooDataLocation should
+be NULL. Otherwise provide the path to SBooScripts.
+
+```{R Specify number of cores DS, warning=FALSE, message=FALSE}
+nCores <- 2
+max_runs_per_slice <- 3
+SBooDataLocation = NULL
+```
+
+Now the script for solving steady state in parallel can be called. After
+this script finishes running the outcomes are in the list named
+'Solution'. You can save the outcome as an RData file.
+
+```{R Solve Dyn in parallel, warning=FALSE, message=FALSE}
+Solution <- solveInParallelDynamic(nCores = nCores,
+                       max_runs_per_slice = max_runs_per_slice,
+                       emissions_data = emissions,
+                       tmin = tmin,
+                       tmax = tmax,
+                       nTIMES = nTIMES,
+                       SBooDataLocation = SBooDataLocation)
+
+# Save the outcome
+# saveRDS(Solution, "data/Solution.RData")
+```
+
+## Plotting
+
+Plot the outcome. For this you need to manually create a plot using the
+`Solution` that was created above object. Here we cannot use the build
+in `World$PlotConcentration` as the data is now stored in Solution and
+does exist in the `World` object. Below is an example script for
+creating such a plot.
+
+```{R Plot Dyn outcome, warning=FALSE}
+# solution <- readRDS("data/Solution.RData")
+
+concentrations <- Solution$Concentrations
+
+# Get the concentration
+concentration <- merge(concentrations, World$states$asDataFrame, by = "Abbr")
+concentration <- concentration[c('SubCompart', 'Scale', 'Species', 'time', 'RUNs', 'Concentration', 'Unit')]
+
+scale <- "Regional"
+subcompart <- "agriculturalsoil"
+
+# Aggregate over species
+cnames <- names(concentration)
+cnames <- cnames[!cnames %in% c("Species", "Concentration")]
+formula <- as.formula(paste("Concentration ~", paste(cnames, collapse = " + ")))
+concentration <- aggregate(formula, data = concentration, sum)
+
+if (!is.null(scale)) {
+  concentration <- concentration[concentration$Scale %in% scale, ]
+} else {
+  concentration <- concentration
+}
+
+if (!is.null(subcompart)) {
+  concentration <- concentration[concentration$SubCompart %in% subcompart, ]
+} else {
+  concentration <- concentration
+}
+
+unit <- unique(concentration$Unit)
+
+# Convert time from seconds to years
+concentration$time <- as.numeric(concentration$time)
+concentration$Year <- concentration$time / (365.25 * 24 * 3600)
+
+summary_stats <- concentration |>
+  group_by(Year) |>
+  summarise(
+    Mean_Value = mean(Concentration, na.rm = TRUE),
+    SD_Value = sd(Concentration, na.rm = TRUE),
+    Lower_CI = Mean_Value - 1.96 * SD_Value / sqrt(n()),
+    Upper_CI = Mean_Value + 1.96 * SD_Value / sqrt(n())
+  ) |>
+  ungroup()
+
+ggplot(summary_stats, aes(x = Year, y = Mean_Value)) +
+  geom_line(color = "green", size = 1) +
+  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2, fill = "green") +
+  labs(title = paste0("Dynamic mean concentration in ", subcompart, " at ", tolower(scale), " scale"),
+       subtitle = "with uncertainty bands over time",
+       x = "Year",
+       y = paste0("Concentration of ", World$substance," [", unit, "]")) +
+  theme_minimal()+
+  guides(color = guide_legend(title = NULL))
+```

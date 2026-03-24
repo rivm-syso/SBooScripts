@@ -14,12 +14,22 @@ COL,mg.L-1,COL/1000,SubcompartSheet,mass CONCENTRATION Natural Colloids in water
 COLLECTeff,-,,ScaleSheet,Aerosol COLLECTION EFFICIENCY
 ColRad,m,,SubcompartSheet,Land surface particle collector radius [m] appendix A of LOTEUR.
 ContinentalInModerate,boolean,,CONSTANTS,Nesting of scales
+CorFacSSA,-,,Substance,Particle surface area Kssdr correction for surface roughness and porosity
 Corg,-,,MatrixSheet,Mass fraction organic carbon in subcompartment
 CORG.susp,-,,CONSTANTS,mass fraction organic carbon suspended in water
 CorgStandard,-,,CONSTANTS,Standard mass FRACTION organic carbon in soil/sediment
 DefaultNETsedrate,m.s-1,,SubCompartSheet,Default net sedimentation rate
+deg_eta,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
+deg_tau,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
+deg_theta,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
+deg_x,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
+deg_y,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
+deg_z,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
+DegApproach,-,,CONSTANTS,"Approach used to estimate degradation, implemented for polymer particles (Default, Kssdr, PlasticFADE)"
+Degrading_enzyme,boolean,,Substances,Existence of degrading enzymes in the environment for a specific polymer (plasticFADE model)
 Df,-,,CONSTANTS,Fractal dimension of combined heteroagglomerate
 dischargeFRAC,-,,ScaleSheet,Fraction of the continental riverflow that flows into the regional river
+DragMethod,-,,CONSTANTS,"The particle drag method to use in calculation of settling velocities. Options are: Original, Dioguardi or Default, Swamee, Stokes, Bagheri."
 DynViscAirStandard,kg.m-1.s-1,,CONSTANTS,Dynamic viscosity of air standard
 DynViscWaterStandard,kg.m-1.s-1,,CONSTANTS,Dynamic viscosity of water standard
 Ea.OHrad,J.mol-1,,CONSTANTS,ACTIVATION ENERGY OH radical reaction
@@ -50,6 +60,7 @@ kdeg.water,s-1,,Substances,Degradation rate constant water
 kdis,s-1,,SubstanceSubCompartSpeciesData,Dissolution rate constant
 kfrag,s-1,,SubstanceSubCompartSpeciesData,Fragmentation rate of heteroagglomerates
 Kow,-,,Substances,Octanol water partitioning coefficient 
+Kssdr,m.s-1,,SubstanceCompartments,Surface related degradation rate constant
 Ksw,-,,Substances,Soil water partitioning coefficient
 kwsd,m.s-1,,MatrixSheet,PARTIAL MASS TRANSFER COEFFICIENT subcompartment side of water/sed interface
 LakeFracRiver,-,,CONSTANTS,The fraction of freshwater belonging to the lake water
@@ -58,6 +69,8 @@ Longest_side,um,Longest_side/1000000,Substances,Particle sizes
 Mackay1,m.d-1,Mackay1/3600/24,CONSTANTS,constant described by Mackay (2001)
 Mackay2,-,,CONSTANTS,Mackay constant
 MaxPvap,Pa,,CONSTANTS,Maximum vapor pressure
+MICROBconc,CFU.mL-1,,ScaleSubCompartData,microbial concentration in the subcompartment
+MinSettVel,m.s-1,,Substances,Particle specific minimal settling rate in water to avoid null sedimentation
 MW,g.mol-1,MW/1000,Substances,Molar weight of substance
 NaturalRad,m,,SpeciesCompartments,Natural particle radius
 NaturalRho,kg.m-3,,SpeciesCompartments,Natural particle density
@@ -70,7 +83,7 @@ penetration_depth_s,m,,CONSTANTS,penetration soil depth to consider
 pH,-,,SubcompartSheet,pH
 pKa,-,,Substances,Dissociation constant of (conjugated) acid 
 Porosity,-,,SubcompartSheet,Porosity
-Pvap25,-,,Substances,Vapor pressure at 25C
+Pvap25,Pa,,Substances,Vapor pressure at 25C
 Q.10,m.s-1,,CONSTANTS,rate increase factor per 10 oC
 RadCOL,nm,RadCOL/1000000000,SubcompartSheet,Radius of Natural Colloids
 RadCP,um,RadCP/1000000,SubcompartSheet,Radius of coarse Suspended Material and Filtration Particles
@@ -88,6 +101,7 @@ SettlVelocitywater,m.s-1,,ScaleSheet,SETTLING VELOCITY suspended particles as fo
 Shape,-,,Substances,Shape of particle
 Shear,s-1,,ScaleSubCompartData,Shear rate
 Shortest_side,um,Shortest_side/1000000,Substances,Particle sizes
+SizeRunoff,um,SizeRunoff/1000000,ScaleSheet,The size above which Runoff is reduced with IntrcptFRACs
 Sol25,mg.L-1,Sol25/(1000),Substances,solubility of substance at 25C
 subFRACa,-,,ScaleSubCompartData,Fraction of air in a non-air subcompartment
 subFRACs,-,,ScaleSubCompartData,"Fraction solid in a non-soil, non sediment subcompartment"
@@ -98,10 +112,13 @@ T25,K,,CONSTANTS,25C in Kelvin
 TAUsea,d,,ScaleSheet,RESIDENCE TIME of water
 tdry,day,tdry*3600*24,ScaleSheet,"Duration dry episode (Joilliet and Hauschild, 2005)"
 Temp,K ,,ScaleSheet,Temperature in Kelvin
+Test,-,,CONSTANTS,Variable that in previous versions allowed comparison to xlsx version of SimpleBox for testing.
 Tm,Celsius,Tm+273,Substances,melting temperature of the substance
 Tm_default,K,,CONSTANTS,Default melting point
 TotalArea,m2,,ScaleSheet,"Area of the scale, including possibly nested scales"
 twet,day,twet*3600*24,ScaleSheet,Duration wet episode (6% of time in NL > 0.3mm rain)
 Udarcy,m.s-1,,SubcompartSheet,Darcy velocity of particle
+UVintensity,W.m-2,,ScaleSubCompartData,UV intensity in the subcompartment
+VegInterceptFrac,-,,SubCompartSheet,Fraction of particles intercepted by vegetation as estimated by Hahn et al. 2022
 VertDistance,m,,ScaleSubCompartData,depth or height of the subcompartment
 WINDspeed,m.s-1,,ScalesSheet,Average windspeed per scale

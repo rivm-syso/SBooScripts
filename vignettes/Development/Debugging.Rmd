@@ -32,7 +32,7 @@ The code that would trigger the debug mode is therefore commented out to avoid e
 We initialize in the normal way, and use an availeable function as an example.
 
 ```{r, warning = FALSE}
-source("baseScripts/initWorld_onlyMolec.R")
+source("baseScripts/initWorld.R")
 ```
 
 Normally we define a SBoo variable by just calling the NewCalcVariable method.

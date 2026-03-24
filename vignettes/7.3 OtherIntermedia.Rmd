@@ -7,13 +7,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r setup, include=FALSE}
-knitr::knit_meta()
-knitr::opts_chunk$set(echo = TRUE)
-projectRoot <- paste(getwd(), "..", sep = "/")
-knitr::opts_knit$set(root.dir = projectRoot) #assuming vignette is in a direct subfolder of the project
-```
-
 ### Other intermedia transfer processes
 
 Intermedia processes discussed here are:
@@ -36,22 +29,35 @@ source("baseScripts/initWorld_onlyMolec.R")
 
 #### Erosion
 
-The processes of erosion and runoff are combined into one flow in the Excel version.
-n the R version, if multiple processes are defined for the same transfer, the k's are automatically added.
-This makes it easier to define and possibly re-define each process.
-In this case the factor CORRrunoff / DEPTH will be executed twice.
-We believe the loss in calculation speed is negligible.
-And this approach is in favor because of the clearly defined process functions.
+In R processes across the same dimension, such as Runoff and Erosion are defined seperately.
+The engine adds the rate constants (k's) automatically for the K matrix.
+This approach is in favor because of the clearly defined process functions.
 
 The factor CORRrunoff (Correction factor depth dependent soil concentration) however is calculated as EXP((-1/0.1) \* 0) \* (1/0.1) \* DEPTH / (1-EXP((-1/0.1) \* DEPTH)) for the assumed pentration depth of 0.1 m.
 To make sure this remains the same for both Runoff and erosion, we define a variable to calculate it.
 The only parameter, so far, is DEPTH, which has been renamed to vertDistance in the R version (combined with height).
 
+At Regional and Continental scale Erossion and Runoff all goes to freshwater (w0 an w1), whereas at global scales (Tropic, Moderate and Arctic) all Erosion and Runoff goes to sea (w2).
+
+At Regional and Continental scale the fraction of Erossion and Runoff going to either w0 or w1 is calculated using a variable: FracROWatComp.
+
 ```{r message=FALSE, warning=FALSE}
 # data needed for k_Erosion:
+FracROWatComp
+
+
+
+World$fetchData("FracROWatComp")
+
+
+k_Erosion
+
 World$fetchData("relevant_depth_s")
 World$fetchData("penetration_depth_s")
 World$fetchData("EROSIONsoil")
+
+World$fetchData("FracROWatComp")
+
 World$fetchData("VertDistance")
 World$fetchData("ScaleName")
 
@@ -65,17 +71,33 @@ test1$execute()
 
 ```
 
-#### Runoff
+#### Runoff Molecular
 
 Runoff is implemented in a similar way.
-Here the formula is: RAINrate \* FRACrun / Ksw \* CORRrunoff / VertDistance.
-So we need Ksw, which can be in the data, or you can apply a formulas depending on the type of substance.
-See the vignette partitioning.Rmd for a detailed explanation of Ksw
+Here the formula is: RunoffFlow / Kscompw \* CORRrunoff / Volume \* FracROWatComp.
+For organic compounds we need Kscompw (Ksw), which is described in section [4.0 partitioning](#0), as only the fraction in water can move with Runoff.
+The correction factor is explained above.
+The RunoffFlow from soil is needed, which is dependant on the Area, FRACrun and the RAINrate.
+And at last the fraction of Runoff can go to either the upstream (w0) or downstream (w1) freshwater compartment as calculated by v_FracROWatComp.
+FracROWatComp is now calculated based on the surface fraction (landFRAC) of w0 versus w1.
+This can or should be adjusted when more specific data is available on the land surface area contributing to the upstream (w0) versus downstream (w1) Runoff.
 
 ```{r message=FALSE, warning=FALSE}
+
+
+
+RunoffFlow
+World$fetchData("RunoffFlow")
+FracROWatComp
+  World$fetchData("FracROWatComp")
+Kscompw
 World$fetchData("Kscompw")
-World$NewCalcVariable("Runoff")
-World$CalcVar("Runoff" )
+
+f_CORRsoil
+# with:
+World$fetchData("relevant_depth_s")
+World$fetchData("penetration_depth_s")
+World$fetchData("VertDistance")
 
 World$FromDataAndTo("k_Runoff")
 
@@ -83,6 +105,53 @@ test1 <- World$NewProcess("k_Runoff")
 
 test1$execute()
 
+```
+
+#### Runoff Particulate species
+For particulate species Runoff is not appliable for very large particles, meaning that `VegInterceptFrac = 1`.
+These particles behave more like other particulates that make up the soil or ar at least intercepted by vegetation reducing the Runoff rate.
+As of version 2025.10.0 a size cutoff, SizeRunoff, is introduced above which Runoff is either set to 0 or to a value reduced by the `VegInterceptFrac` (see SubCompartSheet.csv) parameter as calculated in the `IntrcptFrac` variable.
+See example code below.
+`SizeRunoff` is set at the scale level, where currently the `SizeRunoff` is set at 100 micrometer for all scales.
+This will particularly influence the runoff of microplastics, as the primary particle can already have a diameter larger than 100 micrometers, so this size cutoff for Runoff can affect all species in such a case, where for nanomaterials (\< 100 nm) only the largest species is affected.
+
+```{r message=FALSE, warning=FALSE}
+rm(list = ls())
+source("baseScripts/initWorld_onlyParticulate.R")
+
+RunoffFlow
+World$fetchData("RunoffFlow")
+FracROWatComp
+World$fetchData("FracROWatComp")
+
+World$fetchData("IntrcptFrac")
+World$fetchData("VegInterceptFrac")
+World$fetchData("SizeRunoff")
+World$fetchData("rad_species")
+
+
+World$FromDataAndTo("k_Runoff")
+
+test1 <- World$NewProcess("k_Runoff")
+
+test1$execute()
+
+# if you want an Interceptation fraction  of 0.9 to be applied to all species above 100 nm
+World$fetchData("VegInterceptFrac")
+f_MutateHelper("VegInterceptFrac",
+
+               c(0.975,0.975,0.975))
+
+
+World$fetchData("SizeRunoff")
+f_MutateHelper("SizeRunoff",
+               c(0.1,0.1,0.1,0.1,0.1))
+
+World$fetchData("IntrcptFrac")
+
+test1 <- World$NewProcess("k_Runoff")
+
+test1$execute()
 ```
 
 #### Volatilisation
@@ -103,16 +172,18 @@ World$NewCalcVariable("MTC_2sd")
 World$CalcVar("MTC_2sd")
 
 testvar <- World$NewCalcVariable("Kacompw")
-testvar$execute(debugAt = list())
+# testvar$execute(debugAt = list())
 World$CalcVar("Kacompw")
 
-CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
+# CalcVariable$execute(debugAt = list(ScaleName = "Arctic", SubCompartName = "deepocean"))
 
-debugonce(k_Volatilisation)
+# debugonce(k_Volatilisation)
 
 
 testProc <- World$NewProcess("k_Volatilisation")
-testProc$execute(debugAt = list())
+# testProc$execute(debugAt = list())
+testProc$execute()
+
 ```
 
 #### Desorption
@@ -126,7 +197,7 @@ World$NewCalcVariable("Ksdcompw")
 World$CalcVar("Ksdcompw")
 
 testProc <- World$NewProcess("k_Desorption")
-testProc$execute(debugAt = list())
+testProc$execute()
 
 
 ```
