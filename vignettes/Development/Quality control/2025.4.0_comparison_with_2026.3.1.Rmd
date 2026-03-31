@@ -1,6 +1,6 @@
 ---
-title: "General script comparing two model versions"
-author: "Anne Hids, Joris Quik"
+title: "Comparison of 2025.4.0 to 2026.3.1"
+author: "Joris Quik"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
@@ -161,9 +161,46 @@ custom_theme <- function() {
     custom_theme() +
     labs(x = "From to Compartment", y = "Relative diff in k")
 
+LakeReduction <-   changed_kaas |> filter(process == "k_Advection" &
+                            fromSubCompart == "lake") |> pull(rel_diff) |> min()
+
+RiverIncrease <-   changed_kaas |> filter(process == "k_Advection" &
+                            fromSubCompart == "lake") |> pull(rel_diff) |> max()
+
 
     
 ```
 
 # Specific's on differences
-Specify and explain differences. You may also need to change the plot etc above.
+
+## Advection
+
+These results clearly show the changes in discharge calculation from
+lake to river now being made dependent on the rain rate and the fraction
+runoff reaching lake water. This reduces (in default scenario) the
+advection rate constant by `r round(-LakeReduction, digits = 3)*100` %.
+As expected this slightly increases the outflow from river to sea, given
+the same rainrate. This also changes the mixing of regional and
+continental sea's by the same amount. An increase of
+`r round(-RiverIncrease, digits = 3)*100` %.
+
+## Heteroaglomeration
+
+The large differences, more than 125 lower k's values are for two
+specific substances:
+
+```{r}
+changed_kaas |> filter(process == "k_HeteroAgglomeration.wsd") |> distinct(Substance)
+
+```
+
+This happens due to these two substances being the first to also
+introduce a shape dimension (short, long, intermediate side's) for
+calculation of the settling velocity in v 2025.4.0. As the current
+version (soon to be 2026.3.1) already includes updated algorithms to
+include shape in the calculation of the gravitational settling collision
+frequency, this results in the large difference in
+k_HeteroAgglomeration.wsd.
+
+Further update of shape related work will be further reviewed in
+upcoming release aimed at microplastics.
