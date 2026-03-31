@@ -65,7 +65,7 @@ apply the new initWorldOther from the current branch as there are
 missinng links to the new install folder in the old release. This can be
 changed in future comparisons.
 
-```{R}
+```{R warning=FALSE}
 
 # SBInstallFolder
 
@@ -91,7 +91,7 @@ Calculate the first order rate constants for the current branch
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 ```
 
-```{R Run SB and get advection ks for FLux_work branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+```{R Run SB and get advection ks for FLux_work branch, echo=TRUE, message=TRUE, warning=FALSE, results="hide"}
 
 current_kaas <- data.frame()
   
@@ -139,7 +139,7 @@ The following processes seem to have changed k's:
 changes to check which k's are affected Below the relative difference in
 rate constants is seen in figures:
 
-```{R Plot the differences between ks}
+```{R Plot the differences between ks, fig.height=15, fig.width=15}
 custom_theme <- function() {
   theme(
     axis.text.y = element_text(size = 12),
@@ -164,8 +164,7 @@ custom_theme <- function() {
 LakeReduction <-   changed_kaas |> filter(process == "k_Advection" &
                             fromSubCompart == "lake") |> pull(rel_diff) |> min()
 
-RiverIncrease <-   changed_kaas |> filter(process == "k_Advection" &
-                            fromSubCompart == "lake") |> pull(rel_diff) |> max()
+RiverIncrease <-   changed_kaas |> filter(process == "k_Advection") |> pull(rel_diff) |> max()
 
 
     
@@ -182,16 +181,16 @@ advection rate constant by `r round(-LakeReduction, digits = 3)*100` %.
 As expected this slightly increases the outflow from river to sea, given
 the same rainrate. This also changes the mixing of regional and
 continental sea's by the same amount. An increase of
-`r round(-RiverIncrease, digits = 3)*100` %.
+`r round(RiverIncrease, digits = 3)*100` %.
 
 ## Heteroaglomeration
 
-The large differences, more than 125 lower k's values are for two
+The large differences, more than 100 times lower k values are for two
 specific substances:
 
-```{r}
-changed_kaas |> filter(process == "k_HeteroAgglomeration.wsd") |> distinct(Substance)
-
+```{r echo=FALSE}
+SpecSubs <- changed_kaas |> filter(process == "k_HeteroAgglomeration.wsd") |> distinct(Substance) |> pull()
+SpecSubs
 ```
 
 This happens due to these two substances being the first to also
