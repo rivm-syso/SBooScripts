@@ -139,7 +139,7 @@ The following processes seem to have changed k's:
 changes to check which k's are affected Below the relative difference in
 rate constants is seen in figures:
 
-```{R Plot the differences between ks, fig.height=15, fig.width=15}
+```{R Plot the differences between ks, fig.height=10, fig.width=15}
 custom_theme <- function() {
   theme(
     axis.text.y = element_text(size = 12),
