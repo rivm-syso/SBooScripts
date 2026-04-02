@@ -164,3 +164,5 @@
   
   World$UpdateKaas()
   
+  rm(ChemClass)
+  

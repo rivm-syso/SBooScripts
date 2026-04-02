@@ -168,3 +168,5 @@ World$VarsFromprocesses()
 if(ChemClass != "particle") World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
 
 World$UpdateKaas()
+
+rm(ChemClass)
