@@ -12,15 +12,11 @@ editor_options:
 This script shows how to solve probabilistically in steady state and
 dynamically in parallel.
 
-```{R Load packages, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
-# library("doParallel")
-```
-
 # Solve steady state in parallel
 
-Firstly, initialize the World you want to use for your calculations. In
+First, initialize the World you want to use for your calculations. In
 this case we want to initialize the World for microplastics. We do this
-by assigning "microplastic" the the variable substance before calling
+by assigning "microplastic" the the variable `substance` before calling
 the initWorld.R script.
 
 ```{R init World SS, warning=FALSE, message=FALSE}
@@ -83,9 +79,14 @@ calculating on your own computer, use a maximum of all available cores -
 Also specify the maximum number of runs per slice. There is also a
 minimum of 2 runs per slice, which cannot be changed.
 
+SBooDataLocation is the path to the SBooScripts directory. If
+SBooScripts is your current working directory, SBooDataLocation should
+be NULL. Otherwise provide the path to SBooScripts.
+
 ```{R Specify number of cores SS, warning=FALSE, message=FALSE}
 nCores <- 2
 max_runs_per_slice <- 3
+SBooDataLocation = NULL
 ```
 
 Now the script for solving steady state in parallel can be called. After
@@ -95,7 +96,8 @@ this script finishes running the outcomes are in the list named
 ```{R Solve SS in parallel, warning=FALSE, message=FALSE}
 Solution <- solveInParallelSteadyState(nCores = nCores,
                            max_runs_per_slice = max_runs_per_slice,
-                           emissions_data = emissions)
+                           emissions_data = emissions,
+                           SBooDataLocation = SBooDataLocation)
 
 # Save the outcome
 # saveRDS(Solution, "data/Solution.RData")
@@ -149,17 +151,12 @@ ggplot(concentration, aes(x = SubCompartUnit, y = Concentration, fill = SubCompa
 
 # Solve dynamically in parallel
 
-Firstly, initialize the World you want to use for your calculations. In
-this case that is initWorld_onlyPlastics.R.
+Firstly, initialize the World you want to use for your calculations in
+case you have not done so, see above.
 
-```{R init World Dyn, warning=FALSE, message=FALSE}
-substance <- "microplastic"
-source('baseScripts/initWorld.R')
-```
-
-Define the variables needed for solving steady state probabilistically.
-These are the same variables needed for the regular steady state
-probabilistic solver:
+Second, define the variables needed for solving steady state
+probabilistically. These are the same variables needed for the regular
+steady state probabilistic solver:
 
 -   emissions: the emissions dataframe
 
@@ -234,9 +231,14 @@ calculating on your own computer, use a maximum of all available cores -
 
 Also specify the maximum number of runs per slice.
 
-```{R Specify number of cores Dyn, warning=FALSE, message=FALSE}
-nCores <- 3
+SBooDataLocation is the path to the SBooScripts directory. If
+SBooScripts is your current working directory, SBooDataLocation should
+be NULL. Otherwise provide the path to SBooScripts.
+
+```{R Specify number of cores DS, warning=FALSE, message=FALSE}
+nCores <- 2
 max_runs_per_slice <- 3
+SBooDataLocation = NULL
 ```
 
 Now the script for solving steady state in parallel can be called. After
@@ -249,7 +251,8 @@ Solution <- solveInParallelDynamic(nCores = nCores,
                        emissions_data = emissions,
                        tmin = tmin,
                        tmax = tmax,
-                       nTIMES = nTIMES)
+                       nTIMES = nTIMES,
+                       SBooDataLocation = SBooDataLocation)
 
 # Save the outcome
 # saveRDS(Solution, "data/Solution.RData")

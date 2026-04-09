@@ -21,9 +21,10 @@ SBInstallFolder <- NULL
 
 source("baseScripts/installRequirements.R")
 
-InstallSBoo <- function(Release = "2025.04.0", # tag for release use NA for branch
-                        devBranch = "development",
-                        Temp_Folder = "C:/Temp" # an existing folder where SimpleBox is to be installed
+InstallSBoo <- function(Release = NA, # tag for release use NA for branch
+                        SBoodevBranch = "development",
+                        SBooScriptsdevBranch = "development",
+                        Temp_Folder = NA # an existing folder where SimpleBox is to be installed
 ){
   
   # check if directory is NULL or ends with a "/"
@@ -63,19 +64,19 @@ InstallSBoo <- function(Release = "2025.04.0", # tag for release use NA for bran
   
   if(is.na(Release)){
     SBScriptsLink_Release <-
-      paste0("https://github.com/rivm-syso/SBooScripts/archive/refs/heads/",devBranch,".zip")
-    download.file(SBScriptsLink_Release,paste0(Temp_Folder,"SBzips/SBooScripts_",devBranch,".zip"))
-    zipfile <- paste0(Temp_Folder,"SBzips/SBooScripts_", devBranch,".zip")
+      paste0("https://github.com/rivm-syso/SBooScripts/archive/refs/heads/",SBooScriptsdevBranch,".zip")
+    download.file(SBScriptsLink_Release,paste0(Temp_Folder,"SBzips/SBooScripts_",SBooScriptsdevBranch,".zip"))
+    zipfile <- paste0(Temp_Folder,"SBzips/SBooScripts_", SBooScriptsdevBranch,".zip")
     # file.exists(zipfile)
     destination <- paste0(Temp_Folder, "SimpleBox")
     unzip(zipfile, exdir = destination)
     
-    file.rename(file.path(destination, paste0("SBooScripts-", devBranch)), 
+    file.rename(file.path(destination, paste0("SBooScripts-", SBooScriptsdevBranch)), 
                 file.path(destination, "SBooScripts"))
   } else{
     SBScriptsLink_Release <-
       paste0("https://github.com/rivm-syso/SBooScripts/archive/refs/tags/",Release,".zip")
-    download.file(SBScriptsLink_Release,paste0(Temp_Folder,"/SBzips/SBooScripts_",Release,".zip"))
+    download.file(SBScriptsLink_Release,paste0(Temp_Folder,"SBzips/SBooScripts_",Release,".zip"))
     zipfile <- paste0(Temp_Folder,"SBzips/SBooScripts_", Release,".zip")
     # file.exists(zipfile)
     destination <- paste0(Temp_Folder, "SimpleBox")
@@ -87,16 +88,16 @@ InstallSBoo <- function(Release = "2025.04.0", # tag for release use NA for bran
   
   if(is.na(Release)){
     SBooLink_Release <-
-      paste0("https://github.com/rivm-syso/SBoo/archive/refs/heads/",devBranch,".zip")
+      paste0("https://github.com/rivm-syso/SBoo/archive/refs/heads/",SBoodevBranch,".zip")
     
-    download.file(SBooLink_Release,paste0(Temp_Folder,"SBzips/SBoo_",devBranch,".zip"))
+    download.file(SBooLink_Release,paste0(Temp_Folder,"SBzips/SBoo_",SBoodevBranch,".zip"))
     
-    zipfile <- paste0(Temp_Folder,"SBzips/SBoo_",devBranch,".zip")
+    zipfile <- paste0(Temp_Folder,"SBzips/SBoo_",SBoodevBranch,".zip")
     # file.exists(zipfile)
     destination <- paste0(Temp_Folder, "SimpleBox")
     unzip(zipfile, exdir = destination)
     
-    file.rename(file.path(destination, paste0("SBoo-", devBranch)), 
+    file.rename(file.path(destination, paste0("SBoo-", SBoodevBranch)), 
                 file.path(destination, "SBoo"))
   } else{
     SBooLink_Release <-
@@ -122,5 +123,5 @@ InstallSBoo <- function(Release = "2025.04.0", # tag for release use NA for bran
   }
 }
 
-InstallSBoo(Release = NA,
-                 Temp_Folder = NA)
+# InstallSBoo( Release = "2026.3.0",
+#              Temp_Folder = NA)

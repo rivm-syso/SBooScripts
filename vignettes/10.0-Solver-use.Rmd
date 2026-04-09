@@ -337,6 +337,33 @@ conc <- World$Concentration()
 World$PlotConcentration()
 ```
 
+### Solve probabilistically with one set of emissions
+
+Below we solve with one set of emissions but the same uncertain variables as above. 
+
+```{R}
+substance <- "microplastic"
+source("baseScripts/initWorld.R")  
+
+# Filter the emission dataset used earlier for the first run only. It is important to keep the RUN column! 
+emission_test <- example_data |>
+  filter(RUN == 1)
+
+# The number of samples you want to pull from the distributions for each variable 
+n_samples <- 20  
+World$NewSolver("SteadyStateSolver")  
+World$Solve(emissions = emission_test, 
+            var_box_df = Example_vars, 
+            var_invFun = varFuns, 
+            nRUNs = n_samples)  
+
+sol <- World$Masses() 
+conc <- World$Concentration() 
+emis <- World$Emissions()
+
+World$PlotConcentration()
+```
+
 ## Dynamic solver
 
 SimpleBox can also solve the K matrix with semi-dynamically using time
@@ -463,7 +490,6 @@ example_data <-
                         RUN = c(1:20)) |> 
               mutate(Time = 0,
                      Emis = 0))
-
 ```
 
 Prepare the variables the same way as used for the variables in the
@@ -479,7 +505,7 @@ Example_vars <- readxl::read_xlsx("data/Examples/Example_uncertain_variables.xls
 varFuns <- World$makeInvFuns(Example_vars)
 ```
 
-`World$Solve` needs the following variables to solve steady state
+`World$Solve` needs the following variables to solve dynamically
 probabilistically:
 
 -   emissions: the emissions dataframe
@@ -530,3 +556,34 @@ World$PlotConcentration(scale = "Regional", subcompart = "agriculturalsoil")
 
 World$PlotMasses(scale = "Regional", subcompart = "agriculturalsoil")
 ```
+
+### Solve probabilistically with one set of emissions
+
+Below we solve with one set of emissions but the same uncertain variables as above. 
+
+```{R}
+substance <- "microplastic"
+source("baseScripts/initWorld.R")  
+
+# Filter the emission dataset used earlier for the first run only. It is important to keep the RUN column! 
+emission_test <- example_data |>
+  filter(RUN == 1)
+
+# The number of samples you want to pull from the distributions for each variable 
+n_samples <- 20  
+World$NewSolver("DynamicSolver")  
+World$Solve(emissions = example_data, 
+            var_box_df = Example_vars, 
+            var_invFun = varFuns, 
+            nRUNs = length(unique(example_data$RUN)), 
+            tmin = tmin,
+            tmax = tmax, 
+            nTIMES = nTIMES)
+
+sol <- World$Masses() 
+conc <- World$Concentration() 
+emis <- World$Emissions()
+
+World$PlotConcentration()
+```
+
