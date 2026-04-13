@@ -3,7 +3,7 @@ library(ggdag) #for plotting DAG graphs
 library(R6)
 library(rlang)
 #path to the SBoo package
-SBInstallFolder <- NULL
+Temp_Folder <- NULL
 
 Path2PackageSource <- paste0("..","/SBoo")
 
@@ -32,8 +32,24 @@ if (!exists("substance")) {
 
 message(paste("Running SimpleBox for",substance))
 
-SBooDataLocation <- paste0(SBInstallFolder)
+# The variable use_scenario_data is used to decide whether to use the default data or data for a specific scenario. 
+# If use_scenario_data is TRUE, it is assumed that SBoo and SBooScripts were downloaded using the "InstallSBoo.R" script. 
+# The standard location of the data folder if use_scenario_data == TRUE is therefore two folders down from your current working directory. 
 
+if(!exists("use_scenario_data")){
+  use_scenario_data <- FALSE
+}
+
+if(!is.na(use_scenario_data) && use_scenario_data == TRUE){
+  cat("Using scenario data to setup World.")
+  SBooDataLocation <- paste0("../../")
+} else if(!is.na(use_scenario_data) && use_scenario_data == FALSE){
+  cat("Using default data to setup World.")
+  SBooDataLocation <- paste0(Temp_Folder)
+} else{
+  cat("use_scenario_data was not 'TRUE' or 'FALSE'; using default data to setup World.") 
+  SBooDataLocation <- paste0(Temp_Folder)
+}
 
 #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
 ClassicStateModule <- ClassicNanoWorld$new(paste0(SBooDataLocation,"data"), substance)
@@ -66,17 +82,6 @@ if(ChemClass != "particle") {
     World$SetConst(ChemClass = "neutral")
   }
   
-  if(anyNA(World$fetchData("Koc"))) {
-    # message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
-    # message("Plese set Kssdr in SubstanceCompartments.csv")
-    World$SetConst(Koc = NA)
-  }
-  if(anyNA(World$fetchData("KocAlt"))) {
-    # message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
-    # message("Plese set Kssdr in SubstanceCompartments.csv")
-    World$SetConst(KocAlt = NA)
-  }
-  
 } else {
   if(anyNA(World$fetchData("kdis"))) {
     warning(paste0("initWorld: For " ,substance," kdis is missing, setting kdis = 0"), call. = FALSE)
@@ -95,7 +100,7 @@ if(ChemClass != "particle") {
     message(paste0("initWorld: For ", substance," MinSettVel is missing, setting to 0"))
     World$SetConst(MinSettVel = 0)
   }
-
+  
   ##### Sorting out degradation #####  
   if(anyNA(World$fetchData("DegApproach"))){
     warning("initWorld: DegApproach not set, using Default", call. = FALSE)
@@ -103,34 +108,25 @@ if(ChemClass != "particle") {
   }
   message(paste0("initWorld: Degradation calculation for particles uses ",World$fetchData("DegApproach")," approach."))
   message(paste0("initWorld: Drag method for calculation of particle settling velocities uses ",World$fetchData("DragMethod")," approach."))
-
+  
   if(anyNA(World$fetchData("kdeg"))) {
     warning(paste0("initWorld: k_degradation - For " ,substance," kdeg is missing, setting default kdeg = 1e-20."))
     World$SetConst(kdeg = 1e-20)
   }
   
-  if(anyNA(World$fetchData("Koc"))) {
-    # message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
-    # message("Plese set Kssdr in SubstanceCompartments.csv")
-    World$SetConst(Koc = NA)
-  }
-  if(anyNA(World$fetchData("KocAlt"))) {
-    # message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
-    # message("Plese set Kssdr in SubstanceCompartments.csv")
-    World$SetConst(KocAlt = NA)
-  }
+  
   
   # if(!anyNA(World$fetchData("kdeg"))) {
   #   if(!anyNA(World$fetchData("Kssdr"))) {
   #     message(paste0("initWorld: For " ,substance," Kssdr is being used instead of kdeg"))
   #   }
   # }
-    if(anyNA(World$fetchData("Kssdr"))) {
-      message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
-      # message("Plese set Kssdr in SubstanceCompartments.csv")
-      World$SetConst(Kssdr = NA)
-    }
-
+  if(anyNA(World$fetchData("Kssdr"))) {
+    message(paste0("initWorld: For " ,substance," Kssdr is missing, to continue setting Kssdr to NA"))
+    # message("Plese set Kssdr in SubstanceCompartments.csv")
+    World$SetConst(Kssdr = NA)
+  }
+  
   if(anyNA(World$fetchData("alpha"))) {
     warning(paste0("initWorld: For " ,substance," alpha is missing, setting alpha = 0.1"))
     message("initWorld: Plese set alpha in SubstanceCompartments.csv")
@@ -175,3 +171,4 @@ World$VarsFromprocesses()
 if(ChemClass != "particle") World$PostponeVarProcess(VarFunctions = "OtherkAir", ProcesFunctions = "k_Deposition")
 
 World$UpdateKaas()
+
