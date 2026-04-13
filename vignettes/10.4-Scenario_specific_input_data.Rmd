@@ -1,0 +1,84 @@
+---
+title: "Scenario specific input data"
+author: "Anne Hids"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+As a user you may want to use your own input data to setup World. Some
+examples are:
+
+-   Adding more substances to the model
+
+-   Turning off advection (AdvInput) and settling velocity (VelInput)
+    for specific subcompartment-scale combinations.
+
+This is possible in a few steps.
+
+**This script assumes you use SBoo and SBooScripts by downloading the
+model using the InstallSBoo.R script.**
+
+## 1. Download SBoo and SBooScripts to your own repository
+In R, set your working directory to the repository from where you want to run your case study, in this example "your-repository". 
+Then download the InstallSBoo.R Script to your repository with the following code: 
+
+```{R}
+#setwd("path/your-repository")
+
+download.file(
+  url = "https://github.com/rivm-syso/SBooScripts/raw/main/InstallSBoo.R",
+  destfile = "InstallSBoo.R"
+)
+```
+
+Source the script to load the function needed to download SBoo and SBooScripts to your current working directory.
+Sourcing this scripts also installs the packages needed to run the model.
+
+```{R}
+source("InstallSBoo.R")
+```
+
+Now run the function to download the release or branches you want to use to your current working directory. 
+
+```{R}
+InstallSBoo(Release = "2026.3.1",
+            Temp_Folder = NA)
+```
+
+## 2. Set up your own data folder 
+
+Copy the data folder from the release you just downloaded to your current working directory. It should be located in "path/your-repository/SimpleBox/SBooScripts/data".
+You can do this manually, or by copying and running the code below.
+
+```{R}
+source_data_folder <- "SimpleBox/SBooScripts/data"
+target_data_folder <- file.path(getwd(), "data")
+
+dir.create(target_data_folder, recursive = TRUE, showWarnings = FALSE)
+
+files_to_copy <- list.files(source_data_folder, full.names = TRUE)
+file.copy(files_to_copy, target_data_folder, recursive = TRUE)
+```
+
+In the data folder you just copied to your repository, you can make changes specific
+for your case study. 
+
+## 3. Setup of your script 
+Once you have altered the input data for your case study, you can start running the model. 
+The chunk below will be at the start of your script: 
+
+```{R}
+# Load any packages you need
+
+setwd("SimpleBox/SBooScripts")
+
+use_scenario_data <- TRUE # Use the scenario-specific data in your-repository/data
+
+source("baseScripts/initWorld.R")
+```
+
+Now the World is setup, and you're ready to use the model! 
