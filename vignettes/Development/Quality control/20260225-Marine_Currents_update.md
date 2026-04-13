@@ -1,0 +1,780 @@
+Comparison marine currents
+================
+Nadim Saadi, Anne Hids, Joris Quik
+2026-03-31
+
+# Changes made
+
+In the marine_currents_clean branch the following changes were made:
+
+- There is now a variable to remove the global scale: **Remove_global**.
+  Setting this variable to TRUE removes the advection flows to, from and
+  within the global scale.
+
+- As an alternative to calculating advection flows within SBoo, there is
+  an option to provide advection rates directly with the **AdvInput**
+  variable. If values for this variable are given, the advection flows
+  are not calculated for these flows.
+
+- When the **Regional_and_Continental_deepocean** variable is set to
+  TRUE, the deepocean subcompartment at Regional and Continental scale
+  is introduced. This also means the following:
+
+  - The deaggregation function is turned off for deepocean at Regional
+    and Continental scale.
+
+  - The area for deepocean at Regional and Continental scale is set to
+    the area of the sea subcompartment at the same scale.
+
+- The variable **VelInput** allows the user to provide a settling
+  velocity instead of the settling velocity being calculated in SBoo.
+
+# Comparisons setup
+
+There are a few comparisons to be made to test these changes:
+
+- Compare marine_currents_clean with Remove_global = TRUE and
+  Regional_and_Continental_deepocean = TRUE with the development branch
+
+- Compare marine_currents_clean with Remove_global = FALSE and
+  Regional_and_Continental_deepocean = FALSE to development.
+
+## Compare marine_currents_clean with new variables as TRUE to development
+
+The below scripts should be run to compare two versions of SBoo.
+
+``` r
+tag <- NA # Because we want to compare to current development, not to a release.
+branch_sboo <- "marine_currents_clean"
+branch_sbooscripts <- "marine_currents_clean"
+```
+
+## Define function for downloading and ordering the folders needed to compare
+
+``` r
+source("vignettes/Development/Quality control/ComparisonFunctions.R")
+folderpaths <- CompareFilesPrep(Release = NA,
+                             Test_SBoo = branch_sboo,
+                             Test_SBooScripts = branch_sbooscripts,
+                             Temp_Folder = dest_folder)
+```
+
+Select random substances for testing
+
+``` r
+excluded_substances <- c("Graphene Oxide", "Chitosan", "nTiO2_P25_CaLIBRAte_D6_3", "nAg_NanoFase", "nanoparticle", "GO-Chitosan")
+# Select 5 random substances for each class from substances csv
+substances <- read.csv("data/Substances.csv") |>
+  filter(!Substance %in% excluded_substances)
+mp <- substances |>
+  filter(Substance == "microplastic")
+set.seed(123)
+substances <- substances |>
+  group_by(ChemClass) |>
+  slice_sample(n = 5, replace = FALSE) |>
+  ungroup()
+substances <- rbind(substances, mp) |>
+  distinct()
+substance_names <- substances$Substance
+cc_substances <- substances |>
+  select(Substance, ChemClass)
+```
+
+## Calculate first order rate constants for the development
+
+``` r
+# Save the original working directory for later
+original_wd <- getwd()
+# Change the wd to the wd of the development branches
+setwd(paste0(folderpaths[1], "/SBooScripts"))
+# Calculate the kaas
+development_kaas <- data.frame()
+for(i in 1:nrow(substances)){
+  # Get the substance type
+  subst_row <- substances[i, ]
+  substance <- subst_row$Substance
+  cc <- subst_row$ChemClass
+  source("baseScripts/initWorld.R")
+  kaas <- World$kaas |>
+    mutate(Substance = substance)
+  development_kaas <- rbind(development_kaas, kaas)
+}
+
+setwd(original_wd)
+```
+
+## Calculate the first order rate constants for the test branches
+
+``` r
+# Change the wd to the wd of the development branches
+setwd(paste0(folderpaths[2], "/SBooScripts"))
+test_true_kaas <- data.frame()
+for(i in 1:nrow(substances)){
+  # Get the substance type
+  subst_row <- substances[i, ]
+  substance <- subst_row$Substance
+  cc <- subst_row$ChemClass
+  source("baseScripts/initWorld.R")
+  World$SetConst(Regional_and_Continental_deepocean = "TRUE") # Add deepocean to Regional and Continental scale
+  World$SetConst(Remove_global = "TRUE") #if true, remove flows to moderate, arctic and tropic
+  World$UpdateKaas(mergeExisting = FALSE)
+  kaas <- World$kaas |>
+    mutate(Substance = substance)
+  test_true_kaas <- rbind(test_true_kaas, kaas)
+}
+
+setwd(original_wd)
+```
+
+## Compare the k values for each of the substances
+
+``` r
+common_cols <- setdiff(intersect(colnames(development_kaas), colnames(test_true_kaas)), "k")
+kaas_comparison <- merge(development_kaas, test_true_kaas, by=common_cols, suffixes = c("_Old", "_New"))
+kaas_comparison <- full_join(
+  development_kaas,
+  test_true_kaas,
+  by = common_cols,
+  suffix = c("_Old", "_New")
+)
+kaas_comparison <- kaas_comparison |>
+  mutate(diff = k_New-k_Old) |> # If this number is positive, the New_k is higher than the Old_k (higher advection rate with new method)
+  mutate(rel_diff = diff/k_New)
+changed_kaas <- kaas_comparison |>
+  filter(diff != 0) |>
+  mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
+```
+
+``` r
+diffs <- kaas_comparison |>
+  mutate(fromname = paste0(process, "_", fromSubCompart, "_", fromScale)) |>
+  mutate(toname = paste0(process, "_", toSubCompart, "_", toScale)) |>
+  mutate(diff = ifelse(diff == 0, NaN, diff)) |>
+  left_join(cc_substances, by = "Substance")
+chemclass <- "metal"
+for(chemclass in unique(diffs$ChemClass)){
+  changed <- diffs |>
+    filter(rel_diff != 0) |>
+    filter(ChemClass == chemclass)
+  mean_changed <- changed |>
+  group_by(fromname, toname) |>
+  summarise(diff = mean(diff),
+            rel_diff = mean(rel_diff))
+  diff_plot <- ggplot(mean_changed, mapping = aes(x = toname, y = fromname, color = diff)) +
+  geom_point() +
+  scale_color_gradient2(
+    low = "blue",    # Colors for negative values
+    mid = "grey",   # Neutral point at zero
+    high = "red",  # Colors for positive values
+    midpoint = 0,   # Center the scale at zero
+    limits = c(-max(abs(changed$diff)), max(abs(changed$diff)))  # Ensure symmetric scale
+  ) +
+  labs(
+    title = paste0("Mean difference between old and new k's for ", chemclass, " substances"),
+    subtitle = "Only k's with a difference above or below zero are shown. Global scale removed.",
+    x = "To",
+    y = "From",
+    color = "Difference"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major = element_line(size = 0.2, color = "gray90"),
+    panel.background = element_blank()
+  )
+  print(diff_plot)
+  rel_diff_plot <- ggplot(mean_changed, mapping = aes(x = toname, y = fromname, color = rel_diff)) +
+  geom_point() +
+  scale_color_gradient2(
+    low = "blue",    # Colors for negative values
+    mid = "grey",   # Neutral point at zero
+    high = "red",  # Colors for positive values
+    midpoint = 0,   # Center the scale at zero
+    limits = c(-max(abs(changed$rel_diff)), max(abs(changed$rel_diff)))  # Ensure symmetric scale
+  ) +
+  labs(
+    title = paste0("Mean relative difference between old and new k's for ", chemclass, " substances"),
+    subtitle = "Only k's with a difference above or below zero are shown. Global scale removed.",
+    x = "To",
+    y = "From",
+    color = "Difference"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major = element_line(size = 0.2, color = "gray90"),
+    panel.background = element_blank()
+  )
+  print(rel_diff_plot)
+  table_for_display <- changed |>
+  select(fromScale, fromSubCompart, toScale, toSubCompart, Substance, k_Old, k_New, diff, rel_diff) |>
+  mutate(diff = format(diff, scientific = TRUE, digits = 2)) |>
+  mutate(rel_diff = format(rel_diff, scientific = TRUE, digits = 2))
+  print(knitr::kable(table_for_display))
+}
+```
+
+![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-1.png)<!-- -->![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-2.png)<!-- -->
+
+    ## 
+    ## 
+    ## |fromScale   |fromSubCompart |toScale     |toSubCompart     |Substance                  |   k_Old|   k_New|diff     |rel_diff |
+    ## |:-----------|:--------------|:-----------|:----------------|:--------------------------|-------:|-------:|:--------|:--------|
+    ## |Arctic      |air            |Arctic      |naturalsoil      |diisopropyl ether          | 0.0e+00| 0.0e+00|8.0e-17  |5.0e-07  |
+    ## |Arctic      |air            |Arctic      |sea              |diisopropyl ether          | 0.0e+00| 0.0e+00|1.2e-16  |5.0e-07  |
+    ## |Continental |air            |Continental |agriculturalsoil |diisopropyl ether          | 0.0e+00| 0.0e+00|1.3e-16  |8.2e-07  |
+    ## |Continental |air            |Continental |lake             |diisopropyl ether          | 0.0e+00| 0.0e+00|5.4e-19  |8.2e-07  |
+    ## |Continental |air            |Continental |naturalsoil      |diisopropyl ether          | 0.0e+00| 0.0e+00|5.8e-17  |8.2e-07  |
+    ## |Continental |air            |Continental |othersoil        |diisopropyl ether          | 0.0e+00| 0.0e+00|2.2e-17  |8.2e-07  |
+    ## |Continental |air            |Continental |river            |diisopropyl ether          | 0.0e+00| 0.0e+00|5.9e-18  |8.2e-07  |
+    ## |Continental |air            |Continental |sea              |diisopropyl ether          | 0.0e+00| 0.0e+00|2.3e-16  |8.2e-07  |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |diisopropyl ether          | 0.0e+00| 0.0e+00|2.0e-16  |7.3e-07  |
+    ## |Moderate    |air            |Moderate    |sea              |diisopropyl ether          | 0.0e+00| 0.0e+00|2.0e-16  |7.3e-07  |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |diisopropyl ether          | 0.0e+00| 0.0e+00|5.1e-17  |2.5e-07  |
+    ## |Tropic      |air            |Tropic      |sea              |diisopropyl ether          | 0.0e+00| 0.0e+00|1.2e-16  |2.5e-07  |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |N-butylbenzenesulphonamide | 3.2e-06| 3.3e-06|6.8e-08  |2.1e-02  |
+    ## |Arctic      |air            |Arctic      |sea              |N-butylbenzenesulphonamide | 4.8e-06| 4.9e-06|1.0e-07  |2.1e-02  |
+    ## |Continental |air            |Continental |agriculturalsoil |N-butylbenzenesulphonamide | 2.2e-06| 2.3e-06|8.7e-08  |3.8e-02  |
+    ## |Continental |air            |Continental |lake             |N-butylbenzenesulphonamide | 0.0e+00| 0.0e+00|3.6e-10  |3.8e-02  |
+    ## |Continental |air            |Continental |naturalsoil      |N-butylbenzenesulphonamide | 1.0e-06| 1.0e-06|3.9e-08  |3.8e-02  |
+    ## |Continental |air            |Continental |othersoil        |N-butylbenzenesulphonamide | 4.0e-07| 4.0e-07|1.5e-08  |3.8e-02  |
+    ## |Continental |air            |Continental |river            |N-butylbenzenesulphonamide | 1.0e-07| 1.0e-07|4.0e-09  |3.8e-02  |
+    ## |Continental |air            |Continental |sea              |N-butylbenzenesulphonamide | 4.0e-06| 4.1e-06|1.5e-07  |3.8e-02  |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |N-butylbenzenesulphonamide | 3.9e-06| 4.0e-06|1.3e-07  |3.3e-02  |
+    ## |Moderate    |air            |Moderate    |sea              |N-butylbenzenesulphonamide | 3.9e-06| 4.0e-06|1.3e-07  |3.3e-02  |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |N-butylbenzenesulphonamide | 2.4e-06| 2.4e-06|2.8e-08  |1.2e-02  |
+    ## |Tropic      |air            |Tropic      |sea              |N-butylbenzenesulphonamide | 5.5e-06| 5.6e-06|6.6e-08  |1.2e-02  |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |formaldehyde               | 2.1e-06| 2.1e-06|-6.1e-09 |-2.9e-03 |
+    ## |Arctic      |air            |Arctic      |sea              |formaldehyde               | 3.1e-06| 3.1e-06|-9.1e-09 |-2.9e-03 |
+    ## |Continental |air            |Continental |agriculturalsoil |formaldehyde               | 1.4e-06| 1.4e-06|-6.5e-09 |-4.6e-03 |
+    ## |Continental |air            |Continental |lake             |formaldehyde               | 0.0e+00| 0.0e+00|-2.7e-11 |-4.6e-03 |
+    ## |Continental |air            |Continental |naturalsoil      |formaldehyde               | 6.0e-07| 6.0e-07|-2.9e-09 |-4.6e-03 |
+    ## |Continental |air            |Continental |othersoil        |formaldehyde               | 2.0e-07| 2.0e-07|-1.1e-09 |-4.6e-03 |
+    ## |Continental |air            |Continental |river            |formaldehyde               | 1.0e-07| 1.0e-07|-3.0e-10 |-4.6e-03 |
+    ## |Continental |air            |Continental |sea              |formaldehyde               | 2.5e-06| 2.5e-06|-1.2e-08 |-4.6e-03 |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |formaldehyde               | 2.4e-06| 2.4e-06|-9.4e-09 |-3.9e-03 |
+    ## |Moderate    |air            |Moderate    |sea              |formaldehyde               | 2.4e-06| 2.4e-06|-9.4e-09 |-3.9e-03 |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |formaldehyde               | 1.4e-06| 1.4e-06|-1.8e-09 |-1.2e-03 |
+    ## |Tropic      |air            |Tropic      |sea              |formaldehyde               | 3.3e-06| 3.3e-06|-4.1e-09 |-1.2e-03 |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |1,1,1-trichloroethane      | 0.0e+00| 0.0e+00|4.7e-17  |7.4e-07  |
+    ## |Arctic      |air            |Arctic      |sea              |1,1,1-trichloroethane      | 0.0e+00| 0.0e+00|7.1e-17  |7.4e-07  |
+    ## |Continental |air            |Continental |agriculturalsoil |1,1,1-trichloroethane      | 0.0e+00| 0.0e+00|1.2e-16  |1.9e-06  |
+    ## |Continental |air            |Continental |lake             |1,1,1-trichloroethane      | 0.0e+00| 0.0e+00|4.8e-19  |1.9e-06  |
+    ## |Continental |air            |Continental |naturalsoil      |1,1,1-trichloroethane      | 0.0e+00| 0.0e+00|5.2e-17  |1.9e-06  |
+    ## |Continental |air            |Continental |othersoil        |1,1,1-trichloroethane      | 0.0e+00| 0.0e+00|1.9e-17  |1.9e-06  |
+    ## |Continental |air            |Continental |river            |1,1,1-trichloroethane      | 0.0e+00| 0.0e+00|5.3e-18  |1.9e-06  |
+    ## |Continental |air            |Continental |sea              |1,1,1-trichloroethane      | 0.0e+00| 0.0e+00|2.1e-16  |1.9e-06  |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |1,1,1-trichloroethane      | 0.0e+00| 0.0e+00|1.7e-16  |1.6e-06  |
+    ## |Moderate    |air            |Moderate    |sea              |1,1,1-trichloroethane      | 0.0e+00| 0.0e+00|1.7e-16  |1.6e-06  |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |1,1,1-trichloroethane      | 0.0e+00| 0.0e+00|5.5e-17  |7.0e-07  |
+    ## |Tropic      |air            |Tropic      |sea              |1,1,1-trichloroethane      | 0.0e+00| 0.0e+00|1.3e-16  |7.0e-07  |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |isopropylamine             | 0.0e+00| 0.0e+00|-1.4e-21 |-1.5e-06 |
+    ## |Arctic      |air            |Arctic      |sea              |isopropylamine             | 0.0e+00| 0.0e+00|-2.0e-21 |-1.5e-06 |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |isopropylamine             | 0.0e+00| 0.0e+00|-1.0e-21 |-6.5e-07 |
+    ## |Tropic      |air            |Tropic      |sea              |isopropylamine             | 0.0e+00| 0.0e+00|-2.4e-21 |-6.5e-07 |
+
+![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-3.png)<!-- -->![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-4.png)<!-- -->
+
+    ## 
+    ## 
+    ## |fromScale   |fromSubCompart |toScale     |toSubCompart     |Substance               |   k_Old|   k_New|diff    |rel_diff |
+    ## |:-----------|:--------------|:-----------|:----------------|:-----------------------|-------:|-------:|:-------|:--------|
+    ## |Arctic      |air            |Arctic      |naturalsoil      |BUTYL XANTHATE          | 1.0e-07| 1.0e-07|9.4e-12 |8.7e-05  |
+    ## |Arctic      |air            |Arctic      |sea              |BUTYL XANTHATE          | 2.0e-07| 2.0e-07|1.4e-11 |8.7e-05  |
+    ## |Continental |air            |Continental |agriculturalsoil |BUTYL XANTHATE          | 0.0e+00| 0.0e+00|1.4e-12 |3.3e-05  |
+    ## |Continental |air            |Continental |lake             |BUTYL XANTHATE          | 0.0e+00| 0.0e+00|5.8e-15 |3.3e-05  |
+    ## |Continental |air            |Continental |naturalsoil      |BUTYL XANTHATE          | 0.0e+00| 0.0e+00|6.3e-13 |3.3e-05  |
+    ## |Continental |air            |Continental |othersoil        |BUTYL XANTHATE          | 0.0e+00| 0.0e+00|2.3e-13 |3.3e-05  |
+    ## |Continental |air            |Continental |river            |BUTYL XANTHATE          | 0.0e+00| 0.0e+00|6.4e-14 |3.3e-05  |
+    ## |Continental |air            |Continental |sea              |BUTYL XANTHATE          | 1.0e-07| 1.0e-07|2.5e-12 |3.3e-05  |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |BUTYL XANTHATE          | 1.0e-07| 1.0e-07|2.3e-12 |3.3e-05  |
+    ## |Moderate    |air            |Moderate    |sea              |BUTYL XANTHATE          | 1.0e-07| 1.0e-07|2.3e-12 |3.3e-05  |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |BUTYL XANTHATE          | 0.0e+00| 0.0e+00|7.9e-14 |2.3e-06  |
+    ## |Tropic      |air            |Tropic      |sea              |BUTYL XANTHATE          | 1.0e-07| 1.0e-07|1.8e-13 |2.3e-06  |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |PHENYLEPHRINE HCL       | 3.2e-06| 3.3e-06|6.8e-08 |2.1e-02  |
+    ## |Arctic      |air            |Arctic      |sea              |PHENYLEPHRINE HCL       | 4.8e-06| 4.9e-06|1.0e-07 |2.1e-02  |
+    ## |Continental |air            |Continental |agriculturalsoil |PHENYLEPHRINE HCL       | 2.3e-06| 2.4e-06|9.1e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |lake             |PHENYLEPHRINE HCL       | 0.0e+00| 0.0e+00|3.8e-10 |3.9e-02  |
+    ## |Continental |air            |Continental |naturalsoil      |PHENYLEPHRINE HCL       | 1.0e-06| 1.1e-06|4.1e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |othersoil        |PHENYLEPHRINE HCL       | 4.0e-07| 4.0e-07|1.5e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |river            |PHENYLEPHRINE HCL       | 1.0e-07| 1.0e-07|4.2e-09 |3.9e-02  |
+    ## |Continental |air            |Continental |sea              |PHENYLEPHRINE HCL       | 4.0e-06| 4.2e-06|1.6e-07 |3.9e-02  |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |PHENYLEPHRINE HCL       | 4.0e-06| 4.1e-06|1.4e-07 |3.4e-02  |
+    ## |Moderate    |air            |Moderate    |sea              |PHENYLEPHRINE HCL       | 4.0e-06| 4.1e-06|1.4e-07 |3.4e-02  |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |PHENYLEPHRINE HCL       | 2.4e-06| 2.5e-06|3.0e-08 |1.2e-02  |
+    ## |Tropic      |air            |Tropic      |sea              |PHENYLEPHRINE HCL       | 5.7e-06| 5.7e-06|7.0e-08 |1.2e-02  |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |TRICHLOROACETALDEHYDE   | 0.0e+00| 0.0e+00|8.8e-15 |1.0e-05  |
+    ## |Arctic      |air            |Arctic      |sea              |TRICHLOROACETALDEHYDE   | 0.0e+00| 0.0e+00|1.3e-14 |1.0e-05  |
+    ## |Continental |air            |Continental |agriculturalsoil |TRICHLOROACETALDEHYDE   | 0.0e+00| 0.0e+00|1.8e-14 |2.4e-05  |
+    ## |Continental |air            |Continental |lake             |TRICHLOROACETALDEHYDE   | 0.0e+00| 0.0e+00|7.5e-17 |2.4e-05  |
+    ## |Continental |air            |Continental |naturalsoil      |TRICHLOROACETALDEHYDE   | 0.0e+00| 0.0e+00|8.1e-15 |2.4e-05  |
+    ## |Continental |air            |Continental |othersoil        |TRICHLOROACETALDEHYDE   | 0.0e+00| 0.0e+00|3.0e-15 |2.4e-05  |
+    ## |Continental |air            |Continental |river            |TRICHLOROACETALDEHYDE   | 0.0e+00| 0.0e+00|8.2e-16 |2.4e-05  |
+    ## |Continental |air            |Continental |sea              |TRICHLOROACETALDEHYDE   | 0.0e+00| 0.0e+00|3.2e-14 |2.4e-05  |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |TRICHLOROACETALDEHYDE   | 0.0e+00| 0.0e+00|2.6e-14 |2.0e-05  |
+    ## |Moderate    |air            |Moderate    |sea              |TRICHLOROACETALDEHYDE   | 0.0e+00| 0.0e+00|2.6e-14 |2.0e-05  |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |TRICHLOROACETALDEHYDE   | 0.0e+00| 0.0e+00|7.8e-15 |8.3e-06  |
+    ## |Tropic      |air            |Tropic      |sea              |TRICHLOROACETALDEHYDE   | 0.0e+00| 0.0e+00|1.8e-14 |8.3e-06  |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |2-METHYL-4-CHLOROPHENOL | 1.0e-06| 1.0e-06|6.4e-09 |6.5e-03  |
+    ## |Arctic      |air            |Arctic      |sea              |2-METHYL-4-CHLOROPHENOL | 1.5e-06| 1.5e-06|9.6e-09 |6.5e-03  |
+    ## |Continental |air            |Continental |agriculturalsoil |2-METHYL-4-CHLOROPHENOL | 3.0e-07| 3.0e-07|1.9e-09 |5.6e-03  |
+    ## |Continental |air            |Continental |lake             |2-METHYL-4-CHLOROPHENOL | 0.0e+00| 0.0e+00|8.0e-12 |5.6e-03  |
+    ## |Continental |air            |Continental |naturalsoil      |2-METHYL-4-CHLOROPHENOL | 2.0e-07| 2.0e-07|8.6e-10 |5.6e-03  |
+    ## |Continental |air            |Continental |othersoil        |2-METHYL-4-CHLOROPHENOL | 1.0e-07| 1.0e-07|3.2e-10 |5.6e-03  |
+    ## |Continental |air            |Continental |river            |2-METHYL-4-CHLOROPHENOL | 0.0e+00| 0.0e+00|8.8e-11 |5.6e-03  |
+    ## |Continental |air            |Continental |sea              |2-METHYL-4-CHLOROPHENOL | 6.0e-07| 6.0e-07|3.4e-09 |5.6e-03  |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |2-METHYL-4-CHLOROPHENOL | 6.0e-07| 6.0e-07|2.9e-09 |5.0e-03  |
+    ## |Moderate    |air            |Moderate    |sea              |2-METHYL-4-CHLOROPHENOL | 6.0e-07| 6.0e-07|2.9e-09 |5.0e-03  |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |2-METHYL-4-CHLOROPHENOL | 3.0e-07| 3.0e-07|2.8e-10 |1.1e-03  |
+    ## |Tropic      |air            |Tropic      |sea              |2-METHYL-4-CHLOROPHENOL | 6.0e-07| 6.0e-07|6.5e-10 |1.1e-03  |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |Fluvastatin             | 3.2e-06| 3.3e-06|6.8e-08 |2.1e-02  |
+    ## |Arctic      |air            |Arctic      |sea              |Fluvastatin             | 4.8e-06| 4.9e-06|1.0e-07 |2.1e-02  |
+    ## |Continental |air            |Continental |agriculturalsoil |Fluvastatin             | 2.3e-06| 2.4e-06|9.1e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |lake             |Fluvastatin             | 0.0e+00| 0.0e+00|3.8e-10 |3.9e-02  |
+    ## |Continental |air            |Continental |naturalsoil      |Fluvastatin             | 1.0e-06| 1.1e-06|4.1e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |othersoil        |Fluvastatin             | 4.0e-07| 4.0e-07|1.5e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |river            |Fluvastatin             | 1.0e-07| 1.0e-07|4.2e-09 |3.9e-02  |
+    ## |Continental |air            |Continental |sea              |Fluvastatin             | 4.0e-06| 4.2e-06|1.6e-07 |3.9e-02  |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |Fluvastatin             | 4.0e-06| 4.1e-06|1.4e-07 |3.4e-02  |
+    ## |Moderate    |air            |Moderate    |sea              |Fluvastatin             | 4.0e-06| 4.1e-06|1.4e-07 |3.4e-02  |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |Fluvastatin             | 2.4e-06| 2.4e-06|3.0e-08 |1.2e-02  |
+    ## |Tropic      |air            |Tropic      |sea              |Fluvastatin             | 5.6e-06| 5.7e-06|7.1e-08 |1.2e-02  |
+
+![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-5.png)<!-- -->![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-6.png)<!-- -->
+
+    ## 
+    ## 
+    ## |fromScale   |fromSubCompart |toScale     |toSubCompart     |Substance           |    k_Old|    k_New|diff     |rel_diff |
+    ## |:-----------|:--------------|:-----------|:----------------|:-------------------|--------:|--------:|:--------|:--------|
+    ## |Arctic      |air            |Arctic      |naturalsoil      |alpha-Naphthylamine | 4.10e-06| 4.10e-06|-1.4e-08 |-3.4e-03 |
+    ## |Arctic      |air            |Arctic      |sea              |alpha-Naphthylamine | 6.10e-06| 6.10e-06|-2.1e-08 |-3.4e-03 |
+    ## |Continental |air            |Continental |agriculturalsoil |alpha-Naphthylamine | 2.70e-06| 2.70e-06|-1.3e-08 |-4.8e-03 |
+    ## |Continental |air            |Continental |lake             |alpha-Naphthylamine | 0.00e+00| 0.00e+00|-5.4e-11 |-4.8e-03 |
+    ## |Continental |air            |Continental |naturalsoil      |alpha-Naphthylamine | 1.20e-06| 1.20e-06|-5.8e-09 |-4.8e-03 |
+    ## |Continental |air            |Continental |othersoil        |alpha-Naphthylamine | 5.00e-07| 5.00e-07|-2.1e-09 |-4.8e-03 |
+    ## |Continental |air            |Continental |river            |alpha-Naphthylamine | 1.00e-07| 1.00e-07|-5.9e-10 |-4.8e-03 |
+    ## |Continental |air            |Continental |sea              |alpha-Naphthylamine | 4.80e-06| 4.80e-06|-2.3e-08 |-4.8e-03 |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |alpha-Naphthylamine | 4.70e-06| 4.60e-06|-1.9e-08 |-4.0e-03 |
+    ## |Moderate    |air            |Moderate    |sea              |alpha-Naphthylamine | 4.70e-06| 4.60e-06|-1.9e-08 |-4.0e-03 |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |alpha-Naphthylamine | 2.50e-06| 2.50e-06|-2.6e-09 |-1.0e-03 |
+    ## |Tropic      |air            |Tropic      |sea              |alpha-Naphthylamine | 5.80e-06| 5.80e-06|-6.0e-09 |-1.0e-03 |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |AMANTADINE          | 3.20e-06| 3.30e-06|6.8e-08  |2.1e-02  |
+    ## |Arctic      |air            |Arctic      |sea              |AMANTADINE          | 4.80e-06| 4.90e-06|1.0e-07  |2.1e-02  |
+    ## |Continental |air            |Continental |agriculturalsoil |AMANTADINE          | 2.30e-06| 2.30e-06|9.0e-08  |3.8e-02  |
+    ## |Continental |air            |Continental |lake             |AMANTADINE          | 0.00e+00| 0.00e+00|3.8e-10  |3.8e-02  |
+    ## |Continental |air            |Continental |naturalsoil      |AMANTADINE          | 1.00e-06| 1.10e-06|4.1e-08  |3.8e-02  |
+    ## |Continental |air            |Continental |othersoil        |AMANTADINE          | 4.00e-07| 4.00e-07|1.5e-08  |3.8e-02  |
+    ## |Continental |air            |Continental |river            |AMANTADINE          | 1.00e-07| 1.00e-07|4.1e-09  |3.8e-02  |
+    ## |Continental |air            |Continental |sea              |AMANTADINE          | 4.00e-06| 4.20e-06|1.6e-07  |3.8e-02  |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |AMANTADINE          | 3.90e-06| 4.10e-06|1.4e-07  |3.4e-02  |
+    ## |Moderate    |air            |Moderate    |sea              |AMANTADINE          | 3.90e-06| 4.10e-06|1.4e-07  |3.4e-02  |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |AMANTADINE          | 2.40e-06| 2.40e-06|2.9e-08  |1.2e-02  |
+    ## |Tropic      |air            |Tropic      |sea              |AMANTADINE          | 5.60e-06| 5.70e-06|6.8e-08  |1.2e-02  |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |O-HYDROXYBENZAMIDE  | 2.50e-06| 2.50e-06|6.0e-09  |2.4e-03  |
+    ## |Arctic      |air            |Arctic      |sea              |O-HYDROXYBENZAMIDE  | 3.70e-06| 3.70e-06|9.0e-09  |2.4e-03  |
+    ## |Continental |air            |Continental |agriculturalsoil |O-HYDROXYBENZAMIDE  | 1.70e-06| 1.70e-06|-1.3e-08 |-7.6e-03 |
+    ## |Continental |air            |Continental |lake             |O-HYDROXYBENZAMIDE  | 0.00e+00| 0.00e+00|-5.5e-11 |-7.6e-03 |
+    ## |Continental |air            |Continental |naturalsoil      |O-HYDROXYBENZAMIDE  | 8.00e-07| 8.00e-07|-5.9e-09 |-7.6e-03 |
+    ## |Continental |air            |Continental |othersoil        |O-HYDROXYBENZAMIDE  | 3.00e-07| 3.00e-07|-2.2e-09 |-7.6e-03 |
+    ## |Continental |air            |Continental |river            |O-HYDROXYBENZAMIDE  | 1.00e-07| 1.00e-07|-6.0e-10 |-7.6e-03 |
+    ## |Continental |air            |Continental |sea              |O-HYDROXYBENZAMIDE  | 3.10e-06| 3.10e-06|-2.3e-08 |-7.6e-03 |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |O-HYDROXYBENZAMIDE  | 3.00e-06| 3.00e-06|-1.8e-08 |-6.1e-03 |
+    ## |Moderate    |air            |Moderate    |sea              |O-HYDROXYBENZAMIDE  | 3.00e-06| 3.00e-06|-1.8e-08 |-6.1e-03 |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |O-HYDROXYBENZAMIDE  | 1.80e-06| 1.80e-06|-4.9e-09 |-2.7e-03 |
+    ## |Tropic      |air            |Tropic      |sea              |O-HYDROXYBENZAMIDE  | 4.20e-06| 4.20e-06|-1.1e-08 |-2.7e-03 |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |Thiram              | 2.80e-06| 2.80e-06|2.7e-08  |9.4e-03  |
+    ## |Arctic      |air            |Arctic      |sea              |Thiram              | 4.20e-06| 4.20e-06|4.0e-08  |9.4e-03  |
+    ## |Continental |air            |Continental |agriculturalsoil |Thiram              | 3.00e-06| 2.90e-06|-2.5e-08 |-8.4e-03 |
+    ## |Continental |air            |Continental |lake             |Thiram              | 0.00e+00| 0.00e+00|-1.0e-10 |-8.4e-03 |
+    ## |Continental |air            |Continental |naturalsoil      |Thiram              | 1.30e-06| 1.30e-06|-1.1e-08 |-8.4e-03 |
+    ## |Continental |air            |Continental |othersoil        |Thiram              | 5.00e-07| 5.00e-07|-4.1e-09 |-8.4e-03 |
+    ## |Continental |air            |Continental |river            |Thiram              | 1.00e-07| 1.00e-07|-1.1e-09 |-8.4e-03 |
+    ## |Continental |air            |Continental |sea              |Thiram              | 5.30e-06| 5.20e-06|-4.4e-08 |-8.4e-03 |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |Thiram              | 5.10e-06| 5.10e-06|-3.6e-08 |-7.1e-03 |
+    ## |Moderate    |air            |Moderate    |sea              |Thiram              | 5.10e-06| 5.10e-06|-3.6e-08 |-7.1e-03 |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |Thiram              | 5.00e-06| 4.90e-06|-7.6e-09 |-1.5e-03 |
+    ## |Tropic      |air            |Tropic      |sea              |Thiram              | 1.16e-05| 1.15e-05|-1.8e-08 |-1.5e-03 |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |URACIL              | 3.20e-06| 3.30e-06|6.8e-08  |2.1e-02  |
+    ## |Arctic      |air            |Arctic      |sea              |URACIL              | 4.80e-06| 4.90e-06|1.0e-07  |2.1e-02  |
+    ## |Continental |air            |Continental |agriculturalsoil |URACIL              | 2.30e-06| 2.40e-06|9.1e-08  |3.9e-02  |
+    ## |Continental |air            |Continental |lake             |URACIL              | 0.00e+00| 0.00e+00|3.8e-10  |3.9e-02  |
+    ## |Continental |air            |Continental |naturalsoil      |URACIL              | 1.00e-06| 1.10e-06|4.1e-08  |3.9e-02  |
+    ## |Continental |air            |Continental |othersoil        |URACIL              | 4.00e-07| 4.00e-07|1.5e-08  |3.9e-02  |
+    ## |Continental |air            |Continental |river            |URACIL              | 1.00e-07| 1.00e-07|4.2e-09  |3.9e-02  |
+    ## |Continental |air            |Continental |sea              |URACIL              | 4.00e-06| 4.20e-06|1.6e-07  |3.9e-02  |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |URACIL              | 4.00e-06| 4.10e-06|1.4e-07  |3.4e-02  |
+    ## |Moderate    |air            |Moderate    |sea              |URACIL              | 4.00e-06| 4.10e-06|1.4e-07  |3.4e-02  |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |URACIL              | 2.40e-06| 2.50e-06|3.0e-08  |1.2e-02  |
+    ## |Tropic      |air            |Tropic      |sea              |URACIL              | 5.70e-06| 5.70e-06|7.0e-08  |1.2e-02  |
+
+![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-7.png)<!-- -->![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-8.png)<!-- -->
+
+    ## 
+    ## 
+    ## |fromScale   |fromSubCompart |toScale     |toSubCompart     |Substance |   k_Old|   k_New|diff    |rel_diff |
+    ## |:-----------|:--------------|:-----------|:----------------|:---------|-------:|-------:|:-------|:--------|
+    ## |Arctic      |air            |Arctic      |naturalsoil      |Tl(I)     | 3.2e-06| 3.3e-06|6.8e-08 |2.1e-02  |
+    ## |Arctic      |air            |Arctic      |sea              |Tl(I)     | 4.8e-06| 4.9e-06|1.0e-07 |2.1e-02  |
+    ## |Continental |air            |Continental |agriculturalsoil |Tl(I)     | 2.3e-06| 2.4e-06|9.1e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |lake             |Tl(I)     | 0.0e+00| 0.0e+00|3.8e-10 |3.9e-02  |
+    ## |Continental |air            |Continental |naturalsoil      |Tl(I)     | 1.0e-06| 1.1e-06|4.1e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |othersoil        |Tl(I)     | 4.0e-07| 4.0e-07|1.5e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |river            |Tl(I)     | 1.0e-07| 1.0e-07|4.2e-09 |3.9e-02  |
+    ## |Continental |air            |Continental |sea              |Tl(I)     | 4.0e-06| 4.2e-06|1.6e-07 |3.9e-02  |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |Tl(I)     | 4.0e-06| 4.1e-06|1.4e-07 |3.4e-02  |
+    ## |Moderate    |air            |Moderate    |sea              |Tl(I)     | 4.0e-06| 4.1e-06|1.4e-07 |3.4e-02  |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |Tl(I)     | 2.4e-06| 2.5e-06|3.0e-08 |1.2e-02  |
+    ## |Tropic      |air            |Tropic      |sea              |Tl(I)     | 5.7e-06| 5.7e-06|7.0e-08 |1.2e-02  |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |Zn(II)    | 3.2e-06| 3.3e-06|6.8e-08 |2.1e-02  |
+    ## |Arctic      |air            |Arctic      |sea              |Zn(II)    | 4.8e-06| 4.9e-06|1.0e-07 |2.1e-02  |
+    ## |Continental |air            |Continental |agriculturalsoil |Zn(II)    | 2.3e-06| 2.4e-06|9.1e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |lake             |Zn(II)    | 0.0e+00| 0.0e+00|3.8e-10 |3.9e-02  |
+    ## |Continental |air            |Continental |naturalsoil      |Zn(II)    | 1.0e-06| 1.1e-06|4.1e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |othersoil        |Zn(II)    | 4.0e-07| 4.0e-07|1.5e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |river            |Zn(II)    | 1.0e-07| 1.0e-07|4.2e-09 |3.9e-02  |
+    ## |Continental |air            |Continental |sea              |Zn(II)    | 4.0e-06| 4.2e-06|1.6e-07 |3.9e-02  |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |Zn(II)    | 4.0e-06| 4.1e-06|1.4e-07 |3.4e-02  |
+    ## |Moderate    |air            |Moderate    |sea              |Zn(II)    | 4.0e-06| 4.1e-06|1.4e-07 |3.4e-02  |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |Zn(II)    | 2.4e-06| 2.5e-06|3.0e-08 |1.2e-02  |
+    ## |Tropic      |air            |Tropic      |sea              |Zn(II)    | 5.7e-06| 5.7e-06|7.0e-08 |1.2e-02  |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |Cr(III)   | 3.2e-06| 3.3e-06|6.8e-08 |2.1e-02  |
+    ## |Arctic      |air            |Arctic      |sea              |Cr(III)   | 4.8e-06| 4.9e-06|1.0e-07 |2.1e-02  |
+    ## |Continental |air            |Continental |agriculturalsoil |Cr(III)   | 2.3e-06| 2.4e-06|9.1e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |lake             |Cr(III)   | 0.0e+00| 0.0e+00|3.8e-10 |3.9e-02  |
+    ## |Continental |air            |Continental |naturalsoil      |Cr(III)   | 1.0e-06| 1.1e-06|4.1e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |othersoil        |Cr(III)   | 4.0e-07| 4.0e-07|1.5e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |river            |Cr(III)   | 1.0e-07| 1.0e-07|4.2e-09 |3.9e-02  |
+    ## |Continental |air            |Continental |sea              |Cr(III)   | 4.0e-06| 4.2e-06|1.6e-07 |3.9e-02  |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |Cr(III)   | 4.0e-06| 4.1e-06|1.4e-07 |3.4e-02  |
+    ## |Moderate    |air            |Moderate    |sea              |Cr(III)   | 4.0e-06| 4.1e-06|1.4e-07 |3.4e-02  |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |Cr(III)   | 2.4e-06| 2.5e-06|3.0e-08 |1.2e-02  |
+    ## |Tropic      |air            |Tropic      |sea              |Cr(III)   | 5.7e-06| 5.7e-06|7.0e-08 |1.2e-02  |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |As(III)   | 3.2e-06| 3.3e-06|6.8e-08 |2.1e-02  |
+    ## |Arctic      |air            |Arctic      |sea              |As(III)   | 4.8e-06| 4.9e-06|1.0e-07 |2.1e-02  |
+    ## |Continental |air            |Continental |agriculturalsoil |As(III)   | 2.3e-06| 2.4e-06|9.1e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |lake             |As(III)   | 0.0e+00| 0.0e+00|3.8e-10 |3.9e-02  |
+    ## |Continental |air            |Continental |naturalsoil      |As(III)   | 1.0e-06| 1.1e-06|4.1e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |othersoil        |As(III)   | 4.0e-07| 4.0e-07|1.5e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |river            |As(III)   | 1.0e-07| 1.0e-07|4.2e-09 |3.9e-02  |
+    ## |Continental |air            |Continental |sea              |As(III)   | 4.0e-06| 4.2e-06|1.6e-07 |3.9e-02  |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |As(III)   | 4.0e-06| 4.1e-06|1.4e-07 |3.4e-02  |
+    ## |Moderate    |air            |Moderate    |sea              |As(III)   | 4.0e-06| 4.1e-06|1.4e-07 |3.4e-02  |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |As(III)   | 2.4e-06| 2.5e-06|3.0e-08 |1.2e-02  |
+    ## |Tropic      |air            |Tropic      |sea              |As(III)   | 5.7e-06| 5.7e-06|7.0e-08 |1.2e-02  |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |Co(II)    | 3.2e-06| 3.3e-06|6.8e-08 |2.1e-02  |
+    ## |Arctic      |air            |Arctic      |sea              |Co(II)    | 4.8e-06| 4.9e-06|1.0e-07 |2.1e-02  |
+    ## |Continental |air            |Continental |agriculturalsoil |Co(II)    | 2.3e-06| 2.4e-06|9.1e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |lake             |Co(II)    | 0.0e+00| 0.0e+00|3.8e-10 |3.9e-02  |
+    ## |Continental |air            |Continental |naturalsoil      |Co(II)    | 1.0e-06| 1.1e-06|4.1e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |othersoil        |Co(II)    | 4.0e-07| 4.0e-07|1.5e-08 |3.9e-02  |
+    ## |Continental |air            |Continental |river            |Co(II)    | 1.0e-07| 1.0e-07|4.2e-09 |3.9e-02  |
+    ## |Continental |air            |Continental |sea              |Co(II)    | 4.0e-06| 4.2e-06|1.6e-07 |3.9e-02  |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |Co(II)    | 4.0e-06| 4.1e-06|1.4e-07 |3.4e-02  |
+    ## |Moderate    |air            |Moderate    |sea              |Co(II)    | 4.0e-06| 4.1e-06|1.4e-07 |3.4e-02  |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |Co(II)    | 2.4e-06| 2.5e-06|3.0e-08 |1.2e-02  |
+    ## |Tropic      |air            |Tropic      |sea              |Co(II)    | 5.7e-06| 5.7e-06|7.0e-08 |1.2e-02  |
+
+![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-9.png)<!-- -->![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-10.png)<!-- -->
+
+    ## 
+    ## 
+    ## |fromScale   |fromSubCompart |toScale     |toSubCompart     |Substance                                   | k_Old| k_New|diff     |rel_diff |
+    ## |:-----------|:--------------|:-----------|:----------------|:-------------------------------------------|-----:|-----:|:--------|:--------|
+    ## |Arctic      |air            |Arctic      |naturalsoil      |1,5-DIMETHYLNAPHTHALENE                     | 0e+00| 0e+00|-2.3e-15 |-4.7e-07 |
+    ## |Arctic      |air            |Arctic      |sea              |1,5-DIMETHYLNAPHTHALENE                     | 0e+00| 0e+00|-3.5e-15 |-4.7e-07 |
+    ## |Continental |air            |Continental |agriculturalsoil |1,5-DIMETHYLNAPHTHALENE                     | 0e+00| 0e+00|-1.3e-15 |-1.0e-06 |
+    ## |Continental |air            |Continental |lake             |1,5-DIMETHYLNAPHTHALENE                     | 0e+00| 0e+00|-5.4e-18 |-1.0e-06 |
+    ## |Continental |air            |Continental |naturalsoil      |1,5-DIMETHYLNAPHTHALENE                     | 0e+00| 0e+00|-5.9e-16 |-1.0e-06 |
+    ## |Continental |air            |Continental |othersoil        |1,5-DIMETHYLNAPHTHALENE                     | 0e+00| 0e+00|-2.2e-16 |-1.0e-06 |
+    ## |Continental |air            |Continental |river            |1,5-DIMETHYLNAPHTHALENE                     | 0e+00| 0e+00|-6.0e-17 |-1.0e-06 |
+    ## |Continental |air            |Continental |sea              |1,5-DIMETHYLNAPHTHALENE                     | 0e+00| 0e+00|-2.3e-15 |-1.0e-06 |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |1,5-DIMETHYLNAPHTHALENE                     | 0e+00| 0e+00|-1.8e-15 |-8.5e-07 |
+    ## |Moderate    |air            |Moderate    |sea              |1,5-DIMETHYLNAPHTHALENE                     | 0e+00| 0e+00|-1.8e-15 |-8.5e-07 |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |1,5-DIMETHYLNAPHTHALENE                     | 0e+00| 0e+00|-1.9e-16 |-2.4e-07 |
+    ## |Tropic      |air            |Tropic      |sea              |1,5-DIMETHYLNAPHTHALENE                     | 0e+00| 0e+00|-4.5e-16 |-2.4e-07 |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |1-pentanol                                  | 0e+00| 0e+00|1.6e-11  |3.5e-04  |
+    ## |Arctic      |air            |Arctic      |sea              |1-pentanol                                  | 1e-07| 1e-07|2.4e-11  |3.5e-04  |
+    ## |Continental |air            |Continental |agriculturalsoil |1-pentanol                                  | 0e+00| 0e+00|1.3e-11  |4.9e-04  |
+    ## |Continental |air            |Continental |lake             |1-pentanol                                  | 0e+00| 0e+00|5.4e-14  |4.9e-04  |
+    ## |Continental |air            |Continental |naturalsoil      |1-pentanol                                  | 0e+00| 0e+00|5.8e-12  |4.9e-04  |
+    ## |Continental |air            |Continental |othersoil        |1-pentanol                                  | 0e+00| 0e+00|2.2e-12  |4.9e-04  |
+    ## |Continental |air            |Continental |river            |1-pentanol                                  | 0e+00| 0e+00|5.9e-13  |4.9e-04  |
+    ## |Continental |air            |Continental |sea              |1-pentanol                                  | 0e+00| 0e+00|2.3e-11  |4.9e-04  |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |1-pentanol                                  | 0e+00| 0e+00|2.0e-11  |4.4e-04  |
+    ## |Moderate    |air            |Moderate    |sea              |1-pentanol                                  | 0e+00| 0e+00|2.0e-11  |4.4e-04  |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |1-pentanol                                  | 0e+00| 0e+00|3.4e-12  |1.3e-04  |
+    ## |Tropic      |air            |Tropic      |sea              |1-pentanol                                  | 1e-07| 1e-07|8.0e-12  |1.3e-04  |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |METHACRYLIC ACID, I-BUTYL ESTER             | 0e+00| 0e+00|4.4e-15  |4.8e-06  |
+    ## |Arctic      |air            |Arctic      |sea              |METHACRYLIC ACID, I-BUTYL ESTER             | 0e+00| 0e+00|6.6e-15  |4.8e-06  |
+    ## |Continental |air            |Continental |agriculturalsoil |METHACRYLIC ACID, I-BUTYL ESTER             | 0e+00| 0e+00|3.4e-15  |6.0e-06  |
+    ## |Continental |air            |Continental |lake             |METHACRYLIC ACID, I-BUTYL ESTER             | 0e+00| 0e+00|1.4e-17  |6.0e-06  |
+    ## |Continental |air            |Continental |naturalsoil      |METHACRYLIC ACID, I-BUTYL ESTER             | 0e+00| 0e+00|1.5e-15  |6.0e-06  |
+    ## |Continental |air            |Continental |othersoil        |METHACRYLIC ACID, I-BUTYL ESTER             | 0e+00| 0e+00|5.7e-16  |6.0e-06  |
+    ## |Continental |air            |Continental |river            |METHACRYLIC ACID, I-BUTYL ESTER             | 0e+00| 0e+00|1.6e-16  |6.0e-06  |
+    ## |Continental |air            |Continental |sea              |METHACRYLIC ACID, I-BUTYL ESTER             | 0e+00| 0e+00|6.0e-15  |6.0e-06  |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |METHACRYLIC ACID, I-BUTYL ESTER             | 0e+00| 0e+00|5.2e-15  |5.3e-06  |
+    ## |Moderate    |air            |Moderate    |sea              |METHACRYLIC ACID, I-BUTYL ESTER             | 0e+00| 0e+00|5.2e-15  |5.3e-06  |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |METHACRYLIC ACID, I-BUTYL ESTER             | 0e+00| 0e+00|9.1e-16  |1.6e-06  |
+    ## |Tropic      |air            |Tropic      |sea              |METHACRYLIC ACID, I-BUTYL ESTER             | 0e+00| 0e+00|2.1e-15  |1.6e-06  |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |DIMETHRIN                                   | 0e+00| 0e+00|-6.0e-15 |-1.7e-06 |
+    ## |Arctic      |air            |Arctic      |sea              |DIMETHRIN                                   | 0e+00| 0e+00|-9.1e-15 |-1.7e-06 |
+    ## |Continental |air            |Continental |agriculturalsoil |DIMETHRIN                                   | 0e+00| 0e+00|-7.7e-16 |-1.0e-06 |
+    ## |Continental |air            |Continental |lake             |DIMETHRIN                                   | 0e+00| 0e+00|-3.2e-18 |-1.0e-06 |
+    ## |Continental |air            |Continental |naturalsoil      |DIMETHRIN                                   | 0e+00| 0e+00|-3.5e-16 |-1.0e-06 |
+    ## |Continental |air            |Continental |othersoil        |DIMETHRIN                                   | 0e+00| 0e+00|-1.3e-16 |-1.0e-06 |
+    ## |Continental |air            |Continental |river            |DIMETHRIN                                   | 0e+00| 0e+00|-3.5e-17 |-1.0e-06 |
+    ## |Continental |air            |Continental |sea              |DIMETHRIN                                   | 0e+00| 0e+00|-1.4e-15 |-1.0e-06 |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |DIMETHRIN                                   | 0e+00| 0e+00|-1.1e-15 |-8.4e-07 |
+    ## |Moderate    |air            |Moderate    |sea              |DIMETHRIN                                   | 0e+00| 0e+00|-1.1e-15 |-8.4e-07 |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |DIMETHRIN                                   | 0e+00| 0e+00|-1.8e-16 |-2.6e-07 |
+    ## |Tropic      |air            |Tropic      |sea              |DIMETHRIN                                   | 0e+00| 0e+00|-4.3e-16 |-2.6e-07 |
+    ## |Arctic      |air            |Arctic      |naturalsoil      |PHOSPHONIC ACID, METHYL-, DIISOPROPYL ESTER | 0e+00| 0e+00|-1.0e-13 |-5.6e-06 |
+    ## |Arctic      |air            |Arctic      |sea              |PHOSPHONIC ACID, METHYL-, DIISOPROPYL ESTER | 0e+00| 0e+00|-1.6e-13 |-5.6e-06 |
+    ## |Continental |air            |Continental |agriculturalsoil |PHOSPHONIC ACID, METHYL-, DIISOPROPYL ESTER | 0e+00| 0e+00|-7.8e-14 |-9.7e-06 |
+    ## |Continental |air            |Continental |lake             |PHOSPHONIC ACID, METHYL-, DIISOPROPYL ESTER | 0e+00| 0e+00|-3.2e-16 |-9.7e-06 |
+    ## |Continental |air            |Continental |naturalsoil      |PHOSPHONIC ACID, METHYL-, DIISOPROPYL ESTER | 0e+00| 0e+00|-3.5e-14 |-9.7e-06 |
+    ## |Continental |air            |Continental |othersoil        |PHOSPHONIC ACID, METHYL-, DIISOPROPYL ESTER | 0e+00| 0e+00|-1.3e-14 |-9.7e-06 |
+    ## |Continental |air            |Continental |river            |PHOSPHONIC ACID, METHYL-, DIISOPROPYL ESTER | 0e+00| 0e+00|-3.6e-15 |-9.7e-06 |
+    ## |Continental |air            |Continental |sea              |PHOSPHONIC ACID, METHYL-, DIISOPROPYL ESTER | 0e+00| 0e+00|-1.4e-13 |-9.7e-06 |
+    ## |Moderate    |air            |Moderate    |naturalsoil      |PHOSPHONIC ACID, METHYL-, DIISOPROPYL ESTER | 0e+00| 0e+00|-1.1e-13 |-8.1e-06 |
+    ## |Moderate    |air            |Moderate    |sea              |PHOSPHONIC ACID, METHYL-, DIISOPROPYL ESTER | 0e+00| 0e+00|-1.1e-13 |-8.1e-06 |
+    ## |Tropic      |air            |Tropic      |naturalsoil      |PHOSPHONIC ACID, METHYL-, DIISOPROPYL ESTER | 0e+00| 0e+00|-1.8e-14 |-2.6e-06 |
+    ## |Tropic      |air            |Tropic      |sea              |PHOSPHONIC ACID, METHYL-, DIISOPROPYL ESTER | 0e+00| 0e+00|-4.1e-14 |-2.6e-06 |
+
+![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-11.png)<!-- -->![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20true-12.png)<!-- -->
+
+    ## 
+    ## 
+    ## |fromScale |fromSubCompart |toScale |toSubCompart |Substance | k_Old| k_New|diff |rel_diff |
+    ## |:---------|:--------------|:-------|:------------|:---------|-----:|-----:|:----|:--------|
+
+## Discussion
+
+From the plots we can see the following: - The marine_currents_clean
+branch turns the advection flow from Regional sea to Continental sea off
+for all species - All deposition rates from air to water and soil
+compartments are slightly different for molecules (neutral, no class,
+base, acid, metal) v_Otherkair is a variable used in k_Deposition.
+Otherkair is always NA for particulates, but for molecules Otherkair
+equals the sum of all k’s from the same Scale-Species combination where
+the SubCompart is air. Because changes in Advection processes (removal
+of global scales) changes the other k’s to the air compartment at global
+and continental scales, this causes changes in k_Deposition.
+
+# Compare marine_currents_clean with new variables as FALSE to development
+
+There is no need to run SB again for the development, we already have
+the development k’s for the substances we want to compare. \## Calculate
+the first order rate constants for the test branches
+
+``` r
+# Change the wd to the wd of the test branches
+setwd(paste0(folderpaths[2], "/SBooScripts"))
+test_false_kaas <- data.frame()
+for(i in 1:nrow(substances)){
+  # Get the substance type
+  subst_row <- substances[i, ]
+  substance <- subst_row$Substance
+  cc <- subst_row$ChemClass
+  source("baseScripts/initWorld.R")
+  # The code below is not necessary because the default values are FALSE
+  
+  # World$SetConst(Regional_and_Continental_deepocean = "FALSE") # If true, add deepocean to Regional and Continental scale
+  # World$SetConst(Remove_global = "FALSE") #if true, remove flows to moderate, arctic and tropic
+  # World$UpdateKaas(mergeExisting = FALSE)
+  
+  kaas <- World$kaas |>
+    mutate(Substance = substance)
+  test_false_kaas <- rbind(test_false_kaas, kaas)
+}
+setwd(original_wd)
+```
+
+## Compare the k values for each of the substances
+
+``` r
+common_cols <- setdiff(intersect(colnames(development_kaas), colnames(test_false_kaas)), "k")
+kaas_comparison <- merge(
+  development_kaas,
+  test_false_kaas,
+  by = common_cols,
+  all = TRUE,
+  suffixes = c("_Old", "_New")
+)
+kaas_comparison <- kaas_comparison |>
+  mutate(diff = k_New-k_Old) |> # If this number is positive, the New_k is higher than the Old_k (higher advection rate with new method)
+  mutate(rel_diff = diff/k_New)
+changed_kaas <- kaas_comparison |>
+  filter(diff != 0) |>
+  mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
+```
+
+``` r
+diffs <- kaas_comparison |>
+  mutate(fromname = paste0(process, "_", fromSubCompart, "_", fromScale)) |>
+  mutate(toname = paste0(process, "_", toSubCompart, "_", toScale)) |>
+  mutate(diff = ifelse(diff == 0, NaN, diff)) |>
+  left_join(cc_substances, by = "Substance")
+chemclass <- "metal"
+
+for(chemclass in unique(diffs$ChemClass)){
+  changed <- diffs |>
+    filter(rel_diff != 0) |>
+    filter(ChemClass == chemclass)
+  mean_changed <- changed |>
+  group_by(fromname, toname) |>
+  summarise(diff = mean(diff),
+            rel_diff = mean(rel_diff))
+  diff_plot <- ggplot(mean_changed, mapping = aes(x = toname, y = fromname, color = diff)) +
+  geom_point() +
+  scale_color_gradient2(
+    low = "blue",    # Colors for negative values
+    mid = "grey",   # Neutral point at zero
+    high = "red",  # Colors for positive values
+    midpoint = 0,   # Center the scale at zero
+    limits = c(-max(abs(changed$diff)), max(abs(changed$diff)))  # Ensure symmetric scale
+  ) +
+  labs(
+    title = paste0("Mean difference between old and new k's for ", chemclass, " substances"),
+    subtitle = "Only k's with a difference above or below zero are shown. Global scale not removed.",
+    x = "To",
+    y = "From",
+    color = "Difference"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major = element_line(size = 0.2, color = "gray90"),
+    panel.background = element_blank()
+  )
+  print(diff_plot)
+  rel_diff_plot <- ggplot(mean_changed, mapping = aes(x = toname, y = fromname, color = rel_diff)) +
+  geom_point() +
+  scale_color_gradient2(
+    low = "blue",    # Colors for negative values
+    mid = "grey",   # Neutral point at zero
+    high = "red",  # Colors for positive values
+    midpoint = 0,   # Center the scale at zero
+    limits = c(-max(abs(changed$rel_diff)), max(abs(changed$rel_diff)))  # Ensure symmetric scale
+  ) +
+  labs(
+    title = paste0("Mean relative difference between old and new k's for ", chemclass, " substances"),
+    subtitle = "Only k's with a difference above or below zero are shown. Global scale not removed.",
+    x = "To",
+    y = "From",
+    color = "Difference"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major = element_line(size = 0.2, color = "gray90"),
+    panel.background = element_blank()
+  )
+  print(rel_diff_plot)
+  table_for_display <- changed |>
+  select(fromScale, fromSubCompart, toScale, toSubCompart, Substance, k_Old, k_New, diff, rel_diff) |>
+  mutate(diff = format(diff, scientific = TRUE, digits = 2)) |>
+  mutate(rel_diff = format(rel_diff, scientific = TRUE, digits = 2))
+  print(knitr::kable(table_for_display))
+}
+```
+
+![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-1.png)<!-- -->![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-2.png)<!-- -->
+
+    ## 
+    ## 
+    ## |fromScale |fromSubCompart |toScale |toSubCompart |Substance | k_Old| k_New|diff |rel_diff |
+    ## |:---------|:--------------|:-------|:------------|:---------|-----:|-----:|:----|:--------|
+
+![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-3.png)<!-- -->![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-4.png)<!-- -->
+
+    ## 
+    ## 
+    ## |fromScale |fromSubCompart |toScale |toSubCompart |Substance | k_Old| k_New|diff |rel_diff |
+    ## |:---------|:--------------|:-------|:------------|:---------|-----:|-----:|:----|:--------|
+
+![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-5.png)<!-- -->![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-6.png)<!-- -->
+
+    ## 
+    ## 
+    ## |fromScale |fromSubCompart |toScale |toSubCompart |Substance | k_Old| k_New|diff |rel_diff |
+    ## |:---------|:--------------|:-------|:------------|:---------|-----:|-----:|:----|:--------|
+
+![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-7.png)<!-- -->![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-8.png)<!-- -->
+
+    ## 
+    ## 
+    ## |fromScale |fromSubCompart |toScale |toSubCompart |Substance | k_Old| k_New|diff |rel_diff |
+    ## |:---------|:--------------|:-------|:------------|:---------|-----:|-----:|:----|:--------|
+
+![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-9.png)<!-- -->![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-10.png)<!-- -->
+
+    ## 
+    ## 
+    ## |fromScale |fromSubCompart |toScale |toSubCompart |Substance | k_Old| k_New|diff |rel_diff |
+    ## |:---------|:--------------|:-------|:------------|:---------|-----:|-----:|:----|:--------|
+
+![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-11.png)<!-- -->![](20260225-Marine_Currents_update_files/figure-gfm/Plots%20development%20and%20marine%20currents%20with%20vars%20as%20false-12.png)<!-- -->
+
+    ## 
+    ## 
+    ## |fromScale |fromSubCompart |toScale |toSubCompart |Substance | k_Old| k_New|diff |rel_diff |
+    ## |:---------|:--------------|:-------|:------------|:---------|-----:|-----:|:----|:--------|
+
+### Check if deepocean at Regional and Continental scale disappear
+
+``` r
+development_combo <- development_kaas %>% distinct(fromScale, fromSubCompart)
+test_combo <- test_false_kaas %>% distinct(fromScale, fromSubCompart)
+
+development_combo <- development_combo %>% mutate(source = "development")
+test_combo <- test_combo %>% mutate(source = "test")
+
+all_combos <- bind_rows(development_combo, test_combo)
+
+# Tel per combinatie hoe vaak deze voorkomt (in development, test, of beide)
+combo_check <- all_combos %>%
+  group_by(fromScale, fromSubCompart) %>%
+  summarise(
+    in_development = any(source == "development"),
+    in_test = any(source == "test"),
+    .groups = "drop"
+  )
+
+#Alleen in development:
+only_in_development <- combo_check %>% filter(in_development & !in_test)
+#Alleen in test:
+only_in_test <- combo_check %>% filter(!in_development & in_test)
+#In beide:
+in_both <- combo_check %>% filter(in_development & in_test)
+
+extra_compartment_check_from <- kaas_comparison |> 
+  filter(fromSubCompart %in% only_in_test$fromSubCompart & fromScale %in% only_in_test$fromScale) 
+
+extra_compartment_check_to <- kaas_comparison |> 
+  filter(toSubCompart %in% only_in_test$fromSubCompart & fromScale %in% only_in_test$fromScale)
+
+extra_compartment_check <- rbind(extra_compartment_check_from, extra_compartment_check_to) |>
+  filter(!is.na(k_New))
+
+functions_to_be_altered <- unique(extra_compartment_check$process)
+
+print(functions_to_be_altered)
+```
+
+    ## character(0)
+
+There are no remaining functions to which exceptions should be added.
+
+### Check if the connection from sea to marinesediment reappears
+
+``` r
+marine_sediment_check <- kaas_comparison |>
+  filter(toSubCompart == "marinesediment" | toSubCompart == "sea") |>
+  filter(fromSubCompart == "sea" | fromSubCompart == "marinesediment") |>
+  filter(fromSubCompart != toSubCompart)
+```
+
+It does not, because exceptions were added to the k_Sedimentation and
+k_Resuspension functions.
+
+## Discussion
+
+When both test values are turned off in the marine_currents_clean
+branch, the results are the same as in the development.

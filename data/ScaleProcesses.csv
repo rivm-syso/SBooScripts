@@ -1,8 +1,9 @@
-﻿process,from,to
+process,from,to
 k_Advection,Arctic,Moderate
 k_Advection,Arctic,Moderate
 k_Advection,Continental,Moderate
 k_Advection,Continental,Moderate
+k_Advection,Continental,Regional
 k_Advection,Continental,Regional
 k_Advection,Continental,Regional
 k_Advection,Continental,Tropic
@@ -12,6 +13,7 @@ k_Advection,Moderate,Continental
 k_Advection,Moderate,Continental
 k_Advection,Moderate,Tropic
 k_Advection,Moderate,Tropic
+k_Advection,Regional,Continental
 k_Advection,Regional,Continental
 k_Advection,Regional,Continental
 k_Advection,Tropic,Continental

@@ -171,7 +171,7 @@ load("data/Examples/example_uncertain_data.RData")
 # Example of an emission dataframe formatted for for use in SimpleBox
 example_data <- example_data |>
   # Select the emission compartment, year of analysis and RUN for one microplastic and scale.
-  select(To_Compartment, `2023`, RUN) |>
+  dplyr::select(To_Compartment, `2023`, RUN) |>
   # Change the name of column with emission values to "Emis"
   rename("Emis" = `2023`) |>
   # Add the abreviations with the key for compartment, scale and species
@@ -182,7 +182,7 @@ example_data <- example_data |>
   )) |>
   # Convert kt/year to kg/s
   mutate(Emis = (Emis*1000000)/(365.25*24*3600)) |> 
-  select(-To_Compartment) # leave out original compartment name
+  dplyr::select(-To_Compartment) # leave out original compartment name
 ```
 
 Variable values can be varied over runs by specifying the variable name,
