@@ -172,3 +172,4 @@ if(ChemClass != "particle") World$PostponeVarProcess(VarFunctions = "OtherkAir",
 
 World$UpdateKaas()
 
+rm(ChemClass)

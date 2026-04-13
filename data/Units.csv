@@ -16,8 +16,7 @@ COLLECTeff,-,,ScaleSheet,Aerosol COLLECTION EFFICIENCY
 ColRad,m,,SubcompartSheet,Land surface particle collector radius [m] appendix A of LOTEUR.
 ContinentalInModerate,boolean,,CONSTANTS,Nesting of scales
 CorFacSSA,-,,Substance,Particle surface area Kssdr correction for surface roughness and porosity
-Corg,-,,MatrixSheet,Mass fraction organic carbon in subcompartment
-CORG.susp,-,,CONSTANTS,mass fraction organic carbon suspended in water
+Corg,-,,MatrixSheet,"Mass fraction organic carbon in suspended matter, soil/sediment or aerosols"
 CorgStandard,-,,CONSTANTS,Standard mass FRACTION organic carbon in soil/sediment
 DefaultNETsedrate,m.s-1,,SubCompartSheet,Default net sedimentation rate
 degeta,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
