@@ -59,7 +59,7 @@ World <- SBcore$new(ClassicStateModule)
 
 ChemClass = World$fetchData("ChemClass")
 
-# This constant turns deepocean at Regional and Continental scale on and off
+# This constant turns deepocean at Regional and Continental scale off when TRUE
 World$SetConst(Regional_and_Continental_deepocean = "FALSE")
 
 # This constant turns the Arctic, Moderate and Tropic scales on and off
