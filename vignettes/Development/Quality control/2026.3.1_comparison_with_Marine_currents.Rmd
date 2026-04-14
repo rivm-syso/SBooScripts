@@ -1,7 +1,7 @@
 ---
 title: "Comparison marine currents" 
 author: "Nadim Saadi, Anne Hids, Joris Quik" 
-date: "2026-03-31" 
+date: "2026-04-14" 
 output: github_document 
 editor_options: 
   chunk_output_type: console
@@ -37,11 +37,11 @@ In the marine_currents_clean branch the following changes were made:
 
 There are a few comparisons to be made to test these changes:
 
--   Compare marine_currents_clean with Remove_global = TRUE and Regional_and_Continental_deepocean = TRUE with the development branch
+-   Compare marine_currents_clean with Remove_global = TRUE and Regional_and_Continental_deepocean = TRUE with the release 2026.3.1 branch
 
--   Compare marine_currents_clean with Remove_global = FALSE and Regional_and_Continental_deepocean = FALSE to development.
+-   Compare marine_currents_clean with Remove_global = FALSE and Regional_and_Continental_deepocean = FALSE to release 2026.3.1.
 
-## Compare marine_currents_clean with new variables as TRUE to development
+## Compare marine_currents_clean with new variables as TRUE to release 2026.3.1
 
 The below scripts should be run to compare two versions of SBoo.
 
@@ -51,16 +51,16 @@ dest_folder <- "SimpleBox"
 ```
 
 ```{R Specify which tag and branch to compare}
-tag <- NA # Because we want to compare to current development, not to a release.
+tag <- "2026.3.1" # Latest release
 branch_sboo <- "marine_currents_clean"
 branch_sbooscripts <- "marine_currents_clean"
 ```
 
 ## Define function for downloading and ordering the folders needed to compare
 
-```{R Switch to SBoo Development branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+```{R Switch to SBoo release 2026.3.1 branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
 source("vignettes/Development/Quality control/ComparisonFunctions.R")
-folderpaths <- CompareFilesPrep(Release = NA,
+folderpaths <- CompareFilesPrep(Release = tag,
                              Test_SBoo = branch_sboo,
                              Test_SBooScripts = branch_sbooscripts,
                              Temp_Folder = dest_folder)
@@ -87,15 +87,15 @@ cc_substances <- substances |>
   select(Substance, ChemClass)
 ```
 
-## Calculate first order rate constants for the development
+## Calculate first order rate constants for the release
 
-```{R Calculate ks development, echo=TRUE, message=FALSE, warning=FALSE}
+```{R Calculate ks release, echo=TRUE, message=FALSE, warning=FALSE}
 # Save the original working directory for later
 original_wd <- getwd()
-# Change the wd to the wd of the development branches
+# Change the wd to the wd of the release branches
 setwd(paste0(folderpaths[1], "/SBooScripts"))
 # Calculate the kaas
-development_kaas <- data.frame()
+release_kaas <- data.frame()
 for(i in 1:nrow(substances)){
   # Get the substance type
   subst_row <- substances[i, ]
@@ -104,7 +104,7 @@ for(i in 1:nrow(substances)){
   source("baseScripts/initWorld.R")
   kaas <- World$kaas |>
     mutate(Substance = substance)
-  development_kaas <- rbind(development_kaas, kaas)
+  release_kaas <- rbind(release_kaas, kaas)
 }
 
 setwd(original_wd)
@@ -117,7 +117,7 @@ rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 ```
 
 ```{R Run SB and get advection ks for marine_currents_clean when test is true, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
-# Change the wd to the wd of the development branches
+# Change the wd to the wd of the release branches
 setwd(paste0(folderpaths[2], "/SBooScripts"))
 test_true_kaas <- data.frame()
 for(i in 1:nrow(substances)){
@@ -139,11 +139,11 @@ setwd(original_wd)
 
 ## Compare the k values for each of the substances
 
-```{R Calculate the differences between ks development and marine currents when test is true, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
-common_cols <- setdiff(intersect(colnames(development_kaas), colnames(test_true_kaas)), "k")
-kaas_comparison <- merge(development_kaas, test_true_kaas, by=common_cols, suffixes = c("_Old", "_New"))
+```{R Calculate the differences between ks release and marine currents when test is true, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+common_cols <- setdiff(intersect(colnames(release_kaas), colnames(test_true_kaas)), "k")
+kaas_comparison <- merge(release_kaas, test_true_kaas, by=common_cols, suffixes = c("_Old", "_New"))
 kaas_comparison <- full_join(
-  development_kaas,
+  release_kaas,
   test_true_kaas,
   by = common_cols,
   suffix = c("_Old", "_New")
@@ -156,7 +156,7 @@ changed_kaas <- kaas_comparison |>
   mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
 ```
 
-```{R Plots development and marine currents with vars as true, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE, fig.width=9, fig.height=6}
+```{R Plots release and marine currents with vars as true, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE, fig.width=9, fig.height=6}
 diffs <- kaas_comparison |>
   mutate(fromname = paste0(process, "_", fromSubCompart, "_", fromScale)) |>
   mutate(toname = paste0(process, "_", toSubCompart, "_", toScale)) |>
@@ -229,9 +229,9 @@ From the plots we can see the following: - The marine_currents_clean branch turn
 Otherkair is always NA for particulates, but for molecules Otherkair equals the sum of all k's from the same Scale-Species combination where the SubCompart is air.
 Because changes in Advection processes (removal of global scales) changes the other k's to the air compartment at global and continental scales, this causes changes in k_Deposition.
 
-# Compare marine_currents_clean with new variables as FALSE to development
+# Compare marine_currents_clean with new variables as FALSE to release 2026.3.1
 
-There is no need to run SB again for the development, we already have the development k's for the substances we want to compare.
+There is no need to run SB again for the release, we already have the release k's for the substances we want to compare.
 ## Calculate the first order rate constants for the test branches
 
 ```{R Clean environment again for test is false, include=FALSE}
@@ -264,9 +264,9 @@ setwd(original_wd)
 ## Compare the k values for each of the substances
 
 ```{R Calculate the differences between ks when test is false, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
-common_cols <- setdiff(intersect(colnames(development_kaas), colnames(test_false_kaas)), "k")
+common_cols <- setdiff(intersect(colnames(release_kaas), colnames(test_false_kaas)), "k")
 kaas_comparison <- merge(
-  development_kaas,
+  release_kaas,
   test_false_kaas,
   by = common_cols,
   all = TRUE,
@@ -280,7 +280,7 @@ changed_kaas <- kaas_comparison |>
   mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
 ```
 
-```{R Plots development and marine currents with vars as false, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE, fig.width=9, fig.height=6}
+```{R Plots release and marine currents with vars as false, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE, fig.width=9, fig.height=6}
 diffs <- kaas_comparison |>
   mutate(fromname = paste0(process, "_", fromSubCompart, "_", fromScale)) |>
   mutate(toname = paste0(process, "_", toSubCompart, "_", toScale)) |>
@@ -351,29 +351,29 @@ for(chemclass in unique(diffs$ChemClass)){
 ### Check if deepocean at Regional and Continental scale disappear
 
 ```{R Check if deepocean at regional and continental scale disappear when test is false, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
-development_combo <- development_kaas %>% distinct(fromScale, fromSubCompart)
+release_combo <- release_kaas %>% distinct(fromScale, fromSubCompart)
 test_combo <- test_false_kaas %>% distinct(fromScale, fromSubCompart)
 
-development_combo <- development_combo %>% mutate(source = "development")
+release_combo <- release_combo %>% mutate(source = "release")
 test_combo <- test_combo %>% mutate(source = "test")
 
-all_combos <- bind_rows(development_combo, test_combo)
+all_combos <- bind_rows(release_combo, test_combo)
 
-# Tel per combinatie hoe vaak deze voorkomt (in development, test, of beide)
+# Count per combination how many times it occurs (in release, test, or both)
 combo_check <- all_combos %>%
   group_by(fromScale, fromSubCompart) %>%
   summarise(
-    in_development = any(source == "development"),
+    in_release = any(source == "release"),
     in_test = any(source == "test"),
     .groups = "drop"
   )
 
-#Alleen in development:
-only_in_development <- combo_check %>% filter(in_development & !in_test)
-#Alleen in test:
-only_in_test <- combo_check %>% filter(!in_development & in_test)
-#In beide:
-in_both <- combo_check %>% filter(in_development & in_test)
+#Only in release:
+only_in_release <- combo_check %>% filter(in_release & !in_test)
+#Only in test:
+only_in_test <- combo_check %>% filter(!in_release & in_test)
+#In both:
+in_both <- combo_check %>% filter(in_release & in_test)
 
 extra_compartment_check_from <- kaas_comparison |> 
   filter(fromSubCompart %in% only_in_test$fromSubCompart & fromScale %in% only_in_test$fromScale) 
@@ -404,4 +404,4 @@ It does not, because exceptions were added to the k_Sedimentation and k_Resuspen
 
 ## Discussion
 
-When both test values are turned off in the marine_currents_clean branch, the results are the same as in the development.
+When both test values are turned off in the marine_currents_clean branch, the results are the same as in the release 2026.3.1.
