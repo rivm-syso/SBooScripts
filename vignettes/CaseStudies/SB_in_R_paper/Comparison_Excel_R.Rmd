@@ -20,9 +20,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.width = 14, fig.height = 8)
 
 Install 2024.11.0 version of SimpleBox - the version used for verification of SimpleBox in Excel
 ```{R}
-if(!file.exists("SimpleBox/SBooScripts/baseScripts/fakeLib.R")){
-  source("vignettes/CaseStudies/SB_in_R_paper/InstallSBoo.R")
-}
+source("vignettes/CaseStudies/SB_in_R_paper/InstallSBoo.R")
 
 setwd("SimpleBox/SBooScripts")
 ```
@@ -54,10 +52,10 @@ vignettes for each substance type.
 ```{r comparison_1, message=FALSE, include=TRUE, echo=FALSE, warning=FALSE}
 # Function to get the k's from an Excel file using the filename
 GetExcelKaas <- function(SBExcelName){
-  SBexcel.K <- read.xlsx(SBExcelName,
+  SBexcel.K <- openxlsx::read.xlsx(SBExcelName,
                     colNames = FALSE,
                     namedRegion = "K")
-  SBexcel.Names <- read.xlsx(SBExcelName,
+  SBexcel.Names <- openxlsx::read.xlsx(SBExcelName,
                     colNames = FALSE,
                     namedRegion = "box_names")
   
