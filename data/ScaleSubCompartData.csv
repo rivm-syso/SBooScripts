@@ -1,4 +1,6 @@
-﻿VarName,Scale,SubCompart,Waarde,SB4N_name,Unit
+VarName,Scale,SubCompart,Waarde,SB4N_name,Unit
+AdvInput,Regional,sea,NA,AdvInput.w2R,s-1
+AdvInput,Regional,deepocean,NA,AdvInput.w3R,s-1
 landFRAC,Continental,agriculturalsoil,0.6,FRACagsoil,[-]
 landFRAC,Continental,lake,0.0025,FRAClake,[-]
 landFRAC,Continental,naturalsoil,0.27,FRACnatsoil,[-]
@@ -18,6 +20,7 @@ MICROBconc,Arctic,sea,250000,MICROBconc.w2A,CFU.mL-1
 MICROBconc,Continental,agriculturalsoil,121000000,MICROBconc.s2C,CFU.mL-1
 MICROBconc,Continental,air,0.5,MICROBconc.aC,CFU.mL-1
 MICROBconc,Continental,cloudwater,0.5,MICROBconc.aC,CFU.mL-1
+MICROBconc,Continental,deepocean,250000,MICROBconc.w3C,CFU.mL-1
 MICROBconc,Continental,freshwatersediment,482000,MICROBconc.sd1C,CFU.mL-1
 MICROBconc,Continental,lake,250000,MICROBconc.w0C,CFU.mL-1
 MICROBconc,Continental,lakesediment,482000,MICROBconc.sd0C,CFU.mL-1
@@ -35,6 +38,7 @@ MICROBconc,Moderate,sea,250000,MICROBconc.w2M,CFU.mL-1
 MICROBconc,Regional,agriculturalsoil,121000000,MICROBconc.s2R,CFU.mL-1
 MICROBconc,Regional,air,0.5,MICROBconc.aR,CFU.mL-1
 MICROBconc,Regional,cloudwater,0.5,MICROBconc.aR,CFU.mL-1
+MICROBconc,Regional,deepocean,250000,MICROBconc.w3R,CFU.mL-1
 MICROBconc,Regional,freshwatersediment,482000,MICROBconc.sd1R,CFU.mL-1
 MICROBconc,Regional,lake,250000,MICROBconc.w0R,CFU.mL-1
 MICROBconc,Regional,lakesediment,482000,MICROBconc.sd0R,CFU.mL-1
@@ -50,10 +54,12 @@ MICROBconc,Tropic,marinesediment,482000,MICROBconc.sdT,CFU.mL-1
 MICROBconc,Tropic,naturalsoil,121000000,MICROBconc.sT,CFU.mL-1
 MICROBconc,Tropic,sea,250000,MICROBconc.w2T,CFU.mL-1
 NETsedrate,Arctic,deepocean,6.34196e-14,NETsedrate.wA,m.s-1
+NETsedrate,Continental,deepocean,6.34196e-14,NETsedrate.w3C,m.s-1	
 NETsedrate,Continental,lake,8.62269e-11,missing,m.s-1
 NETsedrate,Continental,river,8.62269e-11,NETsedrate.w1C,m.s-1
 NETsedrate,Continental,sea,2.74e-11,NETsedrate.w2C,m.s-1																 													   
 NETsedrate,Moderate,deepocean,8.95180294397e-14,NETsedrate.wM,m.s-1
+NETsedrate,Regional,deepocean,6.34196e-14,NETsedrate.w3R,m.s-1		
 NETsedrate,Regional,lake,8.686104769e-11,missing,m.s-1
 NETsedrate,Regional,river,8.686104769e-11,NETsedrate.w1R,m.s-1
 NETsedrate,Regional,sea,6.34e-11,NETsedrate.w2R,m.s-1
@@ -63,6 +69,7 @@ Shear,Arctic,marinesediment,0,NA,NA
 Shear,Arctic,naturalsoil,0,NA,NA
 Shear,Arctic,sea,10,Shear.w2A,NA
 Shear,Continental,agriculturalsoil,0,NA,NA
+Shear,Continental,deepocean,10,Shear.w3C,NA
 Shear,Continental,freshwatersediment,0,NA,NA
 Shear,Continental,lake,1,Shear.w0C,NA
 Shear,Continental,lakesediment,0,NA,NA
@@ -76,6 +83,7 @@ Shear,Moderate,marinesediment,0,NA,NA
 Shear,Moderate,naturalsoil,0,NA,NA
 Shear,Moderate,sea,10,Shear.w2M,NA
 Shear,Regional,agriculturalsoil,0,NA,NA
+Shear,Regional,deepocean,10,Shear.w3R,NA
 Shear,Regional,freshwatersediment,0,NA,NA
 Shear,Regional,lake,1,Shear.w0R,NA
 Shear,Regional,lakesediment,0,NA,NA
@@ -134,6 +142,7 @@ UVintensity,Arctic,sea,5,UVintensity.w2A,W.m-2
 UVintensity,Continental,agriculturalsoil,0,UVintensity.s2C,W.m-2
 UVintensity,Continental,air,10,UVintensity.aC,W.m-2
 UVintensity,Continental,cloudwater,10,UVintensity.aC,W.m-2
+UVintensity,Continental,deepocean,0,UVintensity.w3C,W.m-2
 UVintensity,Continental,freshwatersediment,0,UVintensity.sd1C,W.m-2
 UVintensity,Continental,lake,10,UVintensity.w0C,W.m-2
 UVintensity,Continental,lakesediment,0,UVintensity.sd0C,W.m-2
@@ -151,6 +160,7 @@ UVintensity,Moderate,sea,10,UVintensity.w2M,W.m-2
 UVintensity,Regional,agriculturalsoil,0,UVintensity.s2R,W.m-2
 UVintensity,Regional,air,10,UVintensity.aR,W.m-2
 UVintensity,Regional,cloudwater,10,UVintensity.aR,W.m-2
+UVintensity,Regional,deepocean,0,UVintensity.w3R,W.m-2
 UVintensity,Regional,freshwatersediment,0,UVintensity.sd1R,W.m-2
 UVintensity,Regional,lake,10,UVintensity.w0R,W.m-2
 UVintensity,Regional,lakesediment,0,UVintensity.sd0R,W.m-2
@@ -165,6 +175,10 @@ UVintensity,Tropic,deepocean,0,UVintensity.w3T,W.m-2
 UVintensity,Tropic,marinesediment,0,UVintensity.sdT,W.m-2
 UVintensity,Tropic,naturalsoil,0,UVintensity.sT,W.m-2
 UVintensity,Tropic,sea,20,UVintensity.w2T,W.m-2
+VelInput,Regional,sea,NA,VelInput.w2R,m.s-1
+VelInput,Regional,deepocean,NA,VelInput.w3R,m.s-1
+VelInput,Continental,sea,NA,VelInput.w2C,m.s-1
+VelInput,Continental,deepocean,NA,VelInput.w3C,m.s-1
 VertDistance,Arctic,air,1000,HEIGHT.aA,m
 VertDistance,Arctic,cloudwater,1000,HEIGHT.aA,m
 VertDistance,Arctic,deepocean,3000,DEPTH.w3A,m
@@ -174,6 +188,7 @@ VertDistance,Arctic,sea,100,DEPTH.w2A,m
 VertDistance,Continental,agriculturalsoil,0.2,DEPTH.s2C,m
 VertDistance,Continental,air,1000,HEIGHT.aC,m
 VertDistance,Continental,cloudwater,1000,HEIGHT.aC,m
+VertDistance,Continental,deepocean,3000,DEPTH.w3C,m
 VertDistance,Continental,freshwatersediment,0.03,DEPTH.sd1C,m
 VertDistance,Continental,lake,100,DEPTH.w0C,m
 VertDistance,Continental,lakesediment,0.03,DEPTH.sd0C,m
@@ -191,6 +206,7 @@ VertDistance,Moderate,sea,100,DEPTH.w2M,m
 VertDistance,Regional,agriculturalsoil,0.2,DEPTH.s2R,m
 VertDistance,Regional,air,1000,HEIGHT.aR,m
 VertDistance,Regional,cloudwater,1000,HEIGHT.aR,m
+VertDistance,Regional,deepocean,60,DEPTH.w3R,m
 VertDistance,Regional,freshwatersediment,0.03,DEPTH.sd1R,m
 VertDistance,Regional,lake,100,DEPTH.w0R,m
 VertDistance,Regional,lakesediment,0.03,DEPTH.sd0R,m

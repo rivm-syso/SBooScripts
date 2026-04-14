@@ -1,4 +1,5 @@
-﻿VarName,Unit,ToSI,table,Description
+VarName,Unit,ToSI,table,Description
+AdvInput,s-1,,ScaleSubCompartData,Input trasnfer rate derived from other sources used to replace the advection calculations of SB
 AEROresist,s.m-1,,CONSTANTS,Aerodynamic resistance
 AEROSOLdeprate,m.s-1,,ScaleSheet,deposition aerosol particles
 alpha,-,,SubstanceSubCompartSpeciesData,Attachment efficiency of ENPs
@@ -18,12 +19,12 @@ CorFacSSA,-,,Substance,Particle surface area Kssdr correction for surface roughn
 Corg,-,,MatrixSheet,"Mass fraction organic carbon in suspended matter, soil/sediment or aerosols"
 CorgStandard,-,,CONSTANTS,Standard mass FRACTION organic carbon in soil/sediment
 DefaultNETsedrate,m.s-1,,SubCompartSheet,Default net sedimentation rate
-deg_eta,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
-deg_tau,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
-deg_theta,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
-deg_x,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
-deg_y,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
-deg_z,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
+degeta,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
+degtau,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
+degtheta,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
+degx,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
+degy,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
+degz,-,,Substances,Empirical degradation constant for all compartments for a specific polymer (plasticFADE model)
 DegApproach,-,,CONSTANTS,"Approach used to estimate degradation, implemented for polymer particles (Default, Kssdr, PlasticFADE)"
 Degrading_enzyme,boolean,,Substances,Existence of degrading enzymes in the environment for a specific polymer (plasticFADE model)
 Df,-,,CONSTANTS,Fractal dimension of combined heteroagglomerate
@@ -90,6 +91,7 @@ RadNuc,um,,CONSTANTS,Radius of nucleation mode particles
 RadS,nm,RadS/1000000000,Substances,Radius of species
 RAINrate,mm y-1,RAINrate/1000/(3600*24*365),ScaleSheet,annual precipitation (rain and snow)
 relevant_depth_s,m,,CONSTANTS,relevant soil depth for fate proces
+Remove_global,-,,CONSTANTS,remove the global scale
 RhoAcc,kg. m-3,,CONSTANTS,Density of accumulation mode aerosol
 RhoCOL,kg.m-3,,SubcompartSheet,Density of Natural Colloids
 RhoCP,kg. m-3,,SubcompartSheet,Density of Coarse Particulates (e.g. SPM)
@@ -112,12 +114,14 @@ TAUsea,d,,ScaleSheet,RESIDENCE TIME of water
 tdry,day,tdry*3600*24,ScaleSheet,"Duration dry episode (Joilliet and Hauschild, 2005)"
 Temp,K ,,ScaleSheet,Temperature in Kelvin
 Test,-,,CONSTANTS,Variable that in previous versions allowed comparison to xlsx version of SimpleBox for testing.
+Regional_and_Continental_deepocean,-,,CONSTANTS,add the deepcoean compartment at regional and continental scale.
 Tm,Celsius,Tm+273,Substances,melting temperature of the substance
 Tm_default,K,,CONSTANTS,Default melting point
 TotalArea,m2,,ScaleSheet,"Area of the scale, including possibly nested scales"
 twet,day,twet*3600*24,ScaleSheet,Duration wet episode (6% of time in NL > 0.3mm rain)
 Udarcy,m.s-1,,SubcompartSheet,Darcy velocity of particle
 UVintensity,W.m-2,,ScaleSubCompartData,UV intensity in the subcompartment
+VelInput,m.s-1,,ScaleSubCompartData,Input velocity derived from other sources used to replace the settling velocity calculations of SB
 VegInterceptFrac,-,,SubCompartSheet,Fraction of particles intercepted by vegetation as estimated by Hahn et al. 2022
 VertDistance,m,,ScaleSubCompartData,depth or height of the subcompartment
 WINDspeed,m.s-1,,ScalesSheet,Average windspeed per scale
