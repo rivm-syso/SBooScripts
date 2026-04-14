@@ -16,18 +16,20 @@ source("InstallSBoo.R")
 ```
 
 # Setup for comparison
-Below we download 
 
 The below scripts are setup to compare a specific release to the current
-version in use. E.g. loaded in R-Studio. (SBoo and SBooScripts). This
-can be a release, e.g. the tag or specific branches in SBoo and
-SBooScripts.
+version in use. E.g. loaded in R-Studio. (SBoo and SBooScripts). The
+InstallSBoo function can be used to install a specific version to
+compare to. This can be a release, e.g. the tag or specific branches in
+SBoo and SBooScripts.
 
 ```{R Specify tag and load}
 tag <- "2026.3.1"
+InstallSBoo(Release = tag)
 
-#InstallSBoo(Release = tag)
 ```
+
+Now for both SBoo and SBooScripts version ```r paste(tag) ``` is used for comparison to the current branch (to be made 2026.4.0).
 
 Select random substances for testing
 
@@ -61,7 +63,7 @@ apply the new initWorldOther from the current branch as there are
 missinng links to the new install folder in the old release. This can be
 changed in future comparisons.
 
-```{R warning=FALSE}
+```{R message=FALSE, warning=FALSE}
 # Calculate the kaas 
 other_kaas <- data.frame()
   
@@ -83,7 +85,7 @@ Calculate the first order rate constants for the current branch
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 ```
 
-```{R Run SB and get advection ks for FLux_work branch, echo=TRUE, message=TRUE, warning=FALSE, results="hide"}
+```{R Run SB and get advection ks for FLux_work branch, echo=TRUE, message=FALSE, warning=FALSE, results="hide"}
 current_kaas <- data.frame()
   
 for(substance in substances$Substance){
@@ -98,7 +100,7 @@ for(substance in substances$Substance){
 
 # Compare rate constants, k's.
 
-```{R Calculate the differences between ks, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+```{R Calculate the differences between ks, echo=TRUE, message=TRUE, warning=FALSE, results="hide"}
 common_cols <- setdiff(intersect(colnames(current_kaas), colnames(other_kaas)), "k")
 
 kaas_comparison <- merge(other_kaas, current_kaas, by=common_cols, suffixes = c("_Old", "_New"))
@@ -114,22 +116,26 @@ changed_kaas_all <- kaas_comparison |>
 
 head(changed_kaas_all)
 
-unique(changed_kaas_all$process)
+# unique(changed_kaas_all$process)
 
-changed_kaas <- changed_kaas_all |>
-  filter(abs(rel_diff) > 0.001) 
+# changed_kaas <- changed_kaas_all |>
+  # filter(abs(rel_diff) > 0.001) 
 
-unique(changed_kaas$process)
+# unique(changed_kaas$process)
+
+
 ```
 
 # Specific's on differences
 
-No k's have changed, which is to be expected. In release 2026.4.0 the difference 
-is in adding two constants: Remove_global and Regional_and_Continental_deepocean. 
-These remove the Global compartments and turn Regional and Continental deepocean 
-on and off respectively. Because no other updates have been done to SBoo, the k's
-should not change when these variables are set to FALSE, which is the default in 
-InitWorld.R. 
+No k's have changed, which is to be expected, as shown: ```r paste(nrow(changed_kaas_all), "changed k's.")```. In release 2026.4.0 the
+difference is in adding two constants: Remove_global and
+Regional_and_Continental_deepocean. These remove the Global compartments
+and turn Regional and Continental deepocean on and off respectively.
+Because no other updates have been done to SBoo, the k's should not
+change when these variables are set to FALSE, which is the default in
+InitWorld.R.
 
-For more information about the differences between release 2026.3.1 and 2026.4.0 
-if these variables are true, see vignettes/Development/Quality control/2026.3.1_comparison_with_Marine_currents.md.
+For more information about the differences between release 2026.3.1 and
+2026.4.0 if these variables are true, see vignettes/Development/Quality
+control/2026.3.1_comparison_with_Marine_currents.md.
