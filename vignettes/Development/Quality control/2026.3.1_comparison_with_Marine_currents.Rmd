@@ -14,9 +14,17 @@ wrap: 72
 library(tidyverse)
 ```
 
+# About release 2026.4.0
+
+This is a vignette explaining the differences between releases 2026.4.0
+and 2026.3.1. In release 2026.4.0, SBoo has been changed so that the
+user can remove the global scales, and/or introduce the deepocean
+compartment at Regional and Continental scales. For more information see
+below and vignettes/5.4 Advection.Rmd.
+
 # Changes made
 
-In the marine_currents_clean branch the following changes were made:
+In release 2026.4.0 the following changes were made:
 
 -   There is now a variable to remove the global scale: **Remove_global**.
     Setting this variable to TRUE removes the advection flows to, from and within the global scale.
@@ -37,11 +45,11 @@ In the marine_currents_clean branch the following changes were made:
 
 There are a few comparisons to be made to test these changes:
 
--   Compare marine_currents_clean with Remove_global = TRUE and Regional_and_Continental_deepocean = TRUE with the release 2026.3.1 branch
+-   Compare release 2026.4.0 with Remove_global = TRUE and Regional_and_Continental_deepocean = TRUE with the release 2026.3.1 branch
 
--   Compare marine_currents_clean with Remove_global = FALSE and Regional_and_Continental_deepocean = FALSE to release 2026.3.1.
+-   Compare release 2026.4.0 with Remove_global = FALSE and Regional_and_Continental_deepocean = FALSE to release 2026.3.1.
 
-## Compare marine_currents_clean with new variables as TRUE to release 2026.3.1
+## Compare release 2026.4.0 with new variables as TRUE to release 2026.3.1
 
 The below scripts should be run to compare two versions of SBoo.
 
@@ -52,8 +60,8 @@ dest_folder <- "SimpleBox"
 
 ```{R Specify which tag and branch to compare}
 tag <- "2026.3.1" # Latest release
-branch_sboo <- "marine_currents_clean"
-branch_sbooscripts <- "marine_currents_clean"
+branch_sboo <- "development"
+branch_sbooscripts <- "development"
 ```
 
 ## Define function for downloading and ordering the folders needed to compare
@@ -116,7 +124,7 @@ setwd(original_wd)
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 ```
 
-```{R Run SB and get advection ks for marine_currents_clean when test is true, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+```{R Run SB and get advection ks for release 2026.4.0 when test is true, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
 # Change the wd to the wd of the release branches
 setwd(paste0(folderpaths[2], "/SBooScripts"))
 test_true_kaas <- data.frame()
@@ -171,65 +179,69 @@ for(chemclass in unique(diffs$ChemClass)){
   group_by(fromname, toname) |>
   summarise(diff = mean(diff),
             rel_diff = mean(rel_diff))
-  diff_plot <- ggplot(mean_changed, mapping = aes(x = toname, y = fromname, color = diff)) +
-  geom_point() +
-  scale_color_gradient2(
-    low = "blue",    # Colors for negative values
-    mid = "grey",   # Neutral point at zero
-    high = "red",  # Colors for positive values
-    midpoint = 0,   # Center the scale at zero
-    limits = c(-max(abs(changed$diff)), max(abs(changed$diff)))  # Ensure symmetric scale
-  ) +
-  labs(
-    title = paste0("Mean difference between old and new k's for ", chemclass, " substances"),
-    subtitle = "Only k's with a difference above or below zero are shown. Global scale removed.",
-    x = "To",
-    y = "From",
-    color = "Difference"
-  ) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    panel.grid.major = element_line(size = 0.2, color = "gray90"),
-    panel.background = element_blank()
-  )
-  print(diff_plot)
-  rel_diff_plot <- ggplot(mean_changed, mapping = aes(x = toname, y = fromname, color = rel_diff)) +
-  geom_point() +
-  scale_color_gradient2(
-    low = "blue",    # Colors for negative values
-    mid = "grey",   # Neutral point at zero
-    high = "red",  # Colors for positive values
-    midpoint = 0,   # Center the scale at zero
-    limits = c(-max(abs(changed$rel_diff)), max(abs(changed$rel_diff)))  # Ensure symmetric scale
-  ) +
-  labs(
-    title = paste0("Mean relative difference between old and new k's for ", chemclass, " substances"),
-    subtitle = "Only k's with a difference above or below zero are shown. Global scale removed.",
-    x = "To",
-    y = "From",
-    color = "Difference"
-  ) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    panel.grid.major = element_line(size = 0.2, color = "gray90"),
-    panel.background = element_blank()
-  )
-  print(rel_diff_plot)
-  table_for_display <- changed |>
-  select(fromScale, fromSubCompart, toScale, toSubCompart, Substance, k_Old, k_New, diff, rel_diff) |>
-  mutate(diff = format(diff, scientific = TRUE, digits = 2)) |>
-  mutate(rel_diff = format(rel_diff, scientific = TRUE, digits = 2))
-  print(knitr::kable(table_for_display))
+   if(nrow(mean_changed) > 0){
+    diff_plot <- ggplot(mean_changed, mapping = aes(x = toname, y = fromname, color = diff)) +
+    geom_point() +
+    scale_color_gradient2(
+      low = "blue",    # Colors for negative values
+      mid = "grey",   # Neutral point at zero
+      high = "red",  # Colors for positive values
+      midpoint = 0,   # Center the scale at zero
+      limits = c(-max(abs(changed$diff)), max(abs(changed$diff)))  # Ensure symmetric scale
+    ) +
+    labs(
+      title = paste0("Mean difference between old and new k's for ", chemclass, " substances"),
+      subtitle = "Only k's with a difference above or below zero are shown. Global scale removed.",
+      x = "To",
+      y = "From",
+      color = "Difference"
+    ) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      panel.grid.major = element_line(size = 0.2, color = "gray90"),
+      panel.background = element_blank()
+    )
+    print(diff_plot)
+    rel_diff_plot <- ggplot(mean_changed, mapping = aes(x = toname, y = fromname, color = rel_diff)) +
+    geom_point() +
+    scale_color_gradient2(
+      low = "blue",    # Colors for negative values
+      mid = "grey",   # Neutral point at zero
+      high = "red",  # Colors for positive values
+      midpoint = 0,   # Center the scale at zero
+      limits = c(-max(abs(changed$rel_diff)), max(abs(changed$rel_diff)))  # Ensure symmetric scale
+    ) +
+    labs(
+      title = paste0("Mean relative difference between old and new k's for ", chemclass, " substances"),
+      subtitle = "Only k's with a difference above or below zero are shown. Global scale removed.",
+      x = "To",
+      y = "From",
+      color = "Difference"
+    ) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      panel.grid.major = element_line(size = 0.2, color = "gray90"),
+      panel.background = element_blank()
+    )
+    print(rel_diff_plot)
+    table_for_display <- changed |>
+    select(fromScale, fromSubCompart, toScale, toSubCompart, Substance, k_Old, k_New, diff, rel_diff) |>
+    mutate(diff = format(diff, scientific = TRUE, digits = 2)) |>
+    mutate(rel_diff = format(rel_diff, scientific = TRUE, digits = 2))
+    print(knitr::kable(table_for_display))
+  } else {
+    print(paste0("No k's changed for ", chemclass, " substances"))
+  }
 }
 ```
 
 ## Discussion
 
-From the plots we can see the following: - The marine_currents_clean branch turns the advection flow from Regional sea to Continental sea off for all species - All deposition rates from air to water and soil compartments are slightly different for molecules (neutral, no class, base, acid, metal) v_Otherkair is a variable used in k_Deposition.
+From the plots we can see the following: - Release 2026.4.0 turns the advection flow from Regional sea to Continental sea off for all species - All deposition rates from air to water and soil compartments are slightly different for molecules (neutral, no class, base, acid, metal) v_Otherkair is a variable used in k_Deposition.
 Otherkair is always NA for particulates, but for molecules Otherkair equals the sum of all k's from the same Scale-Species combination where the SubCompart is air.
 Because changes in Advection processes (removal of global scales) changes the other k's to the air compartment at global and continental scales, this causes changes in k_Deposition.
 
-# Compare marine_currents_clean with new variables as FALSE to release 2026.3.1
+# Compare release 2026.4.0 with new variables as FALSE to release 2026.3.1
 
 There is no need to run SB again for the release, we already have the release k's for the substances we want to compare.
 ## Calculate the first order rate constants for the test branches
@@ -238,7 +250,7 @@ There is no need to run SB again for the release, we already have the release k'
 rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
 ```
 
-```{R Run SB and get advection ks for marine_currents_clean branch when test is false, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+```{R Run SB and get advection ks for release 2026.4.0 when test is false, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
 # Change the wd to the wd of the test branches
 setwd(paste0(folderpaths[2], "/SBooScripts"))
 test_false_kaas <- data.frame()
@@ -280,14 +292,13 @@ changed_kaas <- kaas_comparison |>
   mutate(full_name = paste0("From ", fromSubCompart, "_", fromScale, " to ", toSubCompart, "_", toScale))
 ```
 
-```{R Plots release and marine currents with vars as false, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE, fig.width=9, fig.height=6}
+```{R Plots release 2026.3.1 and release 2026.4.0 with vars as false, include=TRUE, echo=TRUE, message=FALSE, warning=FALSE, fig.width=9, fig.height=6}
 diffs <- kaas_comparison |>
   mutate(fromname = paste0(process, "_", fromSubCompart, "_", fromScale)) |>
   mutate(toname = paste0(process, "_", toSubCompart, "_", toScale)) |>
   mutate(diff = ifelse(diff == 0, NaN, diff)) |>
   left_join(cc_substances, by = "Substance")
 chemclass <- "metal"
-
 for(chemclass in unique(diffs$ChemClass)){
   changed <- diffs |>
     filter(rel_diff != 0) |>
@@ -296,55 +307,59 @@ for(chemclass in unique(diffs$ChemClass)){
   group_by(fromname, toname) |>
   summarise(diff = mean(diff),
             rel_diff = mean(rel_diff))
-  diff_plot <- ggplot(mean_changed, mapping = aes(x = toname, y = fromname, color = diff)) +
-  geom_point() +
-  scale_color_gradient2(
-    low = "blue",    # Colors for negative values
-    mid = "grey",   # Neutral point at zero
-    high = "red",  # Colors for positive values
-    midpoint = 0,   # Center the scale at zero
-    limits = c(-max(abs(changed$diff)), max(abs(changed$diff)))  # Ensure symmetric scale
-  ) +
-  labs(
-    title = paste0("Mean difference between old and new k's for ", chemclass, " substances"),
-    subtitle = "Only k's with a difference above or below zero are shown. Global scale not removed.",
-    x = "To",
-    y = "From",
-    color = "Difference"
-  ) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    panel.grid.major = element_line(size = 0.2, color = "gray90"),
-    panel.background = element_blank()
-  )
-  print(diff_plot)
-  rel_diff_plot <- ggplot(mean_changed, mapping = aes(x = toname, y = fromname, color = rel_diff)) +
-  geom_point() +
-  scale_color_gradient2(
-    low = "blue",    # Colors for negative values
-    mid = "grey",   # Neutral point at zero
-    high = "red",  # Colors for positive values
-    midpoint = 0,   # Center the scale at zero
-    limits = c(-max(abs(changed$rel_diff)), max(abs(changed$rel_diff)))  # Ensure symmetric scale
-  ) +
-  labs(
-    title = paste0("Mean relative difference between old and new k's for ", chemclass, " substances"),
-    subtitle = "Only k's with a difference above or below zero are shown. Global scale not removed.",
-    x = "To",
-    y = "From",
-    color = "Difference"
-  ) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    panel.grid.major = element_line(size = 0.2, color = "gray90"),
-    panel.background = element_blank()
-  )
-  print(rel_diff_plot)
-  table_for_display <- changed |>
-  select(fromScale, fromSubCompart, toScale, toSubCompart, Substance, k_Old, k_New, diff, rel_diff) |>
-  mutate(diff = format(diff, scientific = TRUE, digits = 2)) |>
-  mutate(rel_diff = format(rel_diff, scientific = TRUE, digits = 2))
-  print(knitr::kable(table_for_display))
+   if(nrow(mean_changed) > 0){
+    diff_plot <- ggplot(mean_changed, mapping = aes(x = toname, y = fromname, color = diff)) +
+    geom_point() +
+    scale_color_gradient2(
+      low = "blue",    # Colors for negative values
+      mid = "grey",   # Neutral point at zero
+      high = "red",  # Colors for positive values
+      midpoint = 0,   # Center the scale at zero
+      limits = c(-max(abs(changed$diff)), max(abs(changed$diff)))  # Ensure symmetric scale
+    ) +
+    labs(
+      title = paste0("Mean difference between old and new k's for ", chemclass, " substances"),
+      subtitle = "Only k's with a difference above or below zero are shown. Global scale not removed.",
+      x = "To",
+      y = "From",
+      color = "Difference"
+    ) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      panel.grid.major = element_line(size = 0.2, color = "gray90"),
+      panel.background = element_blank()
+    )
+    print(diff_plot)
+    rel_diff_plot <- ggplot(mean_changed, mapping = aes(x = toname, y = fromname, color = rel_diff)) +
+    geom_point() +
+    scale_color_gradient2(
+      low = "blue",    # Colors for negative values
+      mid = "grey",   # Neutral point at zero
+      high = "red",  # Colors for positive values
+      midpoint = 0,   # Center the scale at zero
+      limits = c(-max(abs(changed$rel_diff)), max(abs(changed$rel_diff)))  # Ensure symmetric scale
+    ) +
+    labs(
+      title = paste0("Mean relative difference between old and new k's for ", chemclass, " substances"),
+      subtitle = "Only k's with a difference above or below zero are shown. Global scale not removed.",
+      x = "To",
+      y = "From",
+      color = "Difference"
+    ) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      panel.grid.major = element_line(size = 0.2, color = "gray90"),
+      panel.background = element_blank()
+    )
+    print(rel_diff_plot)
+    table_for_display <- changed |>
+    select(fromScale, fromSubCompart, toScale, toSubCompart, Substance, k_Old, k_New, diff, rel_diff) |>
+    mutate(diff = format(diff, scientific = TRUE, digits = 2)) |>
+    mutate(rel_diff = format(rel_diff, scientific = TRUE, digits = 2))
+    print(knitr::kable(table_for_display))
+  } else {
+    print(paste0("No k's changed for ", chemclass, " substances"))
+  }
 }
 ```
 
@@ -404,4 +419,4 @@ It does not, because exceptions were added to the k_Sedimentation and k_Resuspen
 
 ## Discussion
 
-When both test values are turned off in the marine_currents_clean branch, the results are the same as in the release 2026.3.1.
+When both test values are turned off in release 2026.4.0, the results are the same as in the release 2026.3.1.
