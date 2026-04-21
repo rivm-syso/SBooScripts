@@ -74,6 +74,8 @@ folderpaths <- CompareFilesPrep(Release = tag,
                              Temp_Folder = dest_folder)
 ```
 
+Now for both SBoo and SBooScripts version ```r paste(tag) ``` is used for comparison to the current branch (to be made 2026.4.0).
+
 Select random substances for testing
 
 ```{R select substances, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
