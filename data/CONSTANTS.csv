@@ -30,7 +30,7 @@ Q.10,2,Q.10,-,rate increase factor per 10 oC
 RadNuc,1.00E-08,RadNuc,m,Radius of nucleation mode particles
 Regional_and_Continental_deepocean,FALSE,NA,boolean,add the deepcoean compartment at regional and continental scale.
 relevant_depth_s,0,missing,m,used in the correction factor for soil processes (0 because interested in topsoil processes)
-Remove_global,FALSE,NA,remove the global scale.,
+Remove_global,FALSE,NA,remove the global scale.
 RhoNuc,1300,RhoNuc,[kg.m-3],Density of Nucleation mode aerosol particles
 t_half_Escape,60,k.esc.a,yr-1,Half life time in air for escape to stratosphere
 T25,298,NA,K,Temperature for normalised circumstances
