@@ -1,6 +1,6 @@
 ---
 title: "5.4 Advection"
-author: "Jaap Slootweg, Joris Quik, Valerie de Rijk"
+author: "Jaap Slootweg, Joris Quik, Valerie de Rijk, Anne Hids"
 date: "`r Sys.Date()`"
 output: github_document
 editor_options: 
@@ -17,7 +17,7 @@ of a matrix (air, water ) from one box to another, where either the
 subcompartment or scale is different.
 
 ```{r initialize, include=FALSE}
-source("baseScripts/initWorld_onlyMolec.R")
+source("baseScripts/initWorld.R")
 ```
 
 For calculating the rate constants for advection there is data needed on
@@ -223,6 +223,9 @@ World$fetchData("x_ContSea2Reg")
 x_RegSea2Cont is the sea water flow from regional to continental scale.
 It is assumed to be 10 times the discharge flow from the river.
 
+When the Regional_and_Cohntinental_deepocean variable == TRUE, this function is 
+also used to calculate the flow between deepocean at Regional and Continental scale. 
+
 ```{r}
 
 World$fetchData("LakeFracRiver")
@@ -402,6 +405,7 @@ print(table1, n=40)
 
 ```
 
+
 ### Advection rate constant
 
 This process is only one step beyond the calculation of the relevant
@@ -426,3 +430,39 @@ World$fetchData("Flows")
 World$kaas |> filter(process == "k_Advection")
 
 ```
+
+## Remove global scales
+
+The variable remove_global removes the global (Arctic, Moderate and
+Tropic) scales from the model. When this variable is set to TRUE,
+advection flows to, from and within these scales are removed. The use of
+this variable is demonstrated below.
+
+```{R}
+World$SetConst(Remove_global = "TRUE") 
+World$UpdateKaas(mergeExisting = FALSE)
+```
+
+## Remove Regional and Continental deepocean
+
+The deepocean compartment and Regional and Continental scale can be
+introduced by setting the variable Regional_and_Continental_deepocean to
+TRUE. When this variable is TRUE, the following changes are made:
+
+```         
+- The deaggregation function is turned off for deepocean at Regional and Continental scale.
+- The area for deepocean at Regional and Continental scale is set to the area of the sea subcompartment at the same scale 
+- There is no advection between Regional sea and Continental sea. 
+- Advection flows between 
+```
+
+```{R}
+World$SetConst(Regional_and_Continental_deepocean = "FALSE") # If true, add deepocean to Regional and Continental scale
+World$UpdateKaas(mergeExisting = FALSE)
+```
+
+## Overwrite advection flows with AdvInput
+
+The variable 'AdvInput' was added to SimpleBox. It allows the user to
+overwrite the advection flows from a compartment at a scale with a user
+defined value. These values can be given in ScaleSubCompartData.csv.

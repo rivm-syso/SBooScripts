@@ -20,7 +20,7 @@ The below scripts should be run to compare two versions of SBoo.
 
 ```{R Specify temporary directory, include = FALSE, echo=TRUE, message=FALSE, warning=FALSE}
 # Specify where the downloaded versions of sboo and sbooscripts should be saved to
-dest_folder <- "/rivm/n/hidsa/Documents/Temp"
+dest_folder <- "SimpleBox"
 ```
 
 ```{R Specify which tag and branch to compare, echo=TRUE, message=FALSE, warning=FALSE}
@@ -92,6 +92,7 @@ for(i in 1:nrow(substances)){
   
   main_kaas <- rbind(main_kaas, kaas)
 }
+setwd(original_wd)
 ```
 
 # Calculate the first order rate constants for the test branches
@@ -121,6 +122,8 @@ for(i in 1:nrow(substances)){
   
   test_kaas <- rbind(test_kaas, kaas)
 }
+
+setwd(original_wd)
 ```
 
 ## Compare the k values for each of the substances
