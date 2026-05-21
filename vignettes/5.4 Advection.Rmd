@@ -223,6 +223,9 @@ World$fetchData("x_ContSea2Reg")
 x_RegSea2Cont is the sea water flow from regional to continental scale.
 It is assumed to be 10 times the discharge flow from the river.
 
+When the Regional_and_Cohntinental_deepocean variable == TRUE, this function is 
+also used to calculate the flow between deepocean at Regional and Continental scale. 
+
 ```{r}
 
 World$fetchData("LakeFracRiver")
