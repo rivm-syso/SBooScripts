@@ -1,4 +1,4 @@
-﻿process,from,to
+process,from,to
 k_Adsorption,air,agriculturalsoil
 k_Adsorption,air,lake
 k_Adsorption,air,naturalsoil
@@ -98,10 +98,6 @@ k_Volatilisation,naturalsoil,air
 k_Volatilisation,othersoil,air
 k_Volatilisation,river,air
 k_Volatilisation,sea,air
-k_WaterRemoval,deepocean,deepocean
-k_WaterRemoval,lake,lake
-k_WaterRemoval,river,river
-k_WaterRemoval,sea,sea
 k_WetDeposition,cloudwater,agriculturalsoil
 k_WetDeposition,cloudwater,lake
 k_WetDeposition,cloudwater,naturalsoil
