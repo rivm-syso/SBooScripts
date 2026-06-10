@@ -12,6 +12,9 @@ if(exists("SBdev")){
     SBooDataLocation <- paste0(SBInstallFolder,"/SBooScripts/")  
   }}
 
+########## data ##########
+# New option, take care and test yourself if this works as it should
+#
 # The variable use_scenario_data is used to decide whether to use the default data or data for a specific scenario. 
 # If use_scenario_data is TRUE, it is assumed that SBoo and SBooScripts were downloaded using the "InstallSBoo.R" script. 
 # The standard location of the data folder if use_scenario_data == TRUE is therefore two folders down from your current working directory. 
@@ -21,19 +24,23 @@ if(!exists("use_scenario_data")){
 }
 
 if(!is.na(use_scenario_data) && use_scenario_data == TRUE){
-  cat("Using scenario data to setup World.")
-  SBooDataLocation <- paste0("../../")
+  message("initWorld: Using scenario data to setup World.")
+  if(list.files(scenario_data_path)[1] == "Compartments.csv"){
+    message("initWorld: scenario data found")}else(stop("scenario data path not valid"))
+  SBooData <- scenario_data_path
 } else if(!is.na(use_scenario_data) && use_scenario_data == FALSE){
-  cat("Using default data to setup World.")
-  SBooDataLocation <- paste0(SBInstallFolder)
+  message("initWorld: Using default data to setup World.")
+  SBooData <- file.path(SBooDataLocation,"data") # This is set above
 } else{
-  cat("use_scenario_data was not 'TRUE' or 'FALSE'; using default data to setup World.") 
-  SBooDataLocation <- paste0(SBInstallFolder)
+  message("initWorld: use_scenario_data was not 'TRUE' or 'FALSE'; using default data to setup World.") 
+  SBooData <- file.path(SBooDataLocation,"data") # This is set above
 }
 
+## SBooDataLocation as it should? ##
 
 #source all R files and load data from the package
 Dfiles <- list.files(paste(Path2PackageSource, "data", sep = "/"), pattern = "\\.rda$")
+
 Rded <- lapply(Dfiles, function(x) {
   Dfilename <- paste(Path2PackageSource, "data", x, sep = "/")
   if (exists("verbose") && verbose) cat(Dfilename, "\n")
@@ -57,9 +64,8 @@ if (!exists("substance")) {
 
 
 
-#The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
-ClassicStateModule <- ClassicNanoWorld$new(paste0(SBooDataLocation,"data"), substance)
-
+#The script creates the "ClassicStateModule" object with the states of the World. 
+ClassicStateModule <- ClassicNanoWorld$new(SBooData, substance)
 #with this data we create an instance of the central "core" object,
 World <- SBcore$new(ClassicStateModule)
 
@@ -172,7 +178,7 @@ AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 
 #call the particulate processes 
-Processes4SpeciesTp <- read.csv("data/Processes4SpeciesTp.csv")
+Processes4SpeciesTp <- read.csv(file.path(SBooData,"Processes4SpeciesTp.csv"))
 
 ifelse(ChemClass != "particle",
        {
