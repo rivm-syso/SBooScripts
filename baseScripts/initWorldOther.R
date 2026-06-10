@@ -177,7 +177,7 @@ if(anyNA(World$fetchData("Test"))){
 AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 
-#call the particulate processes 
+# Call the processes for either a Particulate or Molecular compound
 Processes4SpeciesTp <- read.csv(file.path(SBooData,"Processes4SpeciesTp.csv"))
 
 ifelse(ChemClass != "particle",
