@@ -2,24 +2,25 @@ library(tidyverse)
 library(ggdag) #for plotting DAG graphs
 library(R6)
 library(rlang)
-#path to the SBoo package
-SBInstallFolder <- NULL
 
-Path2PackageSource <- paste0("..","/SBoo")
+if (!requireNamespace("sboo", quietly = TRUE)) {
+  stop(
+    "The package 'SBoo' is required but not installed.\n\n",
+    "How to install:\n",
+    "  1) Install remotes (once):\n",
+    "       install.packages('remotes')\n",
+    "  2) Install SBoo from GitHub:\n",
+    "       remotes::install_github('your-org/SBoo', ref = 'main')\n\n",
+    "If you want to use local code for sboo use
+    devtools::load_all(path to the source project folder)",
+    call. = FALSE
+  )
+  devtools::load_all("~/projects/SBgroup/SBoo")
+}
 
-#source all R files and load data from the package
-Dfiles <- list.files(paste(Path2PackageSource, "data", sep = "/"), pattern = "\\.rda$")
-Rded <- lapply(Dfiles, function(x) {
-  Dfilename <- paste(Path2PackageSource, "data", x, sep = "/")
-  if (exists("verbose") && verbose) cat(Dfilename, "\n")
-  load(Dfilename, envir = global_env())
-})
-Rfiles <- list.files(paste(Path2PackageSource, "R", sep = "/"), pattern = "\\.R$")
-sourced <- lapply(Rfiles, function(x) {
-  Rfilename <- paste(Path2PackageSource, "R", x, sep = "/")
-  if (exists("verbose") && verbose) cat(Rfilename, "\n")
-  source(Rfilename)
-})
+if (!"package:sboo" %in% search()){
+  library(sboo)
+}
 
 # ifelse(Type=="onlyPlastics",print("ok"),
 # stop("function not yet implemented for this Type"))
@@ -36,23 +37,24 @@ message(paste("Running SimpleBox for",substance))
 # If use_scenario_data is TRUE, it is assumed that SBoo and SBooScripts were downloaded using the "InstallSBoo.R" script. 
 # The standard location of the data folder if use_scenario_data == TRUE is therefore two folders down from your current working directory. 
 
-if(!exists("use_scenario_data")){
-  use_scenario_data <- FALSE
+if(!exists("scenario_data")){
+  use_scenario_data <- NA
 }
 
-if(!is.na(use_scenario_data) && use_scenario_data == TRUE){
+if(!is.na(use_scenario_data)){
+  if (!dir.exists(scenario_data)) {
+    stop("scenario_data is supposed to contain data, like SBooScripts/data")
+  }
   cat("Using scenario data to setup World.")
-  SBooDataLocation <- paste0("../../")
-} else if(!is.na(use_scenario_data) && use_scenario_data == FALSE){
+  SBooDataLocation <- scenario_data
+} else {
   cat("Using default data to setup World.")
-  SBooDataLocation <- paste0(SBInstallFolder)
-} else{
-  cat("use_scenario_data was not 'TRUE' or 'FALSE'; using default data to setup World.") 
-  SBooDataLocation <- paste0(SBInstallFolder)
+  # assuming this script lives in ABooScripts/baseScript
+  SBooDataLocation <- "./data"
 }
 
 #The script creates the "ClassicStateModule" object with the states of the classic 4. excel version. 
-ClassicStateModule <- ClassicNanoWorld$new(paste0(SBooDataLocation,"data"), substance)
+ClassicStateModule <- ClassicNanoWorld$new(SBooDataLocation, substance)
 
 #with this data we create an instance of the central "core" object,
 World <- SBcore$new(ClassicStateModule)
@@ -166,7 +168,7 @@ AllF <- ls() %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 
 #call the particulate processes 
-Processes4SpeciesTp <- read.csv("data/Processes4SpeciesTp.csv")
+Processes4SpeciesTp <- read.csv(file.path(SBooDataLocation, "Processes4SpeciesTp.csv"))
 
 ifelse(ChemClass != "particle",
        {
