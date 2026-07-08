@@ -104,6 +104,7 @@ solution <- World$Masses()
 emission <- World$Emissions()
 concentration <- World$Concentration()
 K_matrix <- World$K_matrix()
+k <- World$K_process_df()
 ```
 
 Finally, we can plot the outcome using the predefined plot functions. If
@@ -235,6 +236,7 @@ variable_values = World$VariableValues()
 concentration = World$Concentration()
 emission = World$Emissions()
 Kmatrices = World$K_matrix()
+k = World$K_process_df()
 ```
 
 Finally, we can plot the outcome using the predefined plot functions.
@@ -333,6 +335,7 @@ World$Solve(emissions = emisFuns,
 
 sol <- World$Masses() 
 conc <- World$Concentration() 
+k <- World$K_process_df()
 
 World$PlotConcentration()
 ```
@@ -428,6 +431,7 @@ solution <- World$Masses()
 emission <- World$Emissions()
 concentration <- World$Concentration()
 Kmatrices = World$K_matrix()
+k = World$K_process_df()
 ```
 
 Finally, we can plot the outcome using the predefined plot functions. If
@@ -545,6 +549,7 @@ solution = World$Masses()
 emission = World$Emissions()
 variable_values = World$VariableValues()
 concentrations = World$Concentration()
+k = World$K_process_df()
 ```
 
 Finally, we can plot the outcome using the predefined plot functions. If
@@ -583,6 +588,7 @@ World$Solve(emissions = example_data,
 sol <- World$Masses() 
 conc <- World$Concentration() 
 emis <- World$Emissions()
+k = World$K_process_df()
 
 World$PlotConcentration()
 ```
