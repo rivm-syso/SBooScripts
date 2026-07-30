@@ -34,6 +34,16 @@ The SBooScripts repository contains serveral folders:
 
 ## Installation
 
+### For model users
+
+1.  Download (or clone/fork) the [SBooScripts](https://github.com/rivm-syso/SBooScripts) repository and save it in your parent folder
+
+2.  When you start using SimpleBox, set your working directory to your SBooScripts folder.
+
+3.  Run the [Getting started vignette](https://github.com/rivm-syso/SBooScripts/blob/development/vignettes/Getting-started.Rmd) first; this vignette will download the model from GitHub as a package. 
+
+### For developers
+
 SB is split over two repositories.
 In order to use [SBOO](https://github.com/rivm-syso/SBoo) you need two projects with the parent folder in common.
 You can do this as follows:

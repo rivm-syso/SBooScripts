@@ -1,7 +1,7 @@
 SimpleBox data and scripts
 ================
 RIVM
-2025-03-31
+2026-07-30
 
 # 1. About SimpleBox
 
@@ -45,6 +45,22 @@ The SBooScripts repository contains serveral folders:
 
 ## Installation
 
+### For model users
+
+1.  Download (or clone/fork) the
+    [SBooScripts](https://github.com/rivm-syso/SBooScripts) repository
+    and save it in your parent folder
+
+2.  When you start using SimpleBox, set your working directory to your
+    SBooScripts folder.
+
+3.  Run the [Getting started
+    vignette](https://github.com/rivm-syso/SBooScripts/blob/development/vignettes/Getting-started.Rmd)
+    first; this vignette will download the model from GitHub as a
+    package.
+
+### For developers
+
 SB is split over two repositories. In order to use
 [SBOO](https://github.com/rivm-syso/SBoo) you need two projects with the
 parent folder in common. You can do this as follows:
@@ -70,7 +86,7 @@ vignette](vignettes/Getting-started.md) for the first time.
 If you intend to use the model without changing its functions, read/run
 the following markdown files to get started:
 
-- [Getting Started](vignettes/Getting-started.md) : this Rmarkdown file
+- [Getting Started](vignettes/Getting-started.Rmd) : this Rmarkdown file
   includes all basics for users (not necessarily developers) to use
   SimpleBox. It includes:
 
