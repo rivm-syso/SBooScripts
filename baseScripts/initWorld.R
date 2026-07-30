@@ -164,7 +164,7 @@ if(anyNA(World$fetchData("Test"))){
   World$SetConst(Test = "FALSE")
 }
 
-AllF <- ls() %>% sapply(FUN = get)
+AllF <- ls("package:sboo") %>% sapply(FUN = get)
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 
 #call the particulate processes 
