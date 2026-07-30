@@ -4,18 +4,19 @@ library(R6)
 library(rlang)
 
 if (!requireNamespace("sboo", quietly = TRUE)) {
-  stop(
+  message(
     "The package 'SBoo' is required but not installed.\n\n",
     "How to install:\n",
     "  1) Install remotes (once):\n",
     "       install.packages('remotes')\n",
     "  2) Install SBoo from GitHub:\n",
-    "       remotes::install_github('your-org/SBoo', ref = 'main')\n\n",
-    "If you want to use local code for sboo use
-    devtools::load_all(path to the source project folder)",
-    call. = FALSE
+    "       remotes::install_github('your-org/SBoo', ref = 'main')\n",
+    "        or: source('baseScripts/Install_SBoo_package.R')\n\n",
+    "If you want to use local code for sboo use:\n",
+    "       devtools::load_all(path_to_the_source_project_folder)\n"
   )
-  devtools::load_all("~/projects/SBgroup/SBoo")
+  
+  devtools::load_all("../SBoo")
 }
 
 if (!"package:sboo" %in% search()){
