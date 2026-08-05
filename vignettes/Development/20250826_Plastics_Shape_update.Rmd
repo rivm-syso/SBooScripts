@@ -293,7 +293,7 @@ original and Bagheri drag methods. This affects the
 
 From the above table it can be seen, that also the Ag 10 nm nanomaterial
 is affected with an
-``` r``round(max(abs(unique(changed_kaas$rel_diff)))*100, 1) ```
+`r round(max(abs(unique(changed_kaas$rel_diff)))*100, 1)`
 decrease in k_sedimentation. It is (for now) advised to not use the
 Bagheri drag method for nanomaterials.
 
