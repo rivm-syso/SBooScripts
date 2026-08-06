@@ -3,20 +3,33 @@ library(ggdag) #for plotting DAG graphs
 library(R6)
 library(rlang)
 
-if (!requireNamespace("sboo", quietly = TRUE)) {
-  message(
-    "The package 'SBoo' is required but not installed.\n\n",
-    "How to install:\n",
-    "  1) Install remotes (once):\n",
-    "       install.packages('remotes')\n",
-    "  2) Install SBoo from GitHub:\n",
-    "       remotes::install_github('your-org/SBoo', ref = 'main')\n",
-    "        or: source('baseScripts/Install_SBoo_package.R')\n\n",
-    "If you want to use local code for sboo use:\n",
-    "       devtools::load_all(path_to_the_source_project_folder)\n"
-  )
-  
+# Define if the local version or the package should be used. 
+# To use the local version, set use_local_sboo = TRUE in your local environment.
+if(!exists("use_local_sboo")){
+  use_local_sboo = FALSE
+}
+
+if (isTRUE(use_local_sboo)) {
+  message("Using local SBoo from ../SBoo")
   devtools::load_all("../SBoo")
+} else {
+  if (!requireNamespace("sboo", quietly = TRUE)) {
+    stop(
+      paste0(
+        "The package 'SBoo' is required but not installed.\n\n",
+        "How to install:\n",
+        "  1) Install remotes (once):\n",
+        "       install.packages('remotes')\n",
+        "  2) Install SBoo from GitHub:\n",
+        "       remotes::install_github('your-org/SBoo', ref = 'main')\n",
+        "        or: source('baseScripts/Install_SBoo_package.R')\n\n",
+        "To use local code instead, set:\n",
+        "  options(sboo.use_local = TRUE)\n",
+        "and ensure the path to the source project folder is correct.\n"
+      ),
+      call. = FALSE
+    )
+  }
 }
 
 if (!"package:sboo" %in% search()){
@@ -50,7 +63,7 @@ if(!is.na(use_scenario_data)){
   SBooDataLocation <- scenario_data
 } else {
   cat("Using default data to setup World.")
-  # assuming this script lives in ABooScripts/baseScript
+  # assuming this script lives in SBooScripts/baseScripts
   SBooDataLocation <- "./data"
 }
 
@@ -166,6 +179,17 @@ if(anyNA(World$fetchData("Test"))){
 }
 
 AllF <- ls("package:sboo") %>% sapply(FUN = get)
+
+# Load functions to global environment
+ns <- asNamespace("sboo")          
+objs <- ls(ns)                    
+
+funs <- objs[sapply(objs, function(nm) is.function(get(nm, envir = ns)))]
+
+for (nm in funs) {
+  assign(nm, get(nm, envir = ns), envir = .GlobalEnv)
+}
+
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 
 #call the particulate processes 
