@@ -490,7 +490,7 @@ example_data <-
 
 example_data <-
   example_data |> 
-  mutate(Time = Time - 2019*365.25*24*3600) |> # converting to 0 being one year before 2020
+  mutate(Time = Time - 2019*365.25*24*3600) |> # converting 2020 to year 1 with 2019 being year 0
   full_join(expand.grid(Abbr = unique(example_data$Abbr), 
                         RUN = c(1:20)) |> 
               mutate(Time = 0,
