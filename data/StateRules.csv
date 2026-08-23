@@ -1,0 +1,4 @@
+RuleID,Scale,SubCompart,Species,Operator,Keep,Comment
+1,"Tropic,Arctic,Moderate","naturalsoil,river,agriculturalsoil",,%in%,FALSE,"Disallow naturalsoil,river,agriculturalsoil at Global"
+4,"Regional,Continental",deepocean,,==,FALSE,"Disallow deepocean at Regional and Continental"
+6,,cloudwater,Unbound,==,FALSE,"No Unbound in cloudwater"

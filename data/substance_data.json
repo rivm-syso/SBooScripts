@@ -1,0 +1,36 @@
+{
+  "CONST": {
+    "BACTtest": 40000
+  },
+  "Substance": 
+    {
+      "name": "default substance",
+      "SBmode": "Molecular",
+      "ChemClass": "neutral",
+      "pKa": null,
+      "MW": 147,
+      "Tm": 52.1,
+      "Pvap25": 232,
+      "Sol25": 81.3,
+      "Kaw25": null,
+      "Kow": 2750,
+      "Ksw": null,
+      "Kp.col": null,
+      "Kp.susp": null,
+      "Kp.sed": null,
+      "Kp.soil": null,
+      "RadS": null,
+      "RhoS": null,
+      "hamakerSP.w": null,
+      "Koc": null,
+      "KocAlt": null,
+      "kdeg": {
+        "1": { "Compartment": "air", "kdeg": 2.4e-7},
+        "2": { "Compartment": "sediment", "kdeg": 2.38e-8},
+        "3": { "Compartment": "soil", "kdeg": 1.07e-7},
+        "4": { "Compartment": "water", "kdeg": 2.14e-7}
+      }
+    
+  }
+}
+
