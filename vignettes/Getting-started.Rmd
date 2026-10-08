@@ -89,7 +89,7 @@ name and from-species name. It can be accessed in the same way other
 variables are accessed:
 
 ```{r Access kaas, include=TRUE, warning=FALSE, message=FALSE}
-df_ks <- World$kaas
+df_ks <- World$kaas #wat is dit? Niet beschreven.
 ```
 
 ## Change a landscape variable
