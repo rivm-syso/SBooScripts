@@ -51,7 +51,7 @@ The World object contains all variables and first order rate constants
 the masses in each compartment on each scale.
 
 To initialize the World object, the 'initWorld.R' script is called after
-specifying a substance like was done in the previous chunk. 
+specifying a substance like was done in the previous chunk.
 
 ```{r Initialize World, include=TRUE, warning=FALSE, message=FALSE}
 source("baseScripts/initWorld.R")
@@ -89,7 +89,7 @@ name and from-species name. It can be accessed in the same way other
 variables are accessed:
 
 ```{r Access kaas, include=TRUE, warning=FALSE, message=FALSE}
-df_ks <- World$kaas #wat is dit? Niet beschreven.
+df_ks <- World$kaas 
 ```
 
 ## Change a landscape variable
@@ -101,11 +101,11 @@ dataframe.
 Variable values are changed using World\$MutateVars(). This function
 expects the new variable values in a specific format:
 
--   values should be in a column named 'Waarde'
--   the name of the variable should be in a column named 'varName'
--   the other columns can be 'Scale', 'SubCompart', 'Species' etc. You
-    can see which columns need to be included by using fetchData() on
-    the variable before using mutateVars()
+- values should be in a column named 'Waarde'
+- the name of the variable should be in a column named 'varName'
+- the other columns can be 'Scale', 'SubCompart', 'Species' etc. You can
+  see which columns need to be included by using fetchData() on the
+  variable before using mutateVars()
 
 ```{r Change landscape variable, include=TRUE, warning=FALSE}
 # Get the current dataframe of the variable
@@ -205,10 +205,10 @@ All_abbrs <- World$states$asDataFrame
 
 *Notes:*
 
--   *Compartment deepocean only exists on Global (Arctic, Moderate,
-    Tropic) scale.*
--   *Compartments lake, river, agriculturalsoil and othersoil only exist
-    on regional and continental scale.*
+- *Compartment deepocean only exists on Global (Arctic, Moderate,
+  Tropic) scale.*
+- *Compartments lake, river, agriculturalsoil and othersoil only exist
+  on regional and continental scale.*
 
 The abbreviations used in the emissions data frame are built up as
 follows:
@@ -230,11 +230,11 @@ emissions in tonnes per year are then converted to mol/s.
 
 **For the species abbreviation, use:**
 
--   "U" for "Unbound": Used when the substance is molecular (e.g., a
-    chemical dissolved in water or air).
+- "U" for "Unbound": Used when the substance is molecular (e.g., a
+  chemical dissolved in water or air).
 
--   "S" for "Solid": Used when the substance is a particle (e.g.,
-    microplastics, dust, or other solid-phase contaminants).
+- "S" for "Solid": Used when the substance is a particle (e.g.,
+  microplastics, dust, or other solid-phase contaminants).
 
 In this case we use U because we initialized the World for a molecule.
 
