@@ -20,7 +20,7 @@ More information can be found [here](https://www.rivm.nl/SimpleBox "More info on
 
 # 2. Repository structure
 
-The SBooScripts repository contains serveral folders:
+The SBooScripts repository contains several folders:
 
 -   baseScripts: this folder contains the base scripts for using SBoo, i.e. scripts that can be used to easily create the central object for SimpleBox and a package that installs all needed requirements
 
@@ -36,13 +36,16 @@ The SBooScripts repository contains serveral folders:
 
 SB is split over two repositories.
 In order to use [SBOO](https://github.com/rivm-syso/SBoo) you need two projects with the parent folder in common.
-You can do this as follows:
+
+Opening and running [InstallSBoo.R](https://github.com/rivm-syso/SBooScripts/blob/development/InstallSBoo.R) will install the files correctly.
+
+Alternatively, you can do it as follows:
 
 1.  Create a parent folder (you can name it whatever you like)
 
-2.  Download the [SBoo](https://github.com/rivm-syso/SBoo) repository and save it in your parent folder
+2.  Download the [SBoo](https://github.com/rivm-syso/SBoo) repository and save it as 'SBoo' in your parent folder
 
-3.  Download the [SBooScripts](https://github.com/rivm-syso/SBooScripts) repository and save it in your parent folder
+3.  Download the [SBooScripts](https://github.com/rivm-syso/SBooScripts) repository and save it as 'SBooScripts' in your parent folder
 
 4.  When you start using SimpleBox, set your working directory to your SBooScripts folder.
 
