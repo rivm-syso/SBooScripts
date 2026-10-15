@@ -108,7 +108,8 @@ expects the new variable values in a specific format:
   variable before using mutateVars()
 
 ```{r Change landscape variable, include=TRUE, warning=FALSE}
-# Get the current dataframe of the variable
+# Get the current dataframe of the variable 
+# If the function 'kable' isn't found, first load the knitr package using library(knitr)
 knitr::kable(World$fetchData("TotalArea"))
 
 # Make a dataframe in the same format (also same column names)
