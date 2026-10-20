@@ -123,5 +123,4 @@ InstallSBoo <- function(Release = NA, # tag for release use NA for branch
   }
 }
 
-# InstallSBoo( Release = "2026.3.0",
-#              Temp_Folder = NA)
+InstallSBoo( Release = "2026.3.0", Temp_Folder = NA)
