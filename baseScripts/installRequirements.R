@@ -27,4 +27,8 @@ check_and_install("foreach")
 check_and_install("doParallel")
 check_and_install("gridExtra")
 check_and_install("lhs")
+check_and_install("devtools")
+check_and_install("remotes")
+
+
 
