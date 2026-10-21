@@ -180,15 +180,15 @@ if(anyNA(World$fetchData("Test"))){
 
 AllF <- ls("package:sboo") %>% sapply(FUN = get)
 
-# Load functions to global environment
-ns <- asNamespace("sboo")          
-objs <- ls(ns)                    
-
-funs <- objs[sapply(objs, function(nm) is.function(get(nm, envir = ns)))]
-
-for (nm in funs) {
-  assign(nm, get(nm, envir = ns), envir = .GlobalEnv)
-}
+# # Load functions to global environment
+# ns <- asNamespace("sboo")          
+# objs <- ls(ns)                    
+# 
+# funs <- objs[sapply(objs, function(nm) is.function(get(nm, envir = ns)))]
+# 
+# for (nm in funs) {
+#   assign(nm, get(nm, envir = ns), envir = .GlobalEnv)
+# }
 
 ProcessDefFunctions <- names(AllF) %>% startsWith("k_")
 

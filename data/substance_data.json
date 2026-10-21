@@ -1,8 +1,8 @@
 {
-  "CONST": {
+  "const": {
     "BACTtest": 40000
   },
-  "Substance": 
+  "substance": 
     {
       "name": "default substance",
       "SBmode": "Molecular",
@@ -30,7 +30,6 @@
         "3": { "Compartment": "soil", "kdeg": 1.07e-7},
         "4": { "Compartment": "water", "kdeg": 2.14e-7}
       }
-    
-  }
+    }
 }
 
