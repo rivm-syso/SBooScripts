@@ -1,8 +1,8 @@
 {
-  "const": {
+  "CONST": {
     "BACTtest": 40000
   },
-  "substance": 
+  "Substance": 
     {
       "name": "default substance",
       "SBmode": "Molecular",

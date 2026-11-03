@@ -1,2 +1,5 @@
 mode,Scale,SubCompart,Species,Keep
 Molecular,,,"Unbound",TRUE
+Particulate,,,"Unbound",FALSE
+Particulate,,,"Gas",FALSE
+Particulate,,,"Dissolved",FALSE
