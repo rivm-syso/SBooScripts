@@ -3,6 +3,6 @@ devtools::load_all("../SBoo/")
 
 SBooDataLocation = "data"
 
-SB <- sboo::SBcore$new(SBooDataLocation, SuBmode = "data/substance_data_nano.json", debugR = F)
+SB <- sboo::SBcore$new(SBooDataLocation, SuBmode = "substance_data_nano.json", debugR = T)
 
 SB$UpdateKaas()
