@@ -295,9 +295,8 @@ csv_to_json <- function(
   if (!dir.exists(out_dir)) {
     dir.create(out_dir, recursive = TRUE)
   }
-  
-  safe_name <- gsub("\\s+", "_", substance_name)
-  file_out  <- file.path(out_dir, paste0("substance_data_", safe_name, ".json"))
+
+  file_out  <- file.path(out_dir, paste0("substance_data_", substance_name, ".json"))
   
   writeLines(json_str, file_out)
   
