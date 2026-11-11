@@ -202,8 +202,9 @@ particulate_substance_to_json <- function(data,
 }
 
 molecular_substance_to_json <- function(data, bact_test_value = 40000) {
-  bact_test_value = as.numeric(bact_test_value)
+  bact_test_value <- as.numeric(bact_test_value)
   
+  # 1. Basisrij voor de stof
   substance_row <- data %>%
     dplyr::filter(is.na(VarName)) %>%
     dplyr::slice(1)
@@ -212,6 +213,18 @@ molecular_substance_to_json <- function(data, bact_test_value = 40000) {
   kdeg_rows <- data %>%
     dplyr::filter(VarName == "kdeg")
   
+  # Zorg dat Waarde numeric is (anders krijg je strings in JSON)
+  kdeg_rows$Waarde <- as.numeric(kdeg_rows$Waarde)
+  
+  # Forceer korte wetenschappelijke notatie (e-7 i.p.v. e-07) via format()
+  kdeg_numeric <- kdeg_rows$Waarde
+  # format geeft een character, dus weer naar numeric:
+  kdeg_numeric_short <- as.numeric(format(kdeg_numeric, scientific = TRUE))
+  
+  # vul die terug in
+  kdeg_rows$Waarde <- kdeg_numeric_short
+  
+  # 3. Bouw kdeg_list exact zoals in je werkende JSON
   kdeg_list <- setNames(
     lapply(seq_len(nrow(kdeg_rows)), function(i) {
       list(
@@ -222,7 +235,7 @@ molecular_substance_to_json <- function(data, bact_test_value = 40000) {
     as.character(seq_len(nrow(kdeg_rows)))
   )
   
-  # 3. Bouw Substance-lijst
+  # 4. Bouw Substance-lijst: zelfde velden als in je werkende JSON
   substance_list <- list(
     name       = substance_row$Substance,
     SBmode     = "Molecular",
@@ -247,6 +260,7 @@ molecular_substance_to_json <- function(data, bact_test_value = 40000) {
     kdeg       = kdeg_list
   )
   
+  # 5. Omhulsel
   out <- list(
     CONST     = list(BACTtest = bact_test_value),
     Substance = substance_list
