@@ -1,0 +1,317 @@
+---
+title: "Comparison dplyr update"
+author: "Anne Hids"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	message = FALSE,
+	warning = FALSE,
+	include = FALSE
+)
+library(tidyverse)
+```
+
+**To fix**
+- Running for molecular species doesnt work
+- in World$kaas, in the new version fromSubcompart is named from.Subcompart. Should be changed back to the old naming. 
+
+
+# Setup for comparison
+
+The below scripts are setup to compare a specific release to the current
+version in use. E.g. loaded in R-Studio. (SBoo and SBooScripts). This
+can be a release, e.g. the tag or specific branches in SBoo and
+SBooScripts.
+
+```{R Specify temporary directory, include = FALSE}
+# Specify where the downloaded versions of sboo and sbooscripts should be saved to
+dest_folder <- "SimpleBox"
+```
+
+## Define function for downloading and ordering the folders needed to compare
+
+```{R Switch to SBoo release 2026.3.1 branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+source("vignettes/Development/Quality control/ComparisonFunctions.R")
+folderpaths <- CompareFilesPrep(Release = NA,
+                                devBranch = "development",
+                                Test_SBoo = "verctorfunc",
+                                Test_SBooScripts = "SB2dplyrDAG",
+                                Temp_Folder = dest_folder)
+```
+
+Select random substances for testing
+
+```{R select substances, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+excluded_substances <- c("Graphene Oxide", "Chitosan", "nTiO2_P25_CaLIBRAte_D6_3", "nAg_NanoFase", "nanoparticle", "GO-Chitosan", "PET_sphere_example")
+
+microplastics <- c("TRWP", "microplastic_fiber", "microplastic_cube", "microplastic_sphere", "microplastic_ellipsoid", "microplastic_particle", "microplastic_fiber_elips", "microplastic")
+
+substances <- read.csv("data/Substances.csv")
+
+# Select 5 random substances for each class from substances csv
+# and always select the default microplastic.
+set.seed(492)
+
+mp <- substances |>
+  filter(Substance %in% microplastics) |>
+    slice_sample(n = 5, replace = FALSE) 
+
+substances <- substances |>
+  filter(!Substance %in% microplastics) |>
+  filter(!Substance %in% excluded_substances) |>
+  group_by(ChemClass) |>
+  slice_sample(n = 5, replace = FALSE) |>
+  ungroup()
+
+substances <- rbind(substances, mp) |>
+  distinct()
+```
+
+# Compare default version of SBoo
+
+## Calculate for test version
+
+Calculate first order rate constants for the other version. Here we
+apply the new initWorldOther from the current branch as there are
+missing links to the new install folder in the old release. This can be
+changed in future comparisons.
+
+```{R}
+setwd("SimpleBox/SBtest/SBooScripts")
+
+use_local_sboo = TRUE
+use_scenario_data = FALSE
+```
+
+```{R}
+SBInstallFolder <- "SimpleBox/SBtest" 
+```
+
+```{R}
+source("baseScripts/csv_to_json.R")
+
+# Calculate the kaas 
+other_kaas <- data.frame()
+
+substances <- read.csv("data/Substances.csv") |>
+  filter(ChemClass == "particle" | Substance == "default substance")
+
+selected_substances = c("microplastic", "nAg_10nm", "nZnO", "default substance")
+
+substances <- substances |>
+  filter(Substance %in% selected_substances)
+  
+for(substance in substances$Substance){
+  type = substances |>
+    filter(Substance == substance) |>
+    pull(ChemClass)
+  
+  if(type != "particle"){
+    type = "molecule"
+  }
+  
+  csv_to_json(substance_name  = substance, 
+            data_path = "data", 
+            type = type) 
+}
+
+substance_jsons <- list.files("data/custom_jsons")
+
+file = substance_jsons[3]
+for(file in substance_jsons){
+  devtools::load_all("../SBoo/")
+  SBooDataLocation = "data"
+  #World <- sboo::SBcore$new(SBooDataLocation, SuBmode = file.path("custom_jsons", file), debugR = F)
+  
+  World <- sboo::SBcore$new(SBooDataLocation, SuBmode = "substance_data_nano.json", debugR = F)
+  
+  AllF <- ls("package:sboo") %>% sapply(FUN = get)
+  
+  World$UpdateKaas()
+  
+  substance_name <- sub("^substance_data_(.*)\\.json$", "\\1", file)
+
+  other_kaas <- rbind(other_kaas,  World$kaas |>
+    mutate(Substance = substance_name,
+           ChemClass = World$fetchData("ChemClass")))
+}
+```
+
+## Calculate for most recently published version
+
+Calculate the first order rate constants for the current branch
+
+```{R Clean environment again, include=FALSE}
+rm(list = ls()[sapply(ls(), function(x) is.function(get(x)))])
+```
+
+```{R Run SB and get advection ks for FLux_work branch, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+setwd("../../../SimpleBox/SBmain/SBooScripts")
+
+current_kaas <- data.frame()
+  
+for(substance in selected_substances){
+
+  source("baseScripts/initWorld.R")
+    
+  current_kaas <- rbind(current_kaas,  World$kaas |>
+                          mutate(Substance = substance,
+                                 ChemClass = World$fetchData("ChemClass")))
+}
+```
+
+## Compare scales, compartments and species present
+Because of the new implementation of the states and species, we will first check
+if the same scale-species-compartment combinations are present in the new version
+as in the old version. 
+
+### Check number of rows
+```{R}
+# Check the length of the dataframes 
+nrow(current_kaas)
+nrow(other_kaas)
+
+# Check compartments present at scales 
+other_scale_compartments <- other_kaas |>
+  select(from.SubCompart, to.SubCompart, from.Scale, to.Scale) |>
+  rename(fromSubCompart = from.SubCompart,
+         toSubCompart = to.SubCompart, 
+         fromScale = from.Scale, 
+         toScale = to.Scale) |>
+  distinct()
+
+current_scale_compartments <- current_kaas |>
+  select(fromSubCompart, toSubCompart, fromScale, toScale) |>
+  distinct()
+
+by_cols <- c("fromSubCompart", "toSubCompart", "fromScale", "toScale")
+
+only_in_other <- other_scale_compartments %>%
+  anti_join(current_scale_compartments, by = by_cols)
+
+only_in_current <- current_scale_compartments %>%
+  anti_join(other_scale_compartments, by = by_cols)
+
+# There are differences. Fix states and see which differences remain
+
+
+
+
+
+
+# There are 210 rows less in the other_kaas dataframe. 
+current_kaas_no_0 <- current_kaas |>
+  filter(k != 0) 
+
+other_kaas_no_0 <- other_kaas |>
+  filter(k != 0)
+
+# When all zeros are removed, we have the same number of rows in both dataframes. This means there were 0s in the current version that could have been removed. This difference should not have yielded different results. 
+
+# Now check for NAs: 
+current_kaas_no_NA <- current_kaas |>
+  filter(!is.na(k)) 
+
+other_kaas_no_NA <- other_kaas |>
+  filter(!is.na(k))
+```
+
+### Missing states
+
+The code below shows that the only missing processes in the new implementation of
+SBoo are processes that should not be in the matrix anyways; the Unbound processes
+for particulate species. 
+
+```{R}
+common_cols <- setdiff(intersect(colnames(current_kaas), colnames(other_kaas)), "k")
+
+check_states <- merge(
+  other_kaas,
+  current_kaas,
+  by = common_cols,
+  suffixes = c("_Old", "_New"),
+  all = TRUE   
+)
+
+missing_states <- check_states |>
+  filter(is.na(k_Old) | is.na(k_New))
+```
+
+## Compare rate constants, k's.
+The code below shows there are no changes between the two versions of SBoo, 
+which is what we would expect. Just to be sure we will check the differences in
+steady state masses in the next chunk.
+
+```{R Calculate the differences between ks, results ="hide", echo=TRUE, message=FALSE, warning=FALSE}
+common_cols <- setdiff(intersect(colnames(current_kaas), colnames(other_kaas)), "k")
+
+kaas_comparison <- merge(other_kaas, current_kaas, by=common_cols, suffixes = c("_Old", "_New"))
+
+kaas_comparison <- kaas_comparison |>
+  mutate(diff = k_New-k_Old) |> # If this number is positive, the New_k is higher than the Old_k (higher advection rate with new method)
+  mutate(rel_diff = diff/k_New)
+
+changed_kaas_all <- kaas_comparison |>
+  filter(diff != 0) |>
+  mutate(full_name = paste0("From ", fromSpecies, "_",fromSubCompart, "_", fromScale, 
+                            " to ", toSpecies, "_", toSubCompart, "_", toScale))
+
+head(changed_kaas_all)
+
+unique(changed_kaas_all$process)
+
+changed_kaas <- changed_kaas_all |>
+  filter(abs(rel_diff) > 0.001) 
+
+unique(changed_kaas$process)
+```
+
+# Compare the remove global scenario 
+In the dplyr version of SBoo, the method of defining specific scenarios (changing scales, subcompartments, species) 
+has changed. Below we will show how this is done for the scenario that was used by Saadi et al. (2027). 
+In this scenario, the global scale is removed and the deepocean compartment is introduced at the Regional and
+Continental scales. 
+
+## Step 1: Change the StateRules.csv
+The StateRules.csv can be found in SBooScripts/data, and contains any exceptions
+that SBoo has to take into account regarding scales, subcomparts and species. There
+are 3 rules in this file that are used for the default World, and we will alter this 
+file to fit our scenario. 
+
+```{R}
+setwd("../../SBtest/SBooScripts")
+
+staterules <- read.csv("data/StateRules.csv")
+
+# Remove the second rule which disallows deepocean at regional and continental scale
+staterules <- staterules |>
+  filter(SubCompart != "deepocean")
+
+# Alter the first rule to remove all compartments at the global scales
+staterules <- staterules |>
+  mutate(SubCompart = case_when(
+    Scale == "Tropic,Arctic,Moderate" ~ "naturalsoil,agriculturalsoil,othersoil,river," 
+  ))
+
+```
+
+```{R}
+setwd("../../SBtest/SBooScripts")
+
+staterules <- read.csv("data/StateRules.csv")
+
+# Alter the first rule to remove all compartments at the global scales
+staterules <- staterules |>
+  mutate(SubCompart = case_when(
+    Scale == "Tropic,Arctic,Moderate" ~ "agriculturalsoil,othersoil,river,lake,freshwatersediment,lakesediment" 
+  ))
+```
+
+
